@@ -1,0 +1,528 @@
+/* Visual polish layer of the Hub — refines Ionic components via their CSS vars + minimal globals.
+   Modern look (Linear/Vercel/Notion): soft elevation, radii, careful typography, comfortable
+   density. Self-contained: promotable to an OutfitKit theme unchanged. Does NOT touch logic or markup. */
+
+/* ── Typography ───────────────────────────────────────────────────────────────────────────── */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; font-weight: 650; letter-spacing: -0.015em; }
+
+/* ── Toolbars / headers (flat, blend into the canvas) ───────────────────────────────── */
+ion-header {
+  --background: var(--ion-background-color);
+  box-shadow: none;
+}
+ion-header.header-collapse-condense-inactive,
+ion-header::after { display: none; }
+ion-toolbar {
+  --border-width: 0;
+  --border-color: transparent;
+  --min-height: 60px;
+  --padding-top: 6px;
+  --padding-bottom: 6px;
+}
+ion-title { font-weight: 650; letter-spacing: -0.01em; font-size: 1.0625rem; }
+
+/* ── Shared topbar (AppTopbar.vue) — parity with Cloud's .dash-header ─────────────────── */
+/* (The topbar avatar was removed 2026-07-16: the user lives in the sidebar header.) */
+.app-topbar { position: relative; }
+/* Notifications badge (bell). Positioned over the ion-button (relative host). */
+.topbar-notif { position: relative; overflow: visible; }
+.topbar-notif .notif-badge {
+  position: absolute; top: 2px; right: 0; transform: scale(0.7);
+  pointer-events: none;
+}
+/* In-flight requests progress bar (below the toolbar). */
+.topbar-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; }
+.topbar-progress > div {
+  height: 100%; background: var(--ion-color-primary);
+  animation: topbarpulse 1s ease-in-out infinite;
+}
+@keyframes topbarpulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .topbar-progress > div { animation: none; } }
+
+/* Sidebar footer: brand (logo + wordmark) + version. The user lives at the top (.sidebar-user
+   in the menu header); the old actions row (install/logout) was removed 2026-07-16. */
+.sidebar-foot-brand {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.45rem 0.75rem 0.7rem; font-size: 0.72rem;
+}
+.sidebar-foot-text { color: color-mix(in oklab, var(--ion-text-color) 55%, transparent); }
+.ml-auto { margin-inline-start: auto; }
+/* Collapsed rail: logo only, centered (the version is .nav-label → already hidden). */
+ion-split-pane.rail .sidebar-foot-brand { justify-content: center; padding-inline: 0; }
+
+/* ── Cards: radius + soft elevation + hover on clickable cards ────────────────────────────── */
+ion-card {
+  border-radius: var(--ok-radius);
+  box-shadow: var(--ok-shadow-sm);
+  border: 1px solid var(--ion-border-color);
+}
+ion-card[button] {
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+ion-card[button]:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ok-shadow-md);
+  border-color: rgba(var(--ion-color-primary-rgb), 0.35);
+}
+ion-card-header { padding-bottom: 6px; }
+ion-card-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.025em; }
+ion-card-subtitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--ion-color-medium);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+ion-card-subtitle ion-icon { font-size: 1rem; opacity: 0.7; }
+
+/* ── Surfaced lists (inset): rounded card with shadow, no hard border ─────────────── */
+/* `ion-list` (0,0,1) loses against the vendor rule `.list-md/.list-ios` (0,1,0), which imposes
+   `background: var(--ion-item-background, …)`: its specificity must be matched/exceeded. */
+ion-list,
+ion-list.list-md,
+ion-list.list-ios {
+  background: transparent;
+  padding: 0;
+}
+/* We must beat Ionic's own rule `.list-md/.list-ios.list-inset` in specificity
+   (0,2,0): otherwise it imposes its `margin-inline: 16px` and its `border-radius: 2px`. The side margin
+   misaligns the list against the flush components (ok-widget-board, ion-button) that already sit
+   inside the ion-content's `.ion-padding` (it ended up indented 32px instead of 16px). We want a
+   flush card (vertical margin only) with the --ok radius. We cover both modes (md/ios). */
+ion-list.list-md.list-inset,
+ion-list.list-ios.list-inset {
+  margin: 16px 0;
+  border-radius: var(--ok-radius);
+  box-shadow: var(--ok-shadow-sm);
+  border: 1px solid var(--ion-border-color);
+  overflow: hidden;
+}
+ion-list-header {
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
+  min-height: 40px;
+  --color: var(--ion-color-medium);
+}
+ion-item {
+  --min-height: 52px;
+  --padding-start: 16px;
+  --inner-padding-end: 12px;
+  --padding-top: 6px;
+  --padding-bottom: 6px;
+  --background-hover: var(--ion-color-step-50);
+  --background-hover-opacity: 1;
+}
+/* Row icon (lists/settings: icon + title/description): space between icon and text +
+   normalized size. PARITY with Cloud (same rule in cloud dashboard-shell.css).
+   Exclusions: the sidebar icon (.nav-icon, carries its own 0.7rem and the rail sets it to 0)
+   and icons with an intentional size (ion-icon[size], iconify-icon with its own width). */
+ion-item ion-icon[slot="start"]:not(.nav-icon):not([size]),
+ion-item iconify-icon[slot="start"]:not(.nav-icon):not([width]) {
+  margin-inline-end: 16px;
+  font-size: 20px;
+}
+ion-item h3 { font-weight: 600; }
+ion-note { font-size: 0.875rem; }
+
+/* Settings row: the VALUE must not strangle the LABEL (hub#1733). `ion-item` lays its slots out in
+   the shadow DOM and the label's box gets whatever the `slot="end"` control leaves, so a long value
+   eats the row: measured on banco-pre at 390px, «Automatic · Europe/Madrid, 23:01» took 182 of the
+   252px on offer and left the label 70px, stacking «Time zone» into a 125px-tall column while
+   «Country» right above it read normally. Capping the value is the ONLY lever — a `min-width` on
+   `ion-label` is an illusion, because the label is not the flex item: it just paints over the
+   select (measured: a 90px overlap).
+   The cap scales so it only bites where the row is actually narrow: 7rem (112px) at 390px leaves
+   the label 140px — one line, like «Country» — and stays clear of the values that already fitted
+   («EUR · Euro» 99px, «Spain» 75px); `50vw - 6rem` overtakes that floor at 416px and clears the
+   whole value at 556px, so above it nothing is capped — measured on the bench, tablet (952) and
+   desktop (1440) laid out row for row the same with the rule and without it.
+   Only `ion-select` and `ion-note`: they truncate or wrap. A blanket `[slot="end"]` cap was
+   measured and REGRESSED the «PIN digits» row — its `ion-segment` cannot truncate, so 288px →
+   112px just clipped its own options. Rows whose end slot is a control keep their own bug (hub#1794). */
+ion-item > ion-select[slot="end"],
+ion-item > ion-note[slot="end"] {
+  max-width: max(7rem, calc(50vw - 6rem));
+}
+
+/* ── Buttons: radius, weight, no uppercase or hard shadow ──────────────────────────────────── */
+ion-button {
+  --border-radius: 10px;
+  --box-shadow: none;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  height: 40px;
+}
+ion-button[fill="clear"] { --color: var(--ion-text-color); }
+
+/* ── Badges: refined pill ────────────────────────────────────────────────────────────────── */
+ion-badge {
+  --padding-start: 9px;
+  --padding-end: 9px;
+  --padding-top: 5px;
+  --padding-bottom: 5px;
+  border-radius: var(--ok-radius-pill);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+}
+
+/* ── Segment (footer tabs): modern, no uppercase ────────────────────────────────────── */
+/* #278 — reserve the gesture bar/home indicator on iOS/Android: without reserving it the tabs
+   (min-height 46px, 2-line labels) end up under it and get clipped. On desktop env()
+   resolves to 0 (no effect).
+   Only when the footer has NO toolbar, which is where Ionic does not reach: the per-module tabbar is
+   `ion-footer > ion-toolbar > ion-segment` and there Ionic already reserves it itself
+   (`ion-footer.footer-toolbar-padding ion-toolbar:last-of-type`). Reserving it again here is what
+   left ~50 dp dead above the navigation gesture on Android (hub#1895). The only footer without a
+   toolbar is the side menu's (App.vue), and that one the shell does reserve. */
+ion-footer { box-shadow: none; }
+ion-footer:not(:has(ion-toolbar)) { padding-bottom: env(safe-area-inset-bottom, 0px); }
+ion-footer ion-toolbar { --border-width: 0; }
+ion-segment { --background: transparent; padding: 4px; gap: 4px; }
+/* The footer tabbar (ADR-0022: `navigation[]` → ion-segment) is now styled by OutfitKit:
+   `@erplora/outfitkit/tabbar.css` + `bindTabbar()` from AppPage (loaded in main.ts). It was
+   duplicated and already diverging from the SaaS (outfitkit#29). The tab minimum is adjusted with the
+   `--ok-tabbar-min` token if it is ever needed. */
+ion-segment-button {
+  --indicator-color: transparent;
+  --color: var(--ion-color-medium);
+  --color-checked: var(--ion-color-primary);
+  --border-radius: 10px;
+  min-height: 46px;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+ion-segment-button::part(indicator-background) { border-radius: 10px; }
+
+/* A footer tab's label wraps between words, never inside one, and is never cut (hub#2414, hub#2422).
+   Ionic's own label is single-line with an ellipsis, which on a phone left the shell's strips
+   reading «Approva…», «Plan and li…»; a strip that does not fit SCROLLS instead (Material's
+   scrollable tabs, the iOS tab bar). `bindTabbarPeek` (tabbar-peek.ts) widens each tab to its
+   longest word; `overflow-wrap: normal` keeps that word whole even before it has measured it —
+   Ionic's buttons inherit `break-word`, which split «Availability» into «Availabilit» / «y». */
+ion-footer .ok-tabbar ion-label {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  line-height: 1.1;
+}
+
+/* ── Ionic inputs ─────────────────────────────────────────────────────────────────────────── */
+ion-input,
+ion-select,
+ion-textarea,
+ion-searchbar {
+  --border-radius: 10px;
+}
+
+/* ── Shell / side menu — same visual language as Cloud's dashboard ────────────────── */
+/* (.nav-*, .sidebar-*, .brand-* classes adapted from cloud/static/css/dashboard-shell.css;
+   markup in App.vue. They target light DOM, hence global CSS, not scoped.) */
+
+/* Split-pane: comfortable width; .rail (desktop, icon-only) narrows it. The shell canvas
+   (--ion-background-color) and NO divider: the border between panel and content is given by the radius of the
+   ion-content card, not a line. */
+ion-split-pane {
+  --background: var(--ion-background-color);
+  --border: none;
+  --side-min-width: 232px;
+  --side-max-width: 248px;
+  --side-width: 240px;
+}
+ion-split-pane.rail {
+  --side-min-width: 68px;
+  --side-max-width: 68px;
+  --side-width: 68px;
+}
+
+/* Smooths the rail collapse/expansion: Ionic applies the width to the ion-menu host
+   (width/min-width/max-width: var(--side-*)), so we animate those props so it does not
+   jump. Desktop only (the rail only exists at ≥lg) and respecting reduced-motion. The
+   content (flex:1) reflows by itself following the panel's animated edge. */
+@media (min-width: 992px) {
+  ion-menu.dash-menu.menu-pane-visible {
+    transition: width 0.25s ease, min-width 0.25s ease, max-width 0.25s ease;
+  }
+}
+@media (min-width: 992px) and (prefers-reduced-motion: reduce) {
+  ion-menu.dash-menu.menu-pane-visible { transition: none; }
+}
+
+/* Unified shell: menu = topbar = tabbar = canvas (--ion-background-color), no divider.
+   The menu used to use the muted surface (--ok-surface-muted = #f3f4f6), different from the shell
+   canvas; now it shares exactly the same color as the topbar (AppTopbar → ion-header) and the tabbar
+   (ion-footer), which already resolve to --ion-background-color. Automatic dark mode (the token switches
+   in variables.css, .ion-palette-dark). The menu↔content divider is removed (--border + border-right):
+   the visual separation is given by the radius of the ion-content card. */
+ion-menu.dash-menu {
+  --background: var(--ion-background-color);
+  --border: none;
+  --width: 280px; /* drawer width on mobile */
+  border-right: 0;
+}
+ion-menu.dash-menu ion-header,
+ion-menu.dash-menu ion-content,
+ion-menu.dash-menu ion-toolbar {
+  --background: var(--ion-background-color);
+}
+ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-background-color); }
+
+/* Brand (logo + wordmark) */
+.brand-toolbar { --min-height: 60px; }
+.brand-link {
+  display: inline-flex; align-items: center; gap: 0.55rem;
+  padding-inline-start: 8px; text-decoration: none; color: inherit;
+  cursor: pointer; min-width: 0;
+}
+
+/* Navigation list */
+.nav-list { background: transparent; padding: 0.25rem 0; }
+/* Section separator = divider (not a text label). Identical expanded and collapsed,
+   so there is no jump on collapse. The i18n text ("General"/"Account") stays in the DOM
+   (for a11y/grouping reads) but is visually hidden. The line is painted by the background
+   of the ion-list-header host (its .list-header-inner is transparent and lets it show). */
+.nav-section-label {
+  min-height: 0;
+  height: 1px;
+  width: auto;            /* Ionic forces width:100% on the host; with auto the margins define the width */
+  margin: 0.6rem 1rem;
+  padding: 0;
+  background: var(--ion-border-color);
+  font-size: 0; line-height: 0; overflow: hidden;
+  --color: transparent;
+}
+.nav-item {
+  --background: transparent;
+  --background-hover: color-mix(in oklab, var(--ion-text-color) 6%, transparent);
+  --background-hover-opacity: 1;
+  --color: color-mix(in oklab, var(--ion-text-color) 78%, transparent);
+  --border-radius: 9px;
+  --min-height: 42px;
+  --padding-start: 0.7rem;
+  --inner-padding-end: 0.5rem;
+  margin: 1px 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.nav-item.selected {
+  --background: color-mix(in oklab, var(--ion-color-primary) 13%, transparent);
+  --color: var(--ion-color-primary);
+  font-weight: 600;
+}
+.nav-item.selected::part(native) {
+  box-shadow: inset 3px 0 0 var(--ion-color-primary);
+}
+.nav-icon { flex: none; opacity: 0.9; margin-inline-end: 0.7rem; color: inherit; }
+
+/* Footer: user card (initials avatar + name/email + logout) — same canvas as the
+   rest of the menu (--ion-background-color), so the menu's header/content/footer are uniform. */
+.sidebar-foot { --background: var(--ion-background-color); }
+/* The card is a native <button> (trigger of the user menu's ion-popover): button reset
+   + soft hover, same language as .nav-item. */
+.sidebar-user {
+  display: flex; align-items: center; gap: 0.5rem;
+  width: 100%; margin: 0.35rem 0.35rem 0.5rem; padding: 0.4rem 0.45rem;
+  background: none; border: 0; border-radius: 9px;
+  font: inherit; color: inherit; text-align: start; cursor: pointer;
+}
+.sidebar-user:hover { background: color-mix(in oklab, var(--ion-text-color) 6%, transparent); }
+.sidebar-user-chevron { flex: none; font-size: 15px; color: var(--ion-color-medium); }
+.sidebar-user-popover { --width: 220px; }
+.sidebar-user-popover ion-item { --min-height: 42px; font-size: 0.9rem; }
+.sidebar-user-avatar {
+  width: 34px; height: 34px; border-radius: 999px; flex: none;
+  display: grid; place-items: center; font-weight: 700; font-size: 0.72rem;
+  background: color-mix(in oklab, var(--ion-color-primary) 18%, transparent);
+  color: var(--ion-color-primary);
+  overflow: hidden;
+}
+.sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sidebar-user-meta { min-width: 0; flex: 1; }
+.sidebar-user-name {
+  font-size: 0.85rem; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sidebar-user-email {
+  font-size: 0.72rem; color: color-mix(in oklab, var(--ion-text-color) 55%, transparent);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sidebar-foot ion-button { --color: var(--ion-color-medium); height: 34px; }
+
+/* ── Collapsed rail (desktop, icon-only) ───────────────────────────────────────────────── */
+.rail-toggle { display: none; }            /* the toggle only shows on desktop */
+@media (min-width: 992px) { .rail-toggle { display: inline-flex; } }
+/* hub#1831: the drawer button is the opposite door — phone and tablet only. It no longer auto-hides
+   (that is what left it hidden for up to a second after the first paint), so the breakpoint that
+   hides it is this one, the same `lg` (992px) at which `ion-split-pane when="lg"` pins the menu. */
+@media (min-width: 992px) { .app-topbar ion-menu-button.menu-toggle { display: none; } }
+ion-split-pane.rail .erp-wordmark,
+ion-split-pane.rail .nav-label,
+ion-split-pane.rail .sidebar-user-meta { display: none; }
+/* The brand's menu-toggle (footer) shrinks to its content; forcing it to take the full width
+   lets the lockup fall in the center of the rail (68px). */
+ion-split-pane.rail .sidebar-foot-brand ion-menu-toggle {
+  display: flex; width: 100%; justify-content: center;
+}
+ion-split-pane.rail .brand-link { padding-inline-start: 0; justify-content: center; width: 100%; }
+ion-split-pane.rail .nav-item { --inner-padding-end: 0; }
+ion-split-pane.rail .nav-item::part(native) { justify-content: center; }
+ion-split-pane.rail .nav-icon { margin-inline-end: 0; }
+ion-split-pane.rail .sidebar-user { justify-content: center; }
+
+/* hub#1715 — «Open on your phone». Sits in the sidebar footer, always, for everyone.
+   NO `max-width` anywhere (hub#1605): the code is sized by its own `size` attribute, and the block
+   just centres what the panel gives it. */
+.sidebar-install-qr { padding: 0.5rem 0.75rem 0.25rem; text-align: center; }
+/* `width: fit-content` is load-bearing, not tidiness: `ok-qr` is a block-level custom element,
+   so without it the host stretches to the full panel width and `margin-inline: auto` has nothing
+   left to centre — the symbol paints flush LEFT under a centred caption. The symbol itself stays
+   square either way, so this never breaks scanning; it just looks broken. NOT a `max-width`
+   (hub#1605): the code is sized by its own `size` attribute. */
+.sidebar-install-qr-code { display: block; width: fit-content; margin-inline: auto; }
+.sidebar-install-qr-title {
+  margin: 0.4rem 0 0.1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ion-color-step-750, #444);
+}
+.sidebar-install-qr-hint {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  color: var(--ion-color-step-550, #737373);
+}
+
+/* The rail is ~72px and a readable code needs ~132px, so the two swap. Done in CSS and not with a
+   `v-if` on purpose: the guard in `SidebarInstallQr.test.ts` forbids conditions on this block, and
+   the rail is a desktop panel the user collapsed themselves — not a gate on who gets the code. */
+.sidebar-install-qr-rail { display: none; }
+ion-split-pane.rail .sidebar-install-qr-full { display: none; }
+ion-split-pane.rail .sidebar-install-qr { padding-inline: 0; }
+ion-split-pane.rail .sidebar-install-qr-rail { display: inline-flex; }
+
+/* ── Content area = card-like surface (shell unification) ───────────────────── */
+/* Each shell page mounts its content in the main outlet's ion-content
+   (AppPage → ion-page > AppTopbar + ion-content + tabbar; the outlet is #main and Ionic adds
+   `.split-pane-main` to it). We separate it from the canvas as a rounded CARD: per-theme surface
+   (--ion-card-background: white / dark zinc), large radius and inner padding via Ionic's
+   NATIVE CSS vars (no manual offsets: Ionic positions the ion-content between header and footer and
+   the scroll lives inside its ::part(scroll)). Since the menu/topbar/tabbar share the canvas
+   (--ion-background-color), the rounded corners let the surrounding canvas show. Automatic
+   dark mode: the tokens switch in variables.css (.ion-palette-dark). */
+ion-router-outlet#main.split-pane-main > .ion-page > ion-content {
+  --background: var(--ion-card-background);
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+  border-radius: 25px;
+  overflow: hidden;
+}
+/* The ion-content's background and scroller live in its Shadow DOM: we round their ::part so that
+   the card clips cleanly. The ::part(background) color is already painted by --background (above),
+   so here we only round it. */
+ion-router-outlet#main.split-pane-main > .ion-page > ion-content::part(background) {
+  border-radius: 25px;
+}
+ion-router-outlet#main.split-pane-main > .ion-page > ion-content::part(scroll) {
+  border-radius: 25px;
+}
+
+/* ── Immersive mode: the whole screen for selling (ADR-0048) ─────────────────────────────── */
+/* The marker is set by `lib/immersive.ts` when the active module asks for the `fullscreen` control, and only
+   if its `navigation[]` entry declared it. The work happens here: the shell chrome goes away.
+   The topbar goes TOO, not just the menu and the tabbar: what was asked for is «just the sales
+   screen», and that is what the market's registers do (Odoo POS, Square, Lightspeed). The exit does NOT
+   depend on any of this — it lives in the POS's own ⋮, the only thing left standing— and
+   Esc also brings the chrome back (`fullscreenchange`). */
+html.immersive ion-split-pane > ion-menu.dash-menu { display: none; }
+html.immersive ion-router-outlet#main > .ion-page > ion-header.app-topbar { display: none; }
+html.immersive ion-router-outlet#main > .ion-page > ion-footer { display: none; }
+/* The shell's rounded card is chrome too: full bleed, so the product grid
+   gets the whole canvas. */
+html.immersive ion-router-outlet#main.split-pane-main > .ion-page > ion-content {
+  /* With a unit: Ionic consumes them as a length (`padding-top: var(--padding-top)`), and a var without
+     a unit travels as is — a bare `0` works there, but not in anyone's `calc()`. */
+  --padding-start: 0px;
+  --padding-end: 0px;
+  --padding-top: 0px;
+  --padding-bottom: 0px;
+  border-radius: 0;
+}
+html.immersive ion-router-outlet#main.split-pane-main > .ion-page > ion-content::part(background),
+html.immersive ion-router-outlet#main.split-pane-main > .ion-page > ion-content::part(scroll) {
+  border-radius: 0;
+}
+
+/* ── Shared inner layout for readable/detail pages ───────────────────────── */
+/* AppPage applies it only when the view asks for it. The ion-content already owns the responsive gutter;
+   this wrapper does not limit or center the available width again. */
+.hub-detail-shell {
+  box-sizing: border-box;
+  min-width: 0;
+}
+.hub-detail-shell > * {
+  min-width: 0;
+}
+.hub-detail-shell ion-card {
+  margin-inline: 0;
+}
+.hub-detail-shell--fill {
+  height: 100%;
+  min-height: var(--ok-work-surface-min);
+}
+
+/* ── ok-data-table (OutfitKit): aligns its tokens with the Hub theme ────────────────────── */
+ok-data-table {
+  /* Only the radius is aligned (non-color token). The colors (header, text, borders, hover)
+     fall back to the component's own defaults → Ionic's default --ion-* tokens. */
+  --ok-radius: var(--ok-radius);
+  display: block;
+  border-radius: var(--ok-radius);
+  box-shadow: var(--ok-shadow-sm);
+  overflow: hidden;
+}
+/* `fill` mode: the table takes the available height (fixed header + pager, scroll in the body).
+   This DOCUMENT-LEVEL rule is necessary because, for a shadow tree's host, the normal
+   declarations of the OUTER tree beat `:host([fill])` (cascade context step,
+   before specificity) — without it, the `display:block` above overrode the inner
+   `display:flex` and the table stayed at the height of its content. */
+ok-data-table[fill] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ── Modern thin scrollbar ───────────────────────────────────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: rgba(var(--ion-text-color-rgb), 0.22) transparent; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--ion-text-color-rgb), 0.18);
+  border-radius: var(--ok-radius-pill);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(var(--ion-text-color-rgb), 0.3); background-clip: content-box; }
+
+/* Module cascade notice (ADR-0128): the message lists the affected modules with line
+   breaks (`· Inventory\n· Sales…`); without this, ion-alert flattens them into a single line. */
+.cascade-alert .alert-message {
+  white-space: pre-line;
+}

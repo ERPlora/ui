@@ -1,0 +1,29 @@
+/* print.css — Hub PRINT rules.
+ *
+ * The app DOM is NO longer printed. The document (receipt, invoice, bill) is written as plain,
+ * self-contained HTML in an **isolated iframe** (`erplora.print` → `printHtmlInIframe`), so
+ * what comes out of the printer is THAT document and nothing else.
+ *
+ * History, so nobody repeats the path: taming DOM printing was attempted five times
+ * —the paper lives inside an `ion-modal` that Ionic reparents to `ion-app`, with shadow DOM and
+ * `contain`/`transform` in between— and the result was the whole app or a blank sheet:
+ *   1. hide the siblings of <body>               → blank sheet (that div CONTAINS the modal);
+ *   2. visibility:hidden on "body *"             → does not reach the shadow DOM (the app is WCs);
+ *   3. rules inside the document's modal         → did not work for other documents (pre-bill);
+ *   4. display:none on the siblings in ion-app   → worked in emulation but not in real printing.
+ * Conclusion: do not fight the platform. Separate document.
+ *
+ * Only the safety net is kept: if someone ever calls window.print() without going through
+ * the global entry point, at least the app does not come out with the paper on top of it.
+ */
+
+@media print {
+  ion-app > *:not(ion-modal.doc-modal) {
+    display: none !important;
+  }
+  ion-modal.doc-modal ion-header,
+  ion-modal.doc-modal ion-footer,
+  ion-modal.doc-modal ion-button.doc-close {
+    display: none !important;
+  }
+}
