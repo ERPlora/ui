@@ -1,0 +1,45 @@
+{
+  "name": "@erplora/ui",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sdk": "./src/sdk/index.ts",
+    "./vite": "./src/vite/index.ts",
+    "./shell": "./src/shell/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@erplora/outfitkit": "^0.1.136",
+    "@ionic/core": "8.8.9",
+    "@ionic/vue": "8.8.9",
+    "@ionic/vue-router": "8.8.9",
+    "iconify-icon": "^3.0.3",
+    "openapi-fetch": "^0.14.0",
+    "vue": "^3.5.0",
+    "vue-i18n": "^11.0.0",
+    "vue-router": "^4.0.0"
+  },
+  "devDependencies": {
+    "@iconify-json/ion": "^1.2.7",
+    "@iconify-json/material-symbols": "^1.2.95",
+    "@iconify-json/mdi": "^1.2.3",
+    "@iconify/utils": "^3.1.7",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "@vue/test-utils": "^2.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-vue": "^10.11.1",
+    "happy-dom": "^21.0.1",
+    "openapi-typescript": "^7.0.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.71.2",
+    "unplugin-icons": "^24.0.0",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0",
+    "vue-tsc": "^3.3.13"
+  }
+}
