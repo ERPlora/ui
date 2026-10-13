@@ -1,0 +1,382 @@
+/* Verbatim `static styles` of the Lit original this component ports: ERPlora/outfitkit origin/main
+   src/components/ok-data-table/ok-data-table.ts (0.1.136), with the shared searchbar rule it
+   spreads inlined. Reference fixture of DataTable.lit-parity.test.ts: do not edit by hand. */
+      ion-searchbar input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
+    :host {
+      /* Vars overridable (estilo Ionic), default = cadena --ok-* → --ion-* → hex */
+      --background: var(--ok-surface, var(--ion-card-background, var(--ion-background-color, #ffffff)));
+      --color: var(--ok-text, var(--ion-text-color, #1c1b17));
+      --color-muted: var(--ok-muted, var(--ion-color-medium, rgba(var(--ion-text-color-rgb, 24, 24, 27), 0.55)));
+      --border-color: var(--ok-border, var(--ion-color-step-150, rgba(var(--ion-text-color-rgb, 24, 24, 27), 0.12)));
+      --border-color-soft: var(--ok-border-soft, var(--ion-color-step-100, rgba(var(--ion-text-color-rgb, 24, 24, 27), 0.07)));
+      /* Borde más marcado para los controles de la toolbar (selects/pastilla de fechas), para que se
+       * distingan como controles en claro y oscuro aunque el lienzo y la superficie casi no contrasten. */
+      --control-border: color-mix(in srgb, var(--color) 22%, transparent);
+      /* Relieve de cabecera/pie: step-100 (definido en claro y oscuro) → contraste con el lienzo. */
+      --header-background: var(--ok-surface-2, var(--ion-color-step-100, rgba(var(--ion-text-color-rgb, 24, 24, 27), 0.04)));
+      --row-hover: var(--ok-row-hover, var(--ion-color-step-50, rgba(var(--ion-text-color-rgb, 24, 24, 27), 0.03)));
+      --primary: var(--ok-primary, var(--ion-color-primary, #3880ff));
+      --primary-contrast: var(--ok-primary-contrast, var(--ion-color-primary-contrast, #ffffff));
+      --border-radius: var(--ok-radius, 16px);
+      --font: var(--ok-font, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+
+      display: block;
+      color: var(--color);
+      font-family: var(--font);
+    }
+    * { box-sizing: border-box; }
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      /* Flat: sin borde ni elevación (directiva 2026-06-09). */
+      border: 0;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      background: var(--background);
+      box-shadow: none;
+    }
+
+    /* Panel lateral derecho (drawer) DENTRO de la tabla: filtros / alta-edición. Base (sin media):
+       overlay absoluto — es lo que había hasta #75 y lo que ve un navegador sin media queries. */
+    .tk-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.18); z-index: 19; }
+    .drawer { position: absolute; top: 0; right: 0; height: 100%; width: 340px; max-width: 88%;
+      background: var(--background); border-left: 1px solid var(--border-color);
+      display: flex; flex-direction: column; z-index: 20;
+      animation: tk-slide-in 0.18s ease; }
+    @keyframes tk-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    /* #75 — El panel EMPUJA en escritorio y es HOJA COMPLETA en móvil; nunca tapa a medias.
+       Medido en el hub (Servicios/Citas): a 1440 el overlay de 340px se pintaba ENCIMA de
+       «Duración», «Acciones» y el selector de columnas, con el 90% de la tabla vacío a la
+       izquierda; a 390 dejaba una tira de 45px de tabla (media lupa, medio «Co…») que hacía
+       parecer el formulario un pop-up mal puesto. Square Dashboard reduce la tabla con un panel
+       fijo; Fresha/Shopify/Odoo abren una hoja a pantalla completa en móvil.
+       ≥ 834px: mientras hay panel, .card pasa a rejilla de DOS columnas (tabla | panel 360px):
+       la tabla se estrecha (ya sabe hacer scroll-x, #67) y nada queda tapado. */
+    @media (min-width: 834px) {
+      .card.has-panel { display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto minmax(0, 1fr) auto; }
+      .card.has-panel > .bar { grid-column: 1; grid-row: 1; }
+      .card.has-panel > .scroll, .card.has-panel > .cards-grid, .card.has-panel > .empty, .card.has-panel > .load-error, .card.has-panel > .loading-state { grid-column: 1; grid-row: 2; min-height: 0; overflow: auto; }
+      .card.has-panel > .pager { grid-column: 1; grid-row: 3; }
+      .card.has-panel > .drawer { position: static; grid-column: 2; grid-row: 1 / -1; width: auto; max-width: none; height: auto; min-height: 0; animation: none; }
+      .card.has-panel > .tk-scrim { display: none; }
+    }
+    /* < 834px: hoja a pantalla completa con su cabecera (título + Cerrar); sin tira residual.
+       position:fixed dentro de ion-content se ancla al área de contenido (contain), que es justo el hueco
+       bajo la cabecera de la app: el usuario conserva el título de la página. */
+    @media (max-width: 833.98px) {
+      .drawer { position: fixed; inset: 0; top: var(--ok-sheet-top, 0px); bottom: var(--ok-sheet-bottom, 0px); width: 100%; max-width: none; height: auto; border-left: 0; z-index: 1000; }
+      .tk-scrim { display: none; }
+    }
+    .drawer .dh { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 0.5rem 0.6rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 1rem; }
+    .drawer .db { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.85rem; }
+    .fblock { display: flex; flex-direction: column; gap: 0.45rem; }
+    .flabel { font-size: 13px; font-weight: 500; color: var(--color); }
+    .frange { display: flex; gap: 0.5rem; }
+    /* Filtros cliente: multi-select con ion-select (ventana flotante de Ionic) + rango de fechas. */
+    .daterange { display: flex; gap: 0.6rem; }
+    .daterange ion-input { flex: 1; }
+    /* Pie del drawer de filtros: Limpiar / Aplicar. */
+    .df { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; padding: 0.6rem 0.85rem; border-top: 1px solid var(--border-color); }
+    .df .df-clear { margin-right: auto; }
+    /* #207 — Server-mode «Show results»: the one button of the footer, as wide as the sheet. */
+    .df .df-done { flex: 1 1 auto; }
+
+    /* Modo fill: la tabla ocupa el alto del contenedor; filas con scroll interno; pager fijo. */
+    :host([fill]) { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+    :host([fill]) .card { flex: 1 1 auto; min-height: 0; }
+    :host([fill]) .bar, :host([fill]) .panel, :host([fill]) .pager { flex: 0 0 auto; }
+    :host([fill]) .scroll, :host([fill]) .cards-grid { flex: 1 1 auto; min-height: 0; overflow: auto; }
+    /* Sin filas, renderTable/renderCards devuelven SOLO el bloque .empty (sin .scroll). En modo
+       fill hay que estirarlo para que ocupe el hueco entre toolbar y pager y centre su contenido
+       (icono + mensaje) en vertical; si no, queda pegado arriba con el pager a media altura. */
+    :host([fill]) .empty, :host([fill]) .load-error, :host([fill]) .loading-state { flex: 1 1 auto; min-height: 0; }
+    /* #218 — On a phone (MOBILE_BREAKPOINT, where the table turns into cards and «Load more») the
+       module paints other blocks above the table, and rows boxed in between toolbar and footer got
+       what was left: a 315px card in a 32-155px window, never readable whole. Phone lists scroll
+       WITH the page (Shopify, Square, Odoo): the card is as tall as its content, the rows are not a
+       scroller of their own and the shell's ion-content scrolls.
+       The host box stays as it was, so the blocks ABOVE keep their size (growing it squeezed an
+       ion-segment or ion-card to 0px), and the cards run past it into the page scroll. Only when
+       something in flow comes AFTER the table ([content-after], see syncContentAfter) does the box
+       grow, pushing that content down instead of painting over it. !important because every
+       module ships .page > ok-data-table { flex: 1 1 auto; min-height: 0 }, and only an important
+       declaration from inside the shadow wins over the page's own rule. */
+    @media (max-width: 640px) {
+      :host([fill]) .card { flex: 1 0 auto; }
+      :host([fill]) .scroll, :host([fill]) .cards-grid { flex: 0 0 auto; }
+      :host([fill]) .cards-grid { overflow: visible; }
+      :host([fill][content-after]) { height: auto; flex-shrink: 0 !important; }
+    }
+
+    /* ── Topbar / cabecera (relieve) ─────────────────────────────────────────────────────── */
+    .bar { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.65rem 1rem; border-bottom: 1px solid var(--border-color); background: var(--header-background); }
+    /* Toolbar CONSOLIDADA: TODOS los controles son hijos directos de UNA sola fila flex que
+     * envuelve ELEMENTO A ELEMENTO (no por bloques): caben en una línea → una línea; los que no
+     * caben bajan a la(s) línea(s) que hagan falta. El cluster derecho se empuja al borde con
+     * .tk-spacer (hueco flexible) solo cuando todo cabe en una línea; al envolver, el spacer se
+     * oculta y todo se apila a la izquierda.
+     * ORDEN CANÓNICO (2026-06-22, izquierda→derecha): [buscador] · [filtros en línea] · ‹spacer› ·
+     * [SELECTORES: columnas → filas/página] · [BOTONES: vistas → filtros(funnel) → import → export →
+     * alta → ⋮ → acción primaria]. Es decir: buscador al inicio, filtros en medio, y al final los
+     * selectores (columnas, luego «N por página») seguidos de los botones de acción. */
+    .bar-main { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+    .bar-main > ion-button { --padding-start: 0.5rem; --padding-end: 0.5rem; margin: 0; }
+    /* Spacer que absorbe el hueco libre en pantallas anchas (empuja el cluster derecho al borde).
+     * Se oculta por debajo de 1024px para que, al envolver, los controles se apilen a la izquierda. */
+    .tk-spacer { flex: 1 1 0; min-width: 0; align-self: stretch; }
+    @media (max-width: 1024px) { .tk-spacer { display: none; } }
+    /* Buscador a ancho completo (línea propia) en móvil; el resto envuelve debajo. */
+    @media (max-width: 640px) { .search { flex-basis: 100%; max-width: none; } }
+    .title-wrap { display: flex; align-items: baseline; gap: 0.5rem; }
+    .title { font-size: 15px; font-weight: 600; line-height: 1; margin: 0; }
+    .title-count { font-size: 12px; font-weight: 500; color: var(--color-muted); }
+
+    /* Botón de herramienta cuadrado (filtros/import/export), look del Hub: 36×36, badge contador. */
+    .toolbtn { position: relative; --padding-start: 0; --padding-end: 0; --border-radius: 10px; width: 36px; height: 36px; margin: 0; }
+    .toolbtn .badge { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 999px; background: var(--primary); color: var(--primary-contrast); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
+
+    /* Buscador (caja con icono + limpiar), look del Hub. No crece (el spacer se queda el hueco);
+     * puede encoger hasta min-width y, por debajo, envuelve. */
+    .search { flex: 0 1 22rem; min-width: 12rem; max-width: 24rem; }
+    ion-searchbar { --background: var(--background); --border-radius: 10px; padding: 0; min-height: 36px; }
+    /* Flat: el buscador quita borde y elevación vía la clase específica de Ionic 'ion-no-border'.
+     * (La regla global de Ionic para .ion-no-border no cruza el Shadow DOM, así que la
+     * reimplementamos aquí dentro: --box-shadow controla la elevación; ::part(native) el borde.) */
+    ion-searchbar.ion-no-border { --box-shadow: none; }
+    ion-searchbar.ion-no-border::part(native) { border: none; box-shadow: none; }
+
+    /* Toggle de vista lista/tarjetas (segmento) */
+    .viewseg { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--background); }
+    .viewseg ion-button { --border-radius: 7px; }
+
+    /* Botón primario (primaryAction) */
+    .primary-btn { --background: var(--primary); --color: var(--primary-contrast); }
+    /* #76 — El alta en MÓVIL: botón primario CON etiqueta y área táctil de 44px, en vez del «+»
+       icónico de 36px al final de la barra. Fresha/Square/Shopify POS ponen la acción primaria
+       de la lista como botón visible con texto (o FAB), nunca como icono anónimo.
+       #113 — Y en ESCRITORIO igual: Odoo («New»), Business Central, Shopify («Add product»),
+       WooCommerce, Lightspeed y Fresha rotulan y rellenan la acción principal de un listado; NN/g
+       reserva el botón sin rótulo para lo universal (buscar, cerrar). Aquí solo cambia la ALTURA:
+       36px para alinear con .toolbtn y el buscador, y los 44px táctiles vuelven abajo con el
+       resto de objetivos de puntero grueso. */
+    .add-btn { min-height: 36px; --border-radius: 10px; --padding-start: 0.9rem; --padding-end: 1rem; margin: 0; font-weight: 600; }
+    .add-btn ion-icon { margin-inline-end: 0.35rem; }
+
+    /* Selects de la toolbar: fondo + borde visibles (como el buscador y la pastilla de fechas) para
+     * que se distingan como controles en claro y oscuro (sin fondo eran invisibles en dark). */
+    .tk-cols { min-width: 6.5rem; max-width: 9rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem; }
+    .vsep { width: 1px; align-self: stretch; background: var(--border-color); margin: 0.3rem 0.25rem; }
+
+    /* Selector de filas/página en la toolbar (consolidado) */
+    /* max-width: ion-select es display:block (sin core.css el host estira a la
+     * línea entera cuando .bar-end hace wrap) — se capa como .tk-cols. */
+    .tk-psize { min-width: 4.25rem; max-width: 5.5rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem; }
+
+    /* Filtros EN LÍNEA en la toolbar (select / rango de fechas) */
+    .tk-filter { min-width: 8.5rem; max-width: 13rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.7rem; --padding-end: 0.5rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem; }
+    .tk-daterange { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.6rem; min-height: 38px; border: 1px solid var(--control-border); border-radius: 10px; background: var(--background); color: var(--color-muted); font-size: 13px; }
+    .tk-daterange ion-icon { font-size: 15px; flex: 0 0 auto; }
+    .tk-daterange ion-input { --background: transparent; --padding-start: 0; --padding-end: 0; --padding-top: 2px; --padding-bottom: 2px; --color: var(--color); min-height: 26px; width: 6.8rem; font-size: 13px; }
+    .tk-daterange .arr { color: var(--color-muted); }
+
+    /* Barra contextual de selección */
+    .selbar { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.7rem; border-radius: 10px;
+      font-size: 13px; color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 12%, transparent); }
+    .selbar .sel-clear { margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; cursor: pointer; font-weight: 500; color: inherit; background: none; border: 0; font: inherit; }
+    .selbar .sel-clear:hover { text-decoration: underline; }
+
+    /* Acordeones (alta / filtros en modo tarjetas) */
+    .panel { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color); background: var(--header-background); }
+    .filters-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.6rem; }
+
+    /* ── Vista lista en CSS GRID (no <table>): permite ancho por columna ──────────────────── */
+    /* #67 — La barra horizontal es PERMANENTE cuando hay desbordamiento: la overlay de macOS se
+       esconde a los pocos ms y deja la tabla sin ninguna pista de que sigue a la derecha. Al
+       declarar ::-webkit-scrollbar el navegador pinta la clásica, que ocupa sitio y se ve. */
+    .scroll { overflow-x: auto; }
+    .scroll::-webkit-scrollbar { height: 10px; }
+    .scroll::-webkit-scrollbar-track { background: transparent; }
+    .scroll::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color) 25%, transparent); border-radius: 6px; }
+    .scroll::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color) 40%, transparent); }
+    /* #120 - The grid floor is the SUM OF THE COLUMN MINIMUMS (min-content), not its maximum
+       size. With max-content the grid sizes itself to what the widest column asks for and, in
+       doing so, every 1fr track ends up as wide AS THAT ONE: at 834px each column measured
+       148.86px for content asking between 10px (a "4") and 100px ("Familia Perez"). The table
+       always overflowed and the pinned actions column sat on top of Pax and Estado. With
+       min-content the grid fits its container as long as the minimums fit, and 1fr shares out the
+       leftover space; horizontal scroll shows up only when not even the minimums fit. */
+    .grid { min-width: min-content; font-size: 14px; }
+    .grow { display: grid; align-items: center; gap: 0.5rem; padding: 0 1rem; }
+    .ghead { position: sticky; top: 0; z-index: 2; border-bottom: 1px solid var(--border-color);
+      background: var(--header-background); padding-top: 0.55rem; padding-bottom: 0.55rem; }
+    .gcell { display: flex; align-items: center; min-width: 0; }
+    .gcell > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* #217 - A touch screen has no hover to show the cell's title, so in a table whose rows open
+       nothing a tap on a clipped cell unfolds it in place (see onCellTap). Only that cell wraps; the rest of the row keeps
+       its one line. The grid track does not move: its minimum is the column's fixed floor. */
+    .gcell > span.unfolded { white-space: normal; overflow-wrap: anywhere; }
+    .gcell.right { justify-content: flex-end; text-align: right; }
+    .gcell.center { justify-content: center; text-align: center; }
+    /* #67 - PINNED ACTIONS COLUMN. When the grid overflows (since #120 only when not even the
+       column minimums fit; before that it happened with six columns and room to spare) the button
+       that opens the record went off screen: at 1440px it sat 335px past the edge with nothing to
+       give it away. It stays stuck to the right edge, like Zendesk/Freshdesk/Shopify. With
+       background:inherit it takes the row background (which is opaque for this very reason), so it
+       keeps hover and selection without anything showing through. */
+    .gcell.actions-col { position: sticky; right: 0; z-index: 1; background: inherit;
+      margin-right: -1rem; padding-right: 1rem; }
+    /* La sombra solo aparece cuando de verdad hay algo escondido a la izquierda (clase x-overflow);
+       si la tabla cabe entera no se pinta nada. */
+    .scroll.x-overflow .gcell.actions-col { box-shadow: -10px 0 10px -10px color-mix(in srgb, var(--color) 45%, transparent); }
+    /* #120 - The pinned header has to be OPAQUE. background:inherit took --header-background,
+       which is a 4% alpha TINT (measured rgba(24,24,27,0.04)): when the grid overflows the
+       "Acciones" header went see-through and "PAX" and "ESTADO" could be read through it - the
+       "PAXCIONESTAD" of the issue. It now sits on the opaque table background with the tint laid
+       back on top, the same way .grow-data:hover does. */
+    .ghead .gcell.actions-col { z-index: 3;
+      background: linear-gradient(var(--header-background), var(--header-background)), var(--background); }
+    .gh { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); }
+    .gh.sortable { cursor: pointer; user-select: none; white-space: nowrap; transition: background-color var(--ok-transition, 150ms ease), color var(--ok-transition, 150ms ease), box-shadow var(--ok-transition, 150ms ease), transform 120ms ease; }
+    @media (hover: hover) {
+      .gh.sortable:hover { color: var(--color); }
+    }
+    /* Caret de orden (3 estados, icono Ionic): neutral atenuado / activo en color primario. */
+    .caret { display: inline-flex; align-items: center; margin-left: 0.25rem; flex: 0 0 auto; font-size: 13px; opacity: 0.3; }
+    .caret.on { opacity: 1; color: var(--primary); }
+    .grow-data { background: var(--background); border-bottom: 1px solid var(--border-color-soft); padding-top: 0.6rem; padding-bottom: 0.6rem; transition: background-color var(--ok-transition, 150ms ease), color var(--ok-transition, 150ms ease), box-shadow var(--ok-transition, 150ms ease), transform 120ms ease; }
+    .grow-data:last-child { border-bottom: 0; }
+    @media (hover: hover) {
+      .grow-data:hover { background: linear-gradient(var(--row-hover), var(--row-hover)), var(--background); }
+    }
+    .grow-data:active { transform: scale(0.995); }
+    .grow-data.selected { background: linear-gradient(color-mix(in srgb, var(--primary) 10%, transparent), color-mix(in srgb, var(--primary) 10%, transparent)), var(--background); }
+    /* #67 — Fila clicable (opt-in row-clickable): es lo primero que intenta el usuario y lo que
+       hacen Odoo, Jira SM, Shopify o Square en sus listados. */
+    .grow-data.clickable { cursor: pointer; }
+    .grow-data.clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+    .selcb { display: flex; align-items: center; justify-content: center; }
+    .filters-grow { padding-top: 0.4rem; padding-bottom: 0.6rem; }
+    .filters-grow input, .filters-grow select { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 0.3rem 0.4rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--background); color: var(--color); }
+    .range { display: flex; gap: 0.25rem; }
+
+    /* ── Vista tarjetas ──────────────────────────────────────────────────────────────────── */
+    /* Cada tarjeta mide SU contenido (no se estira al alto de la fila ni del contenedor):
+       - grid-auto-rows: max-content → cada fila implícita = alto de su contenido. CLAVE: sin esto,
+         en modo fill (grid de alto fijo + align-content:start) cuando las tarjetas no caben el
+         navegador encoge los tracks de fila y las tarjetas se solapan.
+       - align-content: start → empaqueta las filas arriba (no reparte el hueco sobrante estirando).
+       - align-items: start → en una fila multi-columna cada tarjeta mide su propio contenido.
+       En modo fill el grid es flex-child con overflow:auto → cuando las tarjetas no caben aparece el
+       scroll DENTRO de la tabla (no crece hacia fuera). */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.75rem; padding: 1rem; grid-auto-rows: max-content; align-content: start; align-items: start; }
+    /* Tarjeta = ion-card NATIVO de Ionic: su fondo, radio, elevación y padding son los de Ionic y NO
+       se sobrescriben. Aquí solo se ajusta lo que el contexto de rejilla exige (margin) y los huecos
+       que Ionic no trae (cabecera en fila, filas clave-valor, barra de acciones, resalte de selección). */
+    ion-card.rcard { margin: 0; } /* la rejilla aporta el gap → sin esto el margin por defecto de ion-card lo duplica */
+    ion-card.rcard.selected { outline: 2px solid var(--primary); outline-offset: -2px; }
+    /* #74 — Tarjeta clicable (opt-in row-clickable): la mitad de #67 que faltaba. La vista de
+       tarjetas es la que la tabla elige SOLA en móvil, así que sin esto el registro no se podía
+       abrir desde un teléfono (medido con combos 0.1.4: 0 rowClick a 390px). */
+    ion-card.rcard.clickable { cursor: pointer; }
+    ion-card.rcard.clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+    @media (prefers-reduced-motion: reduce) {
+      .gh.sortable:hover, .gh.sortable:active,
+      .grow-data:hover, .grow-data:active { transform: none; }
+    }
+    /* Header: ion-card-header as a single row (icon + title + checkbox), keeping Ionic's padding.
+       #79 — flex-direction/flex-wrap are SPELLED OUT on purpose: in ios mode (the mode the Hub
+       shell pins, ADR-0143) Ionic's own host CSS gives ion-card-header a column direction, so a
+       rule that only sets display:flex inherits it and the three children stack on three lines.
+       Under md the same rule looked right, which is why it shipped. */
+    ion-card-header.rcard-head { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 0.5rem; }
+    .rcard-head .rc-icon { display: inline-flex; color: var(--primary); }
+    .rcard-head .rc-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    /* Cuerpo: ion-card-content (padding Ionic por defecto) con las filas clave-valor apiladas. */
+    ion-card-content.rcard-body { display: flex; flex-direction: column; gap: 0.4rem; }
+    .rrow { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 13px; }
+    .rrow .rk { color: var(--color-muted); }
+    .rrow .rv { font-weight: 500; text-align: right; color: var(--color); }
+    /* Barra de acciones (Ionic no trae "card actions"): pie alineado a la derecha, fondo transparente. */
+    .ractions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0 0.5rem 0.5rem; }
+    /* ERPlora/appointments#154 - a card's action row must NEVER clip.
+       The assumption was that they always fit across the card. With the eight actions an
+       appointment carries they do not: on a 411dp phone the card leaves 363px and the buttons ask
+       for 380px (8 x 44px of tap floor + 7 gaps of 4px). Without wrapping, justify-content:
+       flex-end takes that difference off the START side, so the FIRST button - Cobrar - hung off
+       the left edge of the card, clipped, with no scrollbar and nothing to say it was there.
+       The wrap is scoped to the card on purpose: the LIST view's row is measured by its
+       scrollWidth to pin the column track (#121), and a row that wraps changes width with the
+       track it is measured against, which is the loop that measure avoids. */
+    .ractions .actions { flex-wrap: wrap; }
+
+    /* ── Estado vacío ────────────────────────────────────────────────────────────────────── */
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 3.5rem 1rem; text-align: center; color: var(--color-muted); }
+    /* pm#530 — Error state: same frame as the empty state, but its heading reads as text, not muted. */
+    .load-error { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 3.5rem 1rem; text-align: center; color: var(--color-muted); }
+    /* #268 — Loading state: same frame as the empty state, a spinner instead of the tray. */
+    .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 3.5rem 1rem; text-align: center; color: var(--color-muted); }
+    .loading-state ion-spinner { width: 28px; height: 28px; color: var(--ok-primary, var(--ion-color-primary, #3880ff)); }
+    .load-error .load-error-title { color: var(--color); font-weight: 600; }
+    .load-error .empty-ic { color: var(--ok-danger, var(--ion-color-danger, #c5000f)); }
+    .load-error ion-button { margin-top: 0.25rem; }
+    .empty .empty-ic, .load-error .empty-ic { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 999px; background: var(--header-background); font-size: 26px; }
+
+    .actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
+    /* #121 - The buttons NEVER shrink. Their track is pinned to the width measured here
+       (the scrollWidth of .actions); if they could shrink, a narrow track would shrink the
+       measurement, which would shrink the track again. flex: 0 0 auto is what makes the
+       measurement a property of the CONTENT instead of a property of the current layout. */
+    .actions ion-button { flex: 0 0 auto; }
+    /* #240 - Stand-in of a row action hidden on this row: it keeps the button's width (so the
+       others stay in their column) and paints nothing; aria-hidden + inert keep it out of the
+       accessibility tree, the tab order and the click path. */
+    .actions .action-gap { visibility: hidden; }
+    /* #122 - Header of the actions column while the buttons are folded into the menu. "ACCIONES"
+       measures 62.83px and the folded track is 44px: painted, it spills out of its own cell and
+       over "Estado" - the very thing the issue is about. The column keeps its name for assistive
+       tech and paints nothing. #211 - Same while expanded when the buttons leave no room for the
+       label (one icon: 32-44px), instead of painting "ACCI…". */
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+      clip-path: inset(50%); white-space: nowrap; border: 0; }
+    /* Las acciones de fila son icon-only y de tamaño small en escritorio. En tablet/móvil se
+     * amplía el host completo (no solo el icono) para que el área táctil alcance 44×44 px. */
+    @media (pointer: coarse), (max-width: 834px) {
+      .actions ion-button { min-width: 44px; min-height: 44px; margin: 0; }
+      .toolbtn { width: 44px; height: 44px; }
+      .add-btn { min-height: 44px; }
+      .pager .nav ion-button { min-width: 44px; min-height: 44px; margin: 0; }
+      .load-error ion-button { min-height: 44px; --padding-start: 1rem; --padding-end: 1rem; }
+    }
+    /* Spinner de acción en curso (loading): contenido dentro del ion-button small (Ionic lo fija
+     * a 28px en el :host, por eso width/height y no font-size). Cubre tabla y tarjetas: los
+     * botones de fila siempre van dentro de .actions. */
+    .actions ion-spinner { width: 18px; height: 18px; }
+
+    /* ── Pie: contador + paginación ──────────────────────────────────────────────────────── */
+    .pager { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.55rem 1rem; border-top: 1px solid var(--border-color); background: var(--header-background); font-size: 12.5px; color: var(--color-muted); }
+    .pager .left { display: flex; align-items: center; gap: 0.6rem; }
+    .pager .strong { font-weight: 600; color: var(--color); }
+    .psize { font: inherit; font-size: 12.5px; padding: 0.2rem 0.35rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--background); color: var(--color); }
+    .pager .nav { display: flex; align-items: center; gap: 0.2rem; }
+    /* #78 — Pie en MÓVIL: un solo control «Cargar más» en lugar del pager numerado (Shopify
+       IndexTable, Fresha, Square y Material hacen lo mismo: nadie pinta botones de página en un
+       teléfono). Sin atributo fill: el sólido por defecto de Ionic es el único que pinta caja en
+       modo ios (outfitkit#82 / ADR-0143). Los 44px son el área táctil mínima. */
+    .pager .load-more { min-height: 44px; margin: 0; --padding-start: 1rem; --padding-end: 1rem; font-size: 13px; }
+    .pager .nav .pp { font-weight: 600; color: var(--color); padding: 0 0.25rem; }
+    /* Pager numerado: botón por página + «…» en los saltos (look del Hub). */
+    /* #92 — min-width/height at 44px so a numbered page button matches the prev/next ion-button's
+       own 44px tap target (line above): before this they were visibly smaller than their neighbors. */
+    .pnum { min-width: var(--ok-tap-min, 44px); height: var(--ok-tap-min, 44px); padding: 0 0.4rem; border: 1px solid transparent; border-radius: 8px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--color); cursor: pointer; transition: background 0.12s, border-color 0.12s; }
+    .pnum:hover { background: var(--row-hover); }
+    .pnum.on { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
+    .pgap { padding: 0 0.15rem; color: var(--color-muted); }
+    ion-button { --box-shadow: none; }
+  

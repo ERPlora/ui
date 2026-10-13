@@ -1,0 +1,263 @@
+// Pure logic of the DataTable, ported from `ok-data-table.ts` (OutfitKit) with the cases of its
+// Lit tests that do not need a DOM.
+import { describe, expect, it } from 'vitest';
+
+import {
+  cardTitleColumn,
+  cellText,
+  gridTemplate,
+  pageList,
+  pagerState,
+  rowActionsFolded,
+  rowKeyOf,
+  sameRecords,
+  searchRows,
+  slotActions,
+  sortKey,
+  sortRows,
+  toneStyle,
+  visibleActions,
+} from './model';
+import type { DataTableAction, DataTableColumn } from './types';
+
+type Row = Record<string, unknown>;
+const col = (c: Partial<DataTableColumn<Row>> & { key: string }): DataTableColumn<Row> => ({ label: c.key, ...c });
+
+const dmy = (iso: unknown): string => {
+  if (typeof iso !== 'string' || !iso) return '';
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+};
+
+describe('rowKeyOf', () => {
+  it('reads a field or calls a function, always as text', () => {
+    expect(rowKeyOf({ id: 7 }, 'id')).toBe('7');
+    expect(rowKeyOf({ code: 'A' }, (r) => `k-${String(r.code)}`)).toBe('k-A');
+    expect(rowKeyOf({ name: 'x' } as Row, 'id')).toBe('');
+  });
+});
+
+describe('cellText', () => {
+  it('formats with the value and the row; raw value otherwise; null/undefined paint nothing', () => {
+    expect(cellText(col({ key: 'total', format: (v, r) => `${String(v)} ${String(r.cur)}` }), { total: 9, cur: '€' })).toBe('9 €');
+    expect(cellText(col({ key: 'n' }), { n: 0 })).toBe('0');
+    expect(cellText(col({ key: 'n' }), { n: null })).toBe('');
+  });
+
+  it('a format that returns something that is not text still paints (modules ship without typecheck)', () => {
+    const odd = col({ key: 'p', format: (() => undefined) as unknown as () => string });
+    expect(cellText(odd, { p: 1 })).toBe('');
+    const numeric = col({ key: 'p', format: ((_v: unknown, r: Row) => r.p) as unknown as () => string });
+    expect(cellText(numeric, { p: 7 })).toBe('7');
+  });
+});
+
+describe('client sort follows the value, not the painted text (outfitkit#256)', () => {
+  const SERIES: Row[] = [
+    { id: 'a', name: 'Ana', start_date: '2027-01-15', end_date: '2027-01-15', max: null },
+    { id: 'b', name: 'Bea', start_date: '2026-12-31', end_date: null, max: null },
+    { id: 'c', name: 'Carla', start_date: '2027-03-31', end_date: '2026-12-31', max: null },
+    { id: 'd', name: 'Dora', start_date: '2026-02-01', end_date: null, max: 4 },
+    { id: 'e', name: 'Eva', start_date: '2026-11-02', end_date: '2027-03-31', max: 6 },
+  ];
+  const endsLabel = (_v: unknown, r: Row): string => {
+    if (r.end_date && r.max) return `${dmy(r.end_date)} · Tras ${String(r.max)} citas`;
+    if (r.end_date) return dmy(r.end_date);
+    if (r.max) return `Tras ${String(r.max)} citas`;
+    return 'Sin fin';
+  };
+  const names = (rows: Row[]) => rows.map((r) => r.name);
+
+  it('a dd/mm/yyyy column sorts by the date, both ways', () => {
+    const starts = col({ key: 'start_date', format: (v) => dmy(v) });
+    expect(sortRows(SERIES, starts, 'asc').map((r) => dmy(r.start_date))).toEqual([
+      '01/02/2026', '02/11/2026', '31/12/2026', '15/01/2027', '31/03/2027',
+    ]);
+    expect(names(sortRows(SERIES, starts, 'desc'))).toEqual(['Carla', 'Ana', 'Bea', 'Eva', 'Dora']);
+  });
+
+  it('a null field sorts last whichever the direction', () => {
+    const ends = col({ key: 'end_date', format: endsLabel });
+    expect(names(sortRows(SERIES, ends, 'asc'))).toEqual(['Carla', 'Ana', 'Eva', 'Bea', 'Dora']);
+    const desc = names(sortRows(SERIES, ends, 'desc'));
+    expect(desc.slice(0, 3)).toEqual(['Eva', 'Ana', 'Carla']);
+    expect(desc.slice(3).sort()).toEqual(['Bea', 'Dora']);
+  });
+
+  it('money sorts by the amount, numbers and NUMERIC strings alike', () => {
+    const eur = col({ key: 'total', format: (v) => `${String(v).replace('.', ',')} €` });
+    const rows = [
+      { name: 'Big', total: '100.00' },
+      { name: 'Small', total: '9.50' },
+      { name: 'Refund', total: '-3.25' },
+      { name: 'Mid', total: 20 },
+    ];
+    expect(names(sortRows(rows, eur, 'asc'))).toEqual(['Refund', 'Small', 'Mid', 'Big']);
+  });
+
+  it('sortValue wins; without it a logical key or an object sorts by its text', () => {
+    const rank: Record<string, number> = { a_high: 3, c_mid: 2, b_low: 1 };
+    const priority = col({ key: 'status', format: (v) => String(v), sortValue: (r) => rank[r.status as string] });
+    const rows = [{ name: 'Low', status: 'b_low' }, { name: 'High', status: 'a_high' }, { name: 'Mid', status: 'c_mid' }];
+    expect(names(sortRows(rows, priority, 'asc'))).toEqual(['Low', 'Mid', 'High']);
+
+    const full = col({ key: 'full', format: (_v, r) => `${String(r.first)} ${String(r.last)}` });
+    expect(sortRows([{ first: 'Zoe', last: 'Alba' }, { first: 'Ana', last: 'Zamora' }], full, 'asc').map((r) => r.first)).toEqual(['Ana', 'Zoe']);
+
+    const customer = col({ key: 'customer', format: (v) => (v as { name: string }).name });
+    expect(sortKey(customer, { customer: { name: 'Marta' } })).toBe('Marta');
+  });
+
+  it('a Date sorts by the date; words stored behind a label sort by the label', () => {
+    const when = col({ key: 'at', format: (v) => dmy((v as Date).toISOString()) });
+    const at = new Date('2027-01-15T00:00:00Z');
+    expect(sortKey(when, { at })).toBe(at);
+    const label: Record<string, string> = { pending: 'Abierta', closed: 'Cerrada' };
+    const status = col({ key: 'status', format: (v) => label[v as string] });
+    expect(sortRows([{ status: 'pending' }, { status: 'closed' }], status, 'desc').map((r) => r.status)).toEqual(['closed', 'pending']);
+  });
+
+  it('never mutates the rows it is given', () => {
+    const rows = [{ n: 2 }, { n: 1 }];
+    sortRows(rows, col({ key: 'n' }), 'asc');
+    expect(rows).toEqual([{ n: 2 }, { n: 1 }]);
+  });
+});
+
+describe('searchRows', () => {
+  const rows = [{ name: 'García' }, { name: 'Pérez' }, { name: null }];
+  it('matches any search key, case-insensitive, trimmed; no needle or no keys keeps every row', () => {
+    expect(searchRows(rows, ['name'], '  gar ')).toEqual([{ name: 'García' }]);
+    expect(searchRows(rows, ['name'], '')).toBe(rows);
+    expect(searchRows(rows, [], 'gar')).toBe(rows);
+  });
+});
+
+describe('pageList: numbered pager with gaps', () => {
+  it('lists every page up to 7, and first/last/neighbours with «…» beyond', () => {
+    expect(pageList(3, 7)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(pageList(1, 52)).toEqual([1, 2, 3, '…', 52]);
+    expect(pageList(26, 52)).toEqual([1, '…', 25, 26, 27, '…', 52]);
+    expect(pageList(52, 52)).toEqual([1, '…', 50, 51, 52]);
+  });
+});
+
+describe('pagerState (hub#1984, #78, hub#2365)', () => {
+  const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ id: String(i + 1) }));
+  const base = { serverSide: false, total: 0, page: 0, pageSize: 10, isMobile: false, mobileShown: 0 };
+
+  it('desktop client: the page window, with the last partial page clamped', () => {
+    expect(pagerState({ ...base, rows: rows(14), page: 1 })).toMatchObject({ pages: 2, current: 1, count: 14, rangeFrom: 11, rangeTo: 14 });
+    expect(pagerState({ ...base, rows: rows(25), page: 2 }).visible.map((r) => r.id)).toEqual(['21', '22', '23', '24', '25']);
+    expect(pagerState({ ...base, rows: rows(25), page: 9 }).current).toBe(2);
+  });
+
+  it('desktop server: rows are the page, the range is clamped to the total', () => {
+    const state = pagerState({ ...base, serverSide: true, rows: rows(4), total: 14, page: 1 });
+    expect(state).toMatchObject({ pages: 2, current: 1, count: 14, rangeFrom: 11, rangeTo: 14 });
+    expect(state.visible).toHaveLength(4);
+  });
+
+  it('phone client: accumulates from row 1 and offers more while rows are left', () => {
+    const first = pagerState({ ...base, isMobile: true, rows: rows(25) });
+    expect(first).toMatchObject({ rangeFrom: 1, rangeTo: 10, canLoadMore: true });
+    expect(first.visible).toHaveLength(10);
+    const all = pagerState({ ...base, isMobile: true, rows: rows(25), mobileShown: 25 });
+    expect(all).toMatchObject({ rangeFrom: 1, rangeTo: 25, canLoadMore: false });
+  });
+
+  // The parent hands over a WINDOW that «Load more» grows (`loadMore`): `rows` start at the row of
+  // `page` (0 on a phone) and the footer and «Load more» follow the rows shown against the total.
+  it('phone server: the window the parent hands over, counted from its first row up to the rows shown', () => {
+    const phone = { ...base, serverSide: true, isMobile: true, total: 25 };
+    const first = pagerState({ ...phone, rows: rows(10), page: 0 });
+    expect(first).toMatchObject({ rangeFrom: 1, rangeTo: 10, canLoadMore: true });
+    expect(first.visible).toHaveLength(10);
+    const grown = pagerState({ ...phone, rows: rows(20), page: 0 });
+    expect(grown).toMatchObject({ rangeFrom: 1, rangeTo: 20, canLoadMore: true });
+    expect(grown.visible).toHaveLength(20);
+    expect(pagerState({ ...phone, rows: rows(15), page: 0 })).toMatchObject({ rangeFrom: 1, rangeTo: 15, canLoadMore: true });
+    expect(pagerState({ ...phone, rows: rows(25), page: 0 })).toMatchObject({ rangeFrom: 1, rangeTo: 25, canLoadMore: false });
+    // A window that does not start at the first row (a desk page not reset yet) keeps its offset.
+    expect(pagerState({ ...phone, rows: rows(10), page: 1 })).toMatchObject({ rangeFrom: 11, rangeTo: 20, canLoadMore: true });
+    expect(pagerState({ ...phone, rows: rows(5), page: 2 })).toMatchObject({ rangeFrom: 21, rangeTo: 25, canLoadMore: false });
+    expect(pagerState({ ...phone, rows: [], page: 1 })).toMatchObject({ rangeFrom: 11, rangeTo: 20 });
+    expect(pagerState({ ...phone, rows: [], total: 0 })).toMatchObject({ rangeTo: 0, canLoadMore: false });
+  });
+});
+
+describe('gridTemplate (#120, #121)', () => {
+  const cols = [col({ key: 'a' }), col({ key: 'b', width: '8rem' })];
+  it('[checkbox] [columns, floor 5.5rem] [actions: max-content until measured, then px]', () => {
+    expect(gridTemplate({ selectable: true, columns: cols, hasActions: true, actionsTrackPx: 0 })).toBe(
+      '2.75rem minmax(5.5rem,1fr) 8rem max-content',
+    );
+    expect(gridTemplate({ selectable: false, columns: cols, hasActions: true, actionsTrackPx: 188 })).toBe(
+      'minmax(5.5rem,1fr) 8rem 188px',
+    );
+    expect(gridTemplate({ selectable: false, columns: cols, hasActions: false, actionsTrackPx: 188 })).toBe('minmax(5.5rem,1fr) 8rem');
+  });
+});
+
+describe('cardTitleColumn (outfitkit#205)', () => {
+  const cols = [col({ key: 'code' }), col({ key: 'name' }), col({ key: 'currency' })];
+  const row = { code: 'L1', name: 'Tarifa mayorista 1', currency: 'EUR' };
+  it('is the first column whose text reads like the title (trimmed, numbers too)', () => {
+    expect(cardTitleColumn('Tarifa mayorista 1', row, cols)?.key).toBe('name');
+    expect(cardTitleColumn(' L1 ', row, cols)?.key).toBe('code');
+    expect(cardTitleColumn(12, { n: 12 }, [col({ key: 'n' })])?.key).toBe('n');
+  });
+  it('none for an empty title, a non-text title, or a column painted by a slot', () => {
+    expect(cardTitleColumn('', row, cols)).toBeUndefined();
+    expect(cardTitleColumn(null, row, cols)).toBeUndefined();
+    expect(cardTitleColumn('Tarifa mayorista 1', row, [col({ key: 'name', cell: 'name-cell' })])).toBeUndefined();
+  });
+});
+
+describe('row actions (hub#2014, #213, #240)', () => {
+  const rows: Row[] = [{ id: 'a', update: null }, { id: 'b', update: '2.0' }];
+  const open: DataTableAction<Row> = { id: 'open', label: 'Open', icon: 'open-outline' };
+  const update: DataTableAction<Row> = { id: 'update', label: 'Update', icon: 'cloud-download-outline', hidden: (r) => !r.update };
+  const use: DataTableAction<Row> = { id: 'use', label: 'Use template' };
+
+  it('visibleActions drops what is hidden for that row', () => {
+    expect(visibleActions([open, update], rows[0]).map((a) => a.id)).toEqual(['open']);
+    expect(visibleActions([open, update], rows[1]).map((a) => a.id)).toEqual(['open', 'update']);
+  });
+
+  it('slotActions keeps a column only for actions some row shows', () => {
+    expect(slotActions([open, update], rows).map((a) => a.id)).toEqual(['open', 'update']);
+    expect(slotActions([open, update], [rows[0]]).map((a) => a.id)).toEqual(['open']);
+  });
+
+  it('folds only when collapsed and there is more than one, or a single TEXT action', () => {
+    expect(rowActionsFolded(false, [open, update])).toBe(false);
+    expect(rowActionsFolded(true, [open, update])).toBe(true);
+    expect(rowActionsFolded(true, [open])).toBe(false);
+    expect(rowActionsFolded(true, [use])).toBe(true);
+    expect(rowActionsFolded(true, [])).toBe(false);
+  });
+});
+
+describe('toneStyle (#162)', () => {
+  it('paints from the --ion-color token with Ionic’s default hex', () => {
+    expect(toneStyle('danger', 'clear')).toBe('--color: var(--ion-color-danger, #c5000f);');
+    expect(toneStyle('medium', 'text')).toBe('color: var(--ion-color-medium, #636469);');
+    expect(toneStyle('brand', 'clear')).toBe('--color: var(--ion-color-brand);');
+  });
+  it('refuses an empty or unsafe tone (it goes into CSS)', () => {
+    expect(toneStyle(undefined, 'clear')).toBeUndefined();
+    expect(toneStyle('red;}', 'clear')).toBeUndefined();
+  });
+});
+
+describe('sameRecords (hub#2245)', () => {
+  const key = (r: Row) => String(r.id ?? '');
+  it('same keys in the same order; keyless rows are never the same', () => {
+    expect(sameRecords([{ id: 1 }, { id: 2 }], [{ id: 1, x: 1 }, { id: 2 }], key)).toBe(true);
+    expect(sameRecords([{ id: 1 }, { id: 2 }], [{ id: 2 }, { id: 1 }], key)).toBe(false);
+    expect(sameRecords([{ id: 1 }], [{ id: 1 }, { id: 2 }], key)).toBe(false);
+    expect(sameRecords([{ n: 1 }], [{ n: 1 }], key)).toBe(false);
+    expect(sameRecords(undefined, [{ id: 1 }], key)).toBe(false);
+  });
+});

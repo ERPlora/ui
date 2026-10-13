@@ -1,6 +1,5 @@
-// Type shims for deep imports that ship no declarations: per-component entry points of OutfitKit
-// (side-effect imports that self-register their tag) and `@ionic/core/components/*` definers.
-declare module '@erplora/outfitkit/ok-*';
-declare module '@ionic/core/components/*.js' {
-  export const defineCustomElement: () => void;
-}
+// Type shims of the shell, also read by hub-next and saas-next (their tsconfig includes this file).
+//
+// Icons baked by `unplugin-icons` (`erploraVite()`, raw compiler, PLAN §16.4): `~icons/<set>/<name>`
+// is the icon's SVG string, which `icons.ts` registers and `HubIcon` paints through `ion-icon`.
+/// <reference types="unplugin-icons/types/raw" />

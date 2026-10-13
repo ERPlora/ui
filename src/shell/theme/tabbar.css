@@ -1,0 +1,86 @@
+/* Footer tabbar: an `ion-segment` used as the footer NAVIGATION bar (not as iOS's filter pill).
+ * Ported 1:1 from OutfitKit's `tabbar.css` (0.1.136; PLAN §16.11): `.ok-tabbar` is `.tabbar` and
+ * its tokens are `--ep-*`. It fills a real gap of Ionic instead of wrapping it: Ionic has no
+ * strategy for a tabbar with more tabs than fit, and its geometry changes with the mode.
+ *
+ * Whoever wires the tabbar puts the `.tabbar` class on the segment and keeps `data-overflow`
+ * (`start` | `end` | `both`), the one thing CSS cannot work out alone (whether it overflows and
+ * where the scroll is).
+ *
+ * Tokens:
+ *   --ep-tabbar-min   minimum tab width before it scrolls (default 88px)
+ *   --ep-tabbar-fade  width of the edge fade (default 36px)
+ *
+ * Load order: after the theme (createShell.ts).
+ */
+
+.tabbar {
+  /* In `ios` mode Ionic treats the segment as the compact segmented control and gives it
+     `:host(.in-toolbar){ width:auto; margin-inline:auto }`, so the host shrinks to its content
+     (measured: 289px inside a 1560px toolbar) however the columns are sized. This is what fixes it;
+     `grid-auto-columns` alone is NOT enough. */
+  width: 100%;
+  margin-inline: 0;
+  box-sizing: border-box;
+
+  /* With few tabs the `1fr` wins and they fill the width; with many the minimum wins and they are
+     NOT squashed. The 88px default comes from MEASURING the threshold at which the Hub's longest
+     label is cut (86px) plus 2px of margin in case the font renders a little wider. Each product
+     can tune it with `--ep-tabbar-min`: scrolling beats cut labels. */
+  grid-auto-columns: minmax(var(--ep-tabbar-min, 88px), 1fr);
+  justify-content: start;
+
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  /* Drag to scroll, wired for pointers only: a finger already pans natively. `grab` is the only
+     hint that it can be dragged; without it, with a mouse the strip looks movable only by the
+     wheel, which is exactly how it read on the till. */
+  cursor: grab;
+}
+
+/* While dragging. `user-select` is the half that really matters: without it the mouse selects the
+   labels instead of moving the strip, and it reads as a broken control. `scroll-behavior: auto`
+   disarms any `smooth` the consumer may have set: with smooth, the strip chases the pointer with a
+   lag instead of sticking to it. */
+.tabbar-dragging {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+  scroll-behavior: auto;
+}
+
+.tabbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Edge fade. With the scrollbar hidden, the tabs left outside must be signalled some other way:
+   without it the only hint is a tab cut in half, which reads as a layout bug and not as an
+   invitation to swipe. ONLY on the side that hides something: one fixed on the right would keep
+   darkening the last tab once the end is reached, exactly the "broken" look to avoid. */
+.tabbar[data-overflow='end'] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--ep-tabbar-fade, 36px)), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--ep-tabbar-fade, 36px)), transparent 100%);
+}
+
+.tabbar[data-overflow='start'] {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - var(--ep-tabbar-fade, 36px)), transparent 100%);
+  mask-image: linear-gradient(to left, #000 calc(100% - var(--ep-tabbar-fade, 36px)), transparent 100%);
+}
+
+.tabbar[data-overflow='both'] {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--ep-tabbar-fade, 36px),
+    #000 calc(100% - var(--ep-tabbar-fade, 36px)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--ep-tabbar-fade, 36px),
+    #000 calc(100% - var(--ep-tabbar-fade, 36px)),
+    transparent 100%
+  );
+}

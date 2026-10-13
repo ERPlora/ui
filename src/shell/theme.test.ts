@@ -30,7 +30,7 @@ beforeEach(() => {
   resetUserThemePreferences();
   setHubPalette('erplora');
   document.documentElement.className = '';
-  document.documentElement.removeAttribute('data-ok-palette');
+  document.documentElement.removeAttribute('data-ep-palette');
 });
 
 afterEach(() => {
@@ -89,15 +89,15 @@ describe('mode', () => {
 });
 
 describe('palette', () => {
-  it('exposes the OutfitKit palettes', () => {
+  it('exposes the brand palettes of theme/palettes.css', () => {
     expect(THEME_PALETTES).toEqual(['erplora', 'terracotta', 'corporate', 'minimal', 'forest', 'ocean', 'violet']);
   });
 
-  it('the default palette removes data-ok-palette, any other sets it', () => {
+  it('the default palette removes data-ep-palette, any other sets it', () => {
     setHubPalette('ocean');
-    expect(html.getAttribute('data-ok-palette')).toBe('ocean');
+    expect(html.getAttribute('data-ep-palette')).toBe('ocean');
     setHubPalette('erplora');
-    expect(html.hasAttribute('data-ok-palette')).toBe(false);
+    expect(html.hasAttribute('data-ep-palette')).toBe(false);
   });
 
   it('a personal override beats the hub palette; clearing it falls back', () => {
@@ -118,8 +118,8 @@ describe('palette', () => {
   it('applyUserThemePreferences applies mode, palette and the hub palette; null inherits', () => {
     applyUserThemePreferences('dark', 'minimal', 'ocean');
     expect(html.classList.contains('ion-palette-dark')).toBe(true);
-    expect(html.getAttribute('data-ok-palette')).toBe('minimal');
+    expect(html.getAttribute('data-ep-palette')).toBe('minimal');
     applyUserThemePreferences(null, null);
-    expect(html.getAttribute('data-ok-palette')).toBe('ocean');
+    expect(html.getAttribute('data-ep-palette')).toBe('ocean');
   });
 });

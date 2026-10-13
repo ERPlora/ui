@@ -1,0 +1,29 @@
+{
+  "dataTable": {
+    "search": "Search…",
+    "empty": "No results",
+    "clear": "Clear",
+    "selected": "{n} selected",
+    "add": "Add",
+    "moreActions": "More actions",
+    "rowsPerPage": "Rows per page",
+    "perPageShort": "{n} / page",
+    "viewList": "View as list",
+    "viewCards": "View as cards",
+    "columnsVisible": "Visible columns",
+    "columns": "Columns",
+    "actions": "Actions",
+    "selectAll": "Select all",
+    "selectRow": "Select row",
+    "select": "Select",
+    "showing": "Showing {from}–{to} of",
+    "recordSingular": "record",
+    "recordPlural": "records",
+    "loadMore": "Load more",
+    "noMatches": "No results match your search or filters",
+    "showAll": "Show all",
+    "loadError": "Couldn't load the data",
+    "retry": "Retry",
+    "loading": "Loading…"
+  }
+}

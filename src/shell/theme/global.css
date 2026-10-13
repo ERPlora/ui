@@ -1,15 +1,32 @@
 /* App globals. The brand theme (--ion-* variables) lives in theme/variables.css.
    Component base = Ionic; here only Tailwind + minimal globals. */
-@import "tailwindcss";
+
+/* Tailwind reads class names ONLY where we say (PoC issue B). With automatic detection it scanned
+   the whole project: a `.py` change made `@tailwindcss/vite` send `full-reload` to every open tab,
+   and the comments of `tests/e2e/*.ts` turned into classes. Here: the UI package's own components
+   (`src/`), tests excluded. Each project's sources (`frontend/` and `apps/<id>/frontend/`) are added by
+   `erploraVite()` (`erplora:tailwind-sources`, src/vite.ts). */
+@import "tailwindcss" source(none);
+@source "../../**/*.{vue,ts}";
+@source not "../../**/*.test.ts";
 
 /* Tailwind's preflight resets `padding: 0` on `*`, and a document rule always beats a shadow
    `:host` rule: it wiped the 20px side padding Ionic gives `ion-title` in md, so md titles sat
    flush against the sheet edge (hub#2314). `revert-layer` inside the SAME `base` layer drops the
    reset and lets Ionic's own `:host` padding through. md only: in ios Ionic's 90px leaves an
    ordinary title 164px on a 360px phone and cuts it («Movimientos del bono» needs 166px in
-   Roboto), so ios keeps padding 0 until its titles are laid out between the buttons. */
+   Roboto), so ios keeps padding 0 until its titles are laid out between the buttons.
+   Same reset, same cure for `ion-badge` (PoC issue D, e2e screenshots of 2026-10-13): «Open»/«Done»
+   measured 30.8 × 11.5 px with padding 0, text against the pill's edge; its `:host` padding (the
+   `--padding-*` that polish.css sets) comes back. Here and not in polish.css: that sheet loads
+   BEFORE this one, and a `base` block there would declare `base` ahead of Tailwind's
+   `theme, base, components, utilities` order. */
 @layer base {
   ion-title.md {
+    padding: revert-layer;
+  }
+
+  ion-badge {
     padding: revert-layer;
   }
 }

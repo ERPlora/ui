@@ -19,7 +19,7 @@
 //
 // WHY AT REGISTRATION TIME, and not with CSS or an observer:
 //   · CSS — a module renders its `<ion-input>` inside its own shadow root, which no document
-//     stylesheet can reach. The `ok-*` of OutfitKit are the same. Global CSS fixes the shell only.
+//     stylesheet can reach. Global CSS fixes the shell only.
 //   · MutationObserver — Ionic resolves the mode ONCE, in its own `connectedCallback`
 //     (`initialize()` → `setMode(elm => elm.mode || elm.getAttribute('mode') …)`), and caches it in
 //     the Stencil host ref. An observer fires after the element is connected, so the attribute
@@ -73,8 +73,8 @@ function patchConstructor(ctor: CustomElementConstructor): void {
 }
 
 /**
- * Makes `fill` paint a box on every Ionic form control of the app — the shell's own views, the
- * `ok-*` of OutfitKit and the Web Components of every installed module, shadow roots included.
+ * Makes `fill` paint a box on every Ionic form control of the app — the shell's own views and the
+ * Web Components of every installed module, shadow roots included.
  *
  * ⚠️ Must run BEFORE anything registers those tags, i.e. before `@ionic/vue` is even imported
  * (it registers on import, `defineContainer()` → `defineCustomElement()`). That is why the shell entry point

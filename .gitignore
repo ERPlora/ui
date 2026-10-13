@@ -2,3 +2,19 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+
+# Python bytecode
+__pycache__/
+*.pyc
+.venv/
+
+# Local environment and secrets
+.env
+.env.*
+*.pem
+*.p12
+*.key
+*.sqlite3
+
+# OS
+.DS_Store

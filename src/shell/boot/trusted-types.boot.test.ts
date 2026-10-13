@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { ION_ICONS, ionIconSrc, resolveIcon } from '../icons';
 import { installTrustedTypesPolicy } from './trusted-types.boot';
 
 type Rules = {
@@ -31,6 +32,43 @@ describe('installTrustedTypesPolicy', () => {
     expect(createHTML('  <svg viewBox="0 0 1 1"></svg>')).toContain('<svg');
     expect(() => createHTML('<img src=x onerror=alert(1)>')).toThrow();
     expect(() => createHTML('<script>alert(1)</script>')).toThrow();
+  });
+
+  // ionicons resolves an icon data URL with `DOMParser.parseFromString(url, 'text/html')`, a Trusted
+  // Types sink: the policy sees the whole `data:image/svg+xml;utf8,<svg …>` string, not just the SVG.
+  it('in production lets the icon data URLs through: Ionicons, the other baked sets and inline SVG', () => {
+    const { win, createPolicy } = fakeWindow();
+    installTrustedTypesPolicy(win, false);
+    const { createHTML } = rulesOf(createPolicy);
+    for (const url of [
+      ION_ICONS.add,
+      ION_ICONS['cart-outline'],
+      resolveIcon('lucide:lock'),
+      resolveIcon('mdi:cart'),
+      resolveIcon('material-symbols:point-of-sale'),
+      ionIconSrc('<svg viewBox="0 0 1 1"></svg>'),
+    ]) {
+      expect(url).toBeDefined();
+      expect(createHTML(url as string)).toBe(url);
+    }
+  });
+
+  it('in production rejects data URLs that are not an SVG image starting with <svg', () => {
+    const { win, createPolicy } = fakeWindow();
+    installTrustedTypesPolicy(win, false);
+    const { createHTML } = rulesOf(createPolicy);
+    for (const html of [
+      'data:image/svg+xml;utf8,<img src=x onerror=alert(1)>',
+      'data:image/svg+xml;utf8,<svgx onload=alert(1)>',
+      'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+      'data:text/html,<svg>',
+      'data:text/html;utf8,<svg></svg>',
+      'x data:image/svg+xml;utf8,<svg></svg>',
+      '<svgx onload=alert(1)>',
+      '<div>',
+    ]) {
+      expect(() => createHTML(html), html).toThrow(TypeError);
+    }
   });
 
   it('in dev passes any HTML through', () => {

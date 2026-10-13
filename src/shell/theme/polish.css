@@ -1,6 +1,6 @@
 /* Visual polish layer of the Hub — refines Ionic components via their CSS vars + minimal globals.
    Modern look (Linear/Vercel/Notion): soft elevation, radii, careful typography, comfortable
-   density. Self-contained: promotable to an OutfitKit theme unchanged. Does NOT touch logic or markup. */
+   density. Self-contained: tokens are --ep-* (variables.css). Does NOT touch logic or markup. */
 
 /* ── Typography ───────────────────────────────────────────────────────────────────────────── */
 body {
@@ -58,8 +58,8 @@ ion-split-pane.rail .sidebar-foot-brand { justify-content: center; padding-inlin
 
 /* ── Cards: radius + soft elevation + hover on clickable cards ────────────────────────────── */
 ion-card {
-  border-radius: var(--ok-radius);
-  box-shadow: var(--ok-shadow-sm);
+  border-radius: var(--ep-radius);
+  box-shadow: var(--ep-shadow-sm);
   border: 1px solid var(--ion-border-color);
 }
 ion-card[button] {
@@ -67,7 +67,7 @@ ion-card[button] {
 }
 ion-card[button]:hover {
   transform: translateY(-2px);
-  box-shadow: var(--ok-shadow-md);
+  box-shadow: var(--ep-shadow-md);
   border-color: rgba(var(--ion-color-primary-rgb), 0.35);
 }
 ion-card-header { padding-bottom: 6px; }
@@ -95,14 +95,14 @@ ion-list.list-ios {
 }
 /* We must beat Ionic's own rule `.list-md/.list-ios.list-inset` in specificity
    (0,2,0): otherwise it imposes its `margin-inline: 16px` and its `border-radius: 2px`. The side margin
-   misaligns the list against the flush components (ok-widget-board, ion-button) that already sit
+   misaligns the list against the flush components (ion-button, the DataTable) that already sit
    inside the ion-content's `.ion-padding` (it ended up indented 32px instead of 16px). We want a
-   flush card (vertical margin only) with the --ok radius. We cover both modes (md/ios). */
+   flush card (vertical margin only) with the --ep radius. We cover both modes (md/ios). */
 ion-list.list-md.list-inset,
 ion-list.list-ios.list-inset {
   margin: 16px 0;
-  border-radius: var(--ok-radius);
-  box-shadow: var(--ok-shadow-sm);
+  border-radius: var(--ep-radius);
+  box-shadow: var(--ep-shadow-sm);
   border: 1px solid var(--ion-border-color);
   overflow: hidden;
 }
@@ -127,9 +127,8 @@ ion-item {
 /* Row icon (lists/settings: icon + title/description): space between icon and text +
    normalized size. PARITY with Cloud (same rule in cloud dashboard-shell.css).
    Exclusions: the sidebar icon (.nav-icon, carries its own 0.7rem and the rail sets it to 0)
-   and icons with an intentional size (ion-icon[size], iconify-icon with its own width). */
-ion-item ion-icon[slot="start"]:not(.nav-icon):not([size]),
-ion-item iconify-icon[slot="start"]:not(.nav-icon):not([width]) {
+   and icons with an intentional size (ion-icon[size]). HubIcon renders an ion-icon: covered too. */
+ion-item ion-icon[slot="start"]:not(.nav-icon):not([size]) {
   margin-inline-end: 16px;
   font-size: 20px;
 }
@@ -168,12 +167,14 @@ ion-button {
 ion-button[fill="clear"] { --color: var(--ion-text-color); }
 
 /* ── Badges: refined pill ────────────────────────────────────────────────────────────────── */
+/* These `--padding-*` only paint because global.css un-resets the host's padding from Tailwind's
+   preflight (`ion-badge { padding: revert-layer }` in `@layer base`, PoC issue D). */
 ion-badge {
   --padding-start: 9px;
   --padding-end: 9px;
   --padding-top: 5px;
   --padding-bottom: 5px;
-  border-radius: var(--ok-radius-pill);
+  border-radius: var(--ep-radius-pill);
   font-weight: 600;
   font-size: 0.72rem;
   letter-spacing: 0.01em;
@@ -192,10 +193,9 @@ ion-footer { box-shadow: none; }
 ion-footer:not(:has(ion-toolbar)) { padding-bottom: env(safe-area-inset-bottom, 0px); }
 ion-footer ion-toolbar { --border-width: 0; }
 ion-segment { --background: transparent; padding: 4px; gap: 4px; }
-/* The footer tabbar (ADR-0022: `navigation[]` → ion-segment) is now styled by OutfitKit:
-   `@erplora/outfitkit/tabbar.css` + `bindTabbar()` from AppPage (loaded in main.ts). It was
-   duplicated and already diverging from the SaaS (outfitkit#29). The tab minimum is adjusted with the
-   `--ok-tabbar-min` token if it is ever needed. */
+/* The footer tabbar (ADR-0022: `navigation[]` → ion-segment) is styled by theme/tabbar.css (the
+   `.tabbar` class, ported from OutfitKit). The tab minimum is adjusted with the `--ep-tabbar-min`
+   token if it is ever needed. */
 ion-segment-button {
   --indicator-color: transparent;
   --color: var(--ion-color-medium);
@@ -214,7 +214,7 @@ ion-segment-button::part(indicator-background) { border-radius: 10px; }
    scrollable tabs, the iOS tab bar). `bindTabbarPeek` (tabbar-peek.ts) widens each tab to its
    longest word; `overflow-wrap: normal` keeps that word whole even before it has measured it —
    Ionic's buttons inherit `break-word`, which split «Availability» into «Availabilit» / «y». */
-ion-footer .ok-tabbar ion-label {
+ion-footer .tabbar ion-label {
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
@@ -265,7 +265,7 @@ ion-split-pane.rail {
 }
 
 /* Unified shell: menu = topbar = tabbar = canvas (--ion-background-color), no divider.
-   The menu used to use the muted surface (--ok-surface-muted = #f3f4f6), different from the shell
+   The menu used to use the muted surface (--ep-surface-muted = #f3f4f6), different from the shell
    canvas; now it shares exactly the same color as the topbar (AppTopbar → ion-header) and the tabbar
    (ion-footer), which already resolve to --ion-background-color. Automatic dark mode (the token switches
    in variables.css, .ion-palette-dark). The menu↔content divider is removed (--border + border-right):
@@ -389,7 +389,7 @@ ion-split-pane.rail .sidebar-user { justify-content: center; }
    NO `max-width` anywhere (hub#1605): the code is sized by its own `size` attribute, and the block
    just centres what the panel gives it. */
 .sidebar-install-qr { padding: 0.5rem 0.75rem 0.25rem; text-align: center; }
-/* `width: fit-content` is load-bearing, not tidiness: `ok-qr` is a block-level custom element,
+/* `width: fit-content` is load-bearing, not tidiness: the QR code is a block-level element,
    so without it the host stretches to the full panel width and `margin-inline: auto` has nothing
    left to centre — the symbol paints flush LEFT under a centred caption. The symbol itself stays
    square either way, so this never breaks scanning; it just looks broken. NOT a `max-width`
@@ -485,29 +485,7 @@ html.immersive ion-router-outlet#main.split-pane-main > .ion-page > ion-content:
 }
 .hub-detail-shell--fill {
   height: 100%;
-  min-height: var(--ok-work-surface-min);
-}
-
-/* ── ok-data-table (OutfitKit): aligns its tokens with the Hub theme ────────────────────── */
-ok-data-table {
-  /* Only the radius is aligned (non-color token). The colors (header, text, borders, hover)
-     fall back to the component's own defaults → Ionic's default --ion-* tokens. */
-  --ok-radius: var(--ok-radius);
-  display: block;
-  border-radius: var(--ok-radius);
-  box-shadow: var(--ok-shadow-sm);
-  overflow: hidden;
-}
-/* `fill` mode: the table takes the available height (fixed header + pager, scroll in the body).
-   This DOCUMENT-LEVEL rule is necessary because, for a shadow tree's host, the normal
-   declarations of the OUTER tree beat `:host([fill])` (cascade context step,
-   before specificity) — without it, the `display:block` above overrode the inner
-   `display:flex` and the table stayed at the height of its content. */
-ok-data-table[fill] {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
+  min-height: var(--ep-work-surface-min);
 }
 
 /* ── Modern thin scrollbar ───────────────────────────────────────────────────────────────── */
@@ -515,7 +493,7 @@ ok-data-table[fill] {
 ::-webkit-scrollbar { width: 11px; height: 11px; }
 ::-webkit-scrollbar-thumb {
   background: rgba(var(--ion-text-color-rgb), 0.18);
-  border-radius: var(--ok-radius-pill);
+  border-radius: var(--ep-radius-pill);
   border: 3px solid transparent;
   background-clip: content-box;
 }

@@ -46,30 +46,32 @@
   --ion-color-step-700: #4a4e57;
   --ion-color-step-850: #2a2d33;
 
-  /* ── Own design tokens (used by polish.css; same name as a future OutfitKit theme) ── */
-  --ok-radius: 14px;
-  --ok-radius-sm: 10px;
-  --ok-radius-pill: 999px;
-  --ok-shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.05);
-  --ok-shadow-sm: 0 1px 3px rgba(17, 24, 39, 0.06), 0 1px 2px rgba(17, 24, 39, 0.04);
-  --ok-shadow-md: 0 6px 20px rgba(17, 24, 39, 0.08), 0 2px 6px rgba(17, 24, 39, 0.04);
-  --ok-surface-muted: var(--ion-color-step-50);
+  /* ── Our design tokens (--ep-*; PLAN §16.11): read by polish.css and the Vue components of
+     src/components/ (--ep-shadow-sm is the DataTable frame). Same values as the OutfitKit tokens
+     they replace; a token without a value here is read with the component's own fallback. ── */
+  --ep-radius: 14px;
+  --ep-radius-sm: 10px;
+  --ep-radius-pill: 999px;
+  --ep-shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.05);
+  --ep-shadow-sm: 0 1px 3px rgba(17, 24, 39, 0.06), 0 1px 2px rgba(17, 24, 39, 0.04);
+  --ep-shadow-md: 0 6px 20px rgba(17, 24, 39, 0.08), 0 2px 6px rgba(17, 24, 39, 0.04);
+  --ep-surface-muted: var(--ion-color-step-50);
 
   /* ── Elevation tokens for floating surfaces (dropdowns, sheets, dialogs) ──
-     The --ok-shadow-sm/md above are SUBTLE card elevation; these are for
+     The --ep-shadow-sm/md above are SUBTLE card elevation; these are for
      overlays that cover content and need more weight. Used by the POS (.pdrop/.sheet),
      dialogs and module modals. */
-  --ok-shadow-pop: 0 12px 32px rgba(17, 24, 39, 0.14);
-  --ok-shadow-modal: 0 18px 50px rgba(17, 24, 39, 0.18);
+  --ep-shadow-pop: 0 12px 32px rgba(17, 24, 39, 0.14);
+  --ep-shadow-modal: 0 18px 50px rgba(17, 24, 39, 0.18);
 
   /* Extra radii: large cards (POS) and the special mobile sheet shape (top corners only). */
-  --ok-radius-lg: 16px;
-  --ok-radius-sheet-top: 18px 18px 0 0;
+  --ep-radius-lg: 16px;
+  --ep-radius-sheet-top: 18px 18px 0 0;
 
   /* Touch targets: comfortable minimum and large (POS payment buttons). Pointing here
      declares the intent; touch modules do not normalize downwards. */
-  --ok-touch-min: 48px;
-  --ok-touch-lg: 56px;
+  --ep-touch-min: 48px;
+  --ep-touch-lg: 56px;
 
   /* Floor of a shell WORK SURFACE (hub#1730, hub#1745). A surface pinned to
      `height: 100%` cannot overflow the shell's scroller, so in a short window —the
@@ -80,13 +82,13 @@
      on mobile (390x844) the box is 686px. 480px is above the three short boxes and
      below the mobile one, so it only acts where the window is short. In px and not rem because
      the boxes it has to clear are px (header 60, tabbar 66, padding 16). */
-  --ok-work-surface-min: 480px;
+  --ep-work-surface-min: 480px;
 
   /* Selection ring with the brand accent (cat-segment, pm-btn). Unified scrim
      for backdrops (there used to be loose .45/.5/.6). On-accent = text on brand color. */
-  --ok-ring-accent: inset 0 0 0 1px var(--ion-color-primary);
-  --ok-scrim: rgba(0, 0, 0, 0.5);
-  --ok-on-accent: var(--ion-color-primary-contrast);
+  --ep-ring-accent: inset 0 0 0 1px var(--ion-color-primary);
+  --ep-scrim: rgba(0, 0, 0, 0.5);
+  --ep-on-accent: var(--ion-color-primary-contrast);
 }
 
 /* Neutral dark (zinc), consistent with the light theme. */
@@ -119,13 +121,13 @@
   --ion-color-primary-shade: #2592c9;
   --ion-color-primary-tint: #3fafe7;
 
-  --ok-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --ok-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
-  --ok-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
-  --ok-surface-muted: #101216;
+  --ep-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ep-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --ep-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --ep-surface-muted: #101216;
 
   /* Dark counterparts of the floating/touch tokens (more weight on a dark canvas). */
-  --ok-shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55);
-  --ok-shadow-modal: 0 18px 50px rgba(0, 0, 0, 0.65);
-  --ok-scrim: rgba(0, 0, 0, 0.6);
+  --ep-shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --ep-shadow-modal: 0 18px 50px rgba(0, 0, 0, 0.65);
+  --ep-scrim: rgba(0, 0, 0, 0.6);
 }

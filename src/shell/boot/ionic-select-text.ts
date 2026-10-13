@@ -150,9 +150,9 @@ function patchConstructor(ctor: CustomElementConstructor): void {
 }
 
 /**
- * Makes every selection dialog of the app — the shell's own views, the `ok-*` of OutfitKit and the
- * Web Components of every installed module, shadow roots included — label its buttons in the
- * user's language, the one active when the dialog opens.
+ * Makes every selection dialog of the app — the shell's own views and the Web Components of every
+ * installed module, shadow roots included — label its buttons in the user's language, the one
+ * active when the dialog opens.
  *
  * Imported from `the shell entry point` next to its twins (`./ionic-select-text.boot`). It wraps a method, not a
  * lifecycle callback, so it also works on a tag that is already registered.

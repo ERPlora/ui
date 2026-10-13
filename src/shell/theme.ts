@@ -1,7 +1,8 @@
 // Shell theme: light/dark mode + brand PALETTE (ADR-0138). Ported from ERPlora hub
 // `apps/web/src/lib/theme.ts`. The mode is applied to <html> with Ionic's `ion-palette-dark` class
-// and the palette with the `data-ok-palette` attribute (OutfitKit palettes.css, same contract as
-// the SaaS). The mode toggle lives in the topbar (AppTopbar.vue); the palette picker in settings.
+// and the palette with the `data-ep-palette` attribute (theme/palettes.css, ported from OutfitKit;
+// `live/spa.html` sets the same attribute before the SPA boots, so a rename touches both).
+// The mode toggle lives in the topbar (AppTopbar.vue); the palette picker in settings.
 //
 // Modes:
 //  - 'system' -> follows `prefers-color-scheme` (and reacts live to its changes).
@@ -20,7 +21,7 @@ import { computed, ref } from 'vue';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
-/** Valid palettes: mirror 1:1 of `@erplora/outfitkit/palettes.css` plus the default. */
+/** Valid palettes: mirror 1:1 of `theme/palettes.css` plus the default. */
 export const THEME_PALETTES = [
   'erplora',
   'terracotta',
@@ -92,15 +93,15 @@ export const themePalette = computed<ThemePalette>(() => _localPalette.value || 
 export const hasLocalPalette = computed<boolean>(() => _localPalette.value !== '');
 
 /**
- * Applies the effective palette to <html>, same contract as OutfitKit's applyPalette():
+ * Applies the effective palette to <html> (the contract of theme/palettes.css):
  * 'erplora' (default) REMOVES the attribute; any other sets it.
  */
 function applyPalette(): void {
   if (typeof document === 'undefined') return;
   const p = themePalette.value;
   const root = document.documentElement;
-  if (p === 'erplora') root.removeAttribute('data-ok-palette');
-  else root.setAttribute('data-ok-palette', p);
+  if (p === 'erplora') root.removeAttribute('data-ep-palette');
+  else root.setAttribute('data-ep-palette', p);
 }
 
 /** Sets (or clears, with '') the personal override in memory. */

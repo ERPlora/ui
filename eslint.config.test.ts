@@ -25,4 +25,11 @@ describe("eslint config", () => {
   it("does not restrict them inside src/sdk", () => {
     expect(restrictedNames("src/sdk/client.ts")).toEqual([]);
   });
+  it("allows the Web Components slot= on Ionic elements and on HubIcon, which renders ion-icon (not Vue 2 slot syntax)", () => {
+    // Flat config: the LAST entry that sets a rule wins (eslint-plugin-vue's presets set it first).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const entry = (config as any[]).filter((e) => e.rules?.["vue/no-deprecated-slot-attribute"]).at(-1);
+    expect(entry?.files).toEqual(["**/*.vue"]);
+    expect(entry.rules["vue/no-deprecated-slot-attribute"]).toEqual(["error", { ignore: ["/^ion-/", "HubIcon"] }]);
+  });
 });

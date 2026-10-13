@@ -1,13 +1,23 @@
-import ionSet from '@iconify-json/ion/icons.json';
-import { describe, expect, it } from 'vitest';
+// The shell's icon registry (PLAN §16.4): Ionicons from `ionicons/icons`, the other Iconify sets
+// baked at build time by `unplugin-icons`; nothing is fetched at runtime. And the guardrail: every
+// icon a template or a call of this package names is registered (`scanIcons` of
+// `@erplora/ui/testing`; hub and saas run it on their own apps).
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { buildIconSvg, type IconifyJSON, ICON_SETS, iconRegistry, resolveIcon, resolveIconAsync } from './icons';
+import { addIcons } from 'ionicons';
+import { defineCustomElement as defineIonIcon } from 'ionicons/components/ion-icon.js';
+import { addOutline, flaskOutline } from 'ionicons/icons';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const ion = ionSet as unknown as IconifyJSON;
+import { DATA_TABLE_ICONS } from '../components/DataTable/model';
+import { scanIcons } from '../testing';
+import { ION_ICONS, ionIconSrc, resolveIcon } from './icons';
 
-describe('iconRegistry', () => {
-  const registry = iconRegistry();
+/** The format of ionicons' own icons: `ion-icon` parses it inline (no fetch, CSP-safe). */
+const SVG_URL = /^data:image\/svg\+xml;utf8,<svg /;
 
+describe('ION_ICONS (registered with addIcons by createShell)', () => {
   it('has the icons the shell, topbar, menu and demo use', () => {
     for (const name of [
       'menu-outline',
@@ -19,67 +29,126 @@ describe('iconRegistry', () => {
       'chevron-forward',
       'backspace-outline',
       'cloud-offline-outline',
+      // The demo (PoC issue A): its menu icon, «New item», «Back» and the empty state.
+      'flask-outline',
+      'add-outline',
+      'arrow-back-outline',
+      'cube-outline',
     ]) {
-      expect(registry, name).toHaveProperty(name);
+      expect(ION_ICONS, name).toHaveProperty(name);
     }
   });
 
-  it('guardrail: every name exists in @iconify-json/ion and the baked SVG is current', () => {
-    const names = Object.keys(registry);
-    expect(names.length).toBeGreaterThan(40);
-    for (const name of names) {
-      const fresh = buildIconSvg(ion, name);
-      expect(fresh, `ion:${name} does not exist in @iconify-json/ion`).toBeDefined();
-      expect(registry[name], `ion:${name} baked SVG is stale; regenerate the table in icons.ts`).toBe(fresh);
+  it('covers every icon the DataTable chrome paints', () => {
+    for (const name of Object.values(DATA_TABLE_ICONS)) expect(ION_ICONS, name).toHaveProperty(name);
+  });
+
+  it('are the data URLs of ionicons/icons themselves, by kebab-case Ionicons name', () => {
+    expect(ION_ICONS['add-outline']).toBe(addOutline);
+    expect(ION_ICONS['flask-outline']).toBe(flaskOutline);
+    expect(Object.keys(ION_ICONS).length).toBeGreaterThanOrEqual(74);
+    for (const [name, src] of Object.entries(ION_ICONS)) {
+      expect(name).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+      expect(src, name).toMatch(SVG_URL);
     }
   });
 
-  it('returns SVG that sizes like ion-icon (1em, currentColor)', () => {
-    for (const svg of Object.values(registry)) {
-      expect(svg).toMatch(/^<svg /);
-      expect(svg).toContain('width="1em"');
-      expect(svg).toContain('height="1em"');
-      expect(svg).toContain('fill="currentColor"');
-    }
+  it('cannot be changed by a caller', () => {
+    expect(Object.isFrozen(ION_ICONS)).toBe(true);
+  });
+});
+
+describe('ION_ICONS + ionicons (the real ion-icon, registered with addIcons)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
   });
 
-  it('returns a copy, so callers cannot mutate the table', () => {
-    iconRegistry()['add'] = 'x';
-    expect(iconRegistry()['add']).toMatch(/^<svg /);
+  it('paints <ion-icon name="flask-outline"> inline, without fetching anything', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    addIcons(ION_ICONS);
+    defineIonIcon();
+    const icon = document.createElement('ion-icon');
+    icon.setAttribute('name', 'flask-outline');
+    document.body.append(icon);
+    await vi.waitFor(() => {
+      expect(icon.shadowRoot?.querySelector('.icon-inner svg')).not.toBeNull();
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('paints a baked icon of another set (lucide) given as the icon property, without fetching', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    defineIonIcon();
+    const icon = document.createElement('ion-icon') as HTMLElement & { icon?: string };
+    icon.icon = resolveIcon('lucide:panel-left');
+    document.body.append(icon);
+    await vi.waitFor(() => {
+      expect(icon.shadowRoot?.querySelector('.icon-inner svg')).not.toBeNull();
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 
 describe('resolveIcon', () => {
-  it('resolves baked ion icons synchronously, with or without prefix', () => {
-    expect(resolveIcon('ion:cart-outline')).toBe(iconRegistry()['cart-outline']);
-    expect(resolveIcon('cart-outline')).toBe(iconRegistry()['cart-outline']);
+  it('resolves an ion: icon, prefixed or bare, to its Ionicons data URL', () => {
+    expect(resolveIcon('ion:cart-outline')).toBe(ION_ICONS['cart-outline']);
+    expect(resolveIcon('cart-outline')).toBe(ION_ICONS['cart-outline']);
   });
 
-  it('returns undefined for an unknown prefix or an unknown icon', () => {
-    expect(resolveIcon('nope:cart')).toBeUndefined();
-    expect(resolveIcon('ion:definitely-not-an-icon')).toBeUndefined();
-    expect(resolveIcon('')).toBeUndefined();
+  it('resolves the other sets to their baked SVG, as the data URL ion-icon parses: 1em box, currentColor', () => {
+    for (const name of [
+      'lucide:panel-left',
+      'lucide:arrow-left',
+      'mdi:cart',
+      'material-symbols:point-of-sale',
+    ]) {
+      const src = resolveIcon(name);
+      expect(src, name).toMatch(SVG_URL);
+      expect(src, name).toContain('width="1em"');
+      expect(src, name).toContain('height="1em"');
+      expect(src, name).toContain('currentColor');
+    }
   });
 
-  it('knows the wired sets', () => {
-    expect(Object.keys(ICON_SETS).sort()).toEqual(['ion', 'material-symbols', 'mdi']);
+  it('returns undefined for an unknown set, an unknown icon, a broken name or nothing', () => {
+    for (const name of ['nope:cart', 'ion:definitely-not-an-icon', 'mdi:cart-plus', 'constructor', 'ion:', ':cart', '']) {
+      expect(resolveIcon(name), name).toBeUndefined();
+    }
   });
 });
 
-describe('resolveIconAsync (lazy sets)', () => {
-  it('loads material-symbols and mdi on demand, then resolveIcon answers synchronously', async () => {
-    expect(await resolveIconAsync('material-symbols:point-of-sale')).toMatch(/^<svg /);
-    expect(await resolveIconAsync('mdi:cart')).toMatch(/^<svg /);
-    expect(resolveIcon('material-symbols:point-of-sale')).toMatch(/^<svg /);
-    expect(resolveIcon('mdi:cart')).toContain('width="1em"');
+describe('ionIconSrc (value for the `icon` property of ion-icon, any set, no network)', () => {
+  it('turns a registered icon of any set into the data URL ion-icon parses without fetching', () => {
+    expect(ionIconSrc('mdi:cart')).toBe(resolveIcon('mdi:cart'));
+    expect(ionIconSrc('cart-outline')).toBe(ION_ICONS['cart-outline']);
+    expect(ionIconSrc('lucide:arrow-left')).toMatch(SVG_URL);
   });
 
-  it('loads an ion icon that is not baked', async () => {
-    expect(await resolveIconAsync('ion:airplane')).toMatch(/^<svg /);
+  it('bakes an inline SVG the caller passes', () => {
+    expect(ionIconSrc('  <svg viewBox="0 0 1 1"></svg>')).toBe('data:image/svg+xml;utf8,<svg viewBox="0 0 1 1"></svg>');
   });
 
-  it('undefined for unknown prefix or icon', async () => {
-    expect(await resolveIconAsync('nope:cart')).toBeUndefined();
-    expect(await resolveIconAsync('mdi:definitely-not-an-icon')).toBeUndefined();
+  it('hands any other name to ion-icon as is (its addIcons registry decides)', () => {
+    expect(ionIconSrc('ion:definitely-not-an-icon')).toBe('ion:definitely-not-an-icon');
+  });
+
+  it('undefined for nothing', () => {
+    expect(ionIconSrc(undefined)).toBeUndefined();
+    expect(ionIconSrc('')).toBeUndefined();
+  });
+});
+
+// Guardrail (replaces the generated list): an icon that is not registered paints NOTHING (no network
+// for icons, by CSP), so a template that names one must fail a test, not a till. The reader and its
+// positive controls live in `src/testing/icons.test.ts`.
+describe('guardrail: every icon a template or a call of this package names is registered', () => {
+  /** The root of this package: the globs below are relative to it. */
+  const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
+  /** Where this package names icons: its components and the shell. */
+  const SOURCES = ['src/**/*.vue', 'src/shell/**/*.ts', 'src/components/**/*.ts'];
+
+  it('every icon named in this package is registered, and every glob reads something', () => {
+    expect(scanIcons({ root: ROOT, sources: SOURCES })).toEqual({ unregistered: [], emptyGlobs: [] });
   });
 });

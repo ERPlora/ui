@@ -1,0 +1,421 @@
+/* OPTIONAL brand palettes over the shell theme (variables.css): ported 1:1 from OutfitKit's
+ * `palettes.css` (0.1.136; PLAN §16.11), which brought them from the ERPlora/ux showcase
+ * (lib/templates/*.css, manifest 2.1.0), translated from --ux-* to --ion-* tokens.
+ *
+ * Mechanism: `data-ep-palette="<id>"` on <html> (theme.ts writes it; live/spa.html reads it before
+ * the SPA boots). NO attribute = the ERPlora brand (the blue of variables.css). Dark is still
+ * Ionic's `ion-palette-dark` class, which COMPOSES with the palette:
+ * `:root.ion-palette-dark[data-ep-palette="ocean"]`.
+ *
+ * Specificity contract (guarded by theme-css.test.ts): a palette's light block (0,2,0) ties with
+ * the base dark block of variables.css (0,2,0) and, loaded AFTER it, wins. Only the palette's dark
+ * block (0,3,0) corrects that, which is why both blocks of a palette ALWAYS set the same tokens.
+ *
+ * The step scale is derived with color-mix (text N% over canvas), the same rule Ionic uses for its
+ * steps, so every palette gets consistent surfaces without 9 literals.
+ *
+ * Load order: AFTER variables.css (createShell.ts).
+ */
+
+/* ═══════════════ TERRACOTTA — the warm default of the ux showcase ═══════════════ */
+
+:root[data-ep-palette='terracotta'] {
+  --ion-color-primary: #E8552A;
+  --ion-color-primary-rgb: 232, 85, 42;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #B83A12;
+  --ion-color-primary-tint: #FF7A4D;
+
+  --ion-background-color: #FAF8F4;
+  --ion-background-color-rgb: 250, 248, 244;
+  --ion-text-color: #1A1612;
+  --ion-text-color-rgb: 26, 22, 18;
+
+  --ion-color-medium: #837B70;
+  --ion-color-medium-rgb: 131, 123, 112;
+
+  --ion-item-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-border-color: rgba(20, 14, 8, 0.13);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+}
+
+:root.ion-palette-dark[data-ep-palette='terracotta'] {
+  --ion-color-primary: #E8552A;
+  --ion-color-primary-rgb: 232, 85, 42;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #B83A12;
+  --ion-color-primary-tint: #FF7A4D;
+
+  --ion-background-color: #0B0A09;
+  --ion-background-color-rgb: 11, 10, 9;
+  --ion-text-color: #F5F1EA;
+  --ion-text-color-rgb: 245, 241, 234;
+
+  --ion-color-medium: #8A8378;
+  --ion-color-medium-rgb: 138, 131, 120;
+
+  --ion-item-background: #1A1815;
+  --ion-card-background: #1A1815;
+  --ion-border-color: rgba(255, 255, 255, 0.1);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+
+  /* The base dark theme carries a zinc literal; here it must follow the palette. */
+  --ep-surface-muted: var(--ion-color-step-50);
+}
+
+/* ═══════════════ CORPORATE — deep navy, banking/enterprise ═══════════════ */
+
+:root[data-ep-palette='corporate'] {
+  --ion-color-primary: #0F3F9C;
+  --ion-color-primary-rgb: 15, 63, 156;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #012B80;
+  --ion-color-primary-tint: #0060C5;
+
+  --ion-background-color: #F6F8FB;
+  --ion-background-color-rgb: 246, 248, 251;
+  --ion-text-color: #0F1626;
+  --ion-text-color-rgb: 15, 22, 38;
+
+  --ion-color-medium: #777E92;
+  --ion-color-medium-rgb: 119, 126, 146;
+
+  --ion-item-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-border-color: rgba(20, 30, 50, 0.12);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+}
+
+:root.ion-palette-dark[data-ep-palette='corporate'] {
+  /* In dark the navy rises to a brighter blue (the ux "focus ring") so that
+   * buttons and links do not sink into the slate canvas. */
+  --ion-color-primary: #176EC8;
+  --ion-color-primary-rgb: 23, 110, 200;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #093995;
+  --ion-color-primary-tint: #3E87D6;
+
+  --ion-background-color: #0A0E14;
+  --ion-background-color-rgb: 10, 14, 20;
+  --ion-text-color: #EEF2F8;
+  --ion-text-color-rgb: 238, 242, 248;
+
+  --ion-color-medium: #7B8597;
+  --ion-color-medium-rgb: 123, 133, 151;
+
+  --ion-item-background: #161C26;
+  --ion-card-background: #161C26;
+  --ion-border-color: rgba(180, 200, 230, 0.1);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+
+  --ep-surface-muted: var(--ion-color-step-50);
+}
+
+/* ═══════════════ MINIMAL — editorial/luxury mono ═══════════════ */
+
+:root[data-ep-palette='minimal'] {
+  --ion-color-primary: #111111;
+  --ion-color-primary-rgb: 17, 17, 17;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #000000;
+  --ion-color-primary-tint: #2E2E2E;
+
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #0A0A0A;
+  --ion-text-color-rgb: 10, 10, 10;
+
+  --ion-color-medium: #858585;
+  --ion-color-medium-rgb: 133, 133, 133;
+
+  --ion-item-background: #FAFAFA;
+  --ion-card-background: #FAFAFA;
+  --ion-border-color: rgba(0, 0, 0, 0.08);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+}
+
+:root.ion-palette-dark[data-ep-palette='minimal'] {
+  /* INVERTED mono: the ux brand #0A0A0A would be invisible on a black canvas;
+   * in dark the primary is the ink (white), as in a classic mono theme. */
+  --ion-color-primary: #FAFAFA;
+  --ion-color-primary-rgb: 250, 250, 250;
+  --ion-color-primary-contrast: #0A0A0A;
+  --ion-color-primary-contrast-rgb: 10, 10, 10;
+  --ion-color-primary-shade: #E0E0E0;
+  --ion-color-primary-tint: #ffffff;
+
+  --ion-background-color: #0A0A0A;
+  --ion-background-color-rgb: 10, 10, 10;
+  --ion-text-color: #FAFAFA;
+  --ion-text-color-rgb: 250, 250, 250;
+
+  --ion-color-medium: #888888;
+  --ion-color-medium-rgb: 136, 136, 136;
+
+  --ion-item-background: #161616;
+  --ion-card-background: #161616;
+  --ion-border-color: rgba(255, 255, 255, 0.12);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+
+  --ep-surface-muted: var(--ion-color-step-50);
+}
+
+/* ═══════════════ FOREST — forest green and earth ═══════════════ */
+
+:root[data-ep-palette='forest'] {
+  --ion-color-primary: #1F542A;
+  --ion-color-primary-rgb: 31, 84, 42;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #11401C;
+  --ion-color-primary-tint: #2C8240;
+
+  --ion-background-color: #FAF6EE;
+  --ion-background-color-rgb: 250, 246, 238;
+  --ion-text-color: #1B1810;
+  --ion-text-color-rgb: 27, 24, 16;
+
+  --ion-color-medium: #87806C;
+  --ion-color-medium-rgb: 135, 128, 108;
+
+  --ion-item-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-border-color: rgba(60, 45, 20, 0.14);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+}
+
+:root.ion-palette-dark[data-ep-palette='forest'] {
+  /* As in corporate: in dark the green rises one step of luminance. */
+  --ion-color-primary: #3B874A;
+  --ion-color-primary-rgb: 59, 135, 74;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #25532E;
+  --ion-color-primary-tint: #4E9E5E;
+
+  --ion-background-color: #14110D;
+  --ion-background-color-rgb: 20, 17, 13;
+  --ion-text-color: #F1ECE0;
+  --ion-text-color-rgb: 241, 236, 224;
+
+  --ion-color-medium: #8C8472;
+  --ion-color-medium-rgb: 140, 132, 114;
+
+  --ion-item-background: #221F18;
+  --ion-card-background: #221F18;
+  --ion-border-color: rgba(220, 200, 170, 0.11);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+
+  --ep-surface-muted: var(--ion-color-step-50);
+}
+
+/* ═══════════════ OCEAN — tech teal/cyan ═══════════════ */
+
+:root[data-ep-palette='ocean'] {
+  --ion-color-primary: #008CBD;
+  --ion-color-primary-rgb: 0, 140, 189;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #0073A3;
+  --ion-color-primary-tint: #00ADD9;
+
+  --ion-background-color: #F4F8FC;
+  --ion-background-color-rgb: 244, 248, 252;
+  --ion-text-color: #0A1626;
+  --ion-text-color-rgb: 10, 22, 38;
+
+  --ion-color-medium: #768395;
+  --ion-color-medium-rgb: 118, 131, 149;
+
+  --ion-item-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-border-color: rgba(15, 40, 80, 0.13);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+}
+
+:root.ion-palette-dark[data-ep-palette='ocean'] {
+  /* The bright ux cyan carries DARK text on top (correct contrast). */
+  --ion-color-primary: #00B1DA;
+  --ion-color-primary-rgb: 0, 177, 218;
+  --ion-color-primary-contrast: #06141C;
+  --ion-color-primary-contrast-rgb: 6, 20, 28;
+  --ion-color-primary-shade: #0091BB;
+  --ion-color-primary-tint: #00CDEF;
+
+  --ion-background-color: #060B14;
+  --ion-background-color-rgb: 6, 11, 20;
+  --ion-text-color: #ECF3FA;
+  --ion-text-color-rgb: 236, 243, 250;
+
+  --ion-color-medium: #788599;
+  --ion-color-medium-rgb: 120, 133, 153;
+
+  --ion-item-background: #11192A;
+  --ion-card-background: #11192A;
+  --ion-border-color: rgba(140, 180, 230, 0.12);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+
+  --ep-surface-muted: var(--ion-color-step-50);
+}
+
+/* ═══════════════ VIOLET — creative violet ═══════════════ */
+
+:root[data-ep-palette='violet'] {
+  --ion-color-primary: #742AD9;
+  --ion-color-primary-rgb: 116, 42, 217;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #5C10B4;
+  --ion-color-primary-tint: #8E58F2;
+
+  --ion-background-color: #FBF7FA;
+  --ion-background-color-rgb: 251, 247, 250;
+  --ion-text-color: #1A1024;
+  --ion-text-color-rgb: 26, 16, 36;
+
+  --ion-color-medium: #82728A;
+  --ion-color-medium-rgb: 130, 114, 138;
+
+  --ion-item-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-border-color: rgba(60, 25, 70, 0.13);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+}
+
+:root.ion-palette-dark[data-ep-palette='violet'] {
+  --ion-color-primary: #7F3BE7;
+  --ion-color-primary-rgb: 127, 59, 231;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #6725C2;
+  --ion-color-primary-tint: #945FF9;
+
+  --ion-background-color: #0D0814;
+  --ion-background-color-rgb: 13, 8, 20;
+  --ion-text-color: #F2EDF8;
+  --ion-text-color-rgb: 242, 237, 248;
+
+  --ion-color-medium: #877D99;
+  --ion-color-medium-rgb: 135, 125, 153;
+
+  --ion-item-background: #1B1429;
+  --ion-card-background: #1B1429;
+  --ion-border-color: rgba(210, 190, 240, 0.12);
+
+  --ion-color-step-50: color-mix(in srgb, var(--ion-text-color) 5%, var(--ion-background-color));
+  --ion-color-step-100: color-mix(in srgb, var(--ion-text-color) 10%, var(--ion-background-color));
+  --ion-color-step-150: color-mix(in srgb, var(--ion-text-color) 15%, var(--ion-background-color));
+  --ion-color-step-200: color-mix(in srgb, var(--ion-text-color) 20%, var(--ion-background-color));
+  --ion-color-step-250: color-mix(in srgb, var(--ion-text-color) 25%, var(--ion-background-color));
+  --ion-color-step-300: color-mix(in srgb, var(--ion-text-color) 30%, var(--ion-background-color));
+  --ion-color-step-500: color-mix(in srgb, var(--ion-text-color) 50%, var(--ion-background-color));
+  --ion-color-step-700: color-mix(in srgb, var(--ion-text-color) 70%, var(--ion-background-color));
+  --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
+
+  --ep-surface-muted: var(--ion-color-step-50);
+}

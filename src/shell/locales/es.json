@@ -1,0 +1,17 @@
+{
+  "topbar": {
+    "menu": "Abrir menú",
+    "back": "Atrás"
+  },
+  "notFound": {
+    "title": "Esta página no existe",
+    "body": "La dirección que has abierto no forma parte de este hub. Puede ser un enlace antiguo, o el nombre de una app adivinado: tus apps se abren desde el menú o desde Inicio.",
+    "action": "Ir a Inicio"
+  },
+  "toast": {
+    "close": "Aceptar"
+  },
+  "inlineFeedback": {
+    "dismiss": "Cerrar"
+  }
+}

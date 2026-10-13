@@ -6,9 +6,11 @@ const { present, create, dismiss } = vi.hoisted(() => {
 });
 vi.mock('@ionic/vue', () => ({ toastController: { create, dismiss } }));
 
-import { bootActionFeedback, dismissToast, toast, toastError, toastInfo, toastSuccess } from './toast';
+import * as toastModule from './toast';
+import { dismissToast, toast, toastError, toastInfo, toastSuccess } from './toast';
 
 beforeEach(() => {
+  document.documentElement.lang = 'en';
   create.mockClear();
   present.mockClear();
   dismiss.mockReset();
@@ -49,6 +51,22 @@ describe('toast', () => {
     );
   });
 
+  // The close button is the shell's text, in the language of the page: `<html lang>`, which
+  // createShell keeps in step with the person's language (`base.session.me.language`).
+  it('the close button speaks the language of the page (shell catalogue, en + es)', async () => {
+    document.documentElement.lang = 'es';
+    await toastSuccess('Guardado');
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ buttons: [{ text: 'Aceptar', role: 'cancel' }] }));
+    const handler = vi.fn();
+    await toast('¿Reintentar?', 'warning', 0, undefined, { text: 'Reintentar', handler });
+    expect(create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ buttons: [{ text: 'Reintentar', handler }, { text: 'Aceptar', role: 'cancel' }] }),
+    );
+    document.documentElement.lang = 'fr';
+    await toastInfo('Info');
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ buttons: [{ text: 'OK', role: 'cancel' }] }));
+  });
+
   it('dismissToast returns false instead of throwing when the toast is gone', async () => {
     dismiss.mockRejectedValueOnce(new Error('gone'));
     expect(await dismissToast('x')).toBe(false);
@@ -58,22 +76,8 @@ describe('toast', () => {
   });
 });
 
-describe('bootActionFeedback', () => {
-  const t = (key: string, named?: Record<string, unknown>): string =>
-    named ? `${key}:${String(named.n)}` : key;
-
-  it('announces CSV export/import once, counting rows when it can', async () => {
-    bootActionFeedback(t);
-    bootActionFeedback(t); // idempotent
-    window.dispatchEvent(new CustomEvent('csvExport', { detail: { rows: 12 } }));
-    window.dispatchEvent(new CustomEvent('csvImport', { detail: { rows: [{}, {}, {}] } }));
-    window.dispatchEvent(new CustomEvent('csvImport', { detail: { rows: 'x' } }));
-    await new Promise((r) => setTimeout(r, 0));
-    const messages = (create.mock.calls as unknown as Array<[{ message: string }]>).map((c) => c[0].message);
-    expect(messages).toEqual([
-      'actionFeedback.csvExportedRows:12',
-      'actionFeedback.csvImportedRows:3',
-      'actionFeedback.csvImported',
-    ]);
+describe('no global CSV feedback', () => {
+  it('exports no window-event hook: the Web Components table that emitted csvExport/csvImport is gone (PLAN §16.11)', () => {
+    expect(toastModule).not.toHaveProperty('bootActionFeedback');
   });
 });

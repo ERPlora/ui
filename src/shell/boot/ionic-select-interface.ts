@@ -119,8 +119,8 @@ function anchoredTo(el: SelectControl, ev?: Event): Event | undefined {
 }
 
 /**
- * Makes every single-choice select of the app — the shell's own views, the `ok-*` of OutfitKit and
- * the Web Components of every installed module, shadow roots included — close on pick.
+ * Makes every single-choice select of the app — the shell's own views and the Web Components of
+ * every installed module, shadow roots included — close on pick.
  *
  * Imported from the shell entry point next to its twins (`./ionic-select-interface.boot`). Unlike them it also
  * works on a tag that is already registered: it wraps a method, not a lifecycle callback.

@@ -1,0 +1,17 @@
+{
+  "topbar": {
+    "menu": "Open menu",
+    "back": "Back"
+  },
+  "notFound": {
+    "title": "This page does not exist",
+    "body": "The address you opened is not part of this hub. It may be an old link, or a guess at the name of an app — your apps open from the menu or from Home.",
+    "action": "Go to Home"
+  },
+  "toast": {
+    "close": "OK"
+  },
+  "inlineFeedback": {
+    "dismiss": "Dismiss"
+  }
+}

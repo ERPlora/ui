@@ -1,0 +1,8 @@
+# Standalone checkout of ERPlora/ui (its own tests). As a submodule of hub or saas the app's
+# pnpm-workspace.yaml applies and this file is ignored: install only from the app's root.
+packages:
+  - .
+patchedDependencies:
+  '@ionic/vue@8.8.9': patches/@ionic__vue@8.8.9.patch
+onlyBuiltDependencies:
+  - esbuild

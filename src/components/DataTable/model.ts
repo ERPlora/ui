@@ -1,0 +1,246 @@
+// Pure logic of the DataTable, ported 1:1 from OutfitKit's `ok-data-table.ts` (the issue numbers in
+// the comments are of ERPlora/outfitkit unless they say otherwise). No DOM, no Vue: what can be
+// proved without a layout engine lives here.
+import type { DataTableAction, DataTableColumn, DataTableRowKey, DataTableSortDir } from './types';
+
+type Fields = Record<string, unknown>;
+
+/** The icons the table chrome paints (`ion:` set, baked by the shell: offline, CSP-safe). */
+export const DATA_TABLE_ICONS = {
+  sortNone: 'swap-vertical-outline',
+  sortAsc: 'chevron-up-outline',
+  sortDesc: 'chevron-down-outline',
+  previous: 'chevron-back',
+  next: 'chevron-forward',
+  clear: 'close',
+  more: 'ellipsis-vertical',
+  empty: 'file-tray-outline',
+  error: 'alert-circle-outline',
+  list: 'list-outline',
+  cards: 'grid-outline',
+  add: 'add',
+} as const;
+
+/** The fields of a row, for the reads the column API declares by key. */
+function fields(row: object): Fields {
+  return row as Fields;
+}
+
+/** Stable key of a row, as text ('' when the row has none). */
+export function rowKeyOf<T extends object>(row: T, rowKey: DataTableRowKey<T>): string {
+  const value = typeof rowKey === 'function' ? rowKey(row) : fields(row)[rowKey];
+  return value === null || value === undefined ? '' : String(value);
+}
+
+/** The text a column paints for a row. `String()`: a module's `format` may hand back a non-string. */
+export function cellText<T extends object>(column: DataTableColumn<T>, row: T): string {
+  const value = fields(row)[column.key];
+  if (column.format) {
+    const text: unknown = column.format(value, row);
+    return text === null || text === undefined ? '' : String(text);
+  }
+  return value === null || value === undefined ? '' : String(value);
+}
+
+/** #256 - A field that holds a number as text: the hub decodes NUMERIC (money) to «100.00». */
+const NUMERIC_TEXT = /^-?\d+(\.\d+)?$/;
+/** #256 - A field that holds an ISO date, datetime or time («2026-12-31», «09:30:00»). */
+const ISO_DATE_OR_TIME = /^(\d{4}-\d{2}-\d{2}|\d{2}:\d{2})/;
+
+/** #256 - What a client-side sort compares: `sortValue`, else the field itself when it is DATA (a
+ *  number, boolean, `Date`, ISO date/time or NUMERIC string), so «15/01/2027» sorts after
+ *  «31/12/2026» and «9,50 €» before «100,00 €». Any other field (words, a code, a missing field, an
+ *  object) sorts by the text the person reads. A null field sorts last. */
+export function sortKey<T extends object>(column: DataTableColumn<T>, row: T): unknown {
+  if (column.sortValue) return column.sortValue(row);
+  const value = fields(row)[column.key];
+  if (!column.format || value === null) return value;
+  if (typeof value === 'number' || typeof value === 'boolean' || value instanceof Date) return value;
+  if (typeof value === 'string') {
+    if (NUMERIC_TEXT.test(value)) return Number(value);
+    if (ISO_DATE_OR_TIME.test(value)) return value;
+  }
+  return cellText(column, row);
+}
+
+/** Rows sorted by a column, in a new array (the rows given are never mutated). */
+export function sortRows<T extends object>(rows: readonly T[], column: DataTableColumn<T>, dir: DataTableSortDir): T[] {
+  const sign = dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const va = sortKey(column, a) as never;
+    const vb = sortKey(column, b) as never;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (va < vb) return -1 * sign;
+    if (va > vb) return 1 * sign;
+    return 0;
+  });
+}
+
+/** Client-side search: rows whose `keys` contain the needle (case-insensitive). */
+export function searchRows<T extends object>(rows: readonly T[], keys: readonly string[], needle: string): readonly T[] {
+  const wanted = needle.trim().toLowerCase();
+  if (!wanted || !keys.length) return rows;
+  return rows.filter((row) => keys.some((key) => String(fields(row)[key] ?? '').toLowerCase().includes(wanted)));
+}
+
+/** Pages of the numbered pager (1-based): first, last, neighbours of the current one and «…» in
+ *  the jumps. Page 1 of 52 → [1, 2, 3, '…', 52]. */
+export function pageList(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const want = new Set<number>([1, total, current, current - 1, current + 1]);
+  if (current <= 3) [2, 3].forEach((p) => want.add(p));
+  if (current >= total - 2) [total - 1, total - 2].forEach((p) => want.add(p));
+  const sorted = [...want].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+  const out: (number | '…')[] = [];
+  let previous = 0;
+  for (const page of sorted) {
+    if (page - previous > 1) out.push('…');
+    out.push(page);
+    previous = page;
+  }
+  return out;
+}
+
+export interface PagerInput<T> {
+  serverSide: boolean;
+  /** Server: the rows the parent handed over (on a phone, the whole window). Client: every row after search and sort. */
+  rows: readonly T[];
+  /** Server: total of the query. Ignored in client mode (the count is `rows.length`). */
+  total: number;
+  /** Server: `page` prop. Client: the table's own page. 0-based. */
+  page: number;
+  pageSize: number;
+  isMobile: boolean;
+  /** #78 - Client mode on a phone: rows «Load more» has accumulated (0 = one page). */
+  mobileShown: number;
+}
+
+export interface PagerState<T> {
+  visible: readonly T[];
+  pages: number;
+  current: number;
+  count: number;
+  rangeFrom: number;
+  rangeTo: number;
+  canLoadMore: boolean;
+}
+
+/** What the page shows and what the footer says, for both modes and both viewports. */
+export function pagerState<T>(input: PagerInput<T>): PagerState<T> {
+  const { serverSide, rows, total, page, pageSize: ps, isMobile, mobileShown } = input;
+  const count = serverSide ? total : rows.length;
+  const pages = Math.max(1, Math.ceil(count / ps));
+  const current = Math.min(page, pages - 1);
+  if (serverSide && isMobile) {
+    // #78 - Server mode on a phone: `rows` is the WINDOW the parent keeps live, from the row of
+    // `page` (0 on a phone) and grown one page per «Load more» (`loadMore`). The footer and «Load
+    // more» follow the rows shown against the total; an empty window keeps that page's range.
+    const from = current * ps + 1;
+    const to = rows.length ? Math.min(from + rows.length - 1, count) : Math.min((current + 1) * ps, count);
+    return { visible: rows, pages, current, count, rangeFrom: from, rangeTo: to, canLoadMore: to < count };
+  }
+  let visible: readonly T[];
+  if (serverSide) visible = rows;
+  // #78 - On a phone the footer accumulates instead of paging.
+  else if (isMobile) visible = rows.slice(0, Math.min(mobileShown || ps, count));
+  else visible = rows.slice(current * ps, current * ps + ps);
+  // #78 - How many rows a phone (client) has been served, and whether anything is left.
+  const served = Math.min(mobileShown || ps, count);
+  const canLoadMore = isMobile && served < count;
+  // hub#1984 - On a phone «to» is what has been served; on desktop, the end of the page.
+  const rangeTo = isMobile ? served : Math.min((current + 1) * ps, count);
+  // hub#2365 - A phone counts from row 1.
+  const rangeFrom = isMobile ? 1 : current * ps + 1;
+  return { visible, pages, current, count, rangeFrom, rangeTo, canLoadMore };
+}
+
+/** Track list of the list view: [checkbox] [columns…] [actions]. */
+export function gridTemplate<T>(input: {
+  selectable: boolean;
+  columns: readonly DataTableColumn<T>[];
+  hasActions: boolean;
+  actionsTrackPx: number;
+}): string {
+  return [
+    input.selectable ? '2.75rem' : null,
+    // #120 - 5.5rem (88px) is the narrowest a data column stays readable.
+    ...input.columns.map((c) => c.width ?? 'minmax(5.5rem,1fr)'),
+    // #121 - A LENGTH, not `max-content`: header and rows are separate grids sharing this string, and
+    // a content-sized track resolves against each one's content (the header slid off its columns).
+    // `max-content` only until the first measurement of the buttons lands.
+    input.hasActions ? (input.actionsTrackPx > 0 ? `${input.actionsTrackPx}px` : 'max-content') : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/** #205 - The column a card title already shows, so the default card body does not repeat it: the
+ *  first visible column whose text reads exactly like the title. Only text titles; a column painted
+ *  by a slot is never matched (the table cannot tell what it paints). */
+export function cardTitleColumn<T extends object>(
+  title: unknown,
+  row: T,
+  columns: readonly DataTableColumn<T>[],
+): DataTableColumn<T> | undefined {
+  if (typeof title !== 'string' && typeof title !== 'number') return undefined;
+  const text = String(title).trim();
+  if (!text) return undefined;
+  return columns.find((c) => !c.cell && cellText(c, row).trim() === text);
+}
+
+/** hub#2014 - The row actions that exist for THIS row (`hidden` filtered out), in order. */
+export function visibleActions<T>(actions: readonly DataTableAction<T>[], row: T): DataTableAction<T>[] {
+  return actions.filter((a) => a.hidden?.(row) !== true);
+}
+
+/** #240 - The actions that get a column in the list: those at least one row shows. */
+export function slotActions<T>(actions: readonly DataTableAction<T>[], rows: readonly T[]): DataTableAction<T>[] {
+  return actions.filter((a) => rows.some((row) => a.hidden?.(row) !== true));
+}
+
+/** #213 - Are these row actions folded into the «…» menu? Only when the list folds (#122) AND there
+ *  is more than one, or a single TEXT-only action (wider than the «…» button itself). */
+export function rowActionsFolded<T>(collapsed: boolean, actions: readonly DataTableAction<T>[]): boolean {
+  return collapsed && (actions.length > 1 || (actions.length === 1 && !actions[0].icon));
+}
+
+/** The text of a row action for a row. */
+export function actionLabel<T>(action: DataTableAction<T>, row: T): string {
+  return typeof action.label === 'function' ? action.label(row) : action.label;
+}
+
+/** Ionic 8 default palette, the last fallback when the theme does not define the token. */
+const DEFAULT_HEX: Record<string, string> = {
+  primary: '#0054e9',
+  secondary: '#0163aa',
+  tertiary: '#6030ff',
+  success: '#2dd55b',
+  warning: '#ffc409',
+  danger: '#c5000f',
+  light: '#f4f5f8',
+  medium: '#636469',
+  dark: '#222428',
+};
+
+/** A theme colour name: lowercase, digits and dashes. Anything else is refused (it goes into CSS). */
+const TONE_NAME = /^[a-z][a-z0-9-]*$/;
+
+/** #162 - Inline style that paints a control with a theme tone: `clear` for an `ion-button`
+ *  `fill="clear"` (its `--color`), `text` for an `ion-icon`/`ion-label` (`color`). Inline, because
+ *  the row menu popover is teleported out of the table. `undefined` for an empty or unsafe tone. */
+export function toneStyle(tone: string | undefined, variant: 'clear' | 'text'): string | undefined {
+  if (!tone || !TONE_NAME.test(tone)) return undefined;
+  const hex = DEFAULT_HEX[tone];
+  const value = `var(--ion-color-${tone}${hex ? `, ${hex}` : ''})`;
+  return variant === 'clear' ? `--color: ${value};` : `color: ${value};`;
+}
+
+/** hub#2245 - Same records in the same order, told apart by their key. Keyless rows never match. */
+export function sameRecords<T>(before: readonly T[] | undefined, after: readonly T[], keyOf: (row: T) => string): boolean {
+  if (!before || before.length !== after.length) return false;
+  return after.every((row, i) => {
+    const key = keyOf(row);
+    return key !== '' && key === keyOf(before[i]);
+  });
+}
