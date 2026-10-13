@@ -1,0 +1,8 @@
+{
+  "confirmDialog": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "typeToConfirm": "To confirm, type {text}:",
+    "typeToConfirmLabel": "Confirmation"
+  }
+}

@@ -46,6 +46,14 @@ describe('AppTopbar', () => {
     expect(title.attributes('aria-level')).toBe('1');
   });
 
+  it('says the section after the title, muted, inside the same heading («Billing · Invoices»)', () => {
+    const title = mountTopbar({ title: 'Billing', section: 'Invoices' }).get('ion-title');
+    const section = title.get('.topbar-section');
+    expect(section.text()).toBe('Invoices');
+    expect(title.text().replace(/\s+/g, ' ')).toBe('Billing Invoices');
+    expect(mountTopbar({ title: 'Billing' }).find('.topbar-section').exists()).toBe(false);
+  });
+
   it('drops the heading role when the view paints its own <h1>', () => {
     const title = mountTopbar({ titleIsHeading: false }).get('ion-title');
     expect(title.attributes('role')).toBeUndefined();

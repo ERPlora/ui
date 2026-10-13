@@ -3,9 +3,38 @@
     "menu": "Abrir menú",
     "back": "Atrás"
   },
+  "home": {
+    "title": "Inicio",
+    "empty": {
+      "title": "Aún no hay aplicaciones",
+      "body": "Las aplicaciones que active este hub aparecerán aquí y en el menú."
+    },
+    "state": {
+      "activating": "Activando…",
+      "off": "Desactivada"
+    }
+  },
+  "tabbar": {
+    "label": "Secciones"
+  },
+  "userMenu": {
+    "open": "Menú de usuario",
+    "help": "Ayuda",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeSystem": "Sistema",
+    "logout": "Cerrar sesión",
+    "logoutFailed": "No se ha podido cerrar la sesión. Inténtalo de nuevo."
+  },
   "notFound": {
     "title": "Esta página no existe",
     "body": "La dirección que has abierto no forma parte de este hub. Puede ser un enlace antiguo, o el nombre de una app adivinado: tus apps se abren desde el menú o desde Inicio.",
+    "action": "Ir a Inicio"
+  },
+  "notInApp": {
+    "title": "Esta página no está en la app",
+    "body": "Esta parte de ERPlora solo está disponible en el navegador.",
     "action": "Ir a Inicio"
   },
   "toast": {

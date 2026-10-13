@@ -49,7 +49,9 @@ import { ION_ICONS } from './icons';
 import { createShellRouter } from './router';
 import { provideSession, type SessionMe, type SessionStatus } from './session';
 import { provideShellConfig } from './shell-config';
-import { bootTheme } from './theme';
+import { bootSurface, type Surface } from './surface';
+import { bootTheme, type ThemeContrast } from './theme';
+import { provideUserMenu, type ShellUserMenu } from './user-menu';
 
 export interface CreateShellOptions {
   /** The app routes (each app's `routes.ts`); the 404 catch-all is appended by the shell. */
@@ -62,10 +64,25 @@ export interface CreateShellOptions {
   loginPath?: string;
   /** Path of «Home» (menu brand, 404). Default `/`. */
   homePath?: string;
+  /**
+   * The shell's Home (the hub): HomePage at `/`, the apps as a grid, and «Home» first in the menu.
+   * Default off (the SaaS has its own landing and its own menu).
+   */
+  home?: boolean;
   /** App catalogues (`en` + `es`), merged over the shell's. */
   messages?: ShellI18nOptions['messages'];
   /** Router history. Default `createWebHistory()`. */
   history?: RouterHistory;
+  /**
+   * The surface, when the entry knows it (the server's `spa-config`, PLAN-SAAS §3.6 point 5).
+   * Default: detected (`surface.ts`: the Tauri bridge, the app user agent, `?surface=`,
+   * `<html data-surface>`). It lands on `<html data-surface>` and, off the web, `html.in-app-shell`.
+   */
+  surface?: Surface;
+  /** `'aa'`: the accessible colours (theme.ts). Default: `DEFAULT_THEME_CONTRAST`. */
+  contrast?: ThemeContrast;
+  /** The user menu: the project's entries, Help and Sign out (the theme is always there). */
+  userMenu?: ShellUserMenu;
 }
 
 export async function createShell(options: CreateShellOptions): Promise<{ app: App; router: Router }> {
@@ -74,6 +91,8 @@ export async function createShell(options: CreateShellOptions): Promise<{ app: A
   // The shell and the apps paint `<ion-icon name=…>`: without the registry it renders EMPTY offline
   // and under the CSP (ion-icon would try to fetch the SVG).
   addIcons(ION_ICONS);
+  // Before the router's first navigation (its web-only gate reads it) and before the first paint.
+  bootSurface({ surface: options.surface });
 
   const i18n = createShellI18n({
     locale: options.session.value?.language ?? document.documentElement.lang,
@@ -85,9 +104,11 @@ export async function createShell(options: CreateShellOptions): Promise<{ app: A
     session,
     loginPath: options.loginPath,
     history: options.history,
+    home: options.home,
   });
   app.use(IonicVue, { mode: 'ios', swipeBackEnabled: false }).use(router).use(i18n);
-  provideShellConfig({ homePath: options.homePath }, app);
+  provideShellConfig({ homePath: options.homePath, home: options.home }, app);
+  provideUserMenu(options.userMenu, app);
 
   // The language is the person's (`base.session.me.language`): follow it live, and keep
   // `<html lang>` in step (screen readers, and the select-dialog hook reads it).
@@ -102,6 +123,6 @@ export async function createShell(options: CreateShellOptions): Promise<{ app: A
     { immediate: true },
   );
 
-  bootTheme();
+  bootTheme({ contrast: options.contrast });
   return { app, router };
 }

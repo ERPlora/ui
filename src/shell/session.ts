@@ -6,6 +6,9 @@
 //
 // The menu comes from the server, already filtered by permission and active app and already
 // translated; `routes.ts` of an app never contributes menu items (it only maps routes → pages).
+//
+// Signing out of the Hub is the server's too: `logout()` hands the browser to the Hub's
+// `/auth/logout`; the hub passes it to `createShell({ userMenu: { logout } })`.
 import {
   type App,
   computed,
@@ -18,12 +21,17 @@ import {
   watch,
 } from 'vue';
 
+import { readSpaConfig } from '../sdk/config';
+import { readCookie } from '../sdk/headers';
+
 /** State of the stream that carries `base.session.me`. */
 export type SessionStatus = 'loading' | 'live' | 'error' | 'reconnecting';
 
 export interface SessionUser {
   id: string;
   label: string;
+  /** Shown under the name in the user menu (the SaaS sends it; the Hub may not). */
+  email?: string;
 }
 
 export interface SessionMenuItem {
@@ -31,15 +39,19 @@ export interface SessionMenuItem {
   label: string;
   /** `prefix:name` (e.g. `ion:cube-outline`), painted with HubIcon. */
   icon: string;
+  /** Sells something (the SaaS's Store): not painted on the app surfaces (`surface.ts`). */
+  webOnly?: boolean;
 }
 
 export interface SessionMenuSection {
   id: string;
+  /** `''` paints no divider header (a menu of one section). */
   label: string;
   items: SessionMenuItem[];
 }
 
 export interface SessionApp {
+  /** The app's id (its Django label, e.g. `demo`): the `id` of its menu section. */
   label: string;
   state: 'on' | 'activating' | 'off';
 }
@@ -123,4 +135,28 @@ export function sessionReady(session: ShellSession): Promise<void> {
       resolve();
     });
   });
+}
+
+/** The Hub's logout (`base/auth_views.py`): POST only, behind Django's CSRF check. */
+const LOGOUT_PATH = '/auth/logout';
+
+/**
+ * Signs the person out of the Hub: a top-level form POST to its logout, so the BROWSER follows its
+ * redirect (the Hub closes its session, then the SaaS's logout page closes that one). Not `fetch`:
+ * it would follow that cross-origin redirect itself and leave the page where it was. The CSRF token
+ * is the cookie that `spa-config` names, sent as Django's `csrfmiddlewaretoken` field.
+ */
+export function logout(doc: Document = document): void {
+  const { csrfCookieName } = readSpaConfig(doc);
+  const form = doc.createElement('form');
+  form.setAttribute('method', 'post');
+  form.setAttribute('action', LOGOUT_PATH);
+  form.hidden = true;
+  const token = doc.createElement('input');
+  token.type = 'hidden';
+  token.name = 'csrfmiddlewaretoken';
+  token.value = readCookie(doc.cookie, csrfCookieName) ?? '';
+  form.append(token);
+  doc.body.append(form);
+  form.submit();
 }

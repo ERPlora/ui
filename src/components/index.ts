@@ -5,3 +5,8 @@ export * from './InlineFeedback';
 export * from './EmptyState';
 export * from './DataTable';
 export * from './format';
+export * from './StatusPill';
+export * from './FormModal';
+export * from './ConfirmDialog';
+export * from './UserAvatar';
+export * from './UsageMeter';

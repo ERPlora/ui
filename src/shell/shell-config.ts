@@ -1,10 +1,12 @@
 // Static facts of the shell an app passes to `createShell`: where «Home» is (brand link of the
-// menu, «Go to Home» of the 404).
+// menu, «Go to Home» of the 404) and whether the shell's own Home (HomePage) is on.
 import { type App, inject, type InjectionKey } from 'vue';
 
 export interface ShellConfig {
   /** Path of «Home». */
   homePath: string;
+  /** The shell's Home is on (`createShell({ home: true })`, the hub): «Home» goes first in the menu. */
+  home?: boolean;
 }
 
 const DEFAULTS: ShellConfig = { homePath: '/' };

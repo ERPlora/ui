@@ -30,6 +30,13 @@ ion-title { font-weight: 650; letter-spacing: -0.01em; font-size: 1.0625rem; }
 /* ── Shared topbar (AppTopbar.vue) — parity with Cloud's .dash-header ─────────────────── */
 /* (The topbar avatar was removed 2026-07-16: the user lives in the sidebar header.) */
 .app-topbar { position: relative; }
+/* The section on screen after the title («Billing · Invoices», mockups README §3): muted, and gone on
+   a phone, where the footer tabbar already says it and the title needs the room. */
+.topbar-section { font-weight: 400; color: var(--ep-text-muted); }
+.topbar-section::before { content: '· '; }
+@media (max-width: 640px) {
+  .topbar-section { display: none; }
+}
 /* Notifications badge (bell). Positioned over the ion-button (relative host). */
 .topbar-notif { position: relative; overflow: visible; }
 .topbar-notif .notif-badge {
@@ -51,7 +58,8 @@ ion-title { font-weight: 650; letter-spacing: -0.01em; font-size: 1.0625rem; }
   display: flex; align-items: center; gap: 0.4rem;
   padding: 0.45rem 0.75rem 0.7rem; font-size: 0.72rem;
 }
-.sidebar-foot-text { color: color-mix(in oklab, var(--ion-text-color) 55%, transparent); }
+/* Secondary text at AA (UX-AUDIT-2 V-03: the 55 % mix it had read 3.74:1 on the canvas). */
+.sidebar-foot-text { color: var(--ep-text-muted); }
 .ml-auto { margin-inline-start: auto; }
 /* Collapsed rail: logo only, centered (the version is .nav-label → already hidden). */
 ion-split-pane.rail .sidebar-foot-brand { justify-content: center; padding-inline: 0; }
@@ -328,6 +336,12 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
 .nav-item.selected::part(native) {
   box-shadow: inset 3px 0 0 var(--ion-color-primary);
 }
+/* The 'aa' contrast (variables.css): primary text on a primary wash is under AA (3.82:1, UX-AUDIT-2
+   V-02), so the selected item and the avatar take the AA pair of tokens instead. */
+:root[data-ep-contrast='aa']:not([data-ep-palette]) .nav-item.selected {
+  --background: var(--ep-primary-tint);
+  --color: var(--ep-primary-text);
+}
 .nav-icon { flex: none; opacity: 0.9; margin-inline-end: 0.7rem; color: inherit; }
 
 /* Footer: user card (initials avatar + name/email + logout) — same canvas as the
@@ -343,7 +357,8 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
 }
 .sidebar-user:hover { background: color-mix(in oklab, var(--ion-text-color) 6%, transparent); }
 .sidebar-user-chevron { flex: none; font-size: 15px; color: var(--ion-color-medium); }
-.sidebar-user-popover { --width: 220px; }
+/* As wide as the pinned menu: the theme row (icon, «Theme», three buttons) does not fit in 220px. */
+.sidebar-user-popover { --width: 248px; }
 .sidebar-user-popover ion-item { --min-height: 42px; font-size: 0.9rem; }
 .sidebar-user-avatar {
   width: 34px; height: 34px; border-radius: 999px; flex: none;
@@ -353,13 +368,22 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
   overflow: hidden;
 }
 .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+:root[data-ep-contrast='aa']:not([data-ep-palette]) .sidebar-user-avatar {
+  background: var(--ep-primary-tint);
+  color: var(--ep-primary-text);
+}
+/* The user menu (App.vue): the project's entries, Help, Theme and Sign out under the person. The
+   theme row's segment is three icon-only buttons (40px wide, the 46px height of every segment
+   button), sized to its buttons instead of Ionic's full width so the label keeps its room. */
+.user-menu-theme ion-segment { width: auto; min-width: 7.5rem; }
+.user-menu-theme ion-segment-button { min-width: 2.5rem; }
 .sidebar-user-meta { min-width: 0; flex: 1; }
 .sidebar-user-name {
   font-size: 0.85rem; font-weight: 600;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sidebar-user-email {
-  font-size: 0.72rem; color: color-mix(in oklab, var(--ion-text-color) 55%, transparent);
+  font-size: 0.72rem; color: var(--ep-text-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sidebar-foot ion-button { --color: var(--ion-color-medium); height: 34px; }

@@ -141,3 +141,242 @@ describe('tabbar.css (the footer ion-segment as navigation, ported from OutfitKi
     expect(blocks(plain(read('polish.css')), 'ion-footer .tabbar ion-label')[0]).toContain('white-space: normal');
   });
 });
+
+// ── Semantic palette, step aliases and contrast (L0-C; mockups README §6.9 and §6.15, UX-AUDIT-2
+// V-01..V-03, V-16) ──────────────────────────────────────────────────────────────────────────────
+
+/** WCAG 2.x relative luminance of `#rrggbb`. */
+function luminance(hex: string): number {
+  const channel = (value: number): number => {
+    const c = value / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const [r, g, b] = rgbOf(hex).map(channel);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** `#rrggbb` → [r, g, b]. */
+function rgbOf(hex: string): number[] {
+  expect(hex, 'a literal #rrggbb').toMatch(/^#[0-9a-f]{6}$/i);
+  return [1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16));
+}
+
+/** WCAG 2.x contrast ratio of two colours. */
+function contrastRatio(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** The value one block gives a token (`undefined` when it does not declare it). */
+const tokenIn = (body: string, name: string): string | undefined =>
+  new RegExp(`(?:^|[\\s;{])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:\\s*([^;]+);`).exec(body)?.[1].trim();
+
+const LIGHT = blocks(variables, ':root')[0];
+const DARK = blocks(variables, ':root.ion-palette-dark')[0];
+const AA_LIGHT = blocks(variables, ":root[data-ep-contrast='aa']:not([data-ep-palette])")[0];
+const AA_DARK = blocks(variables, ":root.ion-palette-dark[data-ep-contrast='aa']:not([data-ep-palette])")[0];
+
+/** The surfaces text sits on, per theme. */
+const SURFACES = {
+  light: { card: '#ffffff', canvas: '#f6f7f9', step100: '#eceef1', body: LIGHT },
+  dark: { card: '#16181c', canvas: '#0b0c0e', step100: '#1d2025', body: DARK },
+} as const;
+
+/** A token as the theme resolves it: the dark block first, then the light one (same element). */
+const resolved = (theme: keyof typeof SURFACES, name: string): string | undefined =>
+  (theme === 'dark' ? tokenIn(DARK, name) : undefined) ?? tokenIn(LIGHT, name);
+
+const VARIANTS = ['', '-rgb', '-contrast', '-contrast-rgb', '-shade', '-tint'];
+
+describe('semantic palette (ported from the old SaaS ionic-theme.css, saas origin/develop)', () => {
+  it('sets secondary, success, warning, danger and medium with all six Ionic variants', () => {
+    for (const colour of ['primary', 'secondary', 'success', 'warning', 'danger', 'medium']) {
+      for (const variant of VARIANTS) {
+        expect(tokenIn(LIGHT, `--ion-color-${colour}${variant}`), `--ion-color-${colour}${variant}`).toBeDefined();
+      }
+    }
+  });
+
+  it('keeps the brand values of the old SaaS', () => {
+    const brand: Record<string, string> = {
+      '--ion-color-primary': '#1496d6',
+      '--ion-color-secondary': '#6366f1',
+      '--ion-color-success': '#23944e',
+      '--ion-color-warning': '#e8a912',
+      '--ion-color-warning-contrast': '#1c1b18',
+      '--ion-color-danger': '#d6404f',
+      '--ion-color-medium': '#6b7280',
+    };
+    for (const [token, value] of Object.entries(brand)) expect(tokenIn(LIGHT, token), token).toBe(value);
+  });
+
+  it('leaves tertiary, light and dark to Ionic (its defaults equal the old SaaS, and its dark palette inverts them)', () => {
+    for (const colour of ['tertiary', 'light', 'dark']) expect(tokenIn(LIGHT, `--ion-color-${colour}`), colour).toBeUndefined();
+  });
+
+  it('every -rgb is its hex, in every block that sets one', () => {
+    for (const body of [LIGHT, DARK, AA_LIGHT, AA_DARK]) {
+      for (const [, name, value] of body.matchAll(/(--ion-color-[a-z]+(?:-contrast)?)-rgb:\s*([^;]+);/g)) {
+        const hex = tokenIn(body, name);
+        if (hex === undefined) continue;
+        expect(value.split(',').map((part) => Number(part.trim())), name).toEqual(rgbOf(hex));
+      }
+    }
+  });
+
+  it('the medium chip is legible in both themes: its contrast colour flips to dark text in dark (V-16)', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const solid = resolved(theme, '--ion-color-medium') as string;
+      const text = resolved(theme, '--ion-color-medium-contrast') as string;
+      expect(contrastRatio(text, solid), `${theme}: ${text} on ${solid}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});
+
+describe('step ramp: Ionic 8 names with the legacy ones aliased (old SaaS ionic-theme.css)', () => {
+  const STEPS = [50, 100, 150, 200, 250, 300, 500, 700, 850];
+
+  it('the --ion-background-color-step-* ramp is literal in both themes, and --ion-color-step-* reads it', () => {
+    for (const step of STEPS) {
+      expect(tokenIn(LIGHT, `--ion-background-color-step-${step}`), `light ${step}`).toMatch(/^#[0-9a-f]{6}$/);
+      expect(tokenIn(DARK, `--ion-background-color-step-${step}`), `dark ${step}`).toMatch(/^#[0-9a-f]{6}$/);
+      expect(tokenIn(LIGHT, `--ion-color-step-${step}`)).toBe(`var(--ion-background-color-step-${step})`);
+      // Declared once, on <html>: the dark block only moves the ramp, the alias follows it.
+      expect(tokenIn(DARK, `--ion-color-step-${step}`), `dark ${step}`).toBeUndefined();
+    }
+  });
+
+  it('keeps the values the ramp had (light greys, dark zinc)', () => {
+    expect(tokenIn(LIGHT, '--ion-background-color-step-50')).toBe('#f3f4f6');
+    expect(tokenIn(LIGHT, '--ion-background-color-step-850')).toBe('#2a2d33');
+    expect(tokenIn(DARK, '--ion-background-color-step-50')).toBe('#16181c');
+    expect(tokenIn(DARK, '--ion-background-color-step-850')).toBe('#d7dae0');
+  });
+
+  it('dark defines --ion-color-step-600, the body text of ion-card, at AA on the card and the canvas (README §6.9)', () => {
+    // Without it ion-card falls back to Ionic's grey: #666 on #16181c is about 3:1.
+    const text = tokenIn(DARK, '--ion-color-step-600') as string;
+    expect(text).toBe('#8b919d');
+    expect(contrastRatio(text, SURFACES.dark.card)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(text, SURFACES.dark.canvas)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+// Always on, both themes: text on a tinted background (a status pill, a notice, the selected menu
+// item) and secondary text. The SaaS pages and @erplora/ui components read these names.
+describe('AA text tokens (--ep-<colour>-text on --ep-<colour>-tint, --ep-text-muted)', () => {
+  const COLOURS = ['primary', 'success', 'warning', 'danger'];
+
+  it('-text is ≥ 4.5:1 on its -tint, on the card and on the canvas, in both themes', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const { card, canvas } = SURFACES[theme];
+      for (const colour of COLOURS) {
+        const text = resolved(theme, `--ep-${colour}-text`) as string;
+        const tint = resolved(theme, `--ep-${colour}-tint`) as string;
+        for (const [surface, bg] of [['tint', tint], ['card', card], ['canvas', canvas]]) {
+          expect(contrastRatio(text, bg), `${theme} ${colour}: ${text} on ${surface} ${bg}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
+  });
+
+  it('the primary text on tints is the deep shade #0b5f8a (UX-AUDIT-2 V-02)', () => {
+    expect(tokenIn(LIGHT, '--ep-primary-text')).toBe('#0b5f8a');
+  });
+
+  it('the tints are the brand colours washed over the card (12 % light, 14 % dark)', () => {
+    expect(tokenIn(LIGHT, '--ep-primary-tint')).toBe('#e3f2fa');
+    expect(tokenIn(LIGHT, '--ep-success-tint')).toBe('#e5f2ea');
+    expect(tokenIn(LIGHT, '--ep-warning-tint')).toBe('#fcf5e3');
+    expect(tokenIn(LIGHT, '--ep-danger-tint')).toBe('#fae8ea');
+  });
+
+  it('--ep-text-muted is ≥ 4.5:1 on the card, the canvas and the step-100 surface (table headers), in both themes', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const muted = resolved(theme, '--ep-text-muted') as string;
+      for (const surface of ['card', 'canvas', 'step100'] as const) {
+        expect(contrastRatio(muted, SURFACES[theme][surface]), `${theme} muted on ${surface}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it('the brand accent and its accessible twin are tokens of their own', () => {
+    expect(tokenIn(LIGHT, '--ep-primary-brand')).toBe('#1496d6');
+    expect(tokenIn(LIGHT, '--ep-primary-accessible')).toBe('#0e78ad');
+  });
+
+  it('polish.css paints the secondary text of the menu with --ep-text-muted (V-03: 3.74:1 before)', () => {
+    const polish = plain(read('polish.css'));
+    expect(blocks(polish, '.sidebar-user-email')[0]).toContain('color: var(--ep-text-muted)');
+    expect(blocks(polish, '.sidebar-foot-text')[0]).toContain('color: var(--ep-text-muted)');
+  });
+
+  it('an optional palette derives the primary tint and text from its own primary', () => {
+    const [rule] = blocks(plain(read('palettes.css')), ':root[data-ep-palette]');
+    expect(rule).toContain('--ep-primary-tint: color-mix(in srgb, var(--ion-color-primary) 12%, var(--ion-card-background))');
+    expect(rule).toContain('--ep-primary-text: color-mix(in srgb, var(--ion-color-primary) 60%, var(--ion-text-color))');
+  });
+});
+
+// The switch (theme.ts `setThemeContrast('aa')`, createShell `{ contrast: 'aa' }`): the AA solids for
+// the ERPlora palette. Default: the brand colours, until Ioan decides (README §6.15).
+describe("the 'aa' contrast (data-ep-contrast='aa'): AA solids for primary, success, warning and danger", () => {
+  const COLOURS = ['primary', 'success', 'warning', 'danger'];
+
+  it('the brand primary is why it exists: white on #1496d6 is under 4.5:1', () => {
+    expect(contrastRatio('#ffffff', tokenIn(LIGHT, '--ion-color-primary') as string)).toBeLessThan(4.5);
+  });
+
+  it('has a light and a dark block that set the same tokens (the dark one must override the light one)', () => {
+    expect(AA_LIGHT, 'light block').toBeDefined();
+    expect(AA_DARK, 'dark block').toBeDefined();
+    const ion = (body: string) => declared(body).filter((token) => token.startsWith('--ion-'));
+    expect(ion(AA_DARK)).toEqual(ion(AA_LIGHT));
+    expect(ion(AA_LIGHT)).toEqual(COLOURS.flatMap((colour) => VARIANTS.map((variant) => `--ion-color-${colour}${variant}`)));
+  });
+
+  it('its contrast colour is ≥ 4.5:1 on the solid, the shade (pressed) and the tint (hover), in both themes', () => {
+    for (const [theme, body] of [['light', AA_LIGHT], ['dark', AA_DARK]] as const) {
+      for (const colour of COLOURS) {
+        const text = tokenIn(body, `--ion-color-${colour}-contrast`) as string;
+        for (const variant of ['', '-shade', '-tint']) {
+          const solid = tokenIn(body, `--ion-color-${colour}${variant}`) as string;
+          expect(contrastRatio(text, solid), `${theme} ${colour}${variant}: ${text} on ${solid}`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
+  });
+
+  it('light primary is the accessible blue (4.87:1); dark keeps #2aa6e4 with dark text, as Material 3 and iOS do', () => {
+    expect(tokenIn(AA_LIGHT, '--ion-color-primary')).toBe('#0e78ad');
+    expect(tokenIn(AA_LIGHT, '--ion-color-danger')).toBe('#c8374a');
+    expect(tokenIn(AA_DARK, '--ion-color-primary')).toBe('#2aa6e4');
+    expect(tokenIn(AA_DARK, '--ion-color-primary-contrast')).toBe('#0b0c0e');
+  });
+
+  it('polish.css: the selected menu item reads the AA text on its tint', () => {
+    const polish = plain(read('polish.css'));
+    const [selected] = blocks(polish, ":root[data-ep-contrast='aa']:not([data-ep-palette]) .nav-item.selected");
+    expect(selected).toContain('--background: var(--ep-primary-tint)');
+    expect(selected).toContain('--color: var(--ep-primary-text)');
+    const [avatar] = blocks(polish, ":root[data-ep-contrast='aa']:not([data-ep-palette]) .sidebar-user-avatar");
+    expect(avatar).toContain('background: var(--ep-primary-tint)');
+    expect(avatar).toContain('color: var(--ep-primary-text)');
+  });
+});
+
+describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA shell keeps', () => {
+  const polish = plain(read('polish.css'));
+
+  it('pinned menu 232–248 px, rail 68 px, drawer 280 px below lg', () => {
+    expect(blocks(polish, 'ion-split-pane')[0]).toContain('--side-max-width: 248px');
+    expect(blocks(polish, 'ion-split-pane.rail')[0]).toContain('--side-width: 68px');
+    expect(blocks(polish, 'ion-menu.dash-menu')[0]).toContain('--width: 280px');
+  });
+
+  it('the topbar names the section after the title, muted, hidden on a phone', () => {
+    expect(blocks(polish, '.topbar-section::before')[0]).toContain("content: '· '");
+    expect(blocks(polish, '.topbar-section')[0]).toContain('color: var(--ep-text-muted)');
+    expect(polish).toMatch(/@media \(max-width: 640px\) \{\s*\.topbar-section \{\s*display: none;/);
+  });
+});

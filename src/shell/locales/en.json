@@ -3,9 +3,38 @@
     "menu": "Open menu",
     "back": "Back"
   },
+  "home": {
+    "title": "Home",
+    "empty": {
+      "title": "No apps yet",
+      "body": "The apps this hub turns on will show up here, and in the menu."
+    },
+    "state": {
+      "activating": "Activating…",
+      "off": "Off"
+    }
+  },
+  "tabbar": {
+    "label": "Sections"
+  },
+  "userMenu": {
+    "open": "User menu",
+    "help": "Help",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "logout": "Sign out",
+    "logoutFailed": "Could not sign out. Try again."
+  },
   "notFound": {
     "title": "This page does not exist",
     "body": "The address you opened is not part of this hub. It may be an old link, or a guess at the name of an app — your apps open from the menu or from Home.",
+    "action": "Go to Home"
+  },
+  "notInApp": {
+    "title": "This page is not in the app",
+    "body": "This part of ERPlora is only available in a web browser.",
     "action": "Go to Home"
   },
   "toast": {

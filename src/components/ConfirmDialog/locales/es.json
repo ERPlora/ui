@@ -1,0 +1,8 @@
+{
+  "confirmDialog": {
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "typeToConfirm": "Para confirmar, escribe {text}:",
+    "typeToConfirmLabel": "Confirmación"
+  }
+}

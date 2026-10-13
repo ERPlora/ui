@@ -1,0 +1,22 @@
+{
+  "statusPill": {
+    "business": {
+      "ready": "Activo",
+      "preparing": "Preparando",
+      "past_due": "Pago pendiente",
+      "suspended": "Suspendido",
+      "deleting": "En eliminación",
+      "pending_invitation": "Pendiente",
+      "active": "Activo",
+      "cancelled": "Cancelado"
+    },
+    "invoice": {
+      "draft": "Borrador",
+      "pending": "Pendiente",
+      "issuing": "Emitiéndose",
+      "paid": "Pagada",
+      "failed": "No cobrada",
+      "refunded": "Reembolsada"
+    }
+  }
+}

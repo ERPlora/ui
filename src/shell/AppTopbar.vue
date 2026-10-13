@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // AppTopbar — the shared topbar of the shell. Ported from ERPlora hub
 // `apps/web/src/components/AppTopbar.vue` (origin/develop), phase-1 minimum: menu button, contextual
-// back, the screen title as its heading and the view's own actions. Not ported (phase 1 has none
+// back, the screen title as its heading (with the section on screen after it, «Billing · Invoices»,
+// mockups README §3) and the view's own actions. Not ported (phase 1 has none
 // of them): app launcher, management link, change hub, assistant, notification bell, rail toggle
 // and the progress bar.
 import { IonButton, IonButtons, IonHeader, IonIcon, IonMenuButton, IonTitle, IonToolbar } from '@ionic/vue';
@@ -12,6 +13,8 @@ const props = withDefaults(
   defineProps<{
     /** Title of the view. */
     title: string;
+    /** The section on screen (the active tab of the page), said after the title, muted. */
+    section?: string;
     /** Fallback href of the Back button. When passed, the view is a detail one and shows Back. */
     backHref?: string;
     /**
@@ -20,7 +23,7 @@ const props = withDefaults(
      */
     titleIsHeading?: boolean;
   }>(),
-  { backHref: undefined, titleIsHeading: true },
+  { section: undefined, backHref: undefined, titleIsHeading: true },
 );
 
 const { t } = useI18n();
@@ -66,6 +69,10 @@ function goBack(): void {
         :aria-level="titleIsHeading ? '1' : undefined"
       >
         {{ title }}
+        <span
+          v-if="section"
+          class="topbar-section"
+        >{{ section }}</span>
       </ion-title>
 
       <ion-buttons slot="end">

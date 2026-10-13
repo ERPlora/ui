@@ -11,16 +11,42 @@ function keys(tree: Record<string, unknown>, prefix = ''): string[] {
 }
 
 describe('shell catalogues', () => {
-  it('carry only what the minimal shell and its components say (topbar, 404, banner close, toast close)', () => {
+  it('carry only what the shell and its components say (topbar, tabbar, home, user menu, 404, not in the app, banner and toast close)', () => {
     expect(keys(en).sort()).toEqual([
+      'home.empty.body',
+      'home.empty.title',
+      'home.state.activating',
+      'home.state.off',
+      'home.title',
       'inlineFeedback.dismiss',
       'notFound.action',
       'notFound.body',
       'notFound.title',
+      'notInApp.action',
+      'notInApp.body',
+      'notInApp.title',
+      'tabbar.label',
       'toast.close',
       'topbar.back',
       'topbar.menu',
+      'userMenu.help',
+      'userMenu.logout',
+      'userMenu.logoutFailed',
+      'userMenu.open',
+      'userMenu.theme',
+      'userMenu.themeDark',
+      'userMenu.themeLight',
+      'userMenu.themeSystem',
     ]);
+  });
+
+  it('the page that is not in the app names no price and carries no link out (Google Play, consumption-only)', () => {
+    for (const tree of [en, es]) {
+      const page = (tree as { notInApp: Record<string, string> }).notInApp;
+      for (const text of Object.values(page)) {
+        expect(text).not.toMatch(/https?:|www\.|€|\$/);
+      }
+    }
   });
 
   it('en and es have exactly the same keys', () => {

@@ -1,10 +1,11 @@
 /* eslint-disable vue/one-component-per-file -- small inline fixture components */
 import { mount } from '@vue/test-utils';
 import { createApp, defineComponent, h, nextTick, ref } from 'vue';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createShellSession,
+  logout,
   provideSession,
   sessionReady,
   type SessionMe,
@@ -30,6 +31,17 @@ function me(overrides: Partial<SessionMe> = {}): SessionMe {
 }
 
 describe('createShellSession', () => {
+  it('carries the optional email of the person and the web-only mark of an entry (the SaaS sends both)', () => {
+    const data = me({
+      user: { id: 'u1', label: 'Laura Martín', email: 'laura@panaderialopez.es' },
+      menu: [{ id: 'main', label: '', items: [{ path: '/store', label: 'Store', icon: 'ion:cart-outline', webOnly: true }] }],
+    });
+    const session = createShellSession(ref(data), ref<SessionStatus>('live'));
+    expect(session.user.value?.email).toBe('laura@panaderialopez.es');
+    expect(session.menu.value[0].items[0].webOnly).toBe(true);
+  });
+
+
   it('derives user and menu from base.session.me', () => {
     const session = createShellSession(ref(me()), ref<SessionStatus>('live'));
     expect(session.user.value).toEqual({ id: 'u1', label: 'Ana Pérez' });
@@ -113,5 +125,43 @@ describe('sessionReady', () => {
     await nextTick();
     await Promise.resolve();
     expect(done).toBe(true);
+  });
+});
+
+// The Hub's sign out, handed to the shell as its user menu's `logout` (`createShell({ userMenu })`).
+describe('logout', () => {
+  let submitted: HTMLFormElement[];
+
+  beforeEach(() => {
+    submitted = [];
+    vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(function (this: HTMLFormElement) {
+      submitted.push(this);
+    });
+    document.body.innerHTML =
+      '<script id="spa-config" type="application/json">{"csrfCookieName":"hubcsrf","lang":"en"}</script>';
+    document.cookie = 'hubcsrf=tok-123; path=/';
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
+    document.cookie = 'hubcsrf=; max-age=0; path=/';
+    document.cookie = 'csrftoken=; max-age=0; path=/';
+  });
+
+  it("POSTs a top-level form to the Hub's /auth/logout, so the browser follows its redirect", () => {
+    logout();
+    expect(submitted).toHaveLength(1);
+    const [form] = submitted;
+    expect(form.getAttribute('method')).toBe('post');
+    expect(form.getAttribute('action')).toBe('/auth/logout');
+    expect(form.hidden).toBe(true);
+    expect(form.isConnected).toBe(true);
+  });
+
+  it("carries Django's CSRF token from the cookie that spa-config names, never an assumed one", () => {
+    document.cookie = 'csrftoken=not-this-one; path=/';
+    logout();
+    expect([...new FormData(submitted[0]).entries()]).toEqual([['csrfmiddlewaretoken', 'tok-123']]);
   });
 });

@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { nextTick, ref } from 'vue';
 import { createMemoryHistory } from 'vue-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const calls = vi.hoisted(() => [] as Array<[string, unknown?]>);
 
@@ -13,23 +13,25 @@ vi.mock('./boot/trusted-types.boot', () => ({
 vi.mock('ionicons', () => ({ addIcons: (icons: unknown) => calls.push(['addIcons', icons]) }));
 vi.mock('./theme', async (importOriginal) => ({
   ...((await importOriginal()) as object),
-  bootTheme: () => calls.push(['bootTheme']),
+  bootTheme: (options: unknown) => calls.push(['bootTheme', options]),
 }));
 vi.mock('@ionic/vue', async (importOriginal) => ({
   ...((await importOriginal()) as object),
   IonicVue: { install: (_app: unknown, config: unknown) => calls.push(['IonicVue', config]) },
 }));
 
-import { createShell } from './createShell';
+import { createShell, type CreateShellOptions } from './createShell';
 import { ION_ICONS } from './icons';
 import { SESSION_KEY, type SessionMe, type SessionStatus } from './session';
 import { SHELL_CONFIG_KEY } from './shell-config';
+import { applySurface, IN_APP_CLASS } from './surface';
+import { USER_MENU_KEY } from './user-menu';
 
 function me(language = 'es'): SessionMe {
   return { user: { id: 'u1', label: 'Ana' }, permissions: ['*'], menu: [], apps: [], language };
 }
 
-async function boot(language = 'es') {
+async function boot(language = 'es', extra: Partial<CreateShellOptions> = {}) {
   const session = ref<SessionMe | undefined>(me(language));
   const status = ref<SessionStatus>('live');
   const shell = await createShell({
@@ -39,12 +41,19 @@ async function boot(language = 'es') {
     homePath: '/demo/items',
     messages: { en: { demo: { title: 'Items' } }, es: { demo: { title: 'Artículos' } } },
     history: createMemoryHistory(),
+    ...extra,
   });
   return { ...shell, session, status };
 }
 
 beforeEach(() => {
   calls.length = 0;
+});
+
+const provides = (app: { _context: { provides: unknown } }) => app._context.provides as Record<symbol, unknown>;
+
+afterEach(() => {
+  applySurface('web');
 });
 
 describe('createShell', () => {
@@ -89,6 +98,55 @@ describe('createShell', () => {
     await nextTick();
     expect(t('demo.title')).toBe('Items');
     expect(document.documentElement.lang).toBe('en');
+  });
+});
+
+describe('createShell: surface, contrast and user menu', () => {
+  it('marks <html> with the surface it runs on: the web in a browser', async () => {
+    document.documentElement.removeAttribute('data-surface');
+    await boot();
+    expect(document.documentElement.dataset.surface).toBe('web');
+    expect(document.documentElement.classList.contains(IN_APP_CLASS)).toBe(false);
+  });
+
+  it('takes the surface the entry knows (spa-config), and off the web sets html.in-app-shell', async () => {
+    await boot('es', { surface: 'desktop' });
+    expect(document.documentElement.dataset.surface).toBe('desktop');
+    expect(document.documentElement.classList.contains(IN_APP_CLASS)).toBe(true);
+  });
+
+  it('boots the theme with the contrast it is given; the default is the theme\'s own', async () => {
+    await boot();
+    expect(calls.find(([name]) => name === 'bootTheme')?.[1]).toEqual({ contrast: undefined });
+    calls.length = 0;
+    await boot('es', { contrast: 'aa' });
+    expect(calls.find(([name]) => name === 'bootTheme')?.[1]).toEqual({ contrast: 'aa' });
+  });
+
+  it('provides the user menu of the project app-wide (none: only the theme)', async () => {
+    const logout = vi.fn();
+    const { app } = await boot('es', { userMenu: { helpPath: '/help', logout } });
+    const provided = (app._context.provides as Record<symbol, unknown>)[USER_MENU_KEY as symbol] as { helpPath?: string; logout?: unknown };
+    expect(provided.helpPath).toBe('/help');
+    expect(provided.logout).toBe(logout);
+    const bare = await boot();
+    expect((bare.app._context.provides as Record<symbol, unknown>)[USER_MENU_KEY as symbol]).toEqual({});
+  });
+});
+
+// The shell's Home (HomePage at `/`, «Home» first in the menu) is the hub's: the SaaS has its own
+// landing and a menu of its own, so it stays off unless the project asks for it.
+describe('createShell: home', () => {
+  it('home: true serves the shell Home at / and tells the menu to paint «Home» first', async () => {
+    const { app, router } = await boot('es', { home: true });
+    expect(router.resolve('/').name).toBe('home');
+    expect(provides(app)[SHELL_CONFIG_KEY as symbol]).toEqual({ homePath: '/demo/items', home: true });
+  });
+
+  it('off by default: / is not the shell Home and the menu has no «Home»', async () => {
+    const { app, router } = await boot();
+    expect(router.hasRoute('home')).toBe(false);
+    expect((provides(app)[SHELL_CONFIG_KEY as symbol] as { home?: boolean }).home).toBeFalsy();
   });
 });
 

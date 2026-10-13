@@ -17,6 +17,14 @@
  * Load order: AFTER variables.css (createShell.ts).
  */
 
+/* Any optional palette: the accessible text-on-tint pair of its PRIMARY (variables.css defines the
+   ERPlora one as literals) is derived from the palette's own primary, so a pill or the selected item
+   never turns ERPlora blue on a terracotta screen. color-mix resolves on <html>, so it follows dark. */
+:root[data-ep-palette] {
+  --ep-primary-tint: color-mix(in srgb, var(--ion-color-primary) 12%, var(--ion-card-background));
+  --ep-primary-text: color-mix(in srgb, var(--ion-color-primary) 60%, var(--ion-text-color));
+}
+
 /* ═══════════════ TERRACOTTA — the warm default of the ux showcase ═══════════════ */
 
 :root[data-ep-palette='terracotta'] {

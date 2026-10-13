@@ -1,8 +1,15 @@
 // Shell theme: light/dark mode + brand PALETTE (ADR-0138). Ported from ERPlora hub
 // `apps/web/src/lib/theme.ts`. The mode is applied to <html> with Ionic's `ion-palette-dark` class
 // and the palette with the `data-ep-palette` attribute (theme/palettes.css, ported from OutfitKit;
-// `live/spa.html` sets the same attribute before the SPA boots, so a rename touches both).
-// The mode toggle lives in the topbar (AppTopbar.vue); the palette picker in settings.
+// `live/spa.html` sets the same attribute before the SPA boots, so a rename touches both). The
+// palette painted last is remembered in the `ep_palette` cookie, which `live/spa.py` reads to paint
+// that attribute on the next load (no flash of the default palette).
+// The mode is chosen in the user menu (App.vue: light, dark, system); the palette picker in settings.
+//
+// Contrast, ONE switch: `brand` paints the brand colours of today (primary #1496d6, 3.3:1 with white);
+// `aa` paints the AA solids of primary, success, warning and danger (`data-ep-contrast="aa"` on
+// <html>, theme/variables.css; mockups README §6.15, UX-AUDIT-2 V-01). Which one is the default is
+// Ioan's decision: `DEFAULT_THEME_CONTRAST`, below; a project can also pass `createShell({ contrast })`.
 //
 // Modes:
 //  - 'system' -> follows `prefers-color-scheme` (and reacts live to its changes).
@@ -70,6 +77,12 @@ export function setThemePersister(fn: ((mode: ThemeMode) => void) | undefined): 
   persister = fn;
 }
 
+/** The person chose a mode (the user menu): apply it and hand it to the persister. */
+export function chooseThemeMode(mode: ThemeMode): void {
+  setThemeMode(mode);
+  persister?.(mode);
+}
+
 /** Toggles light<->dark (topbar toggle). Resolves 'system' to the opposite of the real state. */
 export function toggleTheme(): void {
   _systemDark.value = prefersDark();
@@ -92,9 +105,20 @@ export const themePalette = computed<ThemePalette>(() => _localPalette.value || 
 /** Does the user have a personal override (not following the hub's global palette)? */
 export const hasLocalPalette = computed<boolean>(() => _localPalette.value !== '');
 
+/** Cookie the server reads to paint the palette before the SPA boots (`PALETTE_COOKIE` of `live/spa.py`). */
+const PALETTE_COOKIE = 'ep_palette';
+const PALETTE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+/** Remembers the palette for the server, site-wide; `Secure` whenever the page is served over https. */
+function rememberPalette(palette: ThemePalette): void {
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${PALETTE_COOKIE}=${palette}; path=/; max-age=${PALETTE_COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
+}
+
 /**
  * Applies the effective palette to <html> (the contract of theme/palettes.css):
- * 'erplora' (default) REMOVES the attribute; any other sets it.
+ * 'erplora' (default) REMOVES the attribute; any other sets it. The default is remembered too, so
+ * an old choice never outlives a reset.
  */
 function applyPalette(): void {
   if (typeof document === 'undefined') return;
@@ -102,6 +126,7 @@ function applyPalette(): void {
   const root = document.documentElement;
   if (p === 'erplora') root.removeAttribute('data-ep-palette');
   else root.setAttribute('data-ep-palette', p);
+  rememberPalette(p);
 }
 
 /** Sets (or clears, with '') the personal override in memory. */
@@ -135,12 +160,34 @@ export function setHubPalette(palette: string): void {
   applyPalette();
 }
 
+/** `brand`: the brand colours of today; `aa`: the AA solids of primary, success, warning and danger. */
+export const THEME_CONTRASTS = ['brand', 'aa'] as const;
+
+export type ThemeContrast = (typeof THEME_CONTRASTS)[number];
+
+/** 🔵 The one-line switch (README §6.15, pending Ioan's decision): `'aa'` makes the accessible colours the default. */
+export const DEFAULT_THEME_CONTRAST: ThemeContrast = 'brand';
+
+const _contrast = ref<ThemeContrast>(DEFAULT_THEME_CONTRAST);
+
+/** The contrast the shell paints. */
+export const themeContrast = computed<ThemeContrast>(() => _contrast.value);
+
+/** Applies the contrast to <html>: `aa` sets `data-ep-contrast="aa"`, `brand` removes it. Unknown → brand. */
+export function setThemeContrast(contrast: ThemeContrast): void {
+  _contrast.value = (THEME_CONTRASTS as readonly string[]).includes(contrast) ? contrast : 'brand';
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  if (_contrast.value === 'aa') root.setAttribute('data-ep-contrast', 'aa');
+  else root.removeAttribute('data-ep-contrast');
+}
+
 /**
- * Boots the theme: applies the mode and palette and, in 'system' mode, subscribes to
- * `prefers-color-scheme` changes to reflect them live. Call once at startup (the global palette
+ * Boots the theme: applies the mode, the palette and the contrast and, in 'system' mode, subscribes
+ * to `prefers-color-scheme` changes to reflect them live. Call once at startup (the global palette
  * arrives later, when hub settings resolve).
  */
-export function bootTheme(): void {
+export function bootTheme(options: { contrast?: ThemeContrast } = {}): void {
   try {
     localStorage.removeItem('erplora.theme');
     localStorage.removeItem('erplora.palette');
@@ -149,6 +196,7 @@ export function bootTheme(): void {
   }
   applyMode(_mode.value);
   applyPalette();
+  setThemeContrast(options.contrast ?? DEFAULT_THEME_CONTRAST);
   if (typeof window !== 'undefined') {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (_mode.value === 'system') applyMode('system');

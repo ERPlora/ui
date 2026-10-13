@@ -1,7 +1,7 @@
 import { flushPromises } from '@vue/test-utils';
 import { ref } from 'vue';
 import { createMemoryHistory } from 'vue-router';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const ionicCreateRouter = vi.hoisted(() => ({ calls: 0 }));
 vi.mock('@ionic/vue-router', async (importOriginal) => {
@@ -16,7 +16,8 @@ vi.mock('@ionic/vue-router', async (importOriginal) => {
 });
 
 import { createShellSession, type SessionMe, type SessionStatus } from './session';
-import { createShellRouter, NOT_FOUND_ROUTE } from './router';
+import { createShellRouter, HOME_ROUTE, NOT_FOUND_ROUTE, NOT_IN_APP_ROUTE } from './router';
+import { applySurface } from './surface';
 
 const Page = { template: '<div />' };
 
@@ -54,6 +55,46 @@ describe('createShellRouter', () => {
     expect(missing.name).toBe('not-found');
     expect(missing.meta.auth).toBe(true);
     expect(NOT_FOUND_ROUTE.path).toBe('/:pathMatch(.*)*');
+  });
+
+  // After the login `safe_next` falls back to `/`: without a page there, a hub with no app opened
+  // on the 404. The shell's Home is the hub's (`home: true`); the SaaS has its own landing.
+  it("with home, serves the shell's Home at / behind a session, before the catch-all", async () => {
+    const router = createShellRouter([{ path: '/demo/items', component: Page, meta: { auth: true } }], {
+      session: createShellSession(ref<SessionMe | undefined>(me({ id: 'u1', label: 'Ana' })), ref<SessionStatus>('live')),
+      history: createMemoryHistory(),
+      redirect: vi.fn(),
+      home: true,
+    });
+    expect(HOME_ROUTE.path).toBe('/');
+    expect(router.resolve('/').name).toBe('home');
+    expect(router.resolve('/').meta.auth).toBe(true);
+    expect(router.resolve('/nowhere').name).toBe('not-found');
+    await router.push('/');
+    const component = router.currentRoute.value.matched[0].components?.default as { __name?: string };
+    expect(component.__name).toBe('HomePage');
+  });
+
+  it('without home (the default, the SaaS), / is not the shell Home', () => {
+    const router = createShellRouter([{ path: '/demo/items', component: Page, meta: { auth: true } }], {
+      session: createShellSession(ref<SessionMe | undefined>(me({ id: 'u1', label: 'Ana' })), ref<SessionStatus>('live')),
+      history: createMemoryHistory(),
+      redirect: vi.fn(),
+    });
+    expect(router.hasRoute('home')).toBe(false);
+    expect(router.resolve('/').name).toBe('not-found');
+  });
+
+  it('an app route at / wins over the shell Home', () => {
+    const router = createShellRouter([{ path: '/', component: Page }], {
+      session: createShellSession(ref<SessionMe | undefined>(me({ id: 'u1', label: 'Ana' })), ref<SessionStatus>('live')),
+      history: createMemoryHistory(),
+      redirect: vi.fn(),
+      home: true,
+    });
+    const home = router.resolve('/');
+    expect(home.name).toBeUndefined();
+    expect(home.matched[0].components?.default).toBe(Page);
   });
 
   it('an unknown address keeps the URL and mounts the 404 page', async () => {
@@ -126,5 +167,60 @@ describe('authGate', () => {
     await router.push('/demo/items');
     expect(assign).toHaveBeenCalledWith('/login?next=%2Fdemo%2Fitems');
     vi.unstubAllGlobals();
+  });
+});
+
+// A route that sells (`meta.webOnly`, the SaaS's Store) is not in the apps (PLAN-SAAS §3.6, point 5):
+// a deep link to it, on an app surface, keeps the address and mounts the neutral page instead.
+describe('web-only routes', () => {
+  afterEach(() => applySurface('web'));
+
+  function setupStore() {
+    return createShellRouter(
+      [
+        { path: '/businesses', name: 'businesses', component: Page, meta: { auth: true } },
+        { path: '/store/:tab?', name: 'store', component: Page, meta: { auth: true, webOnly: true } },
+      ],
+      {
+        session: createShellSession(ref<SessionMe | undefined>(me({ id: 'u1', label: 'Ana' })), ref<SessionStatus>('live')),
+        history: createMemoryHistory(),
+        redirect: vi.fn(),
+      },
+    );
+  }
+
+  it('open on the web', async () => {
+    const router = setupStore();
+    await router.push('/store/plans');
+    expect(router.currentRoute.value.name).toBe('store');
+  });
+
+  it('on every app surface: the same address, the not-in-app page', async () => {
+    for (const surface of ['desktop', 'mobile', 'account'] as const) {
+      applySurface(surface);
+      const router = setupStore();
+      await router.push('/store/plans?hub=42#modules');
+      expect(router.currentRoute.value.fullPath, surface).toBe('/store/plans?hub=42#modules');
+      expect(router.currentRoute.value.name, surface).toBe('not-in-app');
+    }
+    const router = setupStore();
+    applySurface('desktop');
+    await router.push('/store');
+    const component = router.currentRoute.value.matched[0].components?.default as { __name?: string };
+    expect(component.__name).toBe('NotInAppPage');
+  });
+
+  it('routes that do not sell are untouched, and an unknown address is still the 404', async () => {
+    applySurface('mobile');
+    const router = setupStore();
+    await router.push('/businesses');
+    expect(router.currentRoute.value.name).toBe('businesses');
+    await router.push('/nowhere');
+    expect(router.currentRoute.value.name).toBe('not-found');
+  });
+
+  it('the not-in-app route is behind a session too and never catches an address by itself', () => {
+    expect(NOT_IN_APP_ROUTE.meta?.auth).toBe(true);
+    expect(NOT_IN_APP_ROUTE.name).toBe('not-in-app');
   });
 });

@@ -64,6 +64,40 @@ describe('shell barrel', () => {
     }
   });
 
+  it('exports the L0-C pieces: surfaces, web-only, footer tabbar, user menu and the contrast switch', () => {
+    for (const name of [
+      'SURFACES',
+      'IN_APP_CLASS',
+      'detectSurface',
+      'applySurface',
+      'bootSurface',
+      'useSurface',
+      'vWebOnly',
+      'WebOnly',
+      'NOT_IN_APP_ROUTE',
+      'webOnlyGate',
+      'bindTabbar',
+      'bindTabbarPeek',
+      'provideUserMenu',
+      'useUserMenu',
+      'USER_MENU_KEY',
+      'chooseThemeMode',
+      'setThemeContrast',
+      'themeContrast',
+      'THEME_CONTRASTS',
+      'DEFAULT_THEME_CONTRAST',
+      'toastSuccess',
+    ]) {
+      expect(shell, name).toHaveProperty(name);
+    }
+  });
+
+  it('exports the Home route and the Hub logout for the user menu', () => {
+    for (const name of ['HOME_ROUTE', 'logout']) {
+      expect(shell, name).toHaveProperty(name);
+    }
+  });
+
   it('paints an icon of any registered set in ion-icon through ionIconSrc (the SaaS account pages use lucide)', () => {
     expect(shell.ionIconSrc('lucide:arrow-left')).toMatch(/^data:image\/svg\+xml;utf8,<svg /);
   });

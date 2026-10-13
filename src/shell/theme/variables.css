@@ -17,9 +17,42 @@
   --ion-text-color: #1a1c20;
   --ion-text-color-rgb: 26, 28, 32;
 
+  /* ── Semantic palette of the old SaaS (static/css/ionic-theme.css, saas origin/develop), so
+     `color="success|warning|danger|…"` paints the same in Hub and SaaS. tertiary, light and dark
+     stay Ionic's: its defaults are the old SaaS values, and its dark palette inverts light/dark. ── */
+  --ion-color-secondary: #6366f1;
+  --ion-color-secondary-rgb: 99, 102, 241;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #575ad4;
+  --ion-color-secondary-tint: #7376f2;
+
+  --ion-color-success: #23944e;
+  --ion-color-success-rgb: 35, 148, 78;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #1f8245;
+  --ion-color-success-tint: #399f60;
+
+  --ion-color-warning: #e8a912;
+  --ion-color-warning-rgb: 232, 169, 18;
+  --ion-color-warning-contrast: #1c1b18;
+  --ion-color-warning-contrast-rgb: 28, 27, 24;
+  --ion-color-warning-shade: #cc9510;
+  --ion-color-warning-tint: #eab22a;
+
+  --ion-color-danger: #d6404f;
+  --ion-color-danger-rgb: 214, 64, 79;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #bc3846;
+  --ion-color-danger-tint: #da5361;
+
   /* Muted text (labels, subtitles) */
   --ion-color-medium: #6b7280;
   --ion-color-medium-rgb: 107, 114, 128;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
   --ion-color-medium-shade: #5e636f;
   --ion-color-medium-tint: #797f8b;
 
@@ -35,16 +68,28 @@
      that serves it; font-family-promise.hub1166.test.ts enforces that. */
   --ion-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
-  /* Step scale (greys) — complete, for consistent shadows/surfaces */
-  --ion-color-step-50: #f3f4f6;
-  --ion-color-step-100: #eceef1;
-  --ion-color-step-150: #e3e5ea;
-  --ion-color-step-200: #d8dbe1;
-  --ion-color-step-250: #cdd1d8;
-  --ion-color-step-300: #c0c4cd;
-  --ion-color-step-500: #8b8f99;
-  --ion-color-step-700: #4a4e57;
-  --ion-color-step-850: #2a2d33;
+  /* Step scale (greys), for consistent shadows/surfaces. Ionic 8 names it
+     --ion-background-color-step-*; the legacy --ion-color-step-* (what Ionic's components read first)
+     is an alias, declared once here: the dark block only moves the ramp and the alias follows it. */
+  --ion-background-color-step-50: #f3f4f6;
+  --ion-background-color-step-100: #eceef1;
+  --ion-background-color-step-150: #e3e5ea;
+  --ion-background-color-step-200: #d8dbe1;
+  --ion-background-color-step-250: #cdd1d8;
+  --ion-background-color-step-300: #c0c4cd;
+  --ion-background-color-step-500: #8b8f99;
+  --ion-background-color-step-700: #4a4e57;
+  --ion-background-color-step-850: #2a2d33;
+
+  --ion-color-step-50: var(--ion-background-color-step-50);
+  --ion-color-step-100: var(--ion-background-color-step-100);
+  --ion-color-step-150: var(--ion-background-color-step-150);
+  --ion-color-step-200: var(--ion-background-color-step-200);
+  --ion-color-step-250: var(--ion-background-color-step-250);
+  --ion-color-step-300: var(--ion-background-color-step-300);
+  --ion-color-step-500: var(--ion-background-color-step-500);
+  --ion-color-step-700: var(--ion-background-color-step-700);
+  --ion-color-step-850: var(--ion-background-color-step-850);
 
   /* ── Our design tokens (--ep-*; PLAN §16.11): read by polish.css and the Vue components of
      src/components/ (--ep-shadow-sm is the DataTable frame). Same values as the OutfitKit tokens
@@ -89,6 +134,26 @@
   --ep-ring-accent: inset 0 0 0 1px var(--ion-color-primary);
   --ep-scrim: rgba(0, 0, 0, 0.5);
   --ep-on-accent: var(--ion-color-primary-contrast);
+
+  /* ── Accessible text (WCAG AA, ≥ 4.5:1; theme-css.test.ts measures every pair) ──
+     Text and icons on a TINTED background — a status pill, a notice, the selected menu item — use
+     --ep-<colour>-text on --ep-<colour>-tint; both also read ≥ 4.5:1 on the card and the canvas.
+     The tints are the brand colours washed over the card (12 %). Secondary text: --ep-text-muted
+     (also on the step-100 surface of table headers). Always on, whatever the contrast switch. */
+  --ep-primary-tint: #e3f2fa;
+  --ep-primary-text: #0b5f8a;
+  --ep-success-tint: #e5f2ea;
+  --ep-success-text: #176b38;
+  --ep-warning-tint: #fcf5e3;
+  --ep-warning-text: #7a4f00;
+  --ep-danger-tint: #fae8ea;
+  --ep-danger-text: #b42f3f;
+  --ep-text-muted: #646b78;
+
+  /* The brand blue (logo, brand accents) and its accessible twin, the primary of the 'aa' contrast
+     below (4.87:1 with white; the brand one is 3.3:1). */
+  --ep-primary-brand: #1496d6;
+  --ep-primary-accessible: #0e78ad;
 }
 
 /* Neutral dark (zinc), consistent with the light theme. */
@@ -100,21 +165,29 @@
 
   --ion-color-medium: #9aa0ac;
   --ion-color-medium-rgb: 154, 160, 172;
+  /* Dark text on the light grey chip: white on #9aa0ac is 2.6:1 (UX-AUDIT-2 V-16). */
+  --ion-color-medium-contrast: #0b0c0e;
+  --ion-color-medium-contrast-rgb: 11, 12, 14;
+  --ion-color-medium-shade: #888d97;
+  --ion-color-medium-tint: #a4aab4;
 
   --ion-toolbar-background: var(--ion-background-color);
   --ion-item-background: #16181c;
   --ion-card-background: #16181c;
   --ion-border-color: #26282e;
 
-  --ion-color-step-50: #16181c;
-  --ion-color-step-100: #1d2025;
-  --ion-color-step-150: #26282e;
-  --ion-color-step-200: #2f323a;
-  --ion-color-step-250: #383b44;
-  --ion-color-step-300: #41454f;
-  --ion-color-step-500: #6b7280;
-  --ion-color-step-700: #aab0bc;
-  --ion-color-step-850: #d7dae0;
+  --ion-background-color-step-50: #16181c;
+  --ion-background-color-step-100: #1d2025;
+  --ion-background-color-step-150: #26282e;
+  --ion-background-color-step-200: #2f323a;
+  --ion-background-color-step-250: #383b44;
+  --ion-background-color-step-300: #41454f;
+  --ion-background-color-step-500: #6b7280;
+  --ion-background-color-step-700: #aab0bc;
+  --ion-background-color-step-850: #d7dae0;
+  /* Body text of ion-card in ios: without it Ionic falls back to #666 on #16181c, about 3:1
+     (mockups README §6.9). */
+  --ion-color-step-600: #8b919d;
 
   --ion-color-primary: #2aa6e4;
   --ion-color-primary-rgb: 42, 166, 228;
@@ -130,4 +203,82 @@
   --ep-shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55);
   --ep-shadow-modal: 0 18px 50px rgba(0, 0, 0, 0.65);
   --ep-scrim: rgba(0, 0, 0, 0.6);
+
+  /* Accessible text on dark: light text on a dark wash (14 % of the colour over the card). */
+  --ep-primary-tint: #192c38;
+  --ep-primary-text: #5bb8ea;
+  --ep-success-tint: #1c2f27;
+  --ep-success-text: #3fbf6e;
+  --ep-warning-tint: #332c1b;
+  --ep-warning-text: #e8a912;
+  --ep-danger-tint: #352429;
+  --ep-danger-text: #f0707c;
+  --ep-text-muted: #9aa0ac;
+}
+
+/* ── Contrast 'aa' (theme.ts `setThemeContrast('aa')`; createShell `{ contrast: 'aa' }`) ──────────
+   The AA solids of the ERPlora palette (mockups README §6.15, UX-AUDIT-2 V-01): the contrast colour
+   reads ≥ 4.5:1 on the solid, the shade (pressed) and the tint (hover). Light keeps white text on
+   deeper colours; dark keeps bright colours with dark text, as Material 3 and iOS do. Warning
+   already passed (dark text) and is declared for the dark block to override. The optional palettes
+   keep their own colours (`:not([data-ep-palette])`). Specificity: like a palette, the light block
+   (0,3,0) beats the base dark one, so its dark block (0,4,0) sets exactly the same tokens. */
+:root[data-ep-contrast='aa']:not([data-ep-palette]) {
+  --ion-color-primary: #0e78ad;
+  --ion-color-primary-rgb: 14, 120, 173;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #0d6a98;
+  --ion-color-primary-tint: #127db3;
+
+  --ion-color-success: #1b7a40;
+  --ion-color-success-rgb: 27, 122, 64;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #176b38;
+  --ion-color-success-tint: #1e8547;
+
+  --ion-color-warning: #e8a912;
+  --ion-color-warning-rgb: 232, 169, 18;
+  --ion-color-warning-contrast: #1c1b18;
+  --ion-color-warning-contrast-rgb: 28, 27, 24;
+  --ion-color-warning-shade: #cc9510;
+  --ion-color-warning-tint: #eab22a;
+
+  --ion-color-danger: #c8374a;
+  --ion-color-danger-rgb: 200, 55, 74;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #b03041;
+  --ion-color-danger-tint: #cf3d4e;
+}
+
+:root.ion-palette-dark[data-ep-contrast='aa']:not([data-ep-palette]) {
+  --ion-color-primary: #2aa6e4;
+  --ion-color-primary-rgb: 42, 166, 228;
+  --ion-color-primary-contrast: #0b0c0e;
+  --ion-color-primary-contrast-rgb: 11, 12, 14;
+  --ion-color-primary-shade: #2592c9;
+  --ion-color-primary-tint: #3fafe7;
+
+  --ion-color-success: #3fbf6e;
+  --ion-color-success-rgb: 63, 191, 110;
+  --ion-color-success-contrast: #0b0c0e;
+  --ion-color-success-contrast-rgb: 11, 12, 14;
+  --ion-color-success-shade: #37a861;
+  --ion-color-success-tint: #52c57d;
+
+  --ion-color-warning: #e8a912;
+  --ion-color-warning-rgb: 232, 169, 18;
+  --ion-color-warning-contrast: #1c1b18;
+  --ion-color-warning-contrast-rgb: 28, 27, 24;
+  --ion-color-warning-shade: #cc9510;
+  --ion-color-warning-tint: #eab22a;
+
+  --ion-color-danger: #e5606e;
+  --ion-color-danger-rgb: 229, 96, 110;
+  --ion-color-danger-contrast: #0b0c0e;
+  --ion-color-danger-contrast-rgb: 11, 12, 14;
+  --ion-color-danger-shade: #ca5461;
+  --ion-color-danger-tint: #e8707d;
 }
