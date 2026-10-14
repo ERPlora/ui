@@ -25,6 +25,7 @@ export {
   isUnauthorized,
   LIVE_ERROR_STATUS,
   parseErrorEnvelope,
+  type ErrorDetails,
   type FieldErrors,
 } from "./errors";
 export {

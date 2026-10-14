@@ -44,6 +44,8 @@ describe("sdk entry point", () => {
     expect(sdk.SETTLE_TIMEOUT_MS).toBe(3000);
     expect(sdk.RELEASE_GRACE_MS).toBe(2000);
     expectTypeOf<sdk.OpName>().toEqualTypeOf<OpName>();
+    expectTypeOf<sdk.ErrorDetails>().toEqualTypeOf<Record<string, unknown>>();
+    expectTypeOf<sdk.ApiError["details"]>().toEqualTypeOf<sdk.ErrorDetails>();
   });
 
   it("exposes the client of allauth.headless for the SaaS's account pages", () => {

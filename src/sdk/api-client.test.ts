@@ -125,6 +125,16 @@ describe("createApiClient: responses and errors", () => {
     expect(err.fields).toEqual({ text: "Required" });
   });
 
+  it("keeps the extra keys of the error envelope as details", async () => {
+    const h = setup(() =>
+      Response.json({ error: { code: "hubs.seat_limit", message: "No seat left", limit: 3, used: 3 } }, { status: 409 }),
+    );
+    const err = (await h.api.call("test.item.detail", { id: "i1" }).catch((e: unknown) => e)) as ApiError;
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(409);
+    expect(err.details).toEqual({ limit: 3, used: 3 });
+  });
+
   it("falls back to an unexpected_response error when the error body is not the envelope", async () => {
     const h = setup(() => new Response("<html>Bad gateway</html>", { status: 502 }));
     await expect(h.api.call("test.item.detail", { id: "i1" })).rejects.toMatchObject({

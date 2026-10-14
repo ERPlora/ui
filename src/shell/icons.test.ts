@@ -111,6 +111,14 @@ describe('resolveIcon', () => {
     }
   });
 
+  it("resolves the lucide icons of the SaaS panel's menu (saas-next base/navigation.py)", () => {
+    for (const name of ['lucide:store', 'lucide:shopping-bag', 'lucide:receipt', 'lucide:circle-user']) {
+      const src = resolveIcon(name);
+      expect(src, name).toMatch(SVG_URL);
+      expect(src, name).toContain('currentColor');
+    }
+  });
+
   it('returns undefined for an unknown set, an unknown icon, a broken name or nothing', () => {
     for (const name of ['nope:cart', 'ion:definitely-not-an-icon', 'mdi:cart-plus', 'constructor', 'ion:', ':cart', '']) {
       expect(resolveIcon(name), name).toBeUndefined();

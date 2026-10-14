@@ -86,13 +86,17 @@ import {
   wifiOutline,
 } from 'ionicons/icons';
 import lucideArrowLeft from '~icons/lucide/arrow-left';
+import lucideCircleUser from '~icons/lucide/circle-user';
 import lucideKeyRound from '~icons/lucide/key-round';
 import lucideLock from '~icons/lucide/lock';
 import lucidePanelLeft from '~icons/lucide/panel-left';
+import lucideReceipt from '~icons/lucide/receipt';
 import lucideRefreshCw from '~icons/lucide/refresh-cw';
 import lucideShieldCheck from '~icons/lucide/shield-check';
 import lucideShieldX from '~icons/lucide/shield-x';
+import lucideShoppingBag from '~icons/lucide/shopping-bag';
 import lucideSmartphone from '~icons/lucide/smartphone';
+import lucideStore from '~icons/lucide/store';
 import materialSymbolsPointOfSale from '~icons/material-symbols/point-of-sale';
 import mdiCart from '~icons/mdi/cart';
 
@@ -180,13 +184,17 @@ const svgUrl = (svg: string): string => `data:image/svg+xml;utf8,${svg}`;
 /** The icons of the other sets, by full `set:name`. */
 const SET_ICONS: Readonly<Record<string, string>> = Object.freeze({
   'lucide:arrow-left': svgUrl(lucideArrowLeft),
+  'lucide:circle-user': svgUrl(lucideCircleUser),
   'lucide:key-round': svgUrl(lucideKeyRound),
   'lucide:lock': svgUrl(lucideLock),
   'lucide:panel-left': svgUrl(lucidePanelLeft),
+  'lucide:receipt': svgUrl(lucideReceipt),
   'lucide:refresh-cw': svgUrl(lucideRefreshCw),
   'lucide:shield-check': svgUrl(lucideShieldCheck),
   'lucide:shield-x': svgUrl(lucideShieldX),
+  'lucide:shopping-bag': svgUrl(lucideShoppingBag),
   'lucide:smartphone': svgUrl(lucideSmartphone),
+  'lucide:store': svgUrl(lucideStore),
   'material-symbols:point-of-sale': svgUrl(materialSymbolsPointOfSale),
   'mdi:cart': svgUrl(mdiCart),
 });
