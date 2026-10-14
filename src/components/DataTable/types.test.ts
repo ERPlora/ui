@@ -9,6 +9,8 @@ import type {
   DataTableColumn,
   DataTableColumnPriority,
   DataTableEntityLabel,
+  DataTableFilters,
+  DataTableFilterType,
   DataTableLabelKey,
   DataTableLabels,
   DataTablePrimaryAction,
@@ -78,6 +80,19 @@ describe('DataTable types', () => {
     // @ts-expect-error -- not a priority
     const wrong: DataTableColumn<Item> = { key: 'name', label: 'Name', priority: 'urgent' };
     expect([column.priority, open.pinned, transfer.menuOnly, wrong.key]).toEqual(['low', true, true, 'name']);
+  });
+
+  it('a column filter is text, a closed domain, a day or a range; the filters are names to texts', () => {
+    expectTypeOf<DataTableFilterType>().toEqualTypeOf<'text' | 'select' | 'date' | 'range'>();
+    const status: DataTableColumn<Item> = {
+      key: 'status',
+      label: 'Status',
+      filter: { type: 'select', key: 'status_id', options: [{ value: 'paid', label: 'Paid' }] },
+    };
+    // @ts-expect-error -- not a filter type
+    const wrong: DataTableColumn<Item> = { key: 'name', label: 'Name', filter: { type: 'contains' } };
+    expectTypeOf<DataTableFilters>().toEqualTypeOf<Record<string, string>>();
+    expect([status.filter?.type, wrong.key]).toEqual(['select', 'name']);
   });
 
   it('the footer noun is `{ one, many }` or a function of the count', () => {

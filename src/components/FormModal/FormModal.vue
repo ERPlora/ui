@@ -139,12 +139,17 @@ function onEscape(): void {
   cancel();
 }
 
-/** Enter in a single-line field submits; a textarea, a button or an IME composition keep theirs. */
+/** Enter in a single-line field submits; a textarea, a button or an IME composition keep theirs, and
+ *  so does a field that handles its own Enter: already handled (a Combo picking an option), read
+ *  only (a chooser that opens on it), or inside a popover or a modal of a field (its search box).
+ *  Scoped ion-input/ion-searchbar let that keydown bubble up to the form. */
 const NOT_SUBMITTING_INPUTS = new Set(['button', 'checkbox', 'color', 'file', 'image', 'radio', 'range', 'reset', 'submit']);
 function onEnter(event: KeyboardEvent): void {
-  if (event.isComposing) return;
+  if (event.isComposing || event.defaultPrevented) return;
   const target = event.target;
-  if (!(target instanceof HTMLInputElement) || NOT_SUBMITTING_INPUTS.has(target.type)) return;
+  if (!(target instanceof HTMLInputElement) || NOT_SUBMITTING_INPUTS.has(target.type) || target.readOnly) return;
+  const overlay = target.closest('ion-popover, ion-modal');
+  if (overlay && form.value?.contains(overlay)) return;
   event.preventDefault();
   submit();
 }

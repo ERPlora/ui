@@ -339,6 +339,10 @@ describe('the rules that carry the look (one per Lit regression)', () => {
     const phone = media('(max-width: 640px)');
     expect(rule('.data-table--fill .data-table__cards', phone)).toContain('overflow: visible');
     expect(rule('.data-table--fill.data-table--content-after', phone)).toContain('flex-shrink: 0 !important');
+    // Measured in Chrome at 390px (AppPage detail-fill, 60 rows): with nothing after it the box kept
+    // the container's height and, `overflow: hidden`, clipped every row and the pager below the fold;
+    // the page had nothing to scroll. On a phone it grows with its rows, at least the container's height.
+    expect(rule('.data-table--fill:not(.data-table--content-after)', phone)).toBe('height: auto; min-height: 100%;');
     expect(rule('.data-table__error .data-table__state-icon')).toContain('var(--ion-color-danger, #c5000f)');
   });
 

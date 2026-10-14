@@ -177,6 +177,8 @@ const PORTED: Record<string, string> = {
   '.pnum.on': '.data-table__page.data-table__page--current',
   '.pgap': '.data-table__page-gap',
   'ion-button': 'ion-button',
+  // The inline filters' boxed control (hub-next apps/tax/UI-REQUESTS.md: column filters are back).
+  '.tk-filter': '.data-table__filter',
 };
 
 /** Lit rules NOT ported, with why: what they style is not part of this component. */
@@ -201,14 +203,13 @@ drop(
   '.df .df-done',
 );
 drop(
-  'column filters (drawer controls, inline filters, funnel badge): not ported',
+  'column filters come back as one filter row under the toolbar (the boxed .tk-filter control, ported), not as the drawer, the date-range pill nor the funnel badge',
   '.fblock',
   '.flabel',
   '.frange',
   '.daterange',
   '.daterange ion-input',
   '.toolbtn .badge',
-  '.tk-filter',
   '.tk-daterange',
   '.tk-daterange ion-icon',
   '.tk-daterange ion-input',
@@ -248,6 +249,12 @@ const ADDED: Record<string, string> = {
   '.data-table__actions .data-table__action--labelled':
     'mockups/saas-panel §3b, §6.16: a `showLabel` row action, icon and text, as mock.css `.dt-labeled` paints it',
   '.data-table__action--labelled > [slot="start"]': 'mockups/saas-panel §6.16: the gap between its icon (or spinner) and its text',
+  '.data-table__filters': 'column filters: the row of controls under the toolbar, wrapping (hub-next apps/tax/UI-REQUESTS.md)',
+  '.data-table__filter-range': 'column filters: the From and To of a range, side by side',
+  '.data-table__filter-range .data-table__filter': 'column filters: each end of a range is a short number box',
+  '.data-table__filters-clear': 'column filters: «Clear filters», an ion-chip in the row, at its font size',
+  '@media (max-width: 640px) || .data-table--fill:not(.data-table--content-after)':
+    '#218 on a phone, with nothing after the table: it grows with its rows instead of clipping them (measured at 390px)',
 };
 
 /** Declarations a port carries on top of its Lit rule, with why. */

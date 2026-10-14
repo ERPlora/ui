@@ -24,6 +24,13 @@
     "showAll": "Mostrar todo",
     "loadError": "No se han podido cargar los datos",
     "retry": "Reintentar",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "filters": "Filtros",
+    "clearFilters": "Limpiar filtros",
+    "filterAll": "Todos",
+    "filterFrom": "Desde",
+    "filterTo": "Hasta",
+    "filterFromOf": "{label}: desde",
+    "filterToOf": "{label}: hasta"
   }
 }

@@ -245,6 +245,32 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     write(xOverflow, !!scroll && scroll.scrollWidth > scroll.clientWidth);
   }
 
+  /** Width an element takes in a row: its box plus its inline margins. */
+  const outerWidth = (el: Element): number => {
+    const style = getComputedStyle(el);
+    return el.getBoundingClientRect().width + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight) || 0);
+  };
+
+  /** The buttons of an actions box side by side: their widths, the gaps between them and the box's
+   *  own inline padding. Not the box's `scrollWidth` alone: the box packs its buttons to the END
+   *  (`justify-content: flex-end`), so what does not fit overflows towards the inline-START, which
+   *  `scrollWidth` never counts — the track stayed at the box's width and labelled buttons covered
+   *  the column before them (SaaS Billing at 1440px). */
+  function naturalActionsWidth(box: HTMLElement): number {
+    const style = getComputedStyle(box);
+    let sum = 0;
+    let laidOut = 0;
+    for (const child of Array.from(box.children)) {
+      const width = outerWidth(child);
+      if (width <= 0) continue;
+      sum += width;
+      laidOut += 1;
+    }
+    if (laidOut === 0) return 0;
+    const gap = parseFloat(style.columnGap) || 0;
+    return sum + gap * (laidOut - 1) + (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+  }
+
   /** #121 - Natural width of the widest row's buttons (they never shrink: `flex: 0 0 auto`). */
   function measureActionsTrack(): void {
     if (!source.hasActions()) {
@@ -252,7 +278,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
       return;
     }
     let width = 0;
-    for (const box of actionBoxes()) width = Math.max(width, Math.ceil(box.scrollWidth));
+    for (const box of actionBoxes()) width = Math.max(width, Math.ceil(Math.max(box.scrollWidth, naturalActionsWidth(box))));
     // 0 = not laid out yet (or cards): keep `max-content` and measure again.
     if (width > 0) write(actionsTrackPx, width);
   }
@@ -270,17 +296,14 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   }
 
   /** #267 - Is there a pinned column over the data, and does its track hold what it shows? A track
-   *  still pinned to the unfolded buttons is not the folded list's minimum. */
+   *  still pinned to the unfolded buttons is not the folded list's minimum. What a box shows is
+   *  its buttons side by side (a folded row may keep a pinned button AND its «⋮»). */
   function pinnedTrackIsHonest(): boolean {
     const boxes = actionBoxes();
     if (!boxes.length) return false;
     if (actionsTrackPx.value === 0) return true;
-    const outerWidth = (el: Element): number => {
-      const style = getComputedStyle(el);
-      return el.getBoundingClientRect().width + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight) || 0);
-    };
     let natural = 0;
-    for (const box of boxes) for (const child of Array.from(box.children)) natural = Math.max(natural, outerWidth(child));
+    for (const box of boxes) natural = Math.max(natural, naturalActionsWidth(box));
     return natural >= actionsTrackPx.value - 1;
   }
 

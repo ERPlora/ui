@@ -1,0 +1,10 @@
+{
+  "combo": {
+    "clear": "Clear",
+    "loading": "Searching…",
+    "empty": "No matches",
+    "loadError": "Could not load the options",
+    "retry": "Retry",
+    "create": "Create “{text}”"
+  }
+}

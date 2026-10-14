@@ -1,7 +1,14 @@
 // Pure logic of the DataTable, ported 1:1 from OutfitKit's `ok-data-table.ts` (the issue numbers in
 // the comments are of ERPlora/outfitkit unless they say otherwise). No DOM, no Vue: what can be
 // proved without a layout engine lives here.
-import type { DataTableAction, DataTableColumn, DataTableEntityLabel, DataTableRowKey, DataTableSortDir } from './types';
+import type {
+  DataTableAction,
+  DataTableColumn,
+  DataTableEntityLabel,
+  DataTableFilters,
+  DataTableRowKey,
+  DataTableSortDir,
+} from './types';
 
 type Fields = Record<string, unknown>;
 
@@ -13,6 +20,7 @@ export const DATA_TABLE_ICONS = {
   previous: 'chevron-back',
   next: 'chevron-forward',
   clear: 'close',
+  clearFilters: 'close-circle-outline',
   more: 'ellipsis-vertical',
   empty: 'file-tray-outline',
   error: 'alert-circle-outline',
@@ -86,6 +94,71 @@ export function searchRows<T extends object>(rows: readonly T[], keys: readonly 
 
 /** Pages of the numbered pager (1-based): first, last, neighbours of the current one and «…» in
  *  the jumps. Page 1 of 52 → [1, 2, 3, '…', 52]. */
+// ── Column filters ──────────────────────────────────────────────────────────────────────────
+/** The names a column's filter takes in `filters` (none without a filter). */
+export function filterKeys<T>(column: DataTableColumn<T>): string[] {
+  const filter = column.filter;
+  if (!filter) return [];
+  const key = filter.key ?? column.key;
+  return filter.type === 'range' ? [`${key}_from`, `${key}_to`] : [key];
+}
+
+/** The filters that filter: a blank value is no filter. */
+export function activeFilters(filters: DataTableFilters): DataTableFilters {
+  return Object.fromEntries(Object.entries(filters).filter(([, value]) => value.trim() !== ''));
+}
+
+const pad = (n: number): string => String(n).padStart(2, '0');
+
+/** `YYYY-MM-DD` of a date value: a plain date as written, a date-time or a Date by its LOCAL day. */
+function dayOf(value: unknown): string {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = value instanceof Date ? value : typeof value === 'string' && value ? new Date(value) : undefined;
+  if (!date || Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** A number of a range end or a row field; `undefined` when there is none. */
+function numberOf(value: unknown): number | undefined {
+  if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function matchesFilter<T extends object>(column: DataTableColumn<T>, row: T, filters: DataTableFilters): boolean {
+  const filter = column.filter;
+  if (!filter) return true;
+  const key = filter.key ?? column.key;
+  const field = fields(row)[key];
+  if (filter.type === 'range') {
+    const from = numberOf(filters[`${key}_from`]);
+    const to = numberOf(filters[`${key}_to`]);
+    if (from === undefined && to === undefined) return true;
+    const n = numberOf(field);
+    return n !== undefined && (from === undefined || n >= from) && (to === undefined || n <= to);
+  }
+  const wanted = filters[key]?.trim();
+  if (!wanted) return true;
+  if (filter.type === 'text') {
+    const text = filter.key ? String(field ?? '') : cellText(column, row);
+    return text.toLowerCase().includes(wanted.toLowerCase());
+  }
+  if (filter.type === 'date') return dayOf(field) === wanted;
+  return String(field ?? '') === wanted;
+}
+
+/** Client mode: the rows every active column filter keeps (AND), in order. */
+export function filterRows<T extends object>(
+  rows: readonly T[],
+  columns: readonly DataTableColumn<T>[],
+  filters: DataTableFilters,
+): readonly T[] {
+  const active = activeFilters(filters);
+  const filtering = columns.filter((column) => filterKeys(column).some((key) => key in active));
+  if (!filtering.length) return rows;
+  return rows.filter((row) => filtering.every((column) => matchesFilter(column, row, active)));
+}
+
 export function pageList(current: number, total: number): (number | '…')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   const want = new Set<number>([1, total, current, current - 1, current + 1]);

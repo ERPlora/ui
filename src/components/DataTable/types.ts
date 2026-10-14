@@ -23,6 +23,35 @@ export interface DataTableSort {
  */
 export type DataTableColumnPriority = 'high' | 'normal' | 'low';
 
+/**
+ * How a column filters (ERPlora's rule, ADR-0125: free text by «contains», a closed domain by
+ * equality, never the other way round):
+ *   - `text`: free text, «contains», case-insensitive, on what the cell paints;
+ *   - `select`: a closed domain (`options`), exact equality on the row's field;
+ *   - `date`: one day (`YYYY-MM-DD`), the local day of the row's date or date-time;
+ *   - `range`: a numeric range, both ends inclusive and each optional (`<key>_from`, `<key>_to`).
+ */
+export type DataTableFilterType = 'text' | 'select' | 'date' | 'range';
+
+/** One value of a `select` filter: `value` is what the row holds (and the server receives). */
+export interface DataTableFilterOption {
+  value: string;
+  label: string;
+}
+
+export interface DataTableColumnFilter {
+  type: DataTableFilterType;
+  /** `select`: the closed domain offered, in order. */
+  options?: DataTableFilterOption[];
+  /** Name of the filter in `filters` and the row field it reads (`category_id` behind a column that
+   *  paints the category's name). Default: the column key. A `range` takes `<key>_from`/`<key>_to`. */
+  key?: string;
+}
+
+/** The active filters by name (`v-model:filters`, `filtersChange`): `{ status: 'paid', rate_from: '5' }`.
+ *  A filter without a value is absent, never `''`. */
+export type DataTableFilters = Record<string, string>;
+
 export interface DataTableColumn<T = Record<string, unknown>> {
   /** Field of the row, or a logical id when `format`/`cell` paint something else. */
   key: string;
@@ -48,6 +77,8 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   pinned?: 'end';
   /** W-19 - `low`: hidden first when the list does not fit its box. Default `normal`. */
   priority?: DataTableColumnPriority;
+  /** A control in the table's filter row. Client mode filters `rows`; server mode emits `filtersChange`. */
+  filter?: DataTableColumnFilter;
 }
 
 /** A row action label: fixed text, or read from the row (it is also the accessible name). */

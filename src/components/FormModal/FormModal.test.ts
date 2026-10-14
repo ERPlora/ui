@@ -198,6 +198,43 @@ describe('FormModal: keyboard', () => {
     expect(wrapper.emitted('submit')).toHaveLength(1);
   });
 
+  // A scoped ion-input or ion-searchbar handles its own Enter and the keydown still bubbles to the
+  // form: a chooser that opens on Enter, a Combo picking an option, a search box inside a child's
+  // popover. Their Enter is theirs, never a submit of the form around them.
+  it('Enter a field already handled (defaultPrevented) is not a submit', async () => {
+    const own = (event: KeyboardEvent) => {
+      if (event.key === 'Enter') event.preventDefault();
+    };
+    const wrapper = mountModal({}, { default: () => [h('input', { 'data-testid': 'chooser', readonly: true, onKeydown: own }), h('input', { 'data-testid': 'combo', onKeydown: own })] });
+    await settle();
+    await key(byTestId('chooser')!, 'Enter');
+    await key(byTestId('combo')!, 'Enter');
+    expect(wrapper.emitted('submit')).toBeUndefined();
+  });
+
+  it('Enter on a read-only field (a chooser that opens on it) is not a submit', async () => {
+    const wrapper = mountModal({}, { default: () => [h('input', { 'data-testid': 'chooser', readonly: true })] });
+    await settle();
+    await key(byTestId('chooser')!, 'Enter');
+    expect(wrapper.emitted('submit')).toBeUndefined();
+  });
+
+  it('Enter inside a popover or a modal of a field (its own search box) is not the form’s', async () => {
+    const wrapper = mountModal({}, {
+      default: () => [
+        h('ion-popover', {}, [h('input', { 'data-testid': 'in-popover' })]),
+        h('ion-modal', {}, [h('input', { 'data-testid': 'in-modal' })]),
+        h('input', { 'data-testid': 'email' }),
+      ],
+    });
+    await settle();
+    await key(byTestId('in-popover')!, 'Enter');
+    await key(byTestId('in-modal')!, 'Enter');
+    expect(wrapper.emitted('submit')).toBeUndefined();
+    await key(byTestId('email')!, 'Enter');
+    expect(wrapper.emitted('submit')).toHaveLength(1);
+  });
+
   it('Enter in a textarea is a new line, and Enter while composing (IME) is not a submit', async () => {
     const wrapper = mountModal({}, { default: () => [h('textarea', { 'data-testid': 'message' }), h('input', { 'data-testid': 'email' })] });
     await settle();

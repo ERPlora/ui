@@ -212,6 +212,36 @@ describe('the actions track is pinned to the measured width of the widest row (#
     expect(template(t).split(' ').at(-1), 'the second row carries two buttons').toBe(`${2 * BUTTON_PX}px`);
     for (const row of dataRows(t)) expect(row.style.gridTemplateColumns).toBe(template(t));
   });
+
+  // SaaS Billing at 1440px: the box packs its buttons to the END (`justify-content: flex-end`), so
+  // labelled buttons wider than the track overflow towards the inline-START, where `scrollWidth`
+  // does not look: the track stayed at the box's own width and «Pay»/«PDF» covered the status pill.
+  it('counts buttons that overflow towards the start: the track is their widths side by side, plus the gaps', async () => {
+    const LABELLED_PX = 92;
+    const GAP_PX = 4;
+    // What the box reports: only what fits it (the overflow to the start is not scrollable).
+    stubActionsWidth(() => 60);
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const width = this.localName === 'ion-button' && this.parentElement?.classList.contains('data-table__actions') ? LABELLED_PX : 0;
+      return { width, height: 32, top: 0, left: 0, right: width, bottom: 32, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    });
+    const computed = window.getComputedStyle.bind(window);
+    vi.spyOn(window, 'getComputedStyle').mockImplementation((el: Element, pseudo?: string | null) => {
+      const style = computed(el, pseudo);
+      if (!el.classList.contains('data-table__actions')) return style;
+      return new Proxy(style, { get: (target, key) => (key === 'columnGap' ? `${GAP_PX}px` : Reflect.get(target, key)) });
+    });
+    const t = mountTable({
+      rows: [{ id: 'inv-1', name: 'INV-0001' }],
+      columns: [{ key: 'name', label: 'Invoice' }],
+      actions: [
+        { id: 'pay', label: 'Pay', icon: 'card-outline', showLabel: true },
+        { id: 'pdf', label: 'PDF', icon: 'download-outline', showLabel: true },
+      ],
+    });
+    await settle();
+    expect(template(t).split(' ').at(-1)).toBe(`${2 * LABELLED_PX + GAP_PX}px`);
+  });
 });
 
 describe('the «Actions» header is never painted truncated (#211)', () => {

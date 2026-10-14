@@ -24,6 +24,13 @@
     "showAll": "Show all",
     "loadError": "Couldn't load the data",
     "retry": "Retry",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "filters": "Filters",
+    "clearFilters": "Clear filters",
+    "filterAll": "All",
+    "filterFrom": "From",
+    "filterTo": "To",
+    "filterFromOf": "{label}: from",
+    "filterToOf": "{label}: to"
   }
 }

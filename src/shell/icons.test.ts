@@ -217,3 +217,21 @@ describe('ION_ICONS: layers, sparkles, arrow-down, pricetag and ticket (SaaS pan
     }
   });
 });
+
+// Ionicons the Hub modules ask for (hub-next apps/{tax,customer}/UI-REQUESTS.md): Categories and
+// Tags (pricetags), Aliases (swap-horizontal) and «Reactivate» a tax rule (arrow-undo).
+describe('ION_ICONS: pricetags, swap-horizontal and arrow-undo (Hub tax and customer)', () => {
+  it('registers them by their kebab-case Ionicons name, as ion: names resolve', async () => {
+    const ionicons = await import('ionicons/icons');
+    for (const [name, src] of [
+      ['pricetags', ionicons.pricetags],
+      ['pricetags-outline', ionicons.pricetagsOutline],
+      ['swap-horizontal-outline', ionicons.swapHorizontalOutline],
+      ['arrow-undo-outline', ionicons.arrowUndoOutline],
+    ]) {
+      expect(src, name).toMatch(SVG_URL);
+      expect(ION_ICONS[name], name).toBe(src);
+      expect(resolveIcon(`ion:${name}`), name).toBe(src);
+    }
+  });
+});

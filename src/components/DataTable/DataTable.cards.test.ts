@@ -169,3 +169,47 @@ describe('the card opens the record like the row (#74)', () => {
     expect(cards(t)[0].querySelectorAll('.data-table__card-actions ion-button')).toHaveLength(8);
   });
 });
+
+// hub-next apps/tax/UI-REQUESTS.md: in Rules the card title is the category's NAME and the column is
+// its KEY, so the text match of #205 cannot find it and the key was repeated in the body.
+describe('cardTitleColumn: the column the card title stands for', () => {
+  const COLUMNS = [
+    { key: 'category', label: 'Category' },
+    { key: 'rate', label: 'Rate', format: (v: unknown) => `${String(v)} %` },
+    { key: 'region', label: 'Region' },
+  ];
+  const ROW = { id: '1', category: 'VAT_STD', category_name: 'Standard VAT', rate: 21, region: 'ES' };
+  const base = { rows: [ROW], columns: COLUMNS, views: true, defaultView: 'cards' };
+
+  it('leaves that column out of the body even when the title text is not its text', async () => {
+    const t = mountTable({ ...base, cardTitle: (r: Row) => r.category_name, cardTitleColumn: 'category' });
+    await settle();
+    expect(titles(t)).toEqual(['Standard VAT']);
+    expect(fields(t)).toEqual([['Rate=21 %', 'Region=ES']]);
+  });
+
+  it('without cardTitle, the title is the painted text of that column', async () => {
+    const t = mountTable({ ...base, cardTitleColumn: 'rate' });
+    await settle();
+    expect(t.find('.data-table__card-head').exists()).toBe(true);
+    expect(titles(t)).toEqual(['21 %']);
+    expect(fields(t)).toEqual([['Category=VAT_STD', 'Region=ES']]);
+  });
+
+  it('names one column only: another column with the same text as the title stays in the body', async () => {
+    const t = mountTable({
+      ...base,
+      rows: [{ ...ROW, region: 'Standard VAT' }],
+      cardTitle: (r: Row) => r.category_name,
+      cardTitleColumn: 'category',
+    });
+    await settle();
+    expect(fields(t)).toEqual([['Rate=21 %', 'Region=Standard VAT']]);
+  });
+
+  it('a key that is not a column changes nothing (the #205 text match still applies)', async () => {
+    const t = mountTable({ ...base, rows: [{ ...ROW, region: 'Standard VAT' }], cardTitle: (r: Row) => r.category_name, cardTitleColumn: 'nope' });
+    await settle();
+    expect(fields(t)).toEqual([['Category=VAT_STD', 'Rate=21 %']]);
+  });
+});

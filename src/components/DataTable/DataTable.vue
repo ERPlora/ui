@@ -12,11 +12,18 @@
 //     window is not just that page. `update:search` is emitted in both modes (v-model).
 // Toolbar order is FIXED (the same in every list): search · the `filters` slot · ‹spacer› · column
 // chooser · rows per page · list/cards segment · create · primary action · the `toolbar` slot.
+// Column filters (`DataTableColumn.filter`): a filter row under the toolbar's main row, one Ionic
+// control per filtered column, in column order (free text «contains», a closed domain by equality,
+// a day, a numeric range), and «Clear filters» while any filters. It lives in the toolbar area, not
+// under the column headers, so it is there in the cards, in an empty result and on a phone.
+// Client mode filters `rows` (with the search, AND); server mode emits `filtersChange` with the
+// active filters by name and filters nothing. `v-model:filters` in both, as `search`.
 // `pageSizeChooser: false` drops «rows per page» (the footer still counts and pages);
 // `hideToolbarWhenEmpty` paints a list with no record as its empty state alone, without toolbar
 // nor footer (mockups/saas-panel §6.16): its `empty` slot then offers the create action.
 // Hooks (`testid`): `<testid>-search`, `-add`, `-view`, `-row` (every row and card, key in `data-id`),
-// `-row-<key>-<action>`, `-loading`, `-retry`, `-page-prev`, `-page-next`…
+// `-row-<key>-<action>`, `-loading`, `-retry`, `-page-prev`, `-page-next`, `-filters`,
+// `-filter-<name>` (a range: `-filter-<key>_from`, `-filter-<key>_to`), `-filters-clear`…
 //
 // Slots: `filters` (the page's filters, next to the search, as Odoo or Shopify place them),
 // `toolbar` (extra header actions), `row-actions` ({ row }), `card` ({ row }, the card body),
@@ -47,8 +54,10 @@ import {
   IonCardContent,
   IonCardHeader,
   IonCheckbox,
+  IonChip,
   IonContent,
   IonIcon,
+  IonInput,
   IonItem,
   IonLabel,
   IonList,
@@ -66,10 +75,13 @@ import { ionIconSrc } from '../../shell/icons';
 import { useDataTableLabels } from './labels';
 import {
   actionLabel,
-  cardTitleColumn,
+  activeFilters,
+  cardTitleColumn as titleColumnByText,
   cellText,
   DATA_TABLE_ICONS,
   entityWord,
+  filterKeys,
+  filterRows,
   gridTemplate,
   iconWithLabel,
   inlineActions,
@@ -91,6 +103,7 @@ import type {
   DataTableActionEvent,
   DataTableColumn,
   DataTableEntityLabel,
+  DataTableFilters,
   DataTableLabels,
   DataTablePrimaryAction,
   DataTableRowKey,
@@ -130,6 +143,8 @@ const props = withDefaults(
     searchPlaceholder?: string;
     /** `v-model:search`. `undefined` = not controlled: the table keeps what is typed. */
     search?: string;
+    /** `v-model:filters` (the column filters by name). `undefined` = not controlled. */
+    filters?: DataTableFilters;
     /** Sort, page and search are the parent's: they are emitted, never applied to `rows`. */
     serverSide?: boolean;
     /** Server mode: records of the whole query. */
@@ -174,6 +189,11 @@ const props = withDefaults(
     selected?: string[];
     /** Card title. */
     cardTitle?: (row: T) => string | number | null | undefined;
+    /** Key of the column the card title stands for: never repeated in the card body, even when the
+     *  title's text is not that column's (a name over a code). Without `cardTitle`, the title is
+     *  that column's painted text. Without it, the body leaves out the column whose text IS the
+     *  title (#205). */
+    cardTitleColumn?: string;
     /** Card icon name. */
     cardIcon?: (row: T) => string | undefined;
     /** Phone breakpoint in px of the WINDOW (640 by default): at or below it the table behaves as on a
@@ -198,6 +218,7 @@ const props = withDefaults(
     searchKeys: () => [],
     searchPlaceholder: undefined,
     search: undefined,
+    filters: undefined,
     total: 0,
     page: 0,
     sort: undefined,
@@ -212,6 +233,7 @@ const props = withDefaults(
     defaultView: undefined,
     selected: undefined,
     cardTitle: undefined,
+    cardTitleColumn: undefined,
     cardIcon: undefined,
     cardBreakpoint: 640,
     entityLabel: undefined,
@@ -228,6 +250,9 @@ const emit = defineEmits<{
   loadMore: [];
   pageSizeChange: [size: number];
   'update:search': [value: string];
+  'update:filters': [filters: DataTableFilters];
+  /** Server mode: the column filters changed; query again with these (the active ones, by name). */
+  filtersChange: [filters: DataTableFilters];
   'update:selected': [keys: string[]];
   columnsChange: [visible: string[]];
   viewChange: [view: DataTableView];
@@ -338,9 +363,49 @@ const listColumns = computed(() =>
   lowColumnsHidden.value ? visibleColumns.value.filter((c) => !yieldingColumns.value.includes(c)) : visibleColumns.value,
 );
 
+// ── Column filters ────────────────────────────────────────────────────────────────────────────
+/** The active filters on screen (own state; `filters` from the parent overrides it, like `search`). */
+const filterValues = ref<DataTableFilters>({});
+const filterColumns = computed(() => props.columns.filter((c) => c.filter));
+const filtering = computed(() => Object.keys(filterValues.value).length > 0);
+/** The name of a column's (single) filter in `filters`. */
+const filterName = (column: DataTableColumn<T>): string => filterKeys(column)[0] ?? column.key;
+const sameFilters = (a: DataTableFilters, b: DataTableFilters): boolean => {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
+};
+
+function setFilters(next: DataTableFilters): void {
+  const active = activeFilters(next);
+  if (sameFilters(active, filterValues.value)) return;
+  filterValues.value = active;
+  if (!props.serverSide) {
+    clientPage.value = 0;
+    mobileShown.value = 0;
+  }
+  emit('update:filters', active);
+  if (props.serverSide) emit('filtersChange', active);
+}
+/** Ionic's `ionInput` (text, range) or `ionChange` (select, date) of one filter control. */
+function onFilter(name: string, ev: CustomEvent<{ value?: unknown }>): void {
+  const value = ev.detail.value;
+  setFilters({ ...filterValues.value, [name]: value === null || value === undefined ? '' : String(value) });
+}
+function clearFilters(): void {
+  setFilters({});
+}
+/** A range's two ends: their names, their hints and their accessible names. */
+function rangeEnds(column: DataTableColumn<T>): Array<{ name: string; hint: string; named: string }> {
+  const [from, to] = filterKeys(column);
+  return [
+    { name: from, hint: label('filterFrom'), named: label('filterFromOf', { label: column.label }) },
+    { name: to, hint: label('filterTo'), named: label('filterToOf', { label: column.label }) },
+  ];
+}
+
 // ── Rows on screen ────────────────────────────────────────────────────────────────────────────
 const clientRows = computed(() => {
-  const found = searchRows(props.rows, props.searchKeys, q.value);
+  const found = filterRows(searchRows(props.rows, props.searchKeys, q.value), props.columns, filterValues.value);
   const column = clientSort.value ? props.columns.find((c) => c.key === clientSort.value) : undefined;
   return column ? sortRows(found, column, clientSortDir.value) : found;
 });
@@ -371,6 +436,7 @@ const hasToolbar = computed(
     props.columnPicker ||
     props.addable ||
     !!props.primaryAction ||
+    filterColumns.value.length > 0 ||
     !!slots.filters ||
     !!slots.toolbar,
 );
@@ -382,7 +448,8 @@ const bareEmpty = computed(
     !loadFailed.value &&
     props.rows.length === 0 &&
     (!props.serverSide || props.total === 0) &&
-    !q.value.trim(),
+    !q.value.trim() &&
+    !filtering.value,
 );
 const showTopbar = computed(() => hasToolbar.value && !bareEmpty.value);
 /** The rows-per-page selector exists (toolbar on a desk, else the footer). */
@@ -423,6 +490,19 @@ watch(
     }
   },
   { immediate: true },
+);
+// `filters` from the parent is what the person is looking at; `undefined` = not controlled.
+watch(
+  () => props.filters,
+  (value) => {
+    if (value === undefined) return;
+    filterValues.value = activeFilters(value);
+    if (!props.serverSide) {
+      clientPage.value = 0;
+      mobileShown.value = 0;
+    }
+  },
+  { immediate: true, deep: true },
 );
 watch(
   () => props.rows,
@@ -492,12 +572,13 @@ function onViewPicked(ev: CustomEvent<{ value?: unknown }>): void {
   if (view !== 'table' && view !== 'cards') return;
   if (layout.setViewMode(view)) emit('viewChange', view);
 }
-/** #171 - «Show all»: drops the search, so every row is back in one tap. */
+/** #171 - «Show all»: drops the search and the column filters, so every row is back in one tap. */
 function resetSearch(): void {
   q.value = '';
   clientPage.value = 0;
   mobileShown.value = 0;
   emit('update:search', '');
+  clearFilters();
 }
 
 // ── Sorting ───────────────────────────────────────────────────────────────────────────────────
@@ -674,10 +755,22 @@ function pickMenuAction(action: DataTableAction<T>): void {
 }
 
 // ── Cards ─────────────────────────────────────────────────────────────────────────────────────
-const hasCardHead = computed(() => !!props.cardTitle || !!props.cardIcon || props.selectable);
-/** #205 - The default card body leaves out the column the title already shows. */
+/** The column `cardTitleColumn` names, when it is one of the table's. */
+const namedTitleColumn = computed(() =>
+  props.cardTitleColumn ? props.columns.find((c) => c.key === props.cardTitleColumn) : undefined,
+);
+const hasCardHead = computed(() => !!props.cardTitle || !!namedTitleColumn.value || !!props.cardIcon || props.selectable);
+/** The card title: `cardTitle`, else the painted text of the named column. */
+function cardTitleOf(row: T): string | number {
+  if (props.cardTitle) return props.cardTitle(row) ?? '';
+  return namedTitleColumn.value ? cellText(namedTitleColumn.value, row) : '';
+}
+/** #205 - The default card body leaves out the column the title already shows: the one
+ *  `cardTitleColumn` names, else the one whose text is the title. */
 function cardFields(row: T): DataTableColumn<T>[] {
-  const titleColumn = props.cardTitle ? cardTitleColumn(props.cardTitle(row), row, visibleColumns.value) : undefined;
+  const named = namedTitleColumn.value;
+  if (named) return visibleColumns.value.filter((c) => c !== named);
+  const titleColumn = props.cardTitle ? titleColumnByText(props.cardTitle(row), row, visibleColumns.value) : undefined;
   return visibleColumns.value.filter((c) => c !== titleColumn);
 }
 
@@ -822,6 +915,100 @@ onUpdated(nameSearchBox);
           </ion-button>
           <slot name="toolbar" />
         </div>
+        <!-- Column filters: one control per filtered column, in column order. -->
+        <div
+          v-if="filterColumns.length"
+          class="data-table__filters"
+          role="group"
+          :aria-label="label('filters')"
+          :data-testid="tid('filters')"
+        >
+          <template
+            v-for="column in filterColumns"
+            :key="column.key"
+          >
+            <!-- Unfiltered, «All» ('') is checked and the select reads as its column («Status»). -->
+            <ion-select
+              v-if="column.filter?.type === 'select'"
+              class="data-table__filter"
+              interface="popover"
+              :aria-label="column.label"
+              :placeholder="column.label"
+              :value="filterValues[filterName(column)] ?? ''"
+              :selected-text="filterValues[filterName(column)] ? undefined : column.label"
+              :data-testid="tid(`filter-${filterName(column)}`)"
+              @ion-change="onFilter(filterName(column), $event)"
+            >
+              <ion-select-option value="">
+                {{ label('filterAll') }}
+              </ion-select-option>
+              <ion-select-option
+                v-for="option in column.filter.options ?? []"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </ion-select-option>
+            </ion-select>
+            <span
+              v-else-if="column.filter?.type === 'range'"
+              class="data-table__filter-range"
+              role="group"
+              :aria-label="column.label"
+            >
+              <ion-input
+                v-for="{ name, hint, named } in rangeEnds(column)"
+                :key="name"
+                class="data-table__filter"
+                type="number"
+                inputmode="decimal"
+                :debounce="250"
+                :aria-label="named"
+                :placeholder="hint"
+                :value="filterValues[name] ?? ''"
+                :data-testid="tid(`filter-${name}`)"
+                @ion-input="onFilter(name, $event)"
+              />
+            </span>
+            <ion-input
+              v-else-if="column.filter?.type === 'date'"
+              class="data-table__filter"
+              type="date"
+              :aria-label="column.label"
+              :value="filterValues[filterName(column)] ?? ''"
+              :data-testid="tid(`filter-${filterName(column)}`)"
+              @ion-change="onFilter(filterName(column), $event)"
+            />
+            <ion-input
+              v-else
+              class="data-table__filter"
+              type="text"
+              :clear-input="true"
+              :debounce="250"
+              :aria-label="column.label"
+              :placeholder="column.label"
+              :value="filterValues[filterName(column)] ?? ''"
+              :data-testid="tid(`filter-${filterName(column)}`)"
+              @ion-input="onFilter(filterName(column), $event)"
+            />
+          </template>
+          <ion-chip
+            v-if="filtering"
+            class="data-table__filters-clear"
+            role="button"
+            tabindex="0"
+            :data-testid="tid('filters-clear')"
+            @click="clearFilters"
+            @keydown.enter.prevent="clearFilters"
+            @keydown.space.prevent="clearFilters"
+          >
+            <ion-label>{{ label('clearFilters') }}</ion-label>
+            <ion-icon
+              :icon="icon(ICONS.clearFilters)"
+              aria-hidden="true"
+            />
+          </ion-chip>
+        </div>
         <div
           v-if="selectable && selection.size > 0"
           class="data-table__selection-bar"
@@ -925,7 +1112,7 @@ onUpdated(nameSearchBox);
               v-if="cardIcon?.(row)"
               class="data-table__card-icon"
             ><ion-icon :icon="icon(cardIcon(row))" /></span>
-            <span class="data-table__card-title">{{ cardTitle?.(row) ?? '' }}</span>
+            <span class="data-table__card-title">{{ cardTitleOf(row) }}</span>
             <ion-checkbox
               v-if="selectable"
               :checked="selection.has(keyOf(row))"
@@ -1443,6 +1630,9 @@ onUpdated(nameSearchBox);
   .data-table--fill .data-table__scroll, .data-table--fill .data-table__cards { flex: 0 0 auto; }
   .data-table--fill .data-table__cards { overflow: visible; }
   .data-table--fill.data-table--content-after { height: auto; flex-shrink: 0 !important; }
+  /* With nothing after it, too: at the container's height (`overflow: hidden`) it clipped its rows
+     and its pager, and the page had nothing to scroll (measured at 390px in AppPage detail-fill). */
+  .data-table--fill:not(.data-table--content-after) { height: auto; min-height: 100%; }
 }
 
 /* ── Toolbar ─────────────────────────────────────────────────────────────────────────────── */
@@ -1482,6 +1672,12 @@ onUpdated(nameSearchBox);
 .data-table__bar-main > :slotted(ion-select) { min-width: 6.5rem; max-width: 8rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem; }
 
 /* Selection bar. */
+/* Column filters: a row of boxed controls under the toolbar's main row (the Lit inline filters). */
+.data-table__filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.data-table__filter { min-width: 8.5rem; max-width: 13rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.7rem; --padding-end: 0.5rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem; }
+.data-table__filter-range { display: inline-flex; align-items: center; gap: 0.35rem; }
+.data-table__filter-range .data-table__filter { min-width: 5.5rem; max-width: 7rem; }
+.data-table__filters-clear { margin: 0; font-size: 13px; }
 .data-table__selection-bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.7rem; border-radius: 10px; font-size: 13px; color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
 /* `padding: revert`: the browser's own button padding, which normalize.css would zero. */
 .data-table__selection-clear { margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; cursor: pointer; font-weight: 500; color: inherit; background: none; border: 0; font: inherit; padding: revert; }

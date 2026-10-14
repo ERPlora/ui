@@ -5,7 +5,10 @@ import { describe, expect, it } from 'vitest';
 import {
   cardTitleColumn,
   cellText,
+  activeFilters,
   entityWord,
+  filterKeys,
+  filterRows,
   gridTemplate,
   inlineActions,
   pageList,
@@ -303,5 +306,82 @@ describe('sameRecords (hub#2245)', () => {
     expect(sameRecords([{ id: 1 }], [{ id: 1 }, { id: 2 }], key)).toBe(false);
     expect(sameRecords([{ n: 1 }], [{ n: 1 }], key)).toBe(false);
     expect(sameRecords(undefined, [{ id: 1 }], key)).toBe(false);
+  });
+});
+
+// Column filters (hub-next apps/tax/UI-REQUESTS.md). The memory rule of ERPlora (ADR-0125): free
+// text matches by «contains» («Ana» finds «Ana García»), a closed domain by equality (`active` must
+// not match `inactive`).
+describe('filterKeys: the names a column filter takes in `filters`', () => {
+  it('its column key, its own key, or a range’s two ends', () => {
+    expect(filterKeys(col({ key: 'name', filter: { type: 'text' } }))).toEqual(['name']);
+    expect(filterKeys(col({ key: 'category', filter: { type: 'select', key: 'category_id', options: [] } }))).toEqual(['category_id']);
+    expect(filterKeys(col({ key: 'rate', filter: { type: 'range' } }))).toEqual(['rate_from', 'rate_to']);
+    expect(filterKeys(col({ key: 'name' }))).toEqual([]);
+  });
+});
+
+describe('activeFilters: what actually filters', () => {
+  it('drops empty and blank values', () => {
+    expect(activeFilters({ name: '  ', status: '', rate_from: '5', city: 'Madrid' })).toEqual({ rate_from: '5', city: 'Madrid' });
+  });
+});
+
+describe('filterRows (client mode)', () => {
+  const ROWS: Row[] = [
+    { id: '1', name: 'Ana García', status: 'active', rate: 21, day: '2026-10-14T09:30:00Z', city_id: 'm' },
+    { id: '2', name: 'Luis Ana', status: 'inactive', rate: 10, day: '2026-10-13', city_id: 'b' },
+    { id: '3', name: 'Marta', status: 'active', rate: 4, day: null, city_id: 'm' },
+    { id: '4', name: null, status: 'active', rate: null, day: new Date(2026, 9, 14, 23, 0), city_id: null },
+  ];
+  const ids = (rows: readonly Row[]) => rows.map((r) => r.id);
+  const COLUMNS = [
+    col({ key: 'name', filter: { type: 'text' } }),
+    col({ key: 'status', filter: { type: 'select', options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }] } }),
+    col({ key: 'rate', filter: { type: 'range' } }),
+    col({ key: 'day', filter: { type: 'date' } }),
+    col({ key: 'city', format: (_v, r) => (r.city_id === 'm' ? 'Madrid' : 'Barcelona'), filter: { type: 'select', key: 'city_id', options: [] } }),
+    col({ key: 'label', format: (_v, r) => `#${String(r.id)} ${String(r.name ?? '')}`, filter: { type: 'text' } }),
+  ];
+
+  it('no active filter keeps every row, in order', () => {
+    expect(ids(filterRows(ROWS, COLUMNS, {}))).toEqual(['1', '2', '3', '4']);
+    expect(ids(filterRows(ROWS, COLUMNS, { name: ' ', status: '' }))).toEqual(['1', '2', '3', '4']);
+  });
+
+  it('free text: contains, case-insensitive, trimmed', () => {
+    expect(ids(filterRows(ROWS, COLUMNS, { name: ' ana ' }))).toEqual(['1', '2']);
+  });
+
+  it('free text reads what the cell paints (its format)', () => {
+    expect(ids(filterRows(ROWS, COLUMNS, { label: '#3' }))).toEqual(['3']);
+  });
+
+  it('a closed domain: exact equality (active does not match inactive)', () => {
+    expect(ids(filterRows(ROWS, COLUMNS, { status: 'active' }))).toEqual(['1', '3', '4']);
+    expect(ids(filterRows(ROWS, COLUMNS, { status: 'act' }))).toEqual([]);
+  });
+
+  it('a filter with its own key reads that field of the row (an id behind a painted name)', () => {
+    expect(ids(filterRows(ROWS, COLUMNS, { city_id: 'm' }))).toEqual(['1', '3']);
+  });
+
+  it('a range: inclusive ends, either one alone; a row without a number is out', () => {
+    expect(ids(filterRows(ROWS, COLUMNS, { rate_from: '10', rate_to: '21' }))).toEqual(['1', '2']);
+    expect(ids(filterRows(ROWS, COLUMNS, { rate_from: '5' }))).toEqual(['1', '2']);
+    expect(ids(filterRows(ROWS, COLUMNS, { rate_to: '4' }))).toEqual(['3']);
+  });
+
+  it('a day: the date part of an ISO value, or the local day of a Date', () => {
+    expect(ids(filterRows(ROWS, COLUMNS, { day: '2026-10-14' }))).toEqual(['1', '4']);
+    expect(ids(filterRows(ROWS, COLUMNS, { day: '2026-10-13' }))).toEqual(['2']);
+  });
+
+  it('every active filter must match (AND)', () => {
+    expect(ids(filterRows(ROWS, COLUMNS, { status: 'active', rate_from: '5' }))).toEqual(['1']);
+  });
+
+  it('a value for a column without a filter filters nothing', () => {
+    expect(ids(filterRows(ROWS, COLUMNS, { id: '2' }))).toEqual(['1', '2', '3', '4']);
   });
 });
