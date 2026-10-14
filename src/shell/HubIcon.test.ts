@@ -1,6 +1,8 @@
 // HubIcon: the ONE icon component (PLAN §16.4). `<HubIcon name="ion:cart-outline" />`,
 // `name="lucide:panel-left"`, `name="mdi:cart"`… Every set paints through `ion-icon`, so its box
 // (1em, currentColor), `color` and `slot="start|end|icon-only"` are exactly Ionic's.
+// Accessibility (audit R-03, WCAG 1.1.1): an icon is decorative unless it is given a `label`, so a
+// screen reader never announces a bare «image» next to the text that already says what it is.
 import { IonIcon } from '@ionic/vue';
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -29,15 +31,55 @@ describe('HubIcon', () => {
     }
   });
 
-  it('IS the ion-icon: slot, color and aria attributes reach it as on a plain ion-icon', () => {
+  it('IS the ion-icon: slot, color and other attributes reach it as on a plain ion-icon', () => {
     const wrapper = mount(HubIcon, {
       props: { name: 'mdi:cart' },
-      attrs: { slot: 'start', color: 'primary', 'aria-label': 'Cart' },
+      attrs: { slot: 'start', color: 'primary', title: 'Cart' },
     });
     expect(wrapper.element.tagName).toBe('ION-ICON');
     expect(wrapper.attributes('slot')).toBe('start');
-    expect(wrapper.attributes('aria-label')).toBe('Cart');
+    expect(wrapper.attributes('title')).toBe('Cart');
     expect(wrapper.getComponent(IonIcon).props('color')).toBe('primary');
+  });
+
+  it('without a label it is decorative: hidden from screen readers, with no role and no name', () => {
+    for (const name of ['ion:cart-outline', 'mdi:cart']) {
+      const wrapper = mount(HubIcon, { props: { name } });
+      expect(wrapper.attributes('aria-hidden'), name).toBe('true');
+      expect(wrapper.attributes('role'), name).toBeUndefined();
+      expect(wrapper.attributes('aria-label'), name).toBeUndefined();
+    }
+  });
+
+  it('with a label it is an image named by it: role="img" and aria-label, not hidden', () => {
+    const wrapper = mount(HubIcon, { props: { name: 'ion:cart-outline', label: 'Cart' } });
+    expect(wrapper.attributes('role')).toBe('img');
+    expect(wrapper.attributes('aria-label')).toBe('Cart');
+    expect(wrapper.attributes('aria-hidden')).toBeUndefined();
+  });
+
+  it('decorative wins over a label: hidden, with no role and no name', () => {
+    const wrapper = mount(HubIcon, { props: { name: 'ion:cart-outline', label: 'Cart', decorative: true } });
+    expect(wrapper.attributes('aria-hidden')).toBe('true');
+    expect(wrapper.attributes('role')).toBeUndefined();
+    expect(wrapper.attributes('aria-label')).toBeUndefined();
+  });
+
+  it('a raw aria-label attribute names it like a label, so it is never named and hidden at once', () => {
+    const wrapper = mount(HubIcon, { props: { name: 'mdi:cart' }, attrs: { 'aria-label': 'Cart' } });
+    expect(wrapper.attributes('role')).toBe('img');
+    expect(wrapper.attributes('aria-label')).toBe('Cart');
+    expect(wrapper.attributes('aria-hidden')).toBeUndefined();
+  });
+
+  it('follows a label that comes and goes', async () => {
+    const wrapper = mount(HubIcon, { props: { name: 'ion:cart-outline', label: 'Cart' } });
+    await wrapper.setProps({ label: undefined });
+    expect(wrapper.attributes('aria-hidden')).toBe('true');
+    expect(wrapper.attributes('aria-label')).toBeUndefined();
+    await wrapper.setProps({ label: 'Basket' });
+    expect(wrapper.attributes('aria-label')).toBe('Basket');
+    expect(wrapper.attributes('aria-hidden')).toBeUndefined();
   });
 
   it('follows a name that changes', async () => {
