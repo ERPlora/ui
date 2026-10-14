@@ -18,6 +18,25 @@
 // Slots: `filters` (the page's filters, next to the search, as Odoo or Shopify place them),
 // `toolbar` (extra header actions), `row-actions` ({ row }), `card` ({ row }, the card body),
 // `empty` (content of the empty state), and one per column that declares `cell` ({ row, value, column }).
+//
+// Fitting the box (W-19, mockups/saas-panel §3b). What fits is decided by the table's OWN box (a
+// ResizeObserver on it), never by the window: with the side menu open the box is far narrower than
+// the screen. When the list does not fit, it gives up one thing at a time and takes it back as the
+// box widens, in this order:
+//   1. the columns with `priority: 'low'` (the person can pick them back in the column chooser, and
+//      the cards still show them);
+//   2. the row actions beyond `maxInlineActions` (2), into the row's «⋮» menu;
+//   3. every row action that is not `pinned`;
+//   4. the list itself: cards, when `views` offers them and the person has not picked a view by hand.
+// Only then does the list scroll sideways INSIDE its box (`data-table__scroll--overflow`); the page
+// never does. `cardBreakpoint` is the floor under all of this: at or below that window width (a
+// phone) the table is cards whatever its box.
+//
+// Row actions: declare them in `actions`, so they fold. The main one of the row («Open», «Pay»)
+// goes `pinned`; the delicate ones («Transfer ownership») go `menuOnly` and live in «⋮» in the list
+// and in the cards (the page confirms them). The `row-actions` slot paints its content as is, at any
+// width: it never folds, so it is only for a control that cannot be an action (and the table cannot
+// make room by folding what it paints).
 import {
   IonButton,
   IonCard,
@@ -46,11 +65,14 @@ import {
   cardTitleColumn,
   cellText,
   DATA_TABLE_ICONS,
+  entityWord,
   gridTemplate,
+  inlineActions,
   pageList,
   pagerState,
   rowActionsFolded,
   rowKeyOf,
+  type RowActionsFold,
   sameRecords,
   searchRows,
   slotActions as slotActionsOf,
@@ -63,6 +85,7 @@ import type {
   DataTableAction,
   DataTableActionEvent,
   DataTableColumn,
+  DataTableEntityLabel,
   DataTableLabels,
   DataTablePrimaryAction,
   DataTableRowKey,
@@ -70,7 +93,7 @@ import type {
   DataTableSortDir,
   DataTableView,
 } from './types';
-import { useDataTableLayout } from './useDataTableLayout';
+import { type DataTableFitStep, useDataTableLayout } from './useDataTableLayout';
 
 const props = withDefaults(
   defineProps<{
@@ -112,8 +135,13 @@ const props = withDefaults(
     sortDir?: DataTableSortDir;
     /** Overrides of the chrome texts for this table (the rest come from i18n). */
     labels?: Partial<DataTableLabels>;
-    /** Row action buttons (emit `action`). */
+    /** Row action buttons (emit `action`). Every row action goes here, not in the `row-actions`
+     *  slot: these fold into «⋮» when the box is narrow (W-19). Mark the row's main one `pinned`
+     *  (it never folds) and a delicate one `menuOnly` (never a button). */
     actions?: DataTableAction<T>[];
+    /** W-19 - Buttons a row keeps at the first fold; the rest go into «⋮» (a `pinned` one counts
+     *  and always stays). Only applies when the list does not fit: with room, every action shows. */
+    maxInlineActions?: number;
     /** A labelled create button in the toolbar (emits `add`). */
     addable?: boolean;
     /** The highlighted button of the toolbar (emits `primaryAction`). */
@@ -138,8 +166,14 @@ const props = withDefaults(
     cardTitle?: (row: T) => string | number | null | undefined;
     /** Card icon name. */
     cardIcon?: (row: T) => string | undefined;
-    /** Phone breakpoint in px: at or below it the table behaves as on a phone (cards, «Load more»). */
+    /** Phone breakpoint in px of the WINDOW (640 by default): at or below it the table behaves as on a
+     *  phone (cards when `views` offers them, «Load more», no column chooser). Per table: raise it for
+     *  a wide list (Businesses 900, Members or Invoices 1100…). It is a floor: above it the cards
+     *  still come when the list does not fit its own box (W-19). */
     cardBreakpoint?: number;
+    /** What the footer counts: `{ one, many }` or a function of the count returning the noun
+     *  («4 businesses», «1 invoice»). Default: the «record(s)» label. */
+    entityLabel?: DataTableEntityLabel;
     /** Prefix of the `data-testid` hooks; none without it. */
     testid?: string;
   }>(),
@@ -159,6 +193,7 @@ const props = withDefaults(
     sortDir: 'asc',
     labels: undefined,
     actions: () => [],
+    maxInlineActions: 2,
     primaryAction: undefined,
     columnPicker: true,
     title: '',
@@ -168,6 +203,7 @@ const props = withDefaults(
     cardTitle: undefined,
     cardIcon: undefined,
     cardBreakpoint: 640,
+    entityLabel: undefined,
     testid: undefined,
   },
 );
@@ -234,11 +270,29 @@ const tid = (suffix: string): string | undefined => {
   return prefix ? `${prefix}-${suffix}` : undefined;
 };
 
+/** Columns the person sees: their `hidden`, unless picked otherwise in the column chooser. */
 const visibleColumns = computed(() => props.columns.filter((c) => columnChoice.value.get(c.key) ?? c.hidden !== true));
+/** W-19 - Shown columns the box may take away: `low`, and not picked by hand. */
+const yieldingColumns = computed(() =>
+  visibleColumns.value.filter((c) => c.priority === 'low' && columnChoice.value.get(c.key) !== true),
+);
 const hasSearch = computed(() => props.searchable || props.searchKeys.length > 0);
 const viewToggle = computed(() => (Array.isArray(props.views) ? props.views.length > 1 : props.views === true));
 const cardViewEnabled = computed(() => (Array.isArray(props.views) ? props.views.includes('cards') : props.views === true));
 const hasActions = computed(() => props.actions.length > 0 || !!slots['row-actions']);
+/** #240 - The actions that get a place in the list: those some row shows. */
+const slotActions = computed(() => slotActionsOf(props.actions, props.rows));
+/** W-19 - The ladder of THIS table: only the steps that free something. */
+const fitSteps = computed(() => {
+  const steps: DataTableFitStep[] = [];
+  if (yieldingColumns.value.length) steps.push('hideLow');
+  const max = props.maxInlineActions;
+  if (inlineActions(slotActions.value, 'extra', max).length < inlineActions(slotActions.value, 'none', max).length) steps.push('foldExtra');
+  if (hasActions.value) steps.push('foldAll');
+  return steps;
+});
+/** The ladder by content: new rows that keep it do not make the box be judged again. */
+const fitStepsKey = computed(() => fitSteps.value.join());
 
 const layout = useDataTableLayout({
   root,
@@ -246,16 +300,32 @@ const layout = useDataTableLayout({
   cardViewEnabled: () => cardViewEnabled.value,
   defaultView: () => props.defaultView,
   hasActions: () => hasActions.value,
-  deps: () => [props.columns, props.actions, columnChoice.value, props.selectable],
+  fitSteps: () => fitSteps.value,
+  deps: () => [props.columns, props.actions, columnChoice.value, props.selectable, props.maxInlineActions, fitStepsKey.value],
   shape: () =>
     JSON.stringify([
-      visibleColumns.value.map((c) => [c.key, c.width ?? '']),
-      props.actions.map((a) => [a.id, !!a.icon]),
+      visibleColumns.value.map((c) => [c.key, c.width ?? '', yieldingColumns.value.includes(c)]),
+      props.actions.map((a) => [a.id, !!a.icon, !!a.pinned, !!a.menuOnly]),
       props.selectable,
+      props.maxInlineActions,
     ]),
   fill: () => props.fill,
 });
-const { viewMode, isMobile, xOverflow, actionsTrackPx, actionsLabelFits, rowActionsCollapsed, contentAfter } = layout;
+const {
+  viewMode,
+  isMobile,
+  xOverflow,
+  actionsTrackPx,
+  actionsLabelFits,
+  rowActionsCollapsed,
+  lowColumnsHidden,
+  extraActionsFolded,
+  contentAfter,
+} = layout;
+/** W-19 - The list's columns: the visible ones, minus the yielding ones while the box hides them. */
+const listColumns = computed(() =>
+  lowColumnsHidden.value ? visibleColumns.value.filter((c) => !yieldingColumns.value.includes(c)) : visibleColumns.value,
+);
 
 // ── Rows on screen ────────────────────────────────────────────────────────────────────────────
 const clientRows = computed(() => {
@@ -300,13 +370,15 @@ const showPager = computed(
       : pager.value.pages > 1 || props.pageSizeOptions.length > 0),
 );
 const cardsOn = computed(() => viewMode.value === 'cards' && cardViewEnabled.value);
+/** What the column chooser marks: what the current view paints (the cards keep the low columns). */
+const shownColumns = computed(() => (cardsOn.value ? visibleColumns.value : listColumns.value));
 /** #171 - Rows that exist but are all hidden by the search are not an empty list. */
 const noMatches = computed(() => props.rows.length > 0);
 const searchHint = computed(() => props.searchPlaceholder ?? label('search'));
 const template = computed(() =>
   gridTemplate({
     selectable: props.selectable,
-    columns: visibleColumns.value,
+    columns: listColumns.value,
     hasActions: hasActions.value,
     actionsTrackPx: actionsTrackPx.value,
   }),
@@ -375,10 +447,17 @@ function onSearch(ev: Event): void {
   }
   emit('update:search', value);
 }
+/** Records only what the person changed against what is painted: a column the box hid and nobody
+ *  touched stays the box's to bring back (W-19). */
 function onColumnsPicked(ev: CustomEvent<{ value?: unknown }>): void {
   const keys = Array.isArray(ev.detail.value) ? ev.detail.value.map(String) : [];
-  const visible = new Set(keys);
-  columnChoice.value = new Map(props.columns.map((c) => [c.key, visible.has(c.key)]));
+  const picked = new Set(keys);
+  const shown = new Set(shownColumns.value.map((c) => c.key));
+  const choice = new Map(columnChoice.value);
+  for (const column of props.columns) {
+    if (picked.has(column.key) !== shown.has(column.key)) choice.set(column.key, picked.has(column.key));
+  }
+  columnChoice.value = choice;
   emit('columnsChange', keys);
 }
 /** The list/cards ion-segment (Ioan, 2026-10-13); anything but a view is ignored. */
@@ -444,7 +523,9 @@ function loadMore(): void {
   else mobileShown.value = Math.min((mobileShown.value || pageSizeNow.value) + pageSizeNow.value, pager.value.count);
 }
 const pagerFrom = computed(() => label('showing', { from: pager.value.rangeFrom, to: pager.value.rangeTo }));
-const recordWord = computed(() => label(pager.value.count === 1 ? 'recordSingular' : 'recordPlural'));
+const recordWord = computed(
+  () => entityWord(pager.value.count, props.entityLabel) ?? label(pager.value.count === 1 ? 'recordSingular' : 'recordPlural'),
+);
 
 // ── Rows and cells ────────────────────────────────────────────────────────────────────────────
 function onRowClick(row: T): void {
@@ -476,7 +557,6 @@ const alignClass = (column: DataTableColumn<T>): string | undefined =>
   column.align === 'right' ? 'data-table__cell--right' : column.align === 'center' ? 'data-table__cell--center' : undefined;
 
 // ── Row actions ───────────────────────────────────────────────────────────────────────────────
-const slotActions = computed(() => slotActionsOf(props.actions, props.rows));
 /** #240 - Text of the invisible stand-in of a hidden text action, borrowed from a row showing it. */
 const gapLabels = computed(
   () =>
@@ -492,16 +572,40 @@ interface ActionSlot {
   action: DataTableAction<T>;
   gap: boolean;
 }
-/** What the actions cell of a row holds: the «…» trigger (folded) or one slot per action. */
-function rowActions(row: T, collapsible: boolean): { folded: boolean; items: ActionSlot[] } {
-  if (!props.actions.length) return { folded: false, items: [] };
-  const actions = visibleActions(props.actions, row);
-  if (collapsible && rowActionsCollapsed.value) {
-    if (!actions.length) return { folded: false, items: [] };
-    if (rowActionsFolded(true, actions)) return { folded: true, items: [] };
+interface ActionCell {
+  /** The buttons, in order (a `gap` is the invisible stand-in of an action hidden for the row). */
+  items: ActionSlot[];
+  /** What «⋮» offers for the row (nothing = no «⋮»). */
+  menu: DataTableAction<T>[];
+}
+/** W-19 - How far the list's actions are folded right now. */
+const fold = computed<RowActionsFold>(() => (rowActionsCollapsed.value ? 'all' : extraActionsFolded.value ? 'extra' : 'none'));
+/** #240/W-19 - Unfolded or partly folded, every row has the same button places. */
+const listSlots = computed(() => inlineActions(slotActions.value, fold.value, props.maxInlineActions));
+/** What the actions cell of a list row holds. Folded entirely (#122), each row decides on its own
+ *  (#213): a single icon action stays a button, as do the pinned ones. */
+function listActions(row: T): ActionCell {
+  const visible = visibleActions(props.actions, row);
+  if (fold.value === 'all') {
+    const folds = rowActionsFolded(true, visible.filter((a) => a.menuOnly !== true && a.pinned !== true));
+    const inline = visible.filter((a) => a.menuOnly !== true && (a.pinned === true || !folds));
+    return { items: inline.map((action) => ({ action, gap: false })), menu: visible.filter((a) => !inline.includes(a)) };
   }
-  const list = collapsible && !rowActionsCollapsed.value ? slotActions.value : actions;
-  return { folded: false, items: list.map((action) => ({ action, gap: action.hidden?.(row) === true })) };
+  const places = listSlots.value;
+  return {
+    items: places.map((action) => ({ action, gap: action.hidden?.(row) === true })),
+    menu: visible.filter((a) => !places.includes(a)),
+  };
+}
+/** W-19 - Some row has a «⋮» (not folded entirely): the others keep its place with a stand-in. */
+const listMenuPlace = computed(() => fold.value !== 'all' && props.rows.some((row) => listActions(row).menu.length > 0));
+/** A card has room for every action: buttons, except the `menuOnly` ones, which stay in «⋮». */
+function cardActions(row: T): ActionCell {
+  const visible = visibleActions(props.actions, row);
+  return {
+    items: visible.filter((a) => a.menuOnly !== true).map((action) => ({ action, gap: false })),
+    menu: visible.filter((a) => a.menuOnly === true),
+  };
 }
 const isBusy = (action: DataTableAction<T>, row: T): boolean => action.loading?.(row) === true;
 const isDisabled = (action: DataTableAction<T>, row: T): boolean => isBusy(action, row) || action.disabled?.(row) === true;
@@ -516,9 +620,20 @@ const menuRow = computed(() => {
   const key = keyOf(kept);
   return (key ? props.rows.find((row) => keyOf(row) === key) : undefined) ?? kept;
 });
-const menuActions = computed(() => (menuRow.value ? visibleActions(props.actions, menuRow.value) : []));
-/** #143 - The menu item carries the action's hook only while the direct buttons are not there. */
-const menuHooked = computed(() => rowActionsFolded(rowActionsCollapsed.value, menuActions.value));
+/** #143 - What «⋮» offers now: never an action that has its button on screen, so a menu item can
+ *  carry the action's hook without it ever being there twice. */
+const menuActions = computed(() => {
+  const row = menuRow.value;
+  if (!row) return [];
+  return (cardsOn.value ? cardActions(row) : listActions(row)).menu;
+});
+// The box widened under an open menu and every action is a button again: nothing left to offer.
+watch(
+  () => menuActions.value.length,
+  (count) => {
+    if (count === 0) rowMenuOpen.value = false;
+  },
+);
 function openRowMenu(ev: Event, row: T): void {
   ev.stopPropagation();
   rowMenuEvent.value = ev;
@@ -595,7 +710,7 @@ onUpdated(nameSearchBox);
             :multiple="true"
             interface="popover"
             :aria-label="label('columnsVisible')"
-            :value="visibleColumns.map((c) => c.key)"
+            :value="shownColumns.map((c) => c.key)"
             :selected-text="label('columns')"
             @ion-change="onColumnsPicked"
           >
@@ -826,7 +941,7 @@ onUpdated(nameSearchBox);
           >
             <div class="data-table__actions">
               <ion-button
-                v-for="{ action } in rowActions(row, false).items"
+                v-for="{ action } in cardActions(row).items"
                 :key="action.id"
                 size="small"
                 fill="clear"
@@ -856,6 +971,23 @@ onUpdated(nameSearchBox);
                 name="row-actions"
                 :row="row"
               />
+              <!-- W-19 - The `menuOnly` actions never get a button, not even on a card. -->
+              <ion-button
+                v-if="cardActions(row).menu.length"
+                size="small"
+                fill="clear"
+                :style="toneStyle('medium', 'clear')"
+                :data-testid="tid(`row-${keyOf(row)}-menu`)"
+                :aria-label="label('moreActions')"
+                :title="label('moreActions')"
+                aria-haspopup="menu"
+                @click="openRowMenu($event, row)"
+              >
+                <ion-icon
+                  slot="icon-only"
+                  :icon="icon(ICONS.more)"
+                />
+              </ion-button>
             </div>
           </div>
         </ion-card>
@@ -884,7 +1016,7 @@ onUpdated(nameSearchBox);
                 />
               </span>
               <div
-                v-for="column in visibleColumns"
+                v-for="column in listColumns"
                 :key="column.key"
                 :class="[
                   'data-table__cell data-table__cell--header',
@@ -943,7 +1075,7 @@ onUpdated(nameSearchBox);
                 />
               </span>
               <div
-                v-for="column in visibleColumns"
+                v-for="column in listColumns"
                 :key="column.key"
                 :class="['data-table__cell', alignClass(column), { 'data-table__cell--pinned': column.pinned === 'end' }]"
                 role="cell"
@@ -970,25 +1102,8 @@ onUpdated(nameSearchBox);
                 @click.stop
               >
                 <div class="data-table__actions">
-                  <!-- #122 - Folded: one button that opens the actions in a menu. -->
-                  <ion-button
-                    v-if="rowActions(row, true).folded"
-                    size="small"
-                    fill="clear"
-                    :style="toneStyle('medium', 'clear')"
-                    :data-testid="tid(`row-${keyOf(row)}-menu`)"
-                    :aria-label="label('moreActions')"
-                    :title="label('moreActions')"
-                    aria-haspopup="menu"
-                    @click="openRowMenu($event, row)"
-                  >
-                    <ion-icon
-                      slot="icon-only"
-                      :icon="icon(ICONS.more)"
-                    />
-                  </ion-button>
                   <template
-                    v-for="{ action, gap } in rowActions(row, true).items"
+                    v-for="{ action, gap } in listActions(row).items"
                     :key="action.id"
                   >
                     <!-- #240 - A hidden action keeps its width, invisible and inert: the others stay in their column. -->
@@ -1041,45 +1156,79 @@ onUpdated(nameSearchBox);
                     name="row-actions"
                     :row="row"
                   />
+                  <!-- #122/W-19 - «⋮»: one button that opens what left the row (folded, or menuOnly). -->
+                  <ion-button
+                    v-if="listActions(row).menu.length"
+                    size="small"
+                    fill="clear"
+                    :style="toneStyle('medium', 'clear')"
+                    :data-testid="tid(`row-${keyOf(row)}-menu`)"
+                    :aria-label="label('moreActions')"
+                    :title="label('moreActions')"
+                    aria-haspopup="menu"
+                    @click="openRowMenu($event, row)"
+                  >
+                    <ion-icon
+                      slot="icon-only"
+                      :icon="icon(ICONS.more)"
+                    />
+                  </ion-button>
+                  <!-- #240/W-19 - Another row has «⋮»: its place, invisible and inert. -->
+                  <ion-button
+                    v-else-if="listMenuPlace"
+                    class="data-table__action-gap"
+                    size="small"
+                    fill="clear"
+                    data-slot-for="menu"
+                    aria-hidden="true"
+                    inert
+                  >
+                    <ion-icon
+                      slot="icon-only"
+                      :icon="icon(ICONS.more)"
+                    />
+                  </ion-button>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <ion-popover
-          v-if="actions.length && menuRow"
-          class="data-table__row-menu"
-          :is-open="rowMenuOpen"
-          :event="rowMenuEvent"
-          :dismiss-on-select="true"
-          @did-dismiss="rowMenuOpen = false"
-        >
-          <ion-content>
-            <ion-list lines="none">
-              <ion-item
-                v-for="action in menuActions"
-                :key="action.id"
-                :button="true"
-                :detail="false"
-                :data-testid="menuHooked ? tid(`row-${keyOf(menuRow)}-${action.id}`) : undefined"
-                :disabled="isDisabled(action, menuRow)"
-                :aria-disabled="isDisabled(action, menuRow) ? 'true' : undefined"
-                @click="pickMenuAction(action)"
-              >
-                <ion-icon
-                  v-if="action.icon"
-                  slot="start"
-                  :icon="icon(action.icon)"
-                  :style="toneStyle(action.color, 'text')"
-                />
-                <ion-label :style="toneStyle(action.color, 'text')">
-                  {{ actionLabel(action, menuRow) }}
-                </ion-label>
-              </ion-item>
-            </ion-list>
-          </ion-content>
-        </ion-popover>
       </template>
+
+      <!-- The row's «⋮» menu, for the list and the cards (Ionic presents it out of the table). -->
+      <ion-popover
+        v-if="actions.length && menuRow"
+        class="data-table__row-menu"
+        :is-open="rowMenuOpen"
+        :event="rowMenuEvent"
+        :dismiss-on-select="true"
+        @did-dismiss="rowMenuOpen = false"
+      >
+        <ion-content>
+          <ion-list lines="none">
+            <ion-item
+              v-for="action in menuActions"
+              :key="action.id"
+              :button="true"
+              :detail="false"
+              :data-testid="tid(`row-${keyOf(menuRow)}-${action.id}`)"
+              :disabled="isDisabled(action, menuRow)"
+              :aria-disabled="isDisabled(action, menuRow) ? 'true' : undefined"
+              @click="pickMenuAction(action)"
+            >
+              <ion-icon
+                v-if="action.icon"
+                slot="start"
+                :icon="icon(action.icon)"
+                :style="toneStyle(action.color, 'text')"
+              />
+              <ion-label :style="toneStyle(action.color, 'text')">
+                {{ actionLabel(action, menuRow) }}
+              </ion-label>
+            </ion-item>
+          </ion-list>
+        </ion-content>
+      </ion-popover>
 
       <div
         v-if="showPager"

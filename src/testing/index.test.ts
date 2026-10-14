@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import pkg from '../../package.json';
+import * as happyDom from './happyDom';
 import * as icons from './icons';
 import * as testing from './index';
 
@@ -13,5 +14,9 @@ describe('@erplora/ui/testing (helpers for the tests of this package and of the 
     expect(testing.scanIcons).toBe(icons.scanIcons);
     expect(testing.iconReferences).toBe(icons.iconReferences);
     expect(testing.isRegisteredIcon).toBe(icons.isRegisteredIcon);
+  });
+
+  it('carries the happy-dom gaps an app’s test setup fills for Ionic: fillHappyDomGaps', () => {
+    expect(testing.fillHappyDomGaps).toBe(happyDom.fillHappyDomGaps);
   });
 });

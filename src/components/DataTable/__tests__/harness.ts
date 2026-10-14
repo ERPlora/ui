@@ -36,6 +36,46 @@ export function viewport(mobile: boolean): void {
   }));
 }
 
+/**
+ * happy-dom's `ResizeObserver` never reports anything. This one reports when the test says the
+ * observed boxes changed size (`fire`), as the browser does after a layout: every observer that
+ * still watches something gets one entry per target. Install it with `mockResizeObserver()`.
+ */
+export class ResizeObserverMock {
+  static readonly live = new Set<ResizeObserverMock>();
+  private readonly targets = new Set<Element>();
+
+  constructor(private readonly callback: ResizeObserverCallback) {
+    ResizeObserverMock.live.add(this);
+  }
+
+  observe(target: Element): void {
+    this.targets.add(target);
+  }
+
+  unobserve(target: Element): void {
+    this.targets.delete(target);
+  }
+
+  disconnect(): void {
+    this.targets.clear();
+  }
+
+  /** Reports every observed target as resized (no-op when it watches nothing). */
+  fire(): void {
+    if (!this.targets.size) return;
+    const entries = [...this.targets].map((target) => ({ target }) as ResizeObserverEntry);
+    this.callback(entries, this as unknown as ResizeObserver);
+  }
+}
+
+/** Stubs `ResizeObserver`; `fire()` reports a resize of every observed box, in creation order. */
+export function mockResizeObserver(): { fire: () => void } {
+  ResizeObserverMock.live.clear();
+  vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+  return { fire: () => [...ResizeObserverMock.live].forEach((observer) => observer.fire()) };
+}
+
 /** Fires the breakpoint `change` the browser would send when the window crosses it. */
 export function crossBreakpoint(matches: boolean): void {
   for (const listener of mediaListeners) listener({ matches });

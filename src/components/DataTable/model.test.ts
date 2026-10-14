@@ -5,7 +5,9 @@ import { describe, expect, it } from 'vitest';
 import {
   cardTitleColumn,
   cellText,
+  entityWord,
   gridTemplate,
+  inlineActions,
   pageList,
   pagerState,
   rowActionsFolded,
@@ -236,6 +238,47 @@ describe('row actions (hub#2014, #213, #240)', () => {
     expect(rowActionsFolded(true, [open])).toBe(false);
     expect(rowActionsFolded(true, [use])).toBe(true);
     expect(rowActionsFolded(true, [])).toBe(false);
+  });
+});
+
+describe('inlineActions: the actions that keep a button at each fold of the row (W-19, §3b)', () => {
+  const action = (id: string, extra: Partial<DataTableAction<Row>> = {}): DataTableAction<Row> => ({ id, label: id, icon: 'ellipse', ...extra });
+  const open = action('open', { pinned: true });
+  const manage = action('manage');
+  const pay = action('pay');
+  const transfer = action('transfer', { menuOnly: true });
+  const ids = (actions: DataTableAction<Row>[]) => actions.map((a) => a.id);
+
+  it('unfolded: every action but the `menuOnly` ones, however many (the box has room)', () => {
+    expect(ids(inlineActions([open, manage, pay, transfer], 'none', 2))).toEqual(['open', 'manage', 'pay']);
+    expect(ids(inlineActions([manage, pay, action('x'), action('y')], 'none', 1))).toEqual(['manage', 'pay', 'x', 'y']);
+  });
+
+  it('`extra`: the first `maxInline`, in their order; a pinned one counts first and never leaves', () => {
+    expect(ids(inlineActions([manage, pay, action('x')], 'extra', 2))).toEqual(['manage', 'pay']);
+    expect(ids(inlineActions([manage, pay, open], 'extra', 2)), 'pinned takes a place, kept in order').toEqual(['manage', 'open']);
+    expect(ids(inlineActions([open, manage, pay, transfer], 'extra', 1))).toEqual(['open']);
+    expect(ids(inlineActions([open, action('main', { pinned: true }), manage], 'extra', 1)), 'pinned ones beyond the limit stay').toEqual([
+      'open',
+      'main',
+    ]);
+    expect(ids(inlineActions([manage, pay], 'extra', 0))).toEqual([]);
+  });
+
+  it('`all`: only the pinned ones; `menuOnly` never, even pinned', () => {
+    expect(ids(inlineActions([open, manage, pay, transfer], 'all', 2))).toEqual(['open']);
+    expect(ids(inlineActions([action('odd', { pinned: true, menuOnly: true }), manage], 'all', 2))).toEqual([]);
+    expect(ids(inlineActions([action('odd', { pinned: true, menuOnly: true })], 'none', 2))).toEqual([]);
+  });
+});
+
+describe('entityWord: the noun of the footer count (§3b «4 negocios»)', () => {
+  it('`{ one, many }` by the count; a function gets the count; nothing gives nothing', () => {
+    expect(entityWord(1, { one: 'negocio', many: 'negocios' })).toBe('negocio');
+    expect(entityWord(0, { one: 'negocio', many: 'negocios' })).toBe('negocios');
+    expect(entityWord(4, { one: 'negocio', many: 'negocios' })).toBe('negocios');
+    expect(entityWord(12, (n) => `factura${n === 1 ? '' : 's'}`)).toBe('facturas');
+    expect(entityWord(3, undefined)).toBeUndefined();
   });
 });
 

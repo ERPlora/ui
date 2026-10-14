@@ -10,6 +10,9 @@ describe("vitest config", () => {
   it("uses the happy-dom environment", () => {
     expect(config.test?.environment).toBe("happy-dom");
   });
+  it("runs every test file in a happy-dom with the browser behaviour Ionic relies on (src/testing/happyDom.ts)", () => {
+    expect(config.test?.setupFiles).toEqual(["./vitest.setup.ts"]);
+  });
   it("includes src tests", () => {
     expect(config.test?.include).toContain("src/**/*.test.ts");
   });

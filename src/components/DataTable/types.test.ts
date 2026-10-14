@@ -7,6 +7,8 @@ import type {
   DataTableAction,
   DataTableActionEvent,
   DataTableColumn,
+  DataTableColumnPriority,
+  DataTableEntityLabel,
   DataTableLabelKey,
   DataTableLabels,
   DataTablePrimaryAction,
@@ -66,6 +68,23 @@ describe('DataTable types', () => {
     expectTypeOf<DataTableSort>().toEqualTypeOf<{ sort: string; dir: 'asc' | 'desc' }>();
     const primary: DataTablePrimaryAction = { label: 'New order', icon: 'add' };
     expect(primary.label).toBe('New order');
+  });
+
+  it('W-19: a column says how much it matters; an action may stay out or live only in «⋮»', () => {
+    expectTypeOf<DataTableColumnPriority>().toEqualTypeOf<'high' | 'normal' | 'low'>();
+    const column: DataTableColumn<Item> = { key: 'address', label: 'Web address', priority: 'low' };
+    const open: DataTableAction<Item> = { id: 'open', label: 'Open', pinned: true };
+    const transfer: DataTableAction<Item> = { id: 'transfer', label: 'Transfer ownership', menuOnly: true };
+    // @ts-expect-error -- not a priority
+    const wrong: DataTableColumn<Item> = { key: 'name', label: 'Name', priority: 'urgent' };
+    expect([column.priority, open.pinned, transfer.menuOnly, wrong.key]).toEqual(['low', true, true, 'name']);
+  });
+
+  it('the footer noun is `{ one, many }` or a function of the count', () => {
+    expectTypeOf<{ one: string; many: string }>().toMatchTypeOf<DataTableEntityLabel>();
+    expectTypeOf<(count: number) => string>().toMatchTypeOf<DataTableEntityLabel>();
+    const label: DataTableEntityLabel = { one: 'negocio', many: 'negocios' };
+    expect(label).toBeTruthy();
   });
 
   it('the labels are exactly the keys of the English catalogue', () => {

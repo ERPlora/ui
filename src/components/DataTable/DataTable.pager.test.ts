@@ -245,3 +245,33 @@ describe('phone: «Load more» instead of the numbered pager (#78)', () => {
     expect(text(loadMore(t))).toBe('Cargar más');
   });
 });
+
+describe('the footer names what it counts: `entityLabel` (§3b: «4 negocios», «12 facturas»)', () => {
+  it('`{ one, many }`: the right one for the count, in the count and in the range', async () => {
+    const entityLabel = { one: 'negocio', many: 'negocios' };
+    const four = mountTable({ rows: rowsOf(4), columns: NAME, entityLabel }, { locale: 'es' });
+    const one = mountTable({ rows: rowsOf(1), columns: NAME, entityLabel }, { locale: 'es' });
+    const paged = mountTable({ rows: rowsOf(25), columns: NAME, entityLabel }, { locale: 'es' });
+    await settle();
+    expect(info(four)).toBe('4 negocios');
+    expect(info(one)).toBe('1 negocio');
+    expect(info(paged)).toBe('Mostrando 1–10 de 25 negocios');
+  });
+
+  it('a function of the count (an i18n plural), also in server mode', async () => {
+    const entityLabel = (n: number) => (n === 1 ? 'invoice' : 'invoices');
+    const t = mountTable({ serverSide: true, rows: rowsOf(10), total: 12, columns: NAME, entityLabel });
+    const single = mountTable({ serverSide: true, rows: rowsOf(1), total: 1, columns: NAME, entityLabel });
+    await settle();
+    expect(info(t)).toBe('Showing 1–10 of 12 invoices');
+    expect(info(single)).toBe('1 invoice');
+  });
+
+  it('without it the footer keeps saying «records», in each language', async () => {
+    const en = mountTable({ rows: rowsOf(2), columns: NAME });
+    const es = mountTable({ rows: rowsOf(2), columns: NAME }, { locale: 'es' });
+    await settle();
+    expect(info(en)).toBe('2 records');
+    expect(info(es)).toBe('2 registros');
+  });
+});

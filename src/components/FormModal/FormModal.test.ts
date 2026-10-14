@@ -82,6 +82,10 @@ const key = async (el: Element, k: string, init: KeyboardEventInit = {}): Promis
 const submitButton = (w: VueWrapper): HTMLElement => w.get('.ep-form-modal__submit').element as HTMLElement;
 const cancelButton = (w: VueWrapper): HTMLElement => w.get('.ep-form-modal__cancel').element as HTMLElement;
 const closeButton = (w: VueWrapper): HTMLElement => w.get('.ep-form-modal__close').element as HTMLElement;
+/** The name a screen reader reads. Hydrated, `ion-button` moves `aria-label` from its host to the
+ *  native button of its shadow root (Ionic's `inheritAriaAttributes`), as in a browser. */
+const accessibleName = (button: HTMLElement): string | null | undefined =>
+  button.shadowRoot?.querySelector('button')?.getAttribute('aria-label') ?? button.getAttribute('aria-label');
 
 describe('FormModal: opening and closing', () => {
   it('closed, the ion-modal is there with nothing inside; open, it shows the title, the fields and the footer', async () => {
@@ -136,7 +140,7 @@ describe('FormModal: opening and closing', () => {
   it('the close button is labelled for a screen reader (it only shows an icon)', async () => {
     const wrapper = mountModal();
     await settle();
-    expect(closeButton(wrapper).getAttribute('aria-label')).toBe('Close');
+    expect(accessibleName(closeButton(wrapper))).toBe('Close');
   });
 
   it('Save emits `submit` and does NOT close it: the page closes it when its command succeeds', async () => {
@@ -336,7 +340,7 @@ describe('FormModal: options', () => {
     await settle();
     expect(cancelButton(es).textContent?.trim()).toBe('Cancelar');
     expect(submitButton(es).textContent?.trim()).toBe('Guardar');
-    expect(closeButton(es).getAttribute('aria-label')).toBe('Cerrar');
+    expect(accessibleName(closeButton(es))).toBe('Cerrar');
     es.unmount();
     mounted.splice(0);
     const own = mountModal({ submitLabel: 'Send invitation', cancelLabel: 'Back' });

@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, ref } from 'vue';
 
 import type { DataTableView } from './types';
-import { decideCardsForFit, decideRowActionsFit, useDataTableLayout } from './useDataTableLayout';
+import { decideCardsForFit, decideFitLevel, decideRowActionsFit, useDataTableLayout } from './useDataTableLayout';
 
 // ── decideRowActionsFit (#122) ────────────────────────────────────────────────────────────────
 
@@ -90,6 +90,79 @@ describe('decideRowActionsFit: on a narrow tablet the row actions do not eat a c
       collapsed: false,
       decidedAtWidth: -1,
     });
+  });
+});
+
+// ── decideFitLevel (W-19) ─────────────────────────────────────────────────────────────────────
+
+describe('decideFitLevel: the list gives up one step at a time, judged by its box (W-19)', () => {
+  /** A ladder of 3 steps; the box needs `need[level]` px at each level. */
+  function run(containerWidth: number, need: number[], from = { level: 0, decidedAtWidth: -1 }) {
+    let state = from;
+    let steps = 0;
+    for (let i = 0; i < 10; i++) {
+      const next = decideFitLevel({ containerWidth, contentWidth: Math.max(need[state.level], containerWidth), steps: need.length - 1, settled: true, ...state });
+      steps++;
+      if (next.level === state.level && next.decidedAtWidth === state.decidedAtWidth) break;
+      state = next;
+    }
+    return { ...state, steps };
+  }
+  const NEED = [792, 592, 552, 512];
+
+  it('stops at the first level that fits, one step per settled measurement', () => {
+    expect(run(900, NEED).level).toBe(0);
+    expect(run(700, NEED).level).toBe(1);
+    expect(run(560, NEED).level).toBe(2);
+    expect(run(520, NEED).level).toBe(3);
+    expect(run(480, NEED).level, 'never past the last step').toBe(3);
+    expect(run(480, NEED).steps).toBeLessThanOrEqual(4);
+  });
+
+  it('a new width starts from scratch; a measurement of a level not on screen yet takes no step', () => {
+    expect(decideFitLevel({ containerWidth: 900, contentWidth: 900, level: 3, steps: 3, decidedAtWidth: 520, settled: true })).toEqual({
+      level: 0,
+      decidedAtWidth: 900,
+    });
+    expect(decideFitLevel({ containerWidth: 700, contentWidth: 792, level: 0, steps: 3, decidedAtWidth: -1, settled: false })).toEqual({
+      level: 1,
+      decidedAtWidth: 700,
+    });
+    expect(decideFitLevel({ containerWidth: 700, contentWidth: 792, level: 1, steps: 3, decidedAtWidth: 700, settled: false })).toEqual({
+      level: 1,
+      decidedAtWidth: 700,
+    });
+    expect(decideFitLevel({ containerWidth: 700, contentWidth: 792, level: 1, steps: 3, decidedAtWidth: 700, settled: true })).toEqual({
+      level: 2,
+      decidedAtWidth: 700,
+    });
+  });
+
+  it('no ladder, or no width yet: nothing moves', () => {
+    expect(decideFitLevel({ containerWidth: 480, contentWidth: 792, level: 0, steps: 0, decidedAtWidth: -1, settled: true })).toEqual({
+      level: 0,
+      decidedAtWidth: 480,
+    });
+    expect(decideFitLevel({ containerWidth: 0, contentWidth: 0, level: 2, steps: 3, decidedAtWidth: 700, settled: true })).toEqual({
+      level: 2,
+      decidedAtWidth: 700,
+    });
+  });
+
+  it('a one-step ladder is exactly decideRowActionsFit (#122)', () => {
+    for (const [containerWidth, contentWidth, collapsed, decidedAtWidth] of [
+      [700, 748, false, -1],
+      [700, 796, false, 900],
+      [834, 834, false, -1],
+      [700, 700, true, 640],
+      [700, 796, false, 700],
+      [700, 652, true, 700],
+      [0, 0, false, -1],
+    ] as const) {
+      const fold = decideRowActionsFit({ containerWidth, contentWidth, collapsed, decidedAtWidth });
+      const level = decideFitLevel({ containerWidth, contentWidth, level: collapsed ? 1 : 0, steps: 1, decidedAtWidth, settled: true });
+      expect({ collapsed: level.level === 1, decidedAtWidth: level.decidedAtWidth }).toEqual(fold);
+    }
   });
 });
 

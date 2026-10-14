@@ -1,7 +1,7 @@
 // Pure logic of the DataTable, ported 1:1 from OutfitKit's `ok-data-table.ts` (the issue numbers in
 // the comments are of ERPlora/outfitkit unless they say otherwise). No DOM, no Vue: what can be
 // proved without a layout engine lives here.
-import type { DataTableAction, DataTableColumn, DataTableRowKey, DataTableSortDir } from './types';
+import type { DataTableAction, DataTableColumn, DataTableEntityLabel, DataTableRowKey, DataTableSortDir } from './types';
 
 type Fields = Record<string, unknown>;
 
@@ -203,6 +203,27 @@ export function slotActions<T>(actions: readonly DataTableAction<T>[], rows: rea
  *  is more than one, or a single TEXT-only action (wider than the «…» button itself). */
 export function rowActionsFolded<T>(collapsed: boolean, actions: readonly DataTableAction<T>[]): boolean {
   return collapsed && (actions.length > 1 || (actions.length === 1 && !actions[0].icon));
+}
+
+/** W-19 - How far the row actions are folded into «⋮»: not at all, beyond `maxInlineActions`, or all
+ *  but the pinned ones. */
+export type RowActionsFold = 'none' | 'extra' | 'all';
+
+/** W-19 - The actions that keep a button at a fold, in their order. A `menuOnly` one never does; a
+ *  `pinned` one always does (and takes one of the `maxInline` places first). */
+export function inlineActions<T>(actions: readonly DataTableAction<T>[], fold: RowActionsFold, maxInline: number): DataTableAction<T>[] {
+  const candidates = actions.filter((a) => a.menuOnly !== true);
+  if (fold === 'none') return candidates;
+  if (fold === 'all') return candidates.filter((a) => a.pinned === true);
+  let room = Math.max(0, maxInline - candidates.filter((a) => a.pinned === true).length);
+  return candidates.filter((a) => a.pinned === true || room-- > 0);
+}
+
+/** §3b - The noun the footer counts with («negocios»); `undefined` = the table's own «records». */
+export function entityWord(count: number, entity: DataTableEntityLabel | undefined): string | undefined {
+  if (!entity) return undefined;
+  if (typeof entity === 'function') return entity(count);
+  return count === 1 ? entity.one : entity.many;
 }
 
 /** The text of a row action for a row. */

@@ -10,6 +10,7 @@ describe('DataTable entry points', () => {
     expect(entry.DataTable).toBe(DataTable);
     expect(typeof entry.decideRowActionsFit).toBe('function');
     expect(typeof entry.decideCardsForFit).toBe('function');
+    expect(typeof entry.decideFitLevel).toBe('function');
     expect(entry.DATA_TABLE_ICONS.empty).toBe('file-tray-outline');
   });
 

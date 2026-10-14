@@ -5,11 +5,13 @@
 //   - #121 the actions track pinned to the MEASURED width of the row buttons;
 //   - #211 the «Actions» header painted only when it fits its column;
 //   - #122 the row actions folded into a «…» menu when the columns leave them no room;
+//   - W-19 (ERPlora UX-AUDIT-3) the same, as a LADDER judged by the table's own box: the `low`
+//     columns go first, then the actions beyond `maxInlineActions`, then all but the pinned ones;
 //   - #267 the list handed over to cards when it does not fit even folded;
 //   - #218 `fill`: is there content in flow after the table?
 // Everything measured runs after each render and on resize, and only writes a state when it
 // CHANGES, so a measurement never schedules a render loop.
-import { onBeforeUnmount, onMounted, onUpdated, type Ref, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, onUpdated, type Ref, ref, watch } from 'vue';
 
 import type { DataTableView } from './types';
 
@@ -30,24 +32,62 @@ export interface RowActionsFitDecision {
   decidedAtWidth: number;
 }
 
+/** W-19 - What the list gives up, in this order, when it does not fit its box. Only the steps that
+ *  change something for the table at hand make its ladder. */
+export type DataTableFitStep = 'hideLow' | 'foldExtra' | 'foldAll';
+
+/** Input of `decideFitLevel`. */
+export interface FitLevelInput {
+  /** Visible width of the scrolling container (`clientWidth`). */
+  containerWidth: number;
+  /** Width the grid needs right now (`scrollWidth`: its minimum when it overflows). */
+  contentWidth: number;
+  /** Steps of the ladder applied right now (0 = none). */
+  level: number;
+  /** How many steps the table's ladder has. */
+  steps: number;
+  /** Container width the current decision was taken at (`-1` = none yet). */
+  decidedAtWidth: number;
+  /** The screen shows `level` (nothing written since the last render): the measurement is of it. */
+  settled: boolean;
+}
+
+export interface FitLevelDecision {
+  level: number;
+  decidedAtWidth: number;
+}
+
 /**
- * #122 - Do the row action buttons fit, or do they fold into the «…» menu? Decided by MEASURING:
- * how much the columns and buttons take is only known on screen. PURE, so it is testable without a
- * layout engine and is where the no-oscillation guarantee lives: folding narrows the grid, which
- * fires the observer again; `decidedAtWidth` makes the state move once at most while the hole keeps
- * its size. A hole that changes size is judged from scratch with the buttons out, in ONE pass when
- * they already are out (`contentWidth` is then that very measurement).
+ * W-19 - How many steps of the ladder (`DataTableFitStep`) the list needs to fit its box. Decided by
+ * MEASURING, one step per measurement of what is on screen: what a step frees is only known once it
+ * is painted. PURE, and it never oscillates: while the box keeps its width the level only goes up,
+ * and only from a settled measurement (never twice from the same stale one). A box that changes
+ * width is judged from scratch, with nothing given up; in ONE pass when nothing is (`contentWidth`
+ * is then that very measurement).
+ */
+export function decideFitLevel(input: FitLevelInput): FitLevelDecision {
+  const { containerWidth, contentWidth, level, steps, decidedAtWidth, settled } = input;
+  // No width, no measurement: inside `ion-content` the hole is 0 wide until Ionic hydrates.
+  if (!(containerWidth > 0)) return { level, decidedAtWidth };
+  const overflows = contentWidth > containerWidth;
+  if (containerWidth !== decidedAtWidth) {
+    if (level > 0) return { level: 0, decidedAtWidth: containerWidth };
+    return { level: overflows && steps > 0 ? 1 : 0, decidedAtWidth: containerWidth };
+  }
+  if (settled && overflows && level < steps) return { level: level + 1, decidedAtWidth };
+  return { level, decidedAtWidth };
+}
+
+/**
+ * #122 - Do the row action buttons fit, or do they fold into the «…» menu? The one-step ladder of
+ * `decideFitLevel`: folding narrows the grid, which fires the observer again; `decidedAtWidth`
+ * makes the state move once at most while the hole keeps its size. A hole that changes size is
+ * judged from scratch with the buttons out, in ONE pass when they already are out.
  */
 export function decideRowActionsFit(input: RowActionsFitInput): RowActionsFitDecision {
   const { containerWidth, contentWidth, collapsed, decidedAtWidth } = input;
-  // No width, no measurement: inside `ion-content` the hole is 0 wide until Ionic hydrates.
-  if (!(containerWidth > 0)) return { collapsed, decidedAtWidth };
-  if (containerWidth !== decidedAtWidth) {
-    if (collapsed) return { collapsed: false, decidedAtWidth: containerWidth };
-    return { collapsed: contentWidth > containerWidth, decidedAtWidth: containerWidth };
-  }
-  if (!collapsed && contentWidth > containerWidth) return { collapsed: true, decidedAtWidth };
-  return { collapsed, decidedAtWidth };
+  const next = decideFitLevel({ containerWidth, contentWidth, level: collapsed ? 1 : 0, steps: 1, decidedAtWidth, settled: true });
+  return { collapsed: next.level > 0, decidedAtWidth: next.decidedAtWidth };
 }
 
 /** Input of `decideCardsForFit`. */
@@ -97,6 +137,8 @@ export interface DataTableLayoutSource {
   defaultView: () => DataTableView | undefined;
   /** Is there a row actions column? */
   hasActions: () => boolean;
+  /** W-19 - The table's ladder, in order. Default: `['foldAll']` (the #122 fold alone). */
+  fitSteps?: () => readonly DataTableFitStep[];
   /** Identities whose change invalidates the fold decision (columns, actions, choice, selection). */
   deps: () => unknown[];
   /** What the list's width depends on, by content (#267): equal shapes keep the cards. */
@@ -114,7 +156,14 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   const xOverflow = ref(false);
   const actionsTrackPx = ref(0);
   const actionsLabelFits = ref(true);
-  const rowActionsCollapsed = ref(false);
+  /** W-19 - Steps of the ladder applied (0 = the whole list). */
+  const fitLevel = ref(0);
+  const fitSteps = (): readonly DataTableFitStep[] => source.fitSteps?.() ?? ['foldAll'];
+  /** Is `step` given up right now? */
+  const fitApplied = (step: DataTableFitStep): boolean => fitSteps().slice(0, fitLevel.value).includes(step);
+  const lowColumnsHidden = computed(() => fitApplied('hideLow'));
+  const extraActionsFolded = computed(() => fitApplied('foldExtra'));
+  const rowActionsCollapsed = computed(() => fitApplied('foldAll'));
   const fitCards = ref(false);
   const contentAfter = ref(false);
 
@@ -235,7 +284,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     return natural >= actionsTrackPx.value - 1;
   }
 
-  /** #122 - Fold or unfold the row actions; then #267 on what is on screen. */
+  /** #122/W-19 - Climb or restart the ladder; then #267 on what is on screen. */
   function measureRowActionsFit(): void {
     const scroll = scrollEl();
     if (!scroll) {
@@ -244,17 +293,20 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     }
     const containerWidth = scroll.clientWidth;
     const contentWidth = scroll.scrollWidth;
-    const foldedOnScreen =
-      rowActionsCollapsed.value && fitDecidedAtWidth === containerWidth && !renderPending && pinnedTrackIsHonest();
-    const next = decideRowActionsFit({
+    const steps = fitSteps().length;
+    const atTop = fitLevel.value >= steps;
+    const foldedOnScreen = atTop && fitDecidedAtWidth === containerWidth && !renderPending && pinnedTrackIsHonest();
+    const next = decideFitLevel({
       containerWidth,
       contentWidth,
-      collapsed: rowActionsCollapsed.value,
+      level: Math.min(fitLevel.value, steps),
+      steps,
       decidedAtWidth: fitDecidedAtWidth,
+      settled: !renderPending,
     });
     fitDecidedAtWidth = next.decidedAtWidth;
-    write(rowActionsCollapsed, next.collapsed);
-    measureCardsFit(foldedOnScreen && next.collapsed ? { containerWidth, contentWidth } : null);
+    write(fitLevel, next.level);
+    measureCardsFit(foldedOnScreen && next.level >= steps ? { containerWidth, contentWidth } : null);
   }
 
   /** #267 - Hand the list over to cards when it does not fit even folded, and back. */
@@ -374,6 +426,8 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     actionsTrackPx,
     actionsLabelFits,
     rowActionsCollapsed,
+    lowColumnsHidden,
+    extraActionsFolded,
     fitCards,
     contentAfter,
   };

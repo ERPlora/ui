@@ -15,6 +15,14 @@ export interface DataTableSort {
   dir: DataTableSortDir;
 }
 
+/**
+ * How much a column matters when the table's box is narrow (W-19). `low` (a secondary column: a web
+ * address, a role, a last access) is the first thing the list gives up when it does not fit its box;
+ * it stays offered in the column chooser and is still a field of the cards. `high` (the column that
+ * names the row) and `normal` are never given up for width.
+ */
+export type DataTableColumnPriority = 'high' | 'normal' | 'low';
+
 export interface DataTableColumn<T = Record<string, unknown>> {
   /** Field of the row, or a logical id when `format`/`cell` paint something else. */
   key: string;
@@ -38,6 +46,8 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   width?: string;
   /** Pins the column to the end edge, like the row actions column. */
   pinned?: 'end';
+  /** W-19 - `low`: hidden first when the list does not fit its box. Default `normal`. */
+  priority?: DataTableColumnPriority;
 }
 
 /** A row action label: fixed text, or read from the row (it is also the accessible name). */
@@ -58,6 +68,10 @@ export interface DataTableAction<T = Record<string, unknown>> {
   loading?: (row: T) => boolean;
   /** Does not apply to the row: not rendered (the list keeps an invisible gap of its width). */
   hidden?: (row: T) => boolean;
+  /** The row's main action («Open», «Pay»): stays a button when the others fold into «⋮». */
+  pinned?: boolean;
+  /** A delicate action («Transfer ownership»): never a button, always inside «⋮» (list and cards). */
+  menuOnly?: boolean;
 }
 
 /** Payload of `action`. */
@@ -72,6 +86,10 @@ export interface DataTablePrimaryAction {
   /** Icon name, `add` by default. */
   icon?: string;
 }
+
+/** What the footer calls the rows («4 businesses»): the noun for one and for many, or a function
+ *  of the count that returns the noun (an i18n plural). Without it, «record(s)». */
+export type DataTableEntityLabel = { one: string; many: string } | ((count: number) => string);
 
 /** Stable key of a row: one of its fields, or a function of it. */
 export type DataTableRowKey<T> = (keyof T & string) | ((row: T) => string);
