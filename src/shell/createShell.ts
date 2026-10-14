@@ -83,11 +83,18 @@ export interface CreateShellOptions {
   contrast?: ThemeContrast;
   /** The user menu: the project's entries, Help and Sign out (the theme is always there). */
   userMenu?: ShellUserMenu;
+  /**
+   * Origins whose script URLs the Trusted Types `default` policy admits, each a bare
+   * `https://host[:port]` (`boot/trusted-types.boot.ts`). Default none. The SaaS: `['https://js.stripe.com']`
+   * (Stripe.js sets its chunks' `src` without a policy of its own); its CSP `script-src` still gates them.
+   */
+  trustedScriptOrigins?: readonly string[];
 }
 
 export async function createShell(options: CreateShellOptions): Promise<{ app: App; router: Router }> {
-  // Before anything writes HTML: only `<svg>` goes through innerHTML in production.
-  installTrustedTypesPolicy();
+  // Before anything writes HTML: only `<svg>` goes through innerHTML in production, and a script URL
+  // only from the origins the project trusts.
+  installTrustedTypesPolicy(window, import.meta.env.DEV, options.trustedScriptOrigins ?? []);
   // The shell and the apps paint `<ion-icon name=…>`: without the registry it renders EMPTY offline
   // and under the CSP (ion-icon would try to fetch the SVG).
   addIcons(ION_ICONS);

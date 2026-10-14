@@ -199,3 +199,21 @@ describe('guardrail: every icon a template or a call of this package names is re
     expect(scanIcons({ root: ROOT, sources: SOURCES })).toEqual({ unregistered: [], emptyGlobs: [] });
   });
 });
+
+// Ionicons the SaaS panel asks for: each one is the data URL of `ionicons/icons` itself.
+describe('ION_ICONS: layers, sparkles, arrow-down, pricetag and ticket (SaaS panel)', () => {
+  it('registers them by their kebab-case Ionicons name, as ion: names resolve', async () => {
+    const ionicons = await import('ionicons/icons');
+    for (const [name, src] of [
+      ['layers-outline', ionicons.layersOutline],
+      ['sparkles-outline', ionicons.sparklesOutline],
+      ['arrow-down-outline', ionicons.arrowDownOutline],
+      ['pricetag-outline', ionicons.pricetagOutline],
+      ['ticket-outline', ionicons.ticketOutline],
+    ]) {
+      expect(src, name).toMatch(SVG_URL);
+      expect(ION_ICONS[name], name).toBe(src);
+      expect(resolveIcon(`ion:${name}`), name).toBe(src);
+    }
+  });
+});

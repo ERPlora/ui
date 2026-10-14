@@ -87,6 +87,73 @@ describe('installTrustedTypesPolicy', () => {
     }
   });
 
+  // Stripe.js (the SaaS's Embedded Checkout) sets script `src` strings for its own chunks
+  // (`…/v3/fingerprinted/js/embedded-checkout-outer-*.js`, `…/trusted-types-checker-*.js`) without a
+  // policy of its own, so they reach the `default` policy: the shell admits the origins it is given.
+  it('admits a script URL only when its origin is exactly one of the allowlist, in dev and in production', () => {
+    for (const dev of [true, false]) {
+      const { win, createPolicy } = fakeWindow();
+      installTrustedTypesPolicy(win, dev, ['https://js.stripe.com']);
+      const { createScriptURL } = rulesOf(createPolicy);
+      for (const url of [
+        'https://js.stripe.com/v3/fingerprinted/js/x.js',
+        'https://js.stripe.com/v3/',
+        'https://js.stripe.com:443/v3/fingerprinted/js/trusted-types-checker-1a2b.js',
+      ]) {
+        expect(createScriptURL(url), url).toBe(url);
+      }
+      for (const url of [
+        'https://js.stripe.com.evil.com/x.js',
+        'http://js.stripe.com/x',
+        'https://evil.com/js.stripe.com',
+        'https://sub.js.stripe.com/x.js',
+        'https://js.stripe.com:8443/x.js',
+        'https://user:secret@js.stripe.com/x.js',
+        'https://user@js.stripe.com/x.js',
+        '//js.stripe.com/x.js',
+        '/static/x.js',
+        'javascript:alert(1)',
+        'data:text/javascript,alert(1)',
+        '',
+      ]) {
+        expect(() => createScriptURL(url), url).toThrow(TypeError);
+      }
+    }
+  });
+
+  it('with an allowlist still rejects scripts and any HTML that is not an icon', () => {
+    const { win, createPolicy } = fakeWindow();
+    installTrustedTypesPolicy(win, false, ['https://js.stripe.com']);
+    const rules = rulesOf(createPolicy);
+    expect(() => rules.createScript('alert(1)')).toThrow(TypeError);
+    expect(() => rules.createHTML('<script src="https://js.stripe.com/v3/"></script>')).toThrow(TypeError);
+  });
+
+  it('keeps its own copy of the allowlist: changing the array later widens nothing', () => {
+    const { win, createPolicy } = fakeWindow();
+    const origins = ['https://js.stripe.com'];
+    installTrustedTypesPolicy(win, false, origins);
+    origins.push('https://evil.com');
+    expect(() => rulesOf(createPolicy).createScriptURL('https://evil.com/x.js')).toThrow(TypeError);
+  });
+
+  it('refuses an allowlist entry that is not a bare https origin, before creating any policy', () => {
+    for (const origin of [
+      'http://js.stripe.com',
+      'https://js.stripe.com/',
+      'https://js.stripe.com/v3',
+      'https://*.js.stripe.com',
+      'https://user@js.stripe.com',
+      'js.stripe.com',
+      '*',
+      '',
+    ]) {
+      const { win, createPolicy } = fakeWindow();
+      expect(() => installTrustedTypesPolicy(win, false, [origin]), origin).toThrow(TypeError);
+      expect(createPolicy, origin).not.toHaveBeenCalled();
+    }
+  });
+
   it('does nothing when the browser has no Trusted Types', () => {
     expect(installTrustedTypesPolicy({} as unknown as Window, false)).toBe(false);
   });

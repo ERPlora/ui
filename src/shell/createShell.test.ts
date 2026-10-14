@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const calls = vi.hoisted(() => [] as Array<[string, unknown?]>);
 
 vi.mock('./boot/trusted-types.boot', () => ({
-  installTrustedTypesPolicy: () => calls.push(['installTrustedTypesPolicy']),
+  installTrustedTypesPolicy: (...args: unknown[]) => calls.push(['installTrustedTypesPolicy', args]),
 }));
 vi.mock('ionicons', () => ({ addIcons: (icons: unknown) => calls.push(['addIcons', icons]) }));
 vi.mock('./theme', async (importOriginal) => ({
@@ -60,6 +60,15 @@ describe('createShell', () => {
   it('boots in the order of the Hub main.ts (hub#1060): policy, icons, Ionic, theme', async () => {
     await boot();
     expect(calls.map(([name]) => name)).toEqual(['installTrustedTypesPolicy', 'addIcons', 'IonicVue', 'bootTheme']);
+  });
+
+  it('hands the Trusted Types policy the script origins the project trusts; none by default', async () => {
+    const scriptOrigins = () => (calls.find(([name]) => name === 'installTrustedTypesPolicy')?.[1] as unknown[])[2];
+    await boot();
+    expect(scriptOrigins()).toEqual([]);
+    calls.length = 0;
+    await boot('es', { trustedScriptOrigins: ['https://js.stripe.com'] });
+    expect(scriptOrigins()).toEqual(['https://js.stripe.com']);
   });
 
   it('registers every Ionicons icon of the shell so ion-icon name= paints offline and under the CSP', async () => {

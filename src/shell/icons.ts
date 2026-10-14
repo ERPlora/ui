@@ -94,6 +94,11 @@ import {
   warning,
   warningOutline,
   wifiOutline,
+  layersOutline,
+  sparklesOutline,
+  arrowDownOutline,
+  pricetagOutline,
+  ticketOutline,
 } from 'ionicons/icons';
 import lucideArrowLeft from '~icons/lucide/arrow-left';
 import lucideCamera from '~icons/lucide/camera';
@@ -215,6 +220,11 @@ export const ION_ICONS: Readonly<Record<string, string>> = Object.freeze({
   warning,
   'warning-outline': warningOutline,
   'wifi-outline': wifiOutline,
+  'layers-outline': layersOutline,
+  'sparkles-outline': sparklesOutline,
+  'arrow-down-outline': arrowDownOutline,
+  'pricetag-outline': pricetagOutline,
+  'ticket-outline': ticketOutline,
 });
 
 /** `<svg …>` → the data URL format of ionicons' own icons, which `ion-icon` parses inline. */
