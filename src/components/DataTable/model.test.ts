@@ -238,6 +238,7 @@ describe('row actions (hub#2014, #213, #240)', () => {
     expect(rowActionsFolded(true, [open])).toBe(false);
     expect(rowActionsFolded(true, [use])).toBe(true);
     expect(rowActionsFolded(true, [])).toBe(false);
+    expect(rowActionsFolded(true, [{ ...open, showLabel: true }]), 'an icon with its label is wider than «⋮»').toBe(true);
   });
 });
 

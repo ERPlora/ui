@@ -34,7 +34,7 @@ const props = withDefaults(
     email?: string;
     /** URL of the person's photo. */
     src?: string | null;
-    /** `sm` 24px, `md` 32px, `lg` 40px. */
+    /** `sm` 24px, `md` 32px, `lg` 40px, `xl` 72px. */
     size?: UserAvatarSize;
     /** Colour without a photo; by default, the tone of the name. */
     tone?: UserAvatarTone;
@@ -145,6 +145,11 @@ watch(
 .user-avatar[data-size='lg'] {
   --user-avatar-size: 40px;
   font-size: 14px;
+}
+/* The account header of the mockups (`.avatar.is-lg` of mock.css). */
+.user-avatar[data-size='xl'] {
+  --user-avatar-size: 72px;
+  font-size: 1.4rem;
 }
 
 /* The photo covers the initials while it loads, and replaces them once it has. */

@@ -12,6 +12,9 @@
 //     window is not just that page. `update:search` is emitted in both modes (v-model).
 // Toolbar order is FIXED (the same in every list): search · the `filters` slot · ‹spacer› · column
 // chooser · rows per page · list/cards segment · create · primary action · the `toolbar` slot.
+// `pageSizeChooser: false` drops «rows per page» (the footer still counts and pages);
+// `hideToolbarWhenEmpty` paints a list with no record as its empty state alone, without toolbar
+// nor footer (mockups/saas-panel §6.16): its `empty` slot then offers the create action.
 // Hooks (`testid`): `<testid>-search`, `-add`, `-view`, `-row` (every row and card, key in `data-id`),
 // `-row-<key>-<action>`, `-loading`, `-retry`, `-page-prev`, `-page-next`…
 //
@@ -36,7 +39,8 @@
 // goes `pinned`; the delicate ones («Transfer ownership») go `menuOnly` and live in «⋮» in the list
 // and in the cards (the page confirms them). The `row-actions` slot paints its content as is, at any
 // width: it never folds, so it is only for a control that cannot be an action (and the table cannot
-// make room by folding what it paints).
+// make room by folding what it paints). An icon action is an icon-only button unless `showLabel`
+// (icon and text, as the mockups paint «Open» or «Pay»); the «⋮» menu always shows the labels.
 import {
   IonButton,
   IonCard,
@@ -67,6 +71,7 @@ import {
   DATA_TABLE_ICONS,
   entityWord,
   gridTemplate,
+  iconWithLabel,
   inlineActions,
   pageList,
   pagerState,
@@ -105,8 +110,10 @@ const props = withDefaults(
     rowKey?: DataTableRowKey<T>;
     /** Rows per page. */
     pageSize?: number;
-    /** Options of the rows-per-page selector; empty = no selector. */
+    /** Options of the rows-per-page selector; empty = no selector (and no footer on a single page). */
     pageSizeOptions?: number[];
+    /** The rows-per-page selector (on by default). Off: no selector, and the footer still counts. */
+    pageSizeChooser?: boolean;
     /** No rows at all. Default: the «No results» label. */
     emptyMessage?: string;
     /** Client mode: rows exist but the search hides them all. Default: the «noMatches» label. */
@@ -148,6 +155,9 @@ const props = withDefaults(
     primaryAction?: DataTablePrimaryAction;
     /** The visible-columns chooser (on by default). */
     columnPicker?: boolean;
+    /** A list with no record at all (loaded, nothing searched) paints only its empty state: no
+     *  toolbar, no footer. A load, a failure or a search that finds nothing keep the toolbar. */
+    hideToolbarWhenEmpty?: boolean;
     /** Fill the container's height: rows scroll inside, toolbar and footer stay. */
     fill?: boolean;
     /** Heading of the toolbar, with the record count. */
@@ -181,6 +191,7 @@ const props = withDefaults(
     rowKey: 'id' as never,
     pageSize: 10,
     pageSizeOptions: () => [10, 25, 50, 100],
+    pageSizeChooser: true,
     emptyMessage: undefined,
     noMatchesMessage: undefined,
     error: undefined,
@@ -305,7 +316,7 @@ const layout = useDataTableLayout({
   shape: () =>
     JSON.stringify([
       visibleColumns.value.map((c) => [c.key, c.width ?? '', yieldingColumns.value.includes(c)]),
-      props.actions.map((a) => [a.id, !!a.icon, !!a.pinned, !!a.menuOnly]),
+      props.actions.map((a) => [a.id, !!a.icon, !!a.showLabel, !!a.pinned, !!a.menuOnly]),
       props.selectable,
       props.maxInlineActions,
     ]),
@@ -351,7 +362,8 @@ const hasError = computed(() => !!props.error?.trim());
 const awaitingRows = computed(() => props.loading && (props.rows.length === 0 || hasError.value));
 /** pm#530 - The last load failed: rows, «empty» and counts would all be claims about missing data. */
 const loadFailed = computed(() => hasError.value && !awaitingRows.value);
-const showTopbar = computed(
+/** The toolbar the props ask for (an empty list may still leave it out: `bareEmpty`). */
+const hasToolbar = computed(
   () =>
     !!props.title ||
     hasSearch.value ||
@@ -362,11 +374,25 @@ const showTopbar = computed(
     !!slots.filters ||
     !!slots.toolbar,
 );
+/** §6.16 - `hideToolbarWhenEmpty` and no record at all: loaded, not failed, nothing searched. */
+const bareEmpty = computed(
+  () =>
+    props.hideToolbarWhenEmpty &&
+    !awaitingRows.value &&
+    !loadFailed.value &&
+    props.rows.length === 0 &&
+    (!props.serverSide || props.total === 0) &&
+    !q.value.trim(),
+);
+const showTopbar = computed(() => hasToolbar.value && !bareEmpty.value);
+/** The rows-per-page selector exists (toolbar on a desk, else the footer). */
+const pageSizeSelectable = computed(() => props.pageSizeChooser && props.pageSizeOptions.length > 0);
 const showPager = computed(
   () =>
     !loadFailed.value &&
+    !bareEmpty.value &&
     (awaitingRows.value
-      ? !showTopbar.value && props.pageSizeOptions.length > 0
+      ? !hasToolbar.value && pageSizeSelectable.value
       : pager.value.pages > 1 || props.pageSizeOptions.length > 0),
 );
 const cardsOn = computed(() => viewMode.value === 'cards' && cardViewEnabled.value);
@@ -723,7 +749,7 @@ onUpdated(nameSearchBox);
             </ion-select-option>
           </ion-select>
           <ion-select
-            v-if="pageSizeOptions.length && !isMobile"
+            v-if="pageSizeSelectable && !isMobile"
             class="data-table__page-size-select"
             interface="popover"
             :aria-label="label('rowsPerPage')"
@@ -943,6 +969,7 @@ onUpdated(nameSearchBox);
               <ion-button
                 v-for="{ action } in cardActions(row).items"
                 :key="action.id"
+                :class="{ 'data-table__action--labelled': iconWithLabel(action) }"
                 size="small"
                 fill="clear"
                 :style="toneStyle(action.color ?? 'medium', 'clear')"
@@ -954,16 +981,26 @@ onUpdated(nameSearchBox);
                 @click="runAction(action, row)"
               >
                 <ion-spinner
-                  v-if="isBusy(action, row)"
+                  v-if="isBusy(action, row) && iconWithLabel(action)"
+                  slot="start"
+                  name="dots"
+                />
+                <ion-spinner
+                  v-else-if="isBusy(action, row)"
                   slot="icon-only"
                   name="dots"
+                />
+                <ion-icon
+                  v-else-if="iconWithLabel(action)"
+                  slot="start"
+                  :icon="icon(action.icon)"
                 />
                 <ion-icon
                   v-else-if="action.icon"
                   slot="icon-only"
                   :icon="icon(action.icon)"
                 />
-                <template v-else>
+                <template v-if="iconWithLabel(action) || (!action.icon && !isBusy(action, row))">
                   {{ actionLabel(action, row) }}
                 </template>
               </ion-button>
@@ -1109,7 +1146,7 @@ onUpdated(nameSearchBox);
                     <!-- #240 - A hidden action keeps its width, invisible and inert: the others stay in their column. -->
                     <ion-button
                       v-if="gap"
-                      class="data-table__action-gap"
+                      :class="['data-table__action-gap', { 'data-table__action--labelled': iconWithLabel(action) }]"
                       size="small"
                       fill="clear"
                       :data-slot-for="action.id"
@@ -1117,16 +1154,22 @@ onUpdated(nameSearchBox);
                       inert
                     >
                       <ion-icon
-                        v-if="action.icon"
+                        v-if="iconWithLabel(action)"
+                        slot="start"
+                        :icon="icon(action.icon)"
+                      />
+                      <ion-icon
+                        v-else-if="action.icon"
                         slot="icon-only"
                         :icon="icon(action.icon)"
                       />
-                      <template v-else>
+                      <template v-if="!action.icon || iconWithLabel(action)">
                         {{ gapLabels.get(action) }}
                       </template>
                     </ion-button>
                     <ion-button
                       v-else
+                      :class="{ 'data-table__action--labelled': iconWithLabel(action) }"
                       size="small"
                       fill="clear"
                       :style="toneStyle(action.color ?? 'medium', 'clear')"
@@ -1138,16 +1181,26 @@ onUpdated(nameSearchBox);
                       @click="runAction(action, row)"
                     >
                       <ion-spinner
-                        v-if="isBusy(action, row)"
+                        v-if="isBusy(action, row) && iconWithLabel(action)"
+                        slot="start"
+                        name="dots"
+                      />
+                      <ion-spinner
+                        v-else-if="isBusy(action, row)"
                         slot="icon-only"
                         name="dots"
+                      />
+                      <ion-icon
+                        v-else-if="iconWithLabel(action)"
+                        slot="start"
+                        :icon="icon(action.icon)"
                       />
                       <ion-icon
                         v-else-if="action.icon"
                         slot="icon-only"
                         :icon="icon(action.icon)"
                       />
-                      <template v-else>
+                      <template v-if="iconWithLabel(action) || (!action.icon && !isBusy(action, row))">
                         {{ actionLabel(action, row) }}
                       </template>
                     </ion-button>
@@ -1240,7 +1293,7 @@ onUpdated(nameSearchBox);
             <template v-if="!awaitingRows"><span class="data-table__pager-count">{{ pager.count }}</span>{{ ` ${recordWord}` }}</template>
           </span>
           <select
-            v-if="!showTopbar && pageSizeOptions.length"
+            v-if="!hasToolbar && pageSizeSelectable"
             class="data-table__pager-size"
             @change="onPageSizeNative"
           >
@@ -1520,6 +1573,9 @@ ion-card.data-table__card { margin: 0; }
 .data-table__actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
 /* #121 - The buttons NEVER shrink: their track is pinned to this very measurement. */
 .data-table__actions ion-button { flex: 0 0 auto; }
+/* §3b/§6.16 - An action with `showLabel`: its icon and its text, as the mockups paint it. */
+.data-table__actions .data-table__action--labelled { font-size: 13px; font-weight: 500; --padding-start: 0.5rem; --padding-end: 0.6rem; }
+.data-table__action--labelled > [slot="start"] { margin-inline: 0 0.3rem; }
 /* #240 - Stand-in of a hidden action: its width, nothing painted. */
 .data-table__actions .data-table__action-gap { visibility: hidden; }
 /* #122/#211 - Named for assistive tech, not painted. */

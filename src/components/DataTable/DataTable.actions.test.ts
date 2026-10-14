@@ -366,3 +366,64 @@ describe('the `row-actions` slot', () => {
     expect(text(cardsView.element.querySelector('.data-table__card-actions .own'))).toBe('Go 1');
   });
 });
+
+describe('a row action with `showLabel` paints its icon AND its text (mockups/saas-panel §3b, §6.16)', () => {
+  const ROWS = [{ id: '1', name: 'Bar Norte' }, { id: '2', name: 'Tienda Sol' }];
+  const OPEN = { id: 'open', label: 'Open', icon: 'log-in-outline', showLabel: true };
+  const DELETE = { id: 'delete', label: 'Delete', icon: 'trash-outline' };
+  const props = { rows: ROWS, columns: [{ key: 'name', label: 'Name' }], actions: [OPEN, DELETE], testid: 'biz' };
+  const menuItems = (t: ReturnType<typeof mountTable>) => [...t.element.querySelectorAll('.data-table__row-menu ion-item')] as HTMLElement[];
+
+  it('list: the icon at the start and the label as text; an action without it stays icon-only', async () => {
+    const t = mountTable(props);
+    await settle();
+    const open = byTestId(t, 'biz-row-1-open')[0];
+    expect(open.querySelector('ion-icon[slot="start"]')).not.toBeNull();
+    expect(open.querySelector('[slot="icon-only"]')).toBeNull();
+    expect(text(open)).toBe('Open');
+    expect(open.classList.contains('data-table__action--labelled')).toBe(true);
+    const del = byTestId(t, 'biz-row-1-delete')[0];
+    expect(del.querySelector('ion-icon[slot="icon-only"]')).not.toBeNull();
+    expect(text(del)).toBe('');
+    expect(del.classList.contains('data-table__action--labelled')).toBe(false);
+  });
+
+  it('cards: the same labelled button', async () => {
+    const t = mountTable({ ...props, views: true, defaultView: 'cards' });
+    await settle();
+    const open = byTestId(t, 'biz-row-2-open')[0];
+    expect(open.closest('.data-table__card-actions')).not.toBeNull();
+    expect(open.querySelector('ion-icon[slot="start"]')).not.toBeNull();
+    expect(text(open)).toBe('Open');
+  });
+
+  it('in progress: the spinner takes the icon’s place and the label stays', async () => {
+    const t = mountTable({ ...props, actions: [{ ...OPEN, loading: (r: Row) => r.id === '1' }] });
+    await settle();
+    const open = byTestId(t, 'biz-row-1-open')[0] as HTMLElement & { disabled?: boolean };
+    expect(open.querySelector('ion-spinner[slot="start"]')).not.toBeNull();
+    expect(open.querySelector('ion-icon')).toBeNull();
+    expect(text(open)).toBe('Open');
+    expect(open.disabled).toBe(true);
+  });
+
+  it('a hidden labelled action keeps its place with a stand-in of the same icon and text (#240)', async () => {
+    const t = mountTable({ ...props, actions: [{ ...OPEN, hidden: (r: Row) => r.id === '2' }, DELETE] });
+    await settle();
+    const gap = actionCells(t)[1].querySelector('[data-slot-for="open"]') as HTMLElement;
+    expect(gap.querySelector('ion-icon[slot="start"]')).not.toBeNull();
+    expect(text(gap)).toBe('Open');
+    expect(gap.classList.contains('data-table__action--labelled')).toBe(true);
+  });
+
+  it('folded, a single labelled action goes into «⋮» like a text one (#213), where it reads with its icon and label', async () => {
+    const t = mountTable({ ...props, actions: [OPEN] });
+    await settle();
+    await fold(t);
+    expect(buttons(actionCells(t)[0]).map((b) => b.getAttribute('data-testid'))).toEqual(['biz-row-1-menu']);
+    await click(byTestId(t, 'biz-row-1-menu')[0]);
+    const [item] = menuItems(t);
+    expect(item.querySelector('ion-icon[slot="start"]')).not.toBeNull();
+    expect(item.querySelector('ion-label')?.innerHTML.trim()).toBe('Open');
+  });
+});

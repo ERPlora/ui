@@ -51,6 +51,10 @@ describe("sdk entry point", () => {
   it("exposes the client of allauth.headless for the SaaS's account pages", () => {
     expect(typeof sdk.createAllauthClient).toBe("function");
     expect(sdk.ALLAUTH_BROWSER_BASE).toBe("/_allauth/browser/v1");
+    expectTypeOf<sdk.ProviderAccount["provider"]>().toEqualTypeOf<sdk.AllauthProvider>();
+    expectTypeOf<sdk.ProviderRedirectForm["fields"]["process"]>().toEqualTypeOf<sdk.ProviderProcess>();
+    expectTypeOf<sdk.ProviderProcess>().toEqualTypeOf<"login" | "connect">();
+    expectTypeOf<sdk.PasswordChange>().toEqualTypeOf<{ current_password?: string; new_password: string }>();
   });
 
   it("exposes the contract limits", () => {

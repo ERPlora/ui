@@ -122,6 +122,39 @@ describe('page size', () => {
   });
 });
 
+describe('`pageSizeChooser: false`: no «rows per page», the footer still counts (mockups/saas-panel §3b)', () => {
+  const BUSINESSES = { one: 'business', many: 'businesses' };
+
+  it('no rows-per-page select in the toolbar; the column chooser is its own switch; the footer counts and pages', async () => {
+    const t = mountTable({ rows: rowsOf(25), columns: NAME, pageSizeChooser: false, entityLabel: BUSINESSES });
+    await settle();
+    expect(t.find('.data-table__page-size-select').exists()).toBe(false);
+    expect(t.find('.data-table__columns-select').exists()).toBe(true);
+    expect(info(t)).toBe('Showing 1–10 of 25 businesses');
+    expect(t.find('.data-table__pager-nav').exists()).toBe(true);
+  });
+
+  it('a single page keeps its footer with the count («4 businesses»)', async () => {
+    const t = mountTable({ rows: rowsOf(4), columns: NAME, pageSizeChooser: false, entityLabel: BUSINESSES });
+    await settle();
+    expect(info(t)).toBe('4 businesses');
+  });
+
+  it('without a toolbar the footer gets no native select either', async () => {
+    const t = mountTable({ rows: rowsOf(30), columns: NAME, columnPicker: false, pageSizeChooser: false });
+    await settle();
+    expect(t.find('.data-table__bar').exists()).toBe(false);
+    expect(t.find('select.data-table__pager-size').exists()).toBe(false);
+    expect(info(t)).toBe('Showing 1–10 of 30 records');
+  });
+
+  it('while the first rows load without a toolbar there is no footer: nothing to choose, nothing to count yet', async () => {
+    const t = mountTable({ serverSide: true, rows: [], total: 0, loading: true, columns: NAME, columnPicker: false, pageSizeChooser: false });
+    await settle();
+    expect(t.find('.data-table__pager').exists()).toBe(false);
+  });
+});
+
 describe('phone: «Load more» instead of the numbered pager (#78)', () => {
   beforeEach(() => {
     viewport(true);

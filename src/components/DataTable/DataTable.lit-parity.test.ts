@@ -245,6 +245,9 @@ const ADDED: Record<string, string> = {
     'Ioan, 2026-10-13: the segment buttons reach 44px on touch, like every other table control',
   '.data-table__bar-main > :slotted(ion-select)':
     'DEMO-F05: a filter select the page puts in the `filters` (or `toolbar`) slot is boxed like the table’s own selects',
+  '.data-table__actions .data-table__action--labelled':
+    'mockups/saas-panel §3b, §6.16: a `showLabel` row action, icon and text, as mock.css `.dt-labeled` paints it',
+  '.data-table__action--labelled > [slot="start"]': 'mockups/saas-panel §6.16: the gap between its icon (or spinner) and its text',
 };
 
 /** Declarations a port carries on top of its Lit rule, with why. */

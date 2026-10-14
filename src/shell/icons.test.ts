@@ -119,6 +119,45 @@ describe('resolveIcon', () => {
     }
   });
 
+  it("resolves the icons of the Hub's staff app and the account pages (hub-next apps/staff)", () => {
+    for (const name of [
+      'lucide:user',
+      'lucide:sliders-horizontal',
+      'lucide:camera',
+      'lucide:save',
+      'lucide:pencil',
+      'lucide:copy',
+      'lucide:eye',
+      'lucide:user-x',
+      'lucide:unlink',
+      'lucide:sparkles',
+      'lucide:hand',
+      'lucide:mail-open',
+      'lucide:send',
+      'lucide:monitor-down',
+      'lucide:layers',
+      'lucide:credit-card',
+      'lucide:life-buoy',
+      'lucide:rotate-ccw',
+      'lucide:layout-dashboard',
+      'ion:ban-outline',
+      'ion:laptop-outline',
+      'ion:phone-portrait-outline',
+      'ion:key-outline',
+      'ion:mail-unread-outline',
+      'ion:person-add-outline',
+      'ion:person-remove-outline',
+      'ion:close-circle-outline',
+      'ion:desktop-outline',
+      'ion:shield-outline',
+    ]) {
+      const src = resolveIcon(name);
+      expect(src, name).toMatch(SVG_URL);
+      if (name.startsWith('ion:')) expect(ION_ICONS, name).toHaveProperty(name.slice(4));
+      else expect(src, name).toContain('currentColor');
+    }
+  });
+
   it('returns undefined for an unknown set, an unknown icon, a broken name or nothing', () => {
     for (const name of ['nope:cart', 'ion:definitely-not-an-icon', 'mdi:cart-plus', 'constructor', 'ion:', ':cart', '']) {
       expect(resolveIcon(name), name).toBeUndefined();

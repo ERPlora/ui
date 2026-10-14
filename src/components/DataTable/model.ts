@@ -199,10 +199,15 @@ export function slotActions<T>(actions: readonly DataTableAction<T>[], rows: rea
   return actions.filter((a) => rows.some((row) => a.hidden?.(row) !== true));
 }
 
+/** §6.16 - An icon action that also paints its label (`showLabel`). */
+export function iconWithLabel<T>(action: DataTableAction<T>): boolean {
+  return !!action.icon && action.showLabel === true;
+}
+
 /** #213 - Are these row actions folded into the «…» menu? Only when the list folds (#122) AND there
- *  is more than one, or a single TEXT-only action (wider than the «…» button itself). */
+ *  is more than one, or a single action with text (wider than the «…» button itself). */
 export function rowActionsFolded<T>(collapsed: boolean, actions: readonly DataTableAction<T>[]): boolean {
-  return collapsed && (actions.length > 1 || (actions.length === 1 && !actions[0].icon));
+  return collapsed && (actions.length > 1 || (actions.length === 1 && (!actions[0].icon || iconWithLabel(actions[0]))));
 }
 
 /** W-19 - How far the row actions are folded into «⋮»: not at all, beyond `maxInlineActions`, or all

@@ -52,6 +52,7 @@ describe('UserAvatar', () => {
     ['sm', '24px'],
     ['md', '32px'],
     ['lg', '40px'],
+    ['xl', '72px'],
   ] as const)('size %s is %s across', (size, px) => {
     expect(mountAvatar({ name: 'Ana', size }).attributes('data-size')).toBe(size);
     const css = componentCss(SFC);

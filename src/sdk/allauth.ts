@@ -1,7 +1,8 @@
 /**
  * Client of allauth.headless's browser API (`/_allauth/browser/v1`), for the SaaS's account pages.
- * Only transport: the session, the password login, the logout and two-factor authentication (the
- * login's 2FA step, TOTP, recovery codes and reauthentication); allauth decides everything.
+ * Only transport: the session, the password login, the logout, two-factor authentication (the
+ * login's 2FA step, TOTP, recovery codes and reauthentication), the password change and the linked
+ * provider accounts; allauth decides everything.
  *
  * - Same-origin session cookie; unsafe methods carry Django's CSRF token from the header provider
  *   (the SPA's HTML sets the cookie, and so does `GET …/auth/session`).
@@ -17,6 +18,8 @@
  *   become `fields` per input (an error without `param` under `__all__`, as in Django forms),
  *   `unexpected_response` for a body that is not JSON (Django's HTML 403 of a missing CSRF token)
  *   and `network_error` (status 0) when the request never got an answer.
+ * - The provider redirect (`…/auth/provider/redirect`) is a synchronous form post, never a fetch:
+ *   `providerRedirectForm` only builds the form the page submits.
  */
 import type { SpaConfig } from "./config";
 import { ApiError, type FieldErrors } from "./errors";
@@ -75,6 +78,46 @@ export interface TotpSetup {
   totpUrl: string;
 }
 
+/** A third-party provider, as allauth.headless serialises it. */
+export interface AllauthProvider {
+  id: string;
+  name: string;
+  /** How the SPA can use it: `provider_redirect`, `provider_token`. */
+  flows: string[];
+  client_id?: string;
+  openid_configuration_url?: string;
+}
+
+/** A third-party account linked to the user (`GET …/account/providers`). */
+export interface ProviderAccount {
+  /** The account's id at the provider: what `disconnectProvider` takes. */
+  uid: string;
+  /** A name taken from the provider's data. */
+  display: string;
+  provider: AllauthProvider;
+}
+
+/** `current_password` is left out by an account that has no password yet. */
+export interface PasswordChange {
+  current_password?: string;
+  new_password: string;
+}
+
+/**
+ * What the provider handshake does once it is back: `login` signs in with the account the provider
+ * account is linked to (signed in already, it is a fresh sign-in: how an account that only has
+ * Google confirms it is them; another provider account signs in as whoever it belongs to);
+ * `connect` links it to the signed-in user.
+ */
+export type ProviderProcess = "login" | "connect";
+
+/** The form a page posts (synchronously, not with fetch) to start a provider's handshake. */
+export interface ProviderRedirectForm {
+  action: string;
+  method: "post";
+  fields: { provider: string; callback_url: string; process: ProviderProcess; csrfmiddlewaretoken: string };
+}
+
 export type TotpStatus = { active: true; authenticator: Authenticator } | { active: false; setup: TotpSetup };
 
 export interface RecoveryCodes {
@@ -126,6 +169,14 @@ export interface AllauthClient {
   /** `null` when the account has no recovery codes. */
   recoveryCodesGet(): Promise<RecoveryCodes | null>;
   recoveryCodesRegenerate(): Promise<RecoveryCodes>;
+  /** The session after the change: signed in, or signed out when the server ends it on a change. */
+  changePassword(change: PasswordChange): Promise<AuthState>;
+  /** The third-party accounts linked to the user. */
+  providerAccounts(): Promise<ProviderAccount[]>;
+  /** Unlinks one (`uid` of `providerAccounts()`); answers the accounts left. */
+  disconnectProvider(provider: string, uid: string): Promise<ProviderAccount[]>;
+  /** The form that starts a provider's handshake; it comes back to `callbackUrl` (a same-site path). */
+  providerRedirectForm(input: { provider: string; callbackUrl: string; process: ProviderProcess }): ProviderRedirectForm;
   /** The CSRF token for a plain form post (a `<form method="post">` to a Django route). */
   csrfToken(): string | undefined;
 }
@@ -189,6 +240,16 @@ function recoveryCodesOf(status: number, data: unknown): RecoveryCodes {
     totalCodeCount: data.total_code_count,
     unusedCodeCount: data.unused_code_count,
   };
+}
+
+function providerAccountsOf(status: number, data: unknown): ProviderAccount[] {
+  if (!Array.isArray(data)) throw unexpected(status);
+  return data.map((entry: unknown) => {
+    if (!isRecord(entry) || typeof entry.uid !== "string" || !isRecord(entry.provider) || typeof entry.provider.id !== "string") {
+      throw unexpected(status);
+    }
+    return entry as unknown as ProviderAccount;
+  });
 }
 
 interface Reply {
@@ -291,6 +352,25 @@ export function createAllauthClient(cfg: AllauthConfig, overrides: Partial<Allau
       const { status, payload } = await account("POST", "/account/authenticators/recovery-codes");
       return recoveryCodesOf(status, payload.data);
     },
+    changePassword: (change) => authState("POST", "/account/password/change", change),
+    providerAccounts: async () => {
+      const { status, payload } = await account("GET", "/account/providers");
+      return providerAccountsOf(status, payload.data);
+    },
+    disconnectProvider: async (provider, uid) => {
+      const { status, payload } = await account("DELETE", "/account/providers", { provider, account: uid });
+      return providerAccountsOf(status, payload.data);
+    },
+    providerRedirectForm: ({ provider, callbackUrl, process }) => ({
+      action: `${ALLAUTH_BROWSER_BASE}/auth/provider/redirect`,
+      method: "post",
+      fields: {
+        provider,
+        callback_url: callbackUrl,
+        process,
+        csrfmiddlewaretoken: readCookie(deps.cookies(), cfg.csrfCookieName) ?? "",
+      },
+    }),
     csrfToken: () => readCookie(deps.cookies(), cfg.csrfCookieName),
   };
 }

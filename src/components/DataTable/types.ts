@@ -58,8 +58,11 @@ export interface DataTableAction<T = Record<string, unknown>> {
   id: string;
   /** Button text, or its accessible name when the action has an icon. */
   label: DataTableActionLabel<T>;
-  /** Icon name (`ion:` by default, any baked set). Icon actions are icon-only buttons. */
+  /** Icon name (`ion:` by default, any baked set). Icon actions are icon-only buttons unless `showLabel`. */
   icon?: string;
+  /** An icon action that also paints its label («Open», «Pay»), in the list and the cards. The
+   *  «⋮» menu always shows labels. Default: icon-only (the universal ones: bin, PDF). */
+  showLabel?: boolean;
   /** Theme tone (`danger`, `primary`…), painted from its `--ion-color-*` token. Default `medium`. */
   color?: string;
   /** Applies to the row but cannot be taken now: greyed out. */

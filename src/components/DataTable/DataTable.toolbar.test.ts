@@ -3,7 +3,7 @@
 // column chooser, and the search box's accessible name (#182). Cases ported from the Lit tests.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { click, ionChange, mountTable, settle, text, viewport } from './__tests__/harness';
+import { click, ionChange, mountTable, settle, text, type, viewport } from './__tests__/harness';
 
 const sync = vi.hoisted(() => vi.fn());
 vi.mock('./searchbarName', () => ({ syncSearchbarInputName: sync }));
@@ -201,5 +201,49 @@ describe('the search box is named after its hint (#182)', () => {
     await t.setProps({ searchPlaceholder: undefined });
     await settle();
     expect((sync.mock.calls.at(-1) as [Element, () => string])[1]()).toBe('Search…');
+  });
+});
+
+describe('`hideToolbarWhenEmpty`: an empty list paints only its empty state (mockups/saas-panel §6.16)', () => {
+  const props = { columns: NAME, searchable: true, addable: true, title: 'Businesses', hideToolbarWhenEmpty: true };
+
+  it('no record at all: neither toolbar nor footer, only the empty state (its slot offers the create action)', async () => {
+    const t = mountTable({ ...props, rows: [] }, { slots: { empty: '<button class="create-first">Create your first business</button>' } });
+    await settle();
+    expect(t.find('.data-table__bar').exists()).toBe(false);
+    expect(t.find('.data-table__pager').exists()).toBe(false);
+    expect(t.find('.data-table__empty .create-first').exists()).toBe(true);
+  });
+
+  it('the first record brings the toolbar and the footer back', async () => {
+    const t = mountTable({ ...props, rows: [] });
+    await settle();
+    await t.setProps({ rows: ROWS });
+    await settle();
+    expect(t.find('.data-table__bar').exists()).toBe(true);
+    expect(t.find('.data-table__pager').exists()).toBe(true);
+  });
+
+  it('keeps the toolbar while the first rows load and when the load fails', async () => {
+    const loading = mountTable({ ...props, rows: [], loading: true });
+    const failed = mountTable({ ...props, rows: [], error: 'Network down' });
+    await settle();
+    expect(loading.find('.data-table__bar').exists()).toBe(true);
+    expect(failed.find('.data-table__bar').exists()).toBe(true);
+  });
+
+  it('keeps the toolbar when a search finds nothing: the search box is how the person gets back (client and server)', async () => {
+    const client = mountTable({ ...props, rows: ROWS, searchKeys: ['name'] });
+    const server = mountTable({ ...props, serverSide: true, rows: [], total: 0, search: 'zzz' });
+    await settle();
+    await type(client, 'zzz');
+    expect(client.find('.data-table__bar').exists()).toBe(true);
+    expect(server.find('.data-table__bar').exists()).toBe(true);
+  });
+
+  it('off by default: an empty list keeps its toolbar', async () => {
+    const t = mountTable({ ...props, hideToolbarWhenEmpty: undefined, rows: [] });
+    await settle();
+    expect(t.find('.data-table__bar').exists()).toBe(true);
   });
 });

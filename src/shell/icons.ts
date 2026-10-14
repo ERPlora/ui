@@ -17,6 +17,7 @@ import {
   appsOutline,
   arrowBackOutline,
   backspaceOutline,
+  banOutline,
   calendarOutline,
   cardOutline,
   cart,
@@ -34,6 +35,7 @@ import {
   chevronForwardOutline,
   chevronUpOutline,
   close,
+  closeCircleOutline,
   closeOutline,
   cloudOfflineOutline,
   cloudOutline,
@@ -42,6 +44,7 @@ import {
   copyOutline,
   createOutline,
   cubeOutline,
+  desktopOutline,
   downloadOutline,
   ellipse,
   ellipsisVertical,
@@ -54,25 +57,32 @@ import {
   homeOutline,
   informationCircle,
   informationCircleOutline,
+  keyOutline,
   keypadOutline,
   languageOutline,
+  laptopOutline,
   listOutline,
   lockClosedOutline,
   logInOutline,
   logOutOutline,
   logoGoogle,
   mailOutline,
+  mailUnreadOutline,
   menuOutline,
   moonOutline,
   notificationsOutline,
   peopleOutline,
+  personAddOutline,
   personCircleOutline,
   personOutline,
+  personRemoveOutline,
+  phonePortraitOutline,
   qrCodeOutline,
   receiptOutline,
   refreshOutline,
   searchOutline,
   settingsOutline,
+  shieldOutline,
   speedometerOutline,
   storefrontOutline,
   sunnyOutline,
@@ -86,17 +96,36 @@ import {
   wifiOutline,
 } from 'ionicons/icons';
 import lucideArrowLeft from '~icons/lucide/arrow-left';
+import lucideCamera from '~icons/lucide/camera';
 import lucideCircleUser from '~icons/lucide/circle-user';
+import lucideCopy from '~icons/lucide/copy';
+import lucideCreditCard from '~icons/lucide/credit-card';
+import lucideEye from '~icons/lucide/eye';
+import lucideHand from '~icons/lucide/hand';
 import lucideKeyRound from '~icons/lucide/key-round';
+import lucideLayers from '~icons/lucide/layers';
+import lucideLayoutDashboard from '~icons/lucide/layout-dashboard';
+import lucideLifeBuoy from '~icons/lucide/life-buoy';
 import lucideLock from '~icons/lucide/lock';
+import lucideMailOpen from '~icons/lucide/mail-open';
+import lucideMonitorDown from '~icons/lucide/monitor-down';
 import lucidePanelLeft from '~icons/lucide/panel-left';
+import lucidePencil from '~icons/lucide/pencil';
 import lucideReceipt from '~icons/lucide/receipt';
 import lucideRefreshCw from '~icons/lucide/refresh-cw';
+import lucideRotateCcw from '~icons/lucide/rotate-ccw';
+import lucideSave from '~icons/lucide/save';
+import lucideSend from '~icons/lucide/send';
 import lucideShieldCheck from '~icons/lucide/shield-check';
 import lucideShieldX from '~icons/lucide/shield-x';
 import lucideShoppingBag from '~icons/lucide/shopping-bag';
+import lucideSlidersHorizontal from '~icons/lucide/sliders-horizontal';
 import lucideSmartphone from '~icons/lucide/smartphone';
+import lucideSparkles from '~icons/lucide/sparkles';
 import lucideStore from '~icons/lucide/store';
+import lucideUnlink from '~icons/lucide/unlink';
+import lucideUser from '~icons/lucide/user';
+import lucideUserX from '~icons/lucide/user-x';
 import materialSymbolsPointOfSale from '~icons/material-symbols/point-of-sale';
 import mdiCart from '~icons/mdi/cart';
 
@@ -109,6 +138,7 @@ export const ION_ICONS: Readonly<Record<string, string>> = Object.freeze({
   'apps-outline': appsOutline,
   'arrow-back-outline': arrowBackOutline,
   'backspace-outline': backspaceOutline,
+  'ban-outline': banOutline,
   'calendar-outline': calendarOutline,
   'card-outline': cardOutline,
   cart,
@@ -126,6 +156,7 @@ export const ION_ICONS: Readonly<Record<string, string>> = Object.freeze({
   'chevron-forward-outline': chevronForwardOutline,
   'chevron-up-outline': chevronUpOutline,
   close,
+  'close-circle-outline': closeCircleOutline,
   'close-outline': closeOutline,
   'cloud-offline-outline': cloudOfflineOutline,
   'cloud-outline': cloudOutline,
@@ -134,6 +165,7 @@ export const ION_ICONS: Readonly<Record<string, string>> = Object.freeze({
   'copy-outline': copyOutline,
   'create-outline': createOutline,
   'cube-outline': cubeOutline,
+  'desktop-outline': desktopOutline,
   'download-outline': downloadOutline,
   ellipse,
   'ellipsis-vertical': ellipsisVertical,
@@ -146,25 +178,32 @@ export const ION_ICONS: Readonly<Record<string, string>> = Object.freeze({
   'home-outline': homeOutline,
   'information-circle': informationCircle,
   'information-circle-outline': informationCircleOutline,
+  'key-outline': keyOutline,
   'keypad-outline': keypadOutline,
   'language-outline': languageOutline,
+  'laptop-outline': laptopOutline,
   'list-outline': listOutline,
   'lock-closed-outline': lockClosedOutline,
   'log-in-outline': logInOutline,
   'log-out-outline': logOutOutline,
   'logo-google': logoGoogle,
   'mail-outline': mailOutline,
+  'mail-unread-outline': mailUnreadOutline,
   'menu-outline': menuOutline,
   'moon-outline': moonOutline,
   'notifications-outline': notificationsOutline,
   'people-outline': peopleOutline,
+  'person-add-outline': personAddOutline,
   'person-circle-outline': personCircleOutline,
   'person-outline': personOutline,
+  'person-remove-outline': personRemoveOutline,
+  'phone-portrait-outline': phonePortraitOutline,
   'qr-code-outline': qrCodeOutline,
   'receipt-outline': receiptOutline,
   'refresh-outline': refreshOutline,
   'search-outline': searchOutline,
   'settings-outline': settingsOutline,
+  'shield-outline': shieldOutline,
   'speedometer-outline': speedometerOutline,
   'storefront-outline': storefrontOutline,
   'sunny-outline': sunnyOutline,
@@ -184,17 +223,36 @@ const svgUrl = (svg: string): string => `data:image/svg+xml;utf8,${svg}`;
 /** The icons of the other sets, by full `set:name`. */
 const SET_ICONS: Readonly<Record<string, string>> = Object.freeze({
   'lucide:arrow-left': svgUrl(lucideArrowLeft),
+  'lucide:camera': svgUrl(lucideCamera),
   'lucide:circle-user': svgUrl(lucideCircleUser),
+  'lucide:copy': svgUrl(lucideCopy),
+  'lucide:credit-card': svgUrl(lucideCreditCard),
+  'lucide:eye': svgUrl(lucideEye),
+  'lucide:hand': svgUrl(lucideHand),
   'lucide:key-round': svgUrl(lucideKeyRound),
+  'lucide:layers': svgUrl(lucideLayers),
+  'lucide:layout-dashboard': svgUrl(lucideLayoutDashboard),
+  'lucide:life-buoy': svgUrl(lucideLifeBuoy),
   'lucide:lock': svgUrl(lucideLock),
+  'lucide:mail-open': svgUrl(lucideMailOpen),
+  'lucide:monitor-down': svgUrl(lucideMonitorDown),
   'lucide:panel-left': svgUrl(lucidePanelLeft),
+  'lucide:pencil': svgUrl(lucidePencil),
   'lucide:receipt': svgUrl(lucideReceipt),
   'lucide:refresh-cw': svgUrl(lucideRefreshCw),
+  'lucide:rotate-ccw': svgUrl(lucideRotateCcw),
+  'lucide:save': svgUrl(lucideSave),
+  'lucide:send': svgUrl(lucideSend),
   'lucide:shield-check': svgUrl(lucideShieldCheck),
   'lucide:shield-x': svgUrl(lucideShieldX),
   'lucide:shopping-bag': svgUrl(lucideShoppingBag),
+  'lucide:sliders-horizontal': svgUrl(lucideSlidersHorizontal),
   'lucide:smartphone': svgUrl(lucideSmartphone),
+  'lucide:sparkles': svgUrl(lucideSparkles),
   'lucide:store': svgUrl(lucideStore),
+  'lucide:unlink': svgUrl(lucideUnlink),
+  'lucide:user': svgUrl(lucideUser),
+  'lucide:user-x': svgUrl(lucideUserX),
   'material-symbols:point-of-sale': svgUrl(materialSymbolsPointOfSale),
   'mdi:cart': svgUrl(mdiCart),
 });
