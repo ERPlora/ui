@@ -205,6 +205,17 @@ describe('DataTableLookup', () => {
     expect(w.emitted('change')).toBeUndefined();
   });
 
+  it('back to the box after Escape, it asks again for the text still in it, not for everything', async () => {
+    const load = vi.fn(async () => PEOPLE);
+    const w = mountLookup({ load });
+    await focus(w);
+    await type(w, 'lu');
+    await key(w, 'Escape');
+    expect(input(w).value).toBe('lu');
+    await focus(w);
+    expect(load.mock.calls.at(-1)).toEqual(['lu']);
+  });
+
   it('asks once the person stops typing (300 ms by default)', async () => {
     vi.useFakeTimers();
     try {

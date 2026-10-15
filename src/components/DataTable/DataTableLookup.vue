@@ -91,9 +91,10 @@ async function ask(text: string): Promise<void> {
   }
 }
 
-/** The person comes to the search box: the first matches, once (until a pick or Escape folds them). */
+/** The person comes to the search box: the matches for what it holds (the first ones when empty), once
+ *  (until a pick or Escape folds them; Escape keeps the text). */
 function onFocus(): void {
-  if (!asked.value) void ask('');
+  if (!asked.value) void ask(query.value);
 }
 
 function onInput(ev: Event): void {

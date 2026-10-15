@@ -4,7 +4,7 @@
 // both offsets to its stylesheet as custom properties, again on every resize while the sheet is open.
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent, h, nextTick, ref } from 'vue';
+import { defineComponent, h, nextTick, ref, type Ref } from 'vue';
 
 import { crossBreakpoint, mockResizeObserver, ResizeObserverMock, viewport } from './__tests__/harness';
 import { sheetInsets, trapTab, useFilterSheet } from './useFilterSheet';
@@ -39,7 +39,7 @@ function page(pageBox: DOMRect | null, contentBox: DOMRect | null): HTMLElement 
 }
 
 function mountProbe(host: HTMLElement, open = ref(false)) {
-  let sheet = ref(false);
+  let sheet: Ref<boolean> | undefined;
   const Probe = defineComponent({
     setup() {
       const root = ref<HTMLElement | null>(null);
@@ -48,7 +48,7 @@ function mountProbe(host: HTMLElement, open = ref(false)) {
     },
   });
   const wrapper = mount(Probe, { attachTo: host });
-  return { wrapper, open, el: () => wrapper.element as HTMLElement, sheet: () => sheet.value };
+  return { wrapper, open, el: () => wrapper.element as HTMLElement, sheet: () => sheet?.value ?? false };
 }
 
 const vars = (el: HTMLElement) => ({
