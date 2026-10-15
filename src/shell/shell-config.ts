@@ -27,9 +27,10 @@ const DEFAULTS: ShellConfig = { homePath: '/' };
 
 export const SHELL_CONFIG_KEY: InjectionKey<ShellConfig> = Symbol('erplora.shell.config');
 
-/** Provides the config app-wide (createShell). Missing fields take the defaults. */
+/** Provides the config app-wide (createShell). Missing or unset fields take the defaults. */
 export function provideShellConfig(config: Partial<ShellConfig>, app: App): ShellConfig {
-  const full = Object.freeze({ ...DEFAULTS, ...config });
+  const set = Object.fromEntries(Object.entries(config).filter(([, value]) => value !== undefined));
+  const full = Object.freeze({ ...DEFAULTS, ...set });
   app.provide(SHELL_CONFIG_KEY, full);
   return full;
 }

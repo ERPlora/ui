@@ -27,6 +27,17 @@ describe('shell config', () => {
     expect(el.textContent).toBe('/demo/items');
     app.unmount();
   });
+
+  // createShell passes every option it has, set or not: an unset one keeps its default. The hub left
+  // `homePath` unset and got `undefined`: its topbar's Back went nowhere and showed on Home.
+  it('keeps the default of an option passed unset', () => {
+    const app = createApp(Probe);
+    provideShellConfig({ homePath: undefined, home: true }, app);
+    const el = document.createElement('div');
+    app.mount(el);
+    expect(el.textContent).toBe('/');
+    app.unmount();
+  });
 });
 
 // FIX-SHELL-NAV (PLAN-MIGRATIONS §13): the hub's shell has no side menu; Back, the apps and the user
