@@ -1,3 +1,4 @@
+/* eslint-disable vue/one-component-per-file -- test probes: one tiny component per composable under test */
 import { flushPromises, mount } from '@vue/test-utils';
 import { createApp, defineComponent, h, ref } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';

@@ -7,12 +7,20 @@
     "title": "Home",
     "empty": {
       "title": "No apps yet",
-      "body": "The apps this hub turns on will show up here, and in the menu."
+      "body": "The apps this hub turns on will show up here."
     },
     "state": {
       "activating": "Activating…",
       "off": "Off"
     }
+  },
+  "launcher": {
+    "title": "My apps",
+    "close": "Close",
+    "loading": "Loading your apps…",
+    "error": "Could not load your apps. Check the connection and try again.",
+    "openFailed": "Could not open {app}. Check the connection and try again.",
+    "retry": "Retry"
   },
   "tabbar": {
     "label": "Sections"

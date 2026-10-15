@@ -2,14 +2,20 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import { defineComponent, h, ref } from 'vue';
 import { parse } from 'vue/compiler-sfc';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { unnamedButtons, unnamedIcons } from '../testing/a11y';
 import AppTopbar from './AppTopbar.vue';
+import { IonModalStub } from '../components/FormModal/__tests__/ionModalStub';
+import HubIcon from './HubIcon.vue';
 import { createShellI18n } from './i18n';
+import { createShellSession, SESSION_KEY, type SessionMe } from './session';
+import { SHELL_CONFIG_KEY, type ShellConfig } from './shell-config';
+import UserMenuPopover from './UserMenuPopover.vue';
 
 let router: Router;
 
@@ -152,5 +158,178 @@ describe('AppTopbar: a long title never covers the buttons', () => {
     expect(id).toBeDefined();
     expect(scope(wrapper.get('ion-title').element)).toContain(id);
     for (const group of wrapper.findAll('ion-buttons')) expect(scope(group.element)).toContain(id);
+  });
+});
+
+/** `ion-popover` presents itself only in a real browser: the stub shows its content while open. */
+const PopoverStub = defineComponent({
+  name: 'IonPopover',
+  inheritAttrs: false,
+  props: { isOpen: Boolean, event: { type: null, default: undefined }, alignment: { type: String, default: undefined } },
+  emits: ['didDismiss'],
+  setup(props, { slots, attrs }) {
+    return () => (props.isOpen ? h('div', { ...attrs, 'data-stub': 'ion-popover' }, slots.default?.()) : null);
+  },
+});
+
+// PLAN-MIGRATIONS §13 (Ioan, 2026-10-15): the hub's shell is the old hub's. No side menu at any
+// width; the topbar carries the way around: Back on the left whenever the screen is not Home, the
+// title in the middle, and on the right the view's actions, the ⠿ «My apps» sheet and the user.
+describe('AppTopbar with nav launcher (the hub)', () => {
+  const ME: SessionMe = {
+    user: { id: 'u1', label: 'Ana Pérez' },
+    permissions: ['demo.view'],
+    menu: [{ id: 'demo', label: 'Demo', items: [{ path: '/demo/items', label: 'Items', icon: 'ion:flask-outline' }] }],
+    apps: [{ label: 'demo', state: 'on' }],
+    language: 'en',
+  };
+
+  let launcherRouter: Router;
+
+  beforeEach(async () => {
+    launcherRouter = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: { template: '<div />' }, meta: { auth: true } },
+        { path: '/demo/items', component: { template: '<div />' }, meta: { auth: true } },
+        { path: '/demo/items/:id', component: { template: '<div />' }, meta: { auth: true } },
+        { path: '/welcome', component: { template: '<div />' }, meta: { auth: true, chrome: false } },
+      ],
+    });
+    await launcherRouter.push('/demo/items');
+  });
+
+  function mountLauncherTopbar(
+    props: Record<string, unknown> = {},
+    { locale = 'en', me = ME as SessionMe | null, config = {} as Partial<ShellConfig>, slots = {} } = {},
+  ) {
+    return mount(AppTopbar, {
+      props: { title: 'Items', ...props },
+      slots,
+      global: {
+        plugins: [launcherRouter, createShellI18n({ locale })],
+        provide: {
+          [SHELL_CONFIG_KEY as symbol]: { homePath: '/', nav: 'launcher', ...config },
+          [SESSION_KEY as symbol]: createShellSession(ref(me ?? undefined), ref('live')),
+        },
+        stubs: { IonModal: IonModalStub, IonPopover: PopoverStub },
+      },
+    });
+  }
+
+  const start = (wrapper: ReturnType<typeof mountLauncherTopbar>) => wrapper.get('ion-buttons[slot="start"]');
+  const end = (wrapper: ReturnType<typeof mountLauncherTopbar>) => wrapper.get('ion-buttons[slot="end"]');
+
+  it('has no menu button: there is no side menu to open', () => {
+    expect(mountLauncherTopbar().find('ion-menu-button').exists()).toBe(false);
+  });
+
+  // hub#1831: on a phone the way out showed late, waiting for an `ion-menu` to register. Back and
+  // the apps are plain buttons, there on the first paint.
+  it('paints Back on the left and the apps and the user on the right, on the first paint', () => {
+    const wrapper = mountLauncherTopbar();
+    expect(start(wrapper).find('[data-testid="topbar-back"]').exists()).toBe(true);
+    expect(end(wrapper).find('[data-testid="topbar-apps"]').exists()).toBe(true);
+    expect(end(wrapper).find('[data-testid="topbar-user"]').exists()).toBe(true);
+  });
+
+  it('keeps the view actions first on the right, then the apps, then the user', () => {
+    const wrapper = mountLauncherTopbar({}, { slots: { actions: '<button class="new-item">New</button>' } });
+    const order = end(wrapper)
+      .findAll('.new-item, [data-testid="topbar-apps"], [data-testid="topbar-user"]')
+      .map((el) => el.attributes('data-testid') ?? 'actions');
+    expect(order).toEqual(['actions', 'topbar-apps', 'topbar-user']);
+  });
+
+  it('shows Back on the root screen of an app (no backHref), and never on Home', async () => {
+    expect(mountLauncherTopbar().find('[data-testid="topbar-back"]').exists()).toBe(true);
+    await launcherRouter.push('/');
+    const home = mountLauncherTopbar({ title: 'Home' });
+    expect(home.find('[data-testid="topbar-back"]').exists()).toBe(false);
+    // The start group stays, empty: both groups share the row, so the title stays centred.
+    expect(home.find('ion-buttons[slot="start"]').exists()).toBe(true);
+  });
+
+  it('Home is the configured one: Back hides on homePath', async () => {
+    await launcherRouter.push('/demo/items/1');
+    expect(mountLauncherTopbar({}, { config: { homePath: '/demo/items/1' } }).find('[data-testid="topbar-back"]').exists()).toBe(false);
+  });
+
+  it('Back goes back in history when there is a previous screen', async () => {
+    window.history.replaceState({ back: '/' }, '');
+    const back = vi.spyOn(launcherRouter, 'back').mockImplementation(() => {});
+    const push = vi.spyOn(launcherRouter, 'push');
+    await mountLauncherTopbar().get('[data-testid="topbar-back"]').trigger('click');
+    expect(back).toHaveBeenCalledOnce();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('Back from the root of an app opened by a link goes Home', async () => {
+    await mountLauncherTopbar().get('[data-testid="topbar-back"]').trigger('click');
+    await flushPromises();
+    expect(launcherRouter.currentRoute.value.path).toBe('/');
+  });
+
+  it('Back from a detail opened by a link goes to its backHref', async () => {
+    await launcherRouter.push('/demo/items/1');
+    await mountLauncherTopbar({ backHref: '/demo/items' }).get('[data-testid="topbar-back"]').trigger('click');
+    await flushPromises();
+    expect(launcherRouter.currentRoute.value.path).toBe('/demo/items');
+  });
+
+  it('the user button is the avatar, named «User menu», and opens the user menu under it', async () => {
+    const wrapper = mountLauncherTopbar();
+    const user = wrapper.get('[data-testid="topbar-user"]');
+    expect(user.attributes('aria-label')).toBe('User menu');
+    expect(user.attributes('aria-haspopup')).toBe('dialog');
+    expect(user.attributes('aria-expanded')).toBe('false');
+    expect(user.get('.user-avatar').text()).toBe('AP');
+    expect(user.get('.user-avatar').attributes('aria-hidden')).toBe('true');
+    expect(wrapper.getComponent(UserMenuPopover).props('alignment')).toBe('end');
+    await user.trigger('click');
+    expect(user.attributes('aria-expanded')).toBe('true');
+    expect(wrapper.find('[data-stub="ion-popover"]').exists()).toBe(true);
+    wrapper.getComponent(UserMenuPopover).vm.$emit('dismiss');
+    await flushPromises();
+    expect(user.attributes('aria-expanded')).toBe('false');
+  });
+
+  it('names every button in the user language; nothing in the bar goes unnamed', () => {
+    const wrapper = mountLauncherTopbar();
+    expect(wrapper.get('[data-testid="topbar-back"]').attributes('aria-label')).toBe('Back');
+    expect(wrapper.get('[data-testid="topbar-apps"]').attributes('aria-label')).toBe('My apps');
+    expect(wrapper.get('[data-testid="topbar-back"]').getComponent(HubIcon).attributes('aria-hidden')).toBe('true');
+    expect(unnamedIcons(wrapper.element)).toEqual([]);
+    expect(unnamedButtons(wrapper.element)).toEqual([]);
+    const es = mountLauncherTopbar({}, { locale: 'es' });
+    expect(es.get('[data-testid="topbar-back"]').attributes('aria-label')).toBe('Atrás');
+    expect(es.get('[data-testid="topbar-apps"]').attributes('aria-label')).toBe('Mis apps');
+    expect(es.get('[data-testid="topbar-user"]').attributes('aria-label')).toBe('Menú de usuario');
+  });
+
+  // hub#925: a screen that asks for credentials, or paints its own frame, shows none of the
+  // authenticated chrome: no apps and no user (the same gate as the side menu, useChromeVisible).
+  it('without a person signed in, or on a screen with its own frame, no apps and no user', async () => {
+    const anonymous = mountLauncherTopbar({}, { me: null });
+    expect(anonymous.find('[data-testid="topbar-apps"]').exists()).toBe(false);
+    expect(anonymous.find('[data-testid="topbar-user"]').exists()).toBe(false);
+    await launcherRouter.push('/welcome');
+    const framed = mountLauncherTopbar();
+    expect(framed.find('[data-testid="topbar-apps"]').exists()).toBe(false);
+    expect(framed.find('[data-testid="topbar-user"]').exists()).toBe(false);
+  });
+
+  // hub#690: on a phone (ios) the icons covered the title. Every button of the bar lives in one of
+  // the two `ion-buttons` groups the scoped rules size (see «a long title never covers the buttons»),
+  // so the title keeps the room between them and is cut with «…» instead.
+  it('every button sits in a scoped button group, so none of them covers the title', () => {
+    const wrapper = mountLauncherTopbar({}, { slots: { actions: '<button class="new-item">New</button>' } });
+    const scope = (element: Element) => element.getAttributeNames().filter((name) => name.startsWith('data-v-'));
+    const [id] = scope(wrapper.get('ion-header').element);
+    for (const testid of ['topbar-back', 'topbar-apps', 'topbar-user']) {
+      const group = wrapper.get(`[data-testid="${testid}"]`).element.closest('ion-buttons');
+      expect(group, testid).not.toBeNull();
+      expect(scope(group as Element)).toContain(id);
+    }
   });
 });

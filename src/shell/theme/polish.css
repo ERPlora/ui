@@ -28,7 +28,13 @@ ion-toolbar {
 ion-title { font-weight: 650; letter-spacing: -0.01em; font-size: 1.0625rem; }
 
 /* ── Shared topbar (AppTopbar.vue) — parity with Cloud's .dash-header ─────────────────── */
-/* (The topbar avatar was removed 2026-07-16: the user lives in the sidebar header.) */
+/* The user: with `nav: 'menu'` it lives in the sidebar header; with `nav: 'launcher'` (the hub,
+   PLAN-MIGRATIONS §13) it is the avatar at the end of the topbar, after the ⠿ apps. */
+.app-topbar ion-button.topbar-user { --padding-start: 4px; --padding-end: 4px; }
+/* Its menu, under the avatar: as wide as the side menu's, so the theme row fits. Global: Ionic
+   moves an inline popover to ion-app when it presents it. */
+.topbar-user-popover { --width: 248px; }
+.topbar-user-popover ion-item { --min-height: 42px; font-size: 0.9rem; }
 .app-topbar { position: relative; }
 /* The section on screen after the title («Billing · Invoices», mockups README §3): muted, and gone on
    a phone, where the footer tabbar already says it and the title needs the room. */

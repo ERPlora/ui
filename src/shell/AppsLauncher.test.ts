@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const toast = vi.hoisted(() => vi.fn());
 vi.mock('./toast', () => ({ toast }));
 
-import { IonModalStub } from '../components/FormModal/__tests__/ionModalStub';
+import { IonModalStub, ionModalStubOf } from '../components/FormModal/__tests__/ionModalStub';
 import { unnamedButtons, unnamedIcons } from '../testing/a11y';
 import AppsLauncher from './AppsLauncher.vue';
 import HubIcon from './HubIcon.vue';
@@ -20,7 +20,7 @@ function me(overrides: Partial<SessionMe> = {}): SessionMe {
     menu: [
       { id: 'demo', label: 'Demo', items: [{ path: '/demo/items', label: 'Items', icon: 'ion:flask-outline' }] },
       { id: 'sale', label: 'Sales and point of sale', items: [{ path: '/sale/tickets', label: 'Tickets', icon: 'mdi:cart' }] },
-      { id: 'kitchen', label: 'Kitchen', items: [{ path: '/kitchen', label: 'Kitchen', icon: 'ion:restaurant-outline' }] },
+      { id: 'kitchen', label: 'Kitchen', items: [{ path: '/kitchen', label: 'Kitchen', icon: 'ion:time-outline' }] },
     ],
     apps: [
       { label: 'demo', state: 'on' },
@@ -58,7 +58,6 @@ afterEach(() => {
 function mountLauncher(data: SessionMe | null = me(), status: SessionStatus = 'live', locale = 'en') {
   const session = ref<SessionMe | undefined>(data ?? undefined);
   const wrapper = mount(AppsLauncher, {
-    attachTo: document.body,
     global: {
       plugins: [router, createShellI18n({ locale })],
       provide: { [SESSION_KEY as symbol]: createShellSession(session, ref(status)) },
@@ -106,7 +105,7 @@ describe('AppsLauncher (the topbar door to the apps: «My apps» sheet, nav laun
     expect(tiles(wrapper).map((tile) => tile.getComponent(HubIcon).props('name'))).toEqual([
       'ion:flask-outline',
       'mdi:cart',
-      'ion:restaurant-outline',
+      'ion:time-outline',
     ]);
     wrapper.unmount();
   });
@@ -162,7 +161,7 @@ describe('AppsLauncher (the topbar door to the apps: «My apps» sheet, nav laun
     expect(tiles(wrapper)).toHaveLength(0);
 
     await open(wrapper);
-    wrapper.findComponent(IonModalStub).vm.dismiss('backdrop');
+    ionModalStubOf(sheet(wrapper).element).dismiss('backdrop');
     await flushPromises();
     expect(trigger(wrapper).attributes('aria-expanded')).toBe('false');
     wrapper.unmount();
