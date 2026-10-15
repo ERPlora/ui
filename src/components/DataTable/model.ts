@@ -101,7 +101,8 @@ export function filterKeys<T>(column: DataTableColumn<T>): string[] {
   const filter = column.filter;
   if (!filter) return [];
   const key = filter.key ?? column.key;
-  return filter.type === 'range' ? [`${key}_from`, `${key}_to`] : [key];
+  if (filter.type === 'range' || filter.type === 'daterange') return filter.keys ? [...filter.keys] : [`${key}_from`, `${key}_to`];
+  return [key];
 }
 
 /** The filters that filter: a blank value is no filter. */
@@ -141,17 +142,34 @@ function numberOf(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** An end of a range as typed: an amount may carry a decimal comma (`2,50`). */
+function endOf(value: string | undefined, amount: boolean): number | undefined {
+  return numberOf(amount && value ? value.replace(',', '.') : value);
+}
+
+/** A yes/no field: on when `true`, `'true'`, `1` or `'1'`. */
+const isOn = (value: unknown): boolean => value === true || value === 'true' || value === 1 || value === '1';
+
 function matchesFilter<T extends object>(column: DataTableColumn<T>, row: T, filters: DataTableFilters): boolean {
   const filter = column.filter;
   if (!filter) return true;
   const key = filter.key ?? column.key;
   const field = fields(row)[key];
   if (filter.type === 'range') {
-    const from = numberOf(filters[`${key}_from`]);
-    const to = numberOf(filters[`${key}_to`]);
+    const [fromKey, toKey] = filterKeys(column);
+    const from = endOf(filters[fromKey], filter.amount === true);
+    const to = endOf(filters[toKey], filter.amount === true);
     if (from === undefined && to === undefined) return true;
     const n = numberOf(field);
     return n !== undefined && (from === undefined || n >= from) && (to === undefined || n <= to);
+  }
+  if (filter.type === 'daterange') {
+    const [fromKey, toKey] = filterKeys(column);
+    const from = filters[fromKey]?.trim();
+    const to = filters[toKey]?.trim();
+    if (!from && !to) return true;
+    const day = dayOf(field);
+    return day !== '' && (!from || day >= from) && (!to || day <= to);
   }
   const wanted = filters[key]?.trim();
   if (!wanted) return true;
@@ -160,6 +178,7 @@ function matchesFilter<T extends object>(column: DataTableColumn<T>, row: T, fil
     return text.toLowerCase().includes(wanted.toLowerCase());
   }
   if (filter.type === 'date') return dayOf(field) === wanted;
+  if (filter.type === 'boolean') return isOn(field) === (wanted === 'true');
   return String(field ?? '') === wanted;
 }
 

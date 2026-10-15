@@ -29,24 +29,83 @@ export type DataTableColumnPriority = 'high' | 'normal' | 'low';
  *   - `text`: free text, «contains», case-insensitive, on what the cell paints;
  *   - `select`: a closed domain (`options`), exact equality on the row's field;
  *   - `date`: one day (`YYYY-MM-DD`), the local day of the row's date or date-time;
- *   - `range`: a numeric range, both ends inclusive and each optional (`<key>_from`, `<key>_to`).
+ *   - `range`: a numeric range, both ends inclusive and each optional (`<key>_from`, `<key>_to`);
+ *   - `daterange`: a range of days, both ends inclusive and each optional (`<key>_from`, `<key>_to`);
+ *   - `boolean`: a yes/no («All», «Yes», «No»), as `'true'`/`'false'`;
+ *   - `lookup`: one choice among more than a list can hold (staff, accounts…): the page's `load`
+ *     asks the server for what is typed; exact equality on the row's field.
  */
-export type DataTableFilterType = 'text' | 'select' | 'date' | 'range';
+export type DataTableFilterType = 'text' | 'select' | 'date' | 'range' | 'daterange' | 'boolean' | 'lookup';
 
-/** One value of a `select` filter: `value` is what the row holds (and the server receives). */
+/** One value of a `select` or `lookup` filter: `value` is what the row holds (and the server receives). */
 export interface DataTableFilterOption {
   value: string;
   label: string;
 }
 
-export interface DataTableColumnFilter {
-  type: DataTableFilterType;
-  /** `select`: the closed domain offered, in order. */
-  options?: DataTableFilterOption[];
+interface DataTableFilterBase {
   /** Name of the filter in `filters` and the row field it reads (`category_id` behind a column that
-   *  paints the category's name). Default: the column key. A `range` takes `<key>_from`/`<key>_to`. */
+   *  paints the category's name). Default: the column key. A range takes `<key>_from`/`<key>_to`. */
   key?: string;
 }
+
+export interface DataTableTextFilter extends DataTableFilterBase {
+  type: 'text';
+  /** The longest text the server takes. */
+  maxlength?: number;
+}
+
+export interface DataTableSelectFilter extends DataTableFilterBase {
+  type: 'select';
+  /** The closed domain offered, in order. */
+  options?: DataTableFilterOption[];
+}
+
+export interface DataTableDateFilter extends DataTableFilterBase {
+  type: 'date';
+}
+
+export interface DataTableBooleanFilter extends DataTableFilterBase {
+  type: 'boolean';
+}
+
+export interface DataTableRangeFilter extends DataTableFilterBase {
+  type: 'range';
+  /** The names of its two ends in `filters` (`['priceMin', 'priceMax']`). Default `<key>_from`/`<key>_to`. */
+  keys?: readonly [string, string];
+  /** Bounds and step of the number boxes (the schema's). */
+  min?: number;
+  max?: number;
+  step?: number;
+  /** An amount as the person types it (`2,50`): a text box with the decimal keyboard, sent as typed;
+   *  the page reads it and says what it cannot through `filterErrors`. No `min`/`max` then. */
+  amount?: boolean;
+}
+
+export interface DataTableDateRangeFilter extends DataTableFilterBase {
+  type: 'daterange';
+  /** The names of its two ends in `filters`. Default `<key>_from`/`<key>_to`. */
+  keys?: readonly [string, string];
+}
+
+export interface DataTableLookupFilter extends DataTableFilterBase {
+  type: 'lookup';
+  /** The first matches of what is typed (`''`: the first ones), from the server. A rejection is
+   *  painted as the field's error, with «Retry». */
+  load: (query: string) => Promise<DataTableFilterOption[]>;
+  /** The applied value with its label, so the field names a value the person did not pick here (one
+   *  from the address). Without it, a value picked in this table keeps the label it was picked with. */
+  selected?: DataTableFilterOption;
+}
+
+export type DataTableColumnFilter =
+  | DataTableTextFilter
+  | DataTableSelectFilter
+  | DataTableDateFilter
+  | DataTableBooleanFilter
+  | DataTableRangeFilter
+  | DataTableDateRangeFilter
+  | DataTableLookupFilter;
 
 /** The active filters by name (`v-model:filters`, `filtersChange`): `{ status: 'paid', rate_from: '5' }`.
  *  A filter without a value is absent, never `''`. */

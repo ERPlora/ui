@@ -558,3 +558,130 @@ describe('the filter row sends only what the columns declare (outfitkit#116)', (
     expect(t.emitted('filtersChange')).toEqual([[{ status: 'active' }]]);
   });
 });
+
+// ── The other filter types and the server's refusals (FIX-DATATABLE round 2: every Hub FilterPanel fits the
+// table): a text with its longest length, a date range, a range with bounds or an amount as typed, a yes/no,
+// a lookup that asks the server, and `filterErrors` (a 422's fieldErrors) under their controls.
+describe('the other filter types', () => {
+  const PEOPLE = [
+    { value: '7', label: 'Ana García' },
+    { value: '9', label: 'Luis Pérez' },
+  ];
+  const load = async (query: string) => PEOPLE.filter((p) => p.label.toLowerCase().includes(query.toLowerCase()));
+  const MORE = [
+    { key: 'code', label: 'Code', filter: { type: 'text', maxlength: 20 } },
+    { key: 'issued', label: 'Issued', filter: { type: 'daterange' } },
+    { key: 'total', label: 'Total', filter: { type: 'range', amount: true, keys: ['total_min', 'total_max'] } },
+    { key: 'rate', label: 'Rate', filter: { type: 'range', min: 0, max: 100, step: 0.5 } },
+    { key: 'active', label: 'Active', filter: { type: 'boolean', key: 'is_active' } },
+    { key: 'user', label: 'User', filter: { type: 'lookup', key: 'user_id', load, selected: { value: '7', label: 'Ana García' } } },
+  ];
+  const MORE_ROWS: Row[] = [
+    { id: '1', code: 'A-1', issued: '2026-10-01', total: 12.5, rate: 21, is_active: true, user_id: '7' },
+    { id: '2', code: 'B-2', issued: '2026-10-10', total: 99, rate: 10, is_active: false, user_id: '9' },
+    { id: '3', code: 'C-3', issued: '2026-10-20', total: 3, rate: 4, is_active: true, user_id: '9' },
+  ];
+  const more = { rows: MORE_ROWS, columns: MORE, testid: 'rules', pageSizeOptions: [] };
+  const funnel = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-toggle')[0] as HTMLElement & { color?: string };
+  const aria = (el: HTMLElement, name: string) =>
+    el.getAttribute(name) ?? (el.shadowRoot ?? el).querySelector(`[${name}]`)?.getAttribute(name) ?? null;
+  type Field = HTMLElement & { type?: string; inputmode?: string; maxlength?: number; min?: number; max?: number; step?: string | number; errorText?: string; value?: unknown };
+  const field = (t: ReturnType<typeof mountTable>, name: string) => control(t, name) as Field;
+  const invalid = (el: HTMLElement) => el.classList.contains('ion-invalid') && el.classList.contains('ion-touched');
+  async function openPanel(t: ReturnType<typeof mountTable>): Promise<void> {
+    await click(funnel(t));
+  }
+
+  it('in the panel: a text with its longest length, a date range, an amount as typed, a bounded range, a yes/no and a lookup', async () => {
+    const t = mountTable({ ...more, filterable: true, filters: { user_id: '7' } }, { attachTo: document.body });
+    await settle();
+    await openPanel(t);
+    expect(field(t, 'code').maxlength).toBe(20);
+    expect(field(t, 'issued_from').type).toBe('date');
+    expect(field(t, 'issued_to').type).toBe('date');
+    expect(aria(field(t, 'issued_from'), 'aria-label')).toBe('Issued: from');
+    expect([field(t, 'total_min').type, field(t, 'total_min').inputmode]).toEqual(['text', 'decimal']);
+    expect([field(t, 'rate_from').type, field(t, 'rate_from').min, field(t, 'rate_from').max, String(field(t, 'rate_from').step)]).toEqual(['number', 0, 100, '0.5']);
+    const yesNo = [...field(t, 'is_active').querySelectorAll('ion-select-option')];
+    expect(yesNo.map((o) => [o.getAttribute('value') ?? (o as HTMLElement & { value?: string }).value, text(o)])).toEqual([
+      ['', 'All'],
+      ['true', 'Yes'],
+      ['false', 'No'],
+    ]);
+    expect(control(t, 'user_id').classList.contains('data-table-lookup')).toBe(true);
+    expect(text(byTestId(t, 'rules-filter-user_id-chosen')[0])).toBe('Ana García');
+  });
+
+  it('client mode: they filter the rows once applied (days, an amount with a comma, a yes/no, a lookup pick)', async () => {
+    const t = mountTable({ ...more, filterable: true }, { attachTo: document.body });
+    await settle();
+    await openPanel(t);
+    await change(field(t, 'issued_from'), '2026-10-05');
+    await typeIn(field(t, 'total_max'), '99,0');
+    await change(field(t, 'is_active'), 'false');
+    const search = byTestId(t, 'rules-filter-user_id-search')[0];
+    search.dispatchEvent(new CustomEvent('ionInput', { detail: { value: 'luis' } }));
+    await settle();
+    await click(byTestId(t, 'rules-filter-user_id-option')[0]);
+    expect(text(byTestId(t, 'rules-filter-user_id-chosen')[0])).toBe('Luis Pérez');
+    await click(byTestId(t, 'rules-filters-apply')[0]);
+    expect(t.emitted('update:filters')).toEqual([[{ issued_from: '2026-10-05', total_max: '99,0', is_active: 'false', user_id: '9' }]]);
+    expect(ids(t)).toEqual(['2']);
+    expect(text(byTestId(t, 'rules-filters-count')[0])).toBe('4');
+  });
+
+  it('the filter row paints them too, and applies them at once', async () => {
+    const t = mountTable({ ...more, serverSide: true, total: 3, pageSizeOptions: [10] });
+    await settle();
+    expect(field(t, 'issued_to').type).toBe('date');
+    expect(field(t, 'total_min').inputmode).toBe('decimal');
+    expect(field(t, 'code').maxlength).toBe(20);
+    expect(control(t, 'user_id').classList.contains('data-table-lookup')).toBe(true);
+    await change(field(t, 'is_active'), 'true');
+    await change(field(t, 'issued_to'), '2026-10-10');
+    expect(t.emitted('filtersChange')).toEqual([[{ is_active: 'true' }], [{ is_active: 'true', issued_to: '2026-10-10' }]]);
+  });
+
+  it('`filterErrors`: the funnel says it, each message sits under its control, and a change of that value clears it', async () => {
+    const errors = { total_min: 'Not an amount.', user_id: 'Unknown employee.' };
+    const t = mountTable({ ...more, filterable: true, filters: { total_min: 'x', user_id: '4' }, filterErrors: errors }, { attachTo: document.body });
+    await settle();
+    expect(funnel(t).color).toBe('danger');
+    expect(funnel(t).getAttribute('data-invalid')).toBe('true');
+    expect(aria(funnel(t), 'aria-label')).toBe('Filters (check the marked ones)');
+    await openPanel(t);
+    expect(field(t, 'total_min').errorText).toBe('Not an amount.');
+    expect(invalid(field(t, 'total_min'))).toBe(true);
+    expect(invalid(field(t, 'total_max'))).toBe(false);
+    expect(text(byTestId(t, 'rules-filter-user_id-field-error')[0])).toBe('Unknown employee.');
+    await typeIn(field(t, 'total_min'), '5');
+    expect(field(t, 'total_min').errorText).toBeFalsy();
+    expect(invalid(field(t, 'total_min'))).toBe(false);
+    expect(byTestId(t, 'rules-filter-user_id-field-error')).toHaveLength(1);
+    // A new answer of the server is painted again.
+    await t.setProps({ filterErrors: { total_min: 'Too small.' } });
+    await settle();
+    expect(field(t, 'total_min').errorText).toBe('Too small.');
+    expect(byTestId(t, 'rules-filter-user_id-field-error')).toHaveLength(0);
+    await t.setProps({ filterErrors: {} });
+    await settle();
+    expect(funnel(t).color).not.toBe('danger');
+  });
+
+  it('`filterErrors` in the filter row: under its control, cleared by a change of its value', async () => {
+    const t = mountTable({ ...base, serverSide: true, total: 3, pageSizeOptions: [10], filters: { rate_from: 'x' }, filterErrors: { rate_from: 'Not a number.' } });
+    await settle();
+    expect(field(t, 'rate_from').errorText).toBe('Not a number.');
+    expect(invalid(field(t, 'rate_from'))).toBe(true);
+    await typeIn(field(t, 'rate_from'), '3');
+    expect(field(t, 'rate_from').errorText).toBeFalsy();
+  });
+
+  it('speaks Spanish: «Sí»/«No», the refused funnel', async () => {
+    const t = mountTable({ ...more, filterable: true, filterErrors: { code: 'Demasiado largo.' } }, { locale: 'es', attachTo: document.body });
+    await settle();
+    expect(aria(funnel(t), 'aria-label')).toBe('Filtros (revisa los marcados)');
+    await openPanel(t);
+    expect([...field(t, 'is_active').querySelectorAll('ion-select-option')].map(text)).toEqual(['Todos', 'Sí', 'No']);
+  });
+});

@@ -13,9 +13,12 @@
 // Toolbar order is FIXED (the same in every list): search · the `filters` slot · ‹spacer› · column
 // chooser · rows per page · list/cards segment · create · primary action · the `toolbar` slot.
 // Column filters (`DataTableColumn.filter`): a filter row under the toolbar's main row, one Ionic
-// control per filtered column, in column order (free text «contains», a closed domain by equality,
-// a day, a numeric range), and «Clear filters» while any filters. It lives in the toolbar area, not
-// under the column headers, so it is there in the cards, in an empty result and on a phone.
+// control per filtered column, in column order (free text «contains» with its longest length, a closed
+// domain or a yes/no by equality, a day, a range of days, a numeric range with its bounds or an amount as
+// typed, and a lookup that asks the page's `load` for what is typed: DataTableLookup), and «Clear
+// filters» while any filters. It lives in the toolbar area, not under the column headers, so it is there
+// in the cards, in an empty result and on a phone. `filterErrors` (a 422's `fieldErrors`, by filter
+// name) paints each message under its control until that value changes, and turns the funnel red.
 // Client mode filters `rows` (with the search, AND); server mode emits `filtersChange` with the
 // active filters by name and filters nothing. `v-model:filters` in both, as `search`. Only the names
 // the columns declare are sent, and a blank value is no filter (outfitkit#116: the server refuses
@@ -30,7 +33,9 @@
 // nor footer (mockups/saas-panel §6.16): its `empty` slot then offers the create action.
 // Hooks (`testid`): `<testid>-search`, `-add`, `-view`, `-row` (every row and card, key in `data-id`),
 // `-row-<key>-<action>`, `-loading`, `-retry`, `-page-prev`, `-page-next`, `-filters`,
-// `-filter-<name>` (a range: `-filter-<key>_from`, `-filter-<key>_to`), `-filters-clear`…
+// `-filter-<name>` (a range: `-filter-<key>_from`, `-filter-<key>_to`; a lookup adds `-chosen`, `-clear`,
+// `-search`, `-option`, `-empty`, `-error`, `-field-error`), `-filters-clear`, `-filters-toggle`,
+// `-filters-count`, `-filters-panel`, `-filters-apply`, `-filters-close`…
 //
 // Slots: `filters` (the page's filters, next to the search, as Odoo or Shopify place them),
 // `toolbar` (extra header actions), `row-actions` ({ row }), `card` ({ row }, the card body),
@@ -79,6 +84,7 @@ import {
 import { computed, nextTick, onMounted, onUpdated, ref, shallowRef, useId, watch } from 'vue';
 
 import { ionIconSrc } from '../../shell/icons';
+import DataTableLookup from './DataTableLookup.vue';
 import { useDataTableLabels } from './labels';
 import {
   actionLabel,
@@ -112,6 +118,7 @@ import type {
   DataTableActionEvent,
   DataTableColumn,
   DataTableEntityLabel,
+  DataTableFilterOption,
   DataTableFilters,
   DataTableLabels,
   DataTablePrimaryAction,
@@ -158,6 +165,9 @@ const props = withDefaults(
     /** The column filters live behind the toolbar's funnel (with the count in use), in a panel inside
      *  the table, instead of a row under the toolbar. Same `filters`, `filtersChange` and hooks. */
     filterable?: boolean;
+    /** What the server refused (a 422's `fieldErrors`, or the page's own reading of an amount), by
+     *  filter name: painted under its control until that value changes; the funnel turns red. */
+    filterErrors?: Record<string, string>;
     /** Sort, page and search are the parent's: they are emitted, never applied to `rows`. */
     serverSide?: boolean;
     /** Server mode: records of the whole query. */
@@ -232,6 +242,7 @@ const props = withDefaults(
     searchPlaceholder: undefined,
     search: undefined,
     filters: undefined,
+    filterErrors: undefined,
     total: 0,
     page: 0,
     sort: undefined,
@@ -404,6 +415,7 @@ function setFilters(next: DataTableFilters): void {
 /** Ionic's `ionInput` (text, range) or `ionChange` (select, date) of one filter control. */
 function onFilter(name: string, ev: CustomEvent<{ value?: unknown }>): void {
   const value = ev.detail.value;
+  answerError(name);
   setFilters({ ...filterValues.value, [name]: value === null || value === undefined ? '' : String(value) });
 }
 function clearFilters(): void {
@@ -416,6 +428,7 @@ const filterDraft = ref<DataTableFilters>({});
 const showFunnel = computed(() => props.filterable && filterColumns.value.length > 0);
 const filterTitleId = useId();
 const funnelName = computed(() => {
+  if (refused.value) return label('filtersInvalid');
   const n = filterCountNow.value;
   if (!n) return label('filters');
   return label(n === 1 ? 'filtersActiveOne' : 'filtersActiveMany', { n });
@@ -455,7 +468,14 @@ function clearFilterPanel(): void {
 /** One control of the panel: `ionInput` (text, range) or `ionChange` (select, date) into the draft. */
 function onDraftFilter(name: string, ev: CustomEvent<{ value?: unknown }>): void {
   const value = ev.detail.value;
+  answerError(name);
   filterDraft.value = { ...filterDraft.value, [name]: value === null || value === undefined ? '' : String(value) };
+}
+/** A lookup of the panel: into the draft, with the label it was picked with. */
+function onDraftLookup(name: string, value: string, text: string): void {
+  rememberPick(name, value, text);
+  answerError(name);
+  filterDraft.value = { ...filterDraft.value, [name]: value };
 }
 /** Escape closes the panel, unless a control inside already used it (closing its own dropdown). */
 function onFilterPanelEscape(ev: KeyboardEvent): void {
@@ -472,6 +492,65 @@ watch(showFunnel, (shown) => {
   if (!shown) filterPanelOpen.value = false;
 });
 
+// ── What the server refused (`filterErrors`) and the labels of lookups ───────────────────────
+/** Filter names whose value changed since the last `filterErrors`: their message is gone. */
+const answeredErrors = ref(new Set<string>());
+watch(
+  () => props.filterErrors,
+  () => {
+    answeredErrors.value = new Set();
+  },
+  { deep: true },
+);
+/** The message under a filter's control, until its value changes. */
+function errorOf(name: string): string | undefined {
+  return answeredErrors.value.has(name) ? undefined : props.filterErrors?.[name]?.trim() || undefined;
+}
+/** Ionic paints `error-text` only on a control marked invalid and touched. */
+const invalidMark = (name: string) => ({ 'ion-invalid': !!errorOf(name), 'ion-touched': !!errorOf(name) });
+const refused = computed(() => Object.keys(props.filterErrors ?? {}).some((name) => !!errorOf(name)));
+function answerError(name: string): void {
+  if (props.filterErrors?.[name] && !answeredErrors.value.has(name)) answeredErrors.value = new Set(answeredErrors.value).add(name);
+}
+/** A yes/no's choices, after «All». */
+const YES_NO = computed<DataTableFilterOption[]>(() => [
+  { value: 'true', label: label('filterYes') },
+  { value: 'false', label: label('filterNo') },
+]);
+const choicesOf = (column: DataTableColumn<T>): DataTableFilterOption[] =>
+  column.filter?.type === 'boolean' ? YES_NO.value : column.filter?.type === 'select' ? (column.filter.options ?? []) : [];
+/** The label of the value a lookup holds: the one picked here, else the page's `selected`, else none. */
+const lookupPicks = ref<Record<string, DataTableFilterOption>>({});
+function lookupLabel(column: DataTableColumn<T>, value: string | undefined): string | undefined {
+  if (!value || column.filter?.type !== 'lookup') return undefined;
+  const picked = lookupPicks.value[filterName(column)];
+  if (picked?.value === value) return picked.label;
+  return column.filter.selected?.value === value ? column.filter.selected.label : undefined;
+}
+function rememberPick(name: string, value: string, text: string): void {
+  if (value) lookupPicks.value = { ...lookupPicks.value, [name]: { value, label: text } };
+}
+/** A lookup of the filter row: applied at once. */
+function onLookup(name: string, value: string, text: string): void {
+  rememberPick(name, value, text);
+  answerError(name);
+  setFilters({ ...filterValues.value, [name]: value });
+}
+
+/** The box of a range's end: days for a date range; for a range, numbers within its bounds, or an
+ *  amount as typed (a text box with the decimal keyboard: `2,50`). */
+function endBox(column: DataTableColumn<T>): Record<string, string | number | undefined> {
+  const filter = column.filter;
+  if (filter?.type === 'daterange') return { type: 'date' };
+  if (filter?.type === 'range' && filter.amount) return { type: 'text', inputmode: 'decimal' };
+  return {
+    type: 'number',
+    inputmode: 'decimal',
+    min: filter?.type === 'range' ? filter.min : undefined,
+    max: filter?.type === 'range' ? filter.max : undefined,
+    step: filter?.type === 'range' ? filter.step : undefined,
+  };
+}
 /** A range's two ends: their names, their hints and their accessible names. */
 function rangeEnds(column: DataTableColumn<T>): Array<{ name: string; hint: string; named: string }> {
   const [from, to] = filterKeys(column);
@@ -979,6 +1058,8 @@ onUpdated(nameSearchBox);
             class="data-table__filter-button"
             size="small"
             :fill="filterPanelOpen || filtering ? 'solid' : 'outline'"
+            :color="refused ? 'danger' : undefined"
+            :data-invalid="refused ? 'true' : undefined"
             :title="label('filters')"
             :aria-label="funnelName"
             :aria-pressed="filterPanelOpen ? 'true' : 'false'"
@@ -1040,13 +1121,15 @@ onUpdated(nameSearchBox);
           >
             <!-- Unfiltered, «All» ('') is checked and the select reads as its column («Status»). -->
             <ion-select
-              v-if="column.filter?.type === 'select'"
+              v-if="column.filter?.type === 'select' || column.filter?.type === 'boolean'"
               class="data-table__filter"
+              :class="invalidMark(filterName(column))"
               interface="popover"
               :aria-label="column.label"
               :placeholder="column.label"
               :value="filterValues[filterName(column)] ?? ''"
               :selected-text="filterValues[filterName(column)] ? undefined : column.label"
+              :error-text="errorOf(filterName(column))"
               :data-testid="tid(`filter-${filterName(column)}`)"
               @ion-change="onFilter(filterName(column), $event)"
             >
@@ -1054,7 +1137,7 @@ onUpdated(nameSearchBox);
                 {{ label('filterAll') }}
               </ion-select-option>
               <ion-select-option
-                v-for="option in column.filter.options ?? []"
+                v-for="option in choicesOf(column)"
                 :key="option.value"
                 :value="option.value"
               >
@@ -1062,7 +1145,7 @@ onUpdated(nameSearchBox);
               </ion-select-option>
             </ion-select>
             <span
-              v-else-if="column.filter?.type === 'range'"
+              v-else-if="column.filter?.type === 'range' || column.filter?.type === 'daterange'"
               class="data-table__filter-range"
               role="group"
               :aria-label="column.label"
@@ -1071,34 +1154,52 @@ onUpdated(nameSearchBox);
                 v-for="{ name, hint, named } in rangeEnds(column)"
                 :key="name"
                 class="data-table__filter"
-                type="number"
-                inputmode="decimal"
+                :class="invalidMark(name)"
+                v-bind="endBox(column)"
                 :debounce="250"
                 :aria-label="named"
                 :placeholder="hint"
                 :value="filterValues[name] ?? ''"
+                :error-text="errorOf(name)"
                 :data-testid="tid(`filter-${name}`)"
-                @ion-input="onFilter(name, $event)"
+                @ion-input="column.filter?.type === 'range' && onFilter(name, $event)"
+                @ion-change="column.filter?.type === 'daterange' && onFilter(name, $event)"
               />
             </span>
             <ion-input
               v-else-if="column.filter?.type === 'date'"
               class="data-table__filter"
+              :class="invalidMark(filterName(column))"
               type="date"
               :aria-label="column.label"
               :value="filterValues[filterName(column)] ?? ''"
+              :error-text="errorOf(filterName(column))"
               :data-testid="tid(`filter-${filterName(column)}`)"
               @ion-change="onFilter(filterName(column), $event)"
+            />
+            <DataTableLookup
+              v-else-if="column.filter?.type === 'lookup'"
+              :label="column.label"
+              :value="filterValues[filterName(column)] ?? ''"
+              :display="lookupLabel(column, filterValues[filterName(column)])"
+              :load="column.filter.load"
+              :error-text="errorOf(filterName(column))"
+              :labels="labels"
+              :testid="tid(`filter-${filterName(column)}`)"
+              @change="(value: string, text: string) => onLookup(filterName(column), value, text)"
             />
             <ion-input
               v-else
               class="data-table__filter"
+              :class="invalidMark(filterName(column))"
               type="text"
               :clear-input="true"
               :debounce="250"
+              :maxlength="column.filter?.type === 'text' ? column.filter.maxlength : undefined"
               :aria-label="column.label"
               :placeholder="column.label"
               :value="filterValues[filterName(column)] ?? ''"
+              :error-text="errorOf(filterName(column))"
               :data-testid="tid(`filter-${filterName(column)}`)"
               @ion-input="onFilter(filterName(column), $event)"
             />
@@ -1727,13 +1828,15 @@ onUpdated(nameSearchBox);
             :key="column.key"
           >
             <ion-select
-              v-if="column.filter?.type === 'select'"
+              v-if="column.filter?.type === 'select' || column.filter?.type === 'boolean'"
+              :class="invalidMark(filterName(column))"
               :label="column.label"
               label-placement="stacked"
               fill="outline"
               mode="md"
               interface="popover"
               :value="filterDraft[filterName(column)] ?? ''"
+              :error-text="errorOf(filterName(column))"
               :data-testid="tid(`filter-${filterName(column)}`)"
               @ion-change="onDraftFilter(filterName(column), $event)"
             >
@@ -1741,7 +1844,7 @@ onUpdated(nameSearchBox);
                 {{ label('filterAll') }}
               </ion-select-option>
               <ion-select-option
-                v-for="option in column.filter.options ?? []"
+                v-for="option in choicesOf(column)"
                 :key="option.value"
                 :value="option.value"
               >
@@ -1749,7 +1852,7 @@ onUpdated(nameSearchBox);
               </ion-select-option>
             </ion-select>
             <div
-              v-else-if="column.filter?.type === 'range'"
+              v-else-if="column.filter?.type === 'range' || column.filter?.type === 'daterange'"
               class="data-table__drawer-field"
               role="group"
               :aria-label="column.label"
@@ -1762,38 +1865,56 @@ onUpdated(nameSearchBox);
                 <ion-input
                   v-for="{ name, hint, named } in rangeEnds(column)"
                   :key="name"
-                  type="number"
-                  inputmode="decimal"
+                  :class="invalidMark(name)"
+                  v-bind="endBox(column)"
                   fill="outline"
                   mode="md"
                   :aria-label="named"
                   :placeholder="hint"
                   :value="filterDraft[name] ?? ''"
+                  :error-text="errorOf(name)"
                   :data-testid="tid(`filter-${name}`)"
-                  @ion-input="onDraftFilter(name, $event)"
+                  @ion-input="column.filter?.type === 'range' && onDraftFilter(name, $event)"
+                  @ion-change="column.filter?.type === 'daterange' && onDraftFilter(name, $event)"
                 />
               </div>
             </div>
             <ion-input
               v-else-if="column.filter?.type === 'date'"
+              :class="invalidMark(filterName(column))"
               type="date"
               :label="column.label"
               label-placement="stacked"
               fill="outline"
               mode="md"
               :value="filterDraft[filterName(column)] ?? ''"
+              :error-text="errorOf(filterName(column))"
               :data-testid="tid(`filter-${filterName(column)}`)"
               @ion-change="onDraftFilter(filterName(column), $event)"
             />
+            <DataTableLookup
+              v-else-if="column.filter?.type === 'lookup'"
+              :label="column.label"
+              :value="filterDraft[filterName(column)] ?? ''"
+              :display="lookupLabel(column, filterDraft[filterName(column)])"
+              :load="column.filter.load"
+              :error-text="errorOf(filterName(column))"
+              :labels="labels"
+              :testid="tid(`filter-${filterName(column)}`)"
+              @change="(value: string, text: string) => onDraftLookup(filterName(column), value, text)"
+            />
             <ion-input
               v-else
+              :class="invalidMark(filterName(column))"
               type="text"
               :label="column.label"
               label-placement="stacked"
               fill="outline"
               mode="md"
               :clear-input="true"
+              :maxlength="column.filter?.type === 'text' ? column.filter.maxlength : undefined"
               :value="filterDraft[filterName(column)] ?? ''"
+              :error-text="errorOf(filterName(column))"
               :data-testid="tid(`filter-${filterName(column)}`)"
               @ion-input="onDraftFilter(filterName(column), $event)"
             />

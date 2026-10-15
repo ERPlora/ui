@@ -37,6 +37,11 @@
     "apply": "Aplicar",
     "close": "Cerrar",
     "filtersActiveOne": "Filtros ({n} activo)",
-    "filtersActiveMany": "Filtros ({n} activos)"
+    "filtersActiveMany": "Filtros ({n} activos)",
+    "lookupEmpty": "Sin coincidencias",
+    "lookupClear": "Quitar {label}",
+    "filterYes": "Sí",
+    "filterNo": "No",
+    "filtersInvalid": "Filtros (revisa los marcados)"
   }
 }

@@ -7,7 +7,7 @@
 //
 // Layouts (`contentLayout`): `fluid` (default) puts the view straight in `ion-content`; `detail` wraps it
 // in `.hub-detail-shell` (reading, forms, settings); `detail-fill` gives that box the content area's
-// height; `fill` is a list page: the `detail-fill` box holds a `.panel-fill` stack (polish.css) in which
+// height; `fill` is a list page: the `detail-fill` box holds a `.page-fill` stack (polish.css) in which
 // what sits above or under the list keeps its height and a DataTable `fill` takes the rest, between the
 // topbar and the tabbar, with its toolbar and footer fixed and its rows scrolling inside (Ioan,
 // 2026-10-15; on a phone the list grows with its rows instead: one scroll). A page writes only
@@ -148,7 +148,7 @@ onBeforeUnmount(() => {
       >
         <div
           v-if="contentLayout === 'fill'"
-          class="panel-fill"
+          class="page-fill"
         >
           <slot />
         </div>
