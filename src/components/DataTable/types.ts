@@ -77,7 +77,8 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   pinned?: 'end';
   /** W-19 - `low`: hidden first when the list does not fit its box. Default `normal`. */
   priority?: DataTableColumnPriority;
-  /** A control in the table's filter row. Client mode filters `rows`; server mode emits `filtersChange`. */
+  /** A control in the table's filter row, or in its filters panel with `filterable`. Client mode filters
+   *  `rows`; server mode emits `filtersChange`. */
   filter?: DataTableColumnFilter;
 }
 

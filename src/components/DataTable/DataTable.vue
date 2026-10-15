@@ -1953,7 +1953,7 @@ onUpdated(nameSearchBox);
 
 /* ── Filters panel (`filterable`) ────────────────────────────────────────────────────────────
    The funnel: a 36px tool button, solid while filtering, with the count of filtered columns. */
-.data-table__filter-button { position: relative; --padding-start: 0; --padding-end: 0; --border-radius: 10px; width: 36px; height: 36px; margin: 0; }
+.data-table__filter-button { position: relative; --padding-start: 0; --padding-end: 0; --border-radius: 10px; width: 36px; height: 36px; margin: 0; --overflow: visible; }
 .data-table__filter-button .data-table__filter-count { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 999px; background: var(--primary); color: var(--primary-contrast); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
 /* The panel, INSIDE the table. Base: an overlay on the right edge (what a browser without media
    queries sees). #75 - It PUSHES on a desk and is a WHOLE sheet on a phone, never half covering. */

@@ -395,6 +395,9 @@ describe('the filters panel (`filterable`): pushes the list from 834 px, a sheet
 
   it('the funnel is a 36px tool button (44px on touch) with its count in a pill on its corner', () => {
     expect(rule('.data-table__filter-button')).toMatch(/width: 36px; height: 36px/);
+    // Ionic clips its native button (`--overflow: hidden`): the pill on the corner was cut in half
+    // (measured in Chromium at 390, 834 and 1440 px, FIX-DATATABLE).
+    expect(rule('.data-table__filter-button')).toContain('--overflow: visible');
     expect(rule('.data-table__filter-button', media('(pointer: coarse), (max-width: 834px)'))).toBe('width: 44px; height: 44px;');
     expect(rule('.data-table__filter-button .data-table__filter-count')).toMatch(/^position: absolute; top: -5px; right: -5px;/);
   });

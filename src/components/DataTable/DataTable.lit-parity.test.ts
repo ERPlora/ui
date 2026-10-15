@@ -290,6 +290,8 @@ const EXTRA: Record<string, string[]> = {
   ],
   '.data-table__title': ['letter-spacing: inherit'], // polish.css `h2` never reached the shadow root
   '.data-table__selection-clear': ['padding: revert'], // normalize.css `button { padding: 0 }` neither
+  // Ionic clips its native button: the count pill on the corner was cut in half (measured in Chromium).
+  '.data-table__filter-button': ['--overflow: visible'],
 };
 
 const LIT = parse(litCss);
