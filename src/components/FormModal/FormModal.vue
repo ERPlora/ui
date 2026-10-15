@@ -23,8 +23,10 @@
 //   - Named by its title: Ionic copies `aria-label` and `role` into its own `role="dialog"` (in its
 //     shadow DOM, where `aria-labelledby` cannot reach) once, when the element loads, so each
 //     opening renders a fresh `ion-modal` and the name is always the current title.
-//   - Desktop: a centred card (480px, `sm` 420px) as tall as its content. Below 640px: a sheet
-//     from the bottom, full height, with the sheet's rounded top.
+//   - Desktop: a centred card (480px, `sm` 420px) as tall as its content. Below 640px (R-29, UX
+//     audit 2): a sheet from the bottom with the sheet's rounded top, as tall as its content up to
+//     90vh, the fields scrolling between the title and the buttons; with `phoneLayout: 'card'` (a
+//     confirmation, ConfirmDialog) the centred card at every width.
 import { IonButton, IonButtons, IonHeader, IonModal, IonSpinner, IonTitle, IonToolbar } from '@ionic/vue';
 import { computed, shallowRef, useId, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -37,6 +39,7 @@ import type {
   FormModalError,
   FormModalFieldsSlotProps,
   FormModalFooterSlotProps,
+  FormModalPhoneLayout,
   FormModalRole,
   FormModalSize,
 } from './types';
@@ -65,6 +68,8 @@ const props = withDefaults(
     submitIcon?: string;
     /** `alertdialog` for consequential confirmations. */
     role?: FormModalRole;
+    /** Below 640px: a bottom `sheet` (forms) or the centred `card` (confirmations). */
+    phoneLayout?: FormModalPhoneLayout;
     /** Prefix of the `data-testid` hooks (`<testid>`, `-submit`, `-cancel`, `-close`, `-error`). */
     testid?: string;
   }>(),
@@ -79,6 +84,7 @@ const props = withDefaults(
     submitColor: 'primary',
     submitIcon: undefined,
     role: 'dialog',
+    phoneLayout: 'sheet',
     testid: undefined,
   },
 );
@@ -198,6 +204,7 @@ function focusFirstField(): void {
     :aria-label="title"
     :aria-labelledby="titleId"
     :data-size="size"
+    :data-phone-layout="phoneLayout"
     :data-testid="tid()"
     @did-present="focusFirstField"
     @did-dismiss="onDidDismiss"
@@ -358,30 +365,28 @@ ion-modal.ep-form-modal .ep-form-modal__cancel {
   --color: var(--ion-text-color);
 }
 
-/* Phone: a sheet from the bottom, full height, the fields scrolling between title and buttons. */
+/* Phone (R-29): a form is a sheet from the bottom as tall as its fields, up to 90vh, the fields
+   scrolling between the title and the buttons. A confirmation (`card`) keeps the centred card. */
 @media (max-width: 639.98px) {
-  ion-modal.ep-form-modal {
+  ion-modal.ep-form-modal[data-phone-layout='sheet'] {
     --width: 100%;
     --max-width: 100%;
-    --height: calc(100% - var(--ion-safe-area-top, 0px) - 12px);
-    --max-height: none;
+    --height: auto;
+    --max-height: 90vh;
     --border-radius: var(--ep-radius-sheet-top, 18px 18px 0 0);
     align-items: flex-end;
   }
-  ion-modal.ep-form-modal .ion-delegate-host {
+  /* Capped like the sheet, so what does not fit scrolls instead of being cut off. */
+  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ion-delegate-host {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    max-height: 90vh;
   }
-  ion-modal.ep-form-modal .ep-form-modal__content,
-  ion-modal.ep-form-modal .ep-form-modal__form,
-  ion-modal.ep-form-modal .ep-form-modal__body {
-    flex: 1 1 auto;
-  }
-  ion-modal.ep-form-modal .ep-form-modal__body {
+  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__body {
+    min-height: 0;
     max-height: none;
   }
-  ion-modal.ep-form-modal .ep-form-modal__footer {
+  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__footer {
     padding-bottom: calc(var(--ion-padding, 16px) + var(--ion-safe-area-bottom, 0px));
   }
 }

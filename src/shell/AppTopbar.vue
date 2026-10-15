@@ -58,6 +58,7 @@ function goBack(): void {
           <ion-icon
             slot="icon-only"
             name="arrow-back-outline"
+            aria-hidden="true"
           />
         </ion-button>
       </ion-buttons>

@@ -7,6 +7,7 @@ import { parse } from 'vue/compiler-sfc';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { unnamedButtons, unnamedIcons } from '../testing/a11y';
 import AppTopbar from './AppTopbar.vue';
 import { createShellI18n } from './i18n';
 
@@ -81,6 +82,14 @@ describe('AppTopbar', () => {
     await router.isReady();
     await new Promise((r) => setTimeout(r));
     expect(router.currentRoute.value.path).toBe('/demo/items');
+  });
+
+  // R-03 (UX audit 2, 2026-10-14): the arrow was an unnamed `role="img"` inside the named button.
+  it('back button: named by the button, its arrow decorative; nothing in the bar goes unnamed', () => {
+    const wrapper = mountTopbar({ backHref: '/demo/items' });
+    expect(wrapper.get('[data-testid="topbar-back"] ion-icon').attributes('aria-hidden')).toBe('true');
+    expect(unnamedIcons(wrapper.element)).toEqual([]);
+    expect(unnamedButtons(wrapper.element)).toEqual([]);
   });
 
   it('back button: goes back in history when there is a previous screen', async () => {

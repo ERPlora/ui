@@ -16,9 +16,31 @@ export interface ToastAction {
   handler: () => void;
 }
 
+/** Not a bar of the screen on view: a page left behind in the stack, a closed overlay, the side
+ *  menu, or what Ionic hides from assistive tech while a dialog is open. */
+const NOT_ON_VIEW = '.ion-page-hidden, .overlay-hidden, ion-menu, [aria-hidden="true"], [inert]';
+
 /**
- * Shows a global toast. `duration` in ms (0 = sticky, closed by its button, labelled in the language
- * of the page: `toast.close` of the shell catalogue). `id` names it so
+ * What a toast sits above (S-04, UX audit 2): the bottom bar of the screen on view — the section
+ * tabbar of AppPage or a view's own `ion-footer` — so it never covers it. `undefined` when the
+ * screen has none: the toast keeps the bottom edge.
+ */
+export function toastAnchor(): HTMLElement | undefined {
+  return [...document.querySelectorAll<HTMLElement>('ion-footer')]
+    .reverse()
+    .find((footer) => !footer.closest(NOT_ON_VIEW) && painted(footer));
+}
+
+/** Painted: a footer hidden by CSS (immersive mode) measures 0s, and Ionic would place the toast
+ *  off the screen. `checkVisibility` where the webview has it (Safari 17.4+), else its boxes. */
+function painted(el: HTMLElement): boolean {
+  return typeof el.checkVisibility === 'function' ? el.checkVisibility() : el.getClientRects().length > 0;
+}
+
+/**
+ * Shows a global toast, above the bottom bar of the screen when it has one ({@link toastAnchor}).
+ * `duration` in ms (0 = sticky, closed by its button, labelled in the language of the page:
+ * `toast.close` of the shell catalogue). `id` names it so
  * {@link dismissToast} can withdraw it once what it says stops being true. `action` adds a button
  * that runs its handler (and closes the toast).
  */
@@ -29,11 +51,13 @@ export async function toast(
   id?: string,
   action?: ToastAction,
 ): Promise<void> {
+  const anchor = toastAnchor();
   const t = await toastController.create({
     message,
     color,
     duration,
     position: 'bottom',
+    ...(anchor ? { positionAnchor: anchor } : {}),
     buttons: [
       ...(action ? [{ text: action.text, handler: action.handler }] : []),
       { text: shellText('toast.close'), role: 'cancel' },

@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mount, type VueWrapper } from '@vue/test-utils';
+import { Window } from 'happy-dom';
 import { addIcons } from 'ionicons';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { h, nextTick } from 'vue';
@@ -441,7 +442,18 @@ describe('FormModal: options', () => {
   });
 });
 
-describe('FormModal: layout (CSS, which happy-dom does not apply)', () => {
+describe('FormModal: on a phone (R-29)', () => {
+  it('is a sheet by default and a centred card with `phoneLayout: card`, said on the ion-modal for the stylesheet', async () => {
+    const sheet = mountModal();
+    await settle();
+    expect(modalEl(sheet).getAttribute('data-phone-layout')).toBe('sheet');
+    const card = mountModal({ phoneLayout: 'card' });
+    await settle();
+    expect(modalEl(card).getAttribute('data-phone-layout')).toBe('card');
+  });
+});
+
+describe('FormModal: layout (CSS, read from the stylesheet or computed in a happy-dom window)', () => {
   const sfc = readFileSync(join(HERE, 'FormModal.vue'), 'utf8');
 
   it('is a centred card on desktop, 480px (md) or 420px (sm) wide, its height by its content', () => {
@@ -449,11 +461,69 @@ describe('FormModal: layout (CSS, which happy-dom does not apply)', () => {
     expect(sfc).toMatch(/ion-modal\.ep-form-modal\[data-size='sm'\]\s*\{[^}]*--width:\s*420px;/);
   });
 
-  it('is a full-height sheet below 640px, with the sheet\'s rounded top (--ep-radius-sheet-top)', () => {
-    const phone = /@media \(max-width: 639\.98px\)\s*\{([\s\S]*?)\n\}/.exec(sfc)?.[1] ?? '';
-    expect(phone).toMatch(/--border-radius:\s*var\(--ep-radius-sheet-top/);
-    expect(phone).toMatch(/--height:\s*calc\(100% -/);
-    expect(phone).toMatch(/align-items:\s*flex-end/);
+  // R-29 (UX audit 2, 2026-10-14; Material 3 and iOS): a form on a phone is a sheet from the bottom
+  // as tall as its fields, never a full-height page with ~600px of nothing under one field; it grows
+  // to 90% of the screen and then its fields scroll between the title and the buttons. A
+  // confirmation (`phoneLayout: 'card'`, ConfirmDialog) stays the centred card at every width.
+  const STYLE = /<style>([\s\S]*?)<\/style>/.exec(sfc)?.[1] ?? '';
+
+  /** The dialog's stylesheet applied in a window `width` px wide (happy-dom computes the media
+   *  queries, not the layout), on the DOM FormModal and Ionic render. */
+  async function styleAt(width: number, phoneLayout: string, size = 'md') {
+    const win = new Window({ width, height: 844 });
+    win.document.head.innerHTML = `<style>${STYLE}</style>`;
+    win.document.body.innerHTML = `
+      <ion-modal class="ep-form-modal" data-size="${size}" data-phone-layout="${phoneLayout}">
+        <div class="ion-delegate-host ion-page"><div class="ep-form-modal__content">
+          <form class="ep-form-modal__form"><div class="ep-form-modal__body"></div><div class="ep-form-modal__footer"></div></form>
+        </div></div>
+      </ion-modal>`;
+    /** The computed values of `props` on `selector`, read before the window closes. */
+    const read = (selector: string, props: string[]): Record<string, string> => {
+      const style = win.getComputedStyle(win.document.querySelector(selector)!);
+      return Object.fromEntries(props.map((prop) => [prop, style.getPropertyValue(prop)]));
+    };
+    const styles = {
+      modal: read('ion-modal', ['--width', '--max-width', '--height', '--max-height', '--border-radius', 'align-items']),
+      host: read('.ion-delegate-host', ['display', 'max-height']),
+      body: read('.ep-form-modal__body', ['overflow-y', 'min-height', 'max-height']),
+    };
+    await win.happyDOM.close();
+    return styles;
+  }
+
+  it('below 640px a form is a sheet from the bottom, as tall as its content up to 90vh, the fields scrolling inside', async () => {
+    const { modal, host, body } = await styleAt(390, 'sheet');
+    expect(modal['--width']).toBe('100%');
+    expect(modal['--height']).toBe('auto');
+    expect(modal['--max-height']).toBe('90vh');
+    expect(modal['align-items']).toBe('flex-end');
+    // The sheet's rounded top (--ep-radius-sheet-top, 18px 18px 0 0 without the theme).
+    expect(modal['--border-radius']).toBe('18px 18px 0 0');
+    // The content is capped like the sheet, so the body scrolls instead of being cut off.
+    expect(host['max-height']).toBe(`${(844 * 90) / 100}px`); // 90vh of the 844px window, computed
+    expect(host.display).toBe('flex');
+    expect(body['overflow-y']).toBe('auto');
+    expect(body['min-height']).toBe('0');
+    expect(body['max-height']).toBe('none');
+  });
+
+  it('a confirmation (`phoneLayout: card`) stays the centred card below 640px: never a sheet', async () => {
+    const { modal } = await styleAt(390, 'card', 'sm');
+    expect(modal['--width']).toBe('420px');
+    expect(modal['--max-width']).toBe('calc(100vw - 32px)');
+    expect(modal['--height']).toBe('auto');
+    expect(modal['align-items']).not.toBe('flex-end');
+    expect(modal['--border-radius']).not.toBe('18px 18px 0 0');
+  });
+
+  it('from 640px both are the centred card', async () => {
+    for (const layout of ['sheet', 'card']) {
+      const { modal } = await styleAt(1024, layout);
+      expect(modal['--width'], layout).toBe('480px');
+      expect(modal['--height'], layout).toBe('auto');
+      expect(modal['align-items'], layout).not.toBe('flex-end');
+    }
   });
 
   it('uses Ionic\'s spacing class and our tokens, nothing of OutfitKit', () => {
