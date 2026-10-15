@@ -75,6 +75,10 @@ describe('AppTopbar', () => {
     expect(mountTopbar({}, 'es').get('ion-menu-button').attributes('aria-label')).toBe('Abrir menú');
   });
 
+  it('has no back button when backHref is empty', () => {
+    expect(mountTopbar({ backHref: '' }).find('[data-testid="topbar-back"]').exists()).toBe(false);
+  });
+
   it('has no back button on a top-level screen', () => {
     expect(mountTopbar({}).find('[data-testid="topbar-back"]').exists()).toBe(false);
   });
@@ -224,6 +228,21 @@ describe('AppTopbar with nav launcher (the hub)', () => {
     expect(mountLauncherTopbar().find('ion-menu-button').exists()).toBe(false);
   });
 
+  // The SaaS stays on the side menu: with a person signed in on an authenticated screen, the bar
+  // keeps the menu button and paints neither the apps nor the user (they live in the side menu).
+  describe('with nav menu (the SaaS), signed in on an authenticated screen', () => {
+    it.each([
+      ['nav unset', { nav: undefined }],
+      ["nav: 'menu'", { nav: 'menu' as const }],
+    ])('%s: the menu button, and no apps, no user button and no user menu', (_label, config) => {
+      const wrapper = mountLauncherTopbar({}, { config });
+      expect(wrapper.find('ion-menu-button').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="topbar-apps"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="topbar-user"]').exists()).toBe(false);
+      expect(wrapper.findComponent(UserMenuPopover).exists()).toBe(false);
+    });
+  });
+
   // hub#1831: on a phone the way out showed late, waiting for an `ion-menu` to register. Back and
   // the apps are plain buttons, there on the first paint.
   it('paints Back on the left and the apps and the user on the right, on the first paint', () => {
@@ -266,6 +285,12 @@ describe('AppTopbar with nav launcher (the hub)', () => {
 
   it('Back from the root of an app opened by a link goes Home', async () => {
     await mountLauncherTopbar().get('[data-testid="topbar-back"]').trigger('click');
+    await flushPromises();
+    expect(launcherRouter.currentRoute.value.path).toBe('/');
+  });
+
+  it('an empty backHref is no backHref: Back from a link still goes Home', async () => {
+    await mountLauncherTopbar({ backHref: '' }).get('[data-testid="topbar-back"]').trigger('click');
     await flushPromises();
     expect(launcherRouter.currentRoute.value.path).toBe('/');
   });

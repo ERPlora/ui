@@ -171,6 +171,16 @@ describe('createShell: nav', () => {
     const { app } = await boot();
     expect(shellNav(provides(app)[SHELL_CONFIG_KEY as symbol] as ShellConfig)).toBe('menu');
   });
+
+  it("nav: 'menu' is accepted as the explicit default", async () => {
+    const { app } = await boot('es', { nav: 'menu' });
+    expect(shellNav(provides(app)[SHELL_CONFIG_KEY as symbol] as ShellConfig)).toBe('menu');
+  });
+
+  // A typo would otherwise fall back to the side menu in silence, and the hub would grow one back.
+  it.each(['sidebar', 'Launcher', ''])('refuses an unknown nav (%j) instead of falling back to the menu', async (nav) => {
+    await expect(boot('es', { nav: nav as never })).rejects.toThrow(/nav/);
+  });
 });
 
 describe('createShell.ts import order', () => {

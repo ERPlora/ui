@@ -51,8 +51,9 @@ const launcher = shellNav(config) === 'launcher';
 const chromeVisible = useChromeVisible();
 const user = useTopbarUser();
 
-const showBack = computed(() => (launcher ? route.path !== config.homePath : props.backHref !== undefined));
-const fallback = computed(() => props.backHref ?? (launcher ? config.homePath : undefined));
+// An empty `backHref` is no `backHref` (as the SaaS always had it): no Back in `menu`, Home in `launcher`.
+const showBack = computed(() => (launcher ? route.path !== config.homePath : Boolean(props.backHref)));
+const fallback = computed(() => props.backHref || (launcher ? config.homePath : undefined));
 
 const userMenuOpen = shallowRef(false);
 const userMenuEvent = shallowRef<Event>();

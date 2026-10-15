@@ -97,7 +97,13 @@ export interface CreateShellOptions {
   trustedScriptOrigins?: readonly string[];
 }
 
+const SHELL_NAVS: readonly (ShellNav | undefined)[] = [undefined, 'menu', 'launcher'];
+
 export async function createShell(options: CreateShellOptions): Promise<{ app: App; router: Router }> {
+  // A typo would fall back to the side menu in silence (the hub would grow one back): refuse it.
+  if (!SHELL_NAVS.includes(options.nav)) {
+    throw new Error(`createShell: unknown nav ${JSON.stringify(options.nav)} (expected 'menu' or 'launcher')`);
+  }
   // Before anything writes HTML: only `<svg>` goes through innerHTML in production, and a script URL
   // only from the origins the project trusts.
   installTrustedTypesPolicy(window, import.meta.env.DEV, options.trustedScriptOrigins ?? []);
