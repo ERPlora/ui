@@ -1,8 +1,11 @@
 <script setup lang="ts">
-// App — root of the shell. Ported from ERPlora hub `apps/web/src/App.vue` (origin/develop): split
-// pane, side menu painted from `base.session.me` (with Home first when the shell's Home is on, the
-// hub), the user menu under the person at the top (mockups README §3: «usuario arriba, logo abajo»)
-// and the router outlet.
+// App — root of the shell. Ported from ERPlora hub `apps/web/src/App.vue` (origin/develop).
+// Two navigations (`createShell({ nav })`, shell-config.ts):
+// - `menu` (the SaaS): split pane, side menu painted from `base.session.me` (with Home first when the
+//   shell's Home is on), the user menu under the person at the top (mockups README §3: «usuario
+//   arriba, logo abajo») and the router outlet.
+// - `launcher` (the hub, PLAN-MIGRATIONS §13): the router outlet alone, at every width. Back, the apps
+//   («My apps») and the user menu live in the topbar of every screen (AppTopbar.vue).
 // Not ported (phase 1 has none of them, or they come later): switch user, app update / install QR /
 // upgrade plan in the footer, the version, the rail toggle, and the overlays mounted next to the
 // pane (assistant, elevation, user switch).
@@ -17,10 +20,7 @@ import {
   IonListHeader,
   IonMenu,
   IonMenuToggle,
-  IonPopover,
   IonRouterOutlet,
-  IonSegment,
-  IonSegmentButton,
   IonSplitPane,
   IonToolbar,
 } from '@ionic/vue';
@@ -30,32 +30,29 @@ import { useRoute, useRouter } from 'vue-router';
 
 import HubIcon from './HubIcon.vue';
 import { useSession } from './session';
-import { useShellConfig } from './shell-config';
+import { shellNav, useChromeVisible, useShellConfig } from './shell-config';
 import { useSurface } from './surface';
-import { chooseThemeMode, type ThemeMode, themeMode } from './theme';
-import { toastError } from './toast';
-import { useUserMenu } from './user-menu';
+import UserMenuPopover from './UserMenuPopover.vue';
 
 /** Stable id of the main menu, so we never depend on which one Ionic considers "open". */
 const SHELL_MENU_ID = 'shell-navigation';
 
 const { user, menu } = useSession();
-const { homePath, home } = useShellConfig();
-const userMenu = useUserMenu();
+const config = useShellConfig();
+const { homePath, home } = config;
+const launcher = shellNav(config) === 'launcher';
 const { isWeb } = useSurface();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
-// The one gate of the authenticated chrome (hub#925): it exists where a session is REQUIRED (the
-// route's `meta.auth`, the same flag the auth gate reads) and PRESENT. A screen that asks for
-// credentials is outside the chrome by construction, and so is one that paints its own frame
-// (`meta.chrome: false`, e.g. the SaaS launcher, the auth card of its sign-in).
-const showMenu = computed(() => user.value !== null && route.meta.auth === true && route.meta.chrome !== false);
+// The one gate of the authenticated chrome (hub#925), shell-config.ts.
+const showMenu = useChromeVisible();
 
 // Keyed on the person (hub#2539): the next one gets every screen mounted again, never what was read
 // with the session of the one who left. On the split pane and not on the outlet alone: Ionic wires
-// `ion-split-pane` and `ion-menu` to their `content-id` once, when they connect.
+// `ion-split-pane` and `ion-menu` to their `content-id` once, when they connect. With the launcher
+// there is no pane: the key goes on the outlet.
 const screenKey = computed(() => user.value?.id ?? '');
 
 const initials = computed(() => {
@@ -79,15 +76,9 @@ function goHome(): void {
   void router.push(homePath);
 }
 
-// ── User menu ──────────────────────────────────────────────────────────────────────────────────
+// ── User menu (UserMenuPopover.vue) ────────────────────────────────────────────────────────────
 const userMenuOpen = ref(false);
 const userMenuEvent = ref<Event | undefined>(undefined);
-const userMenuItems = computed(() => (userMenu.items ?? []).filter((item) => !item.webOnly || isWeb.value));
-const THEME_CHOICES: Array<{ mode: ThemeMode; icon: string; labelKey: string }> = [
-  { mode: 'light', icon: 'ion:sunny-outline', labelKey: 'userMenu.themeLight' },
-  { mode: 'dark', icon: 'ion:moon-outline', labelKey: 'userMenu.themeDark' },
-  { mode: 'system', icon: 'ion:contrast-outline', labelKey: 'userMenu.themeSystem' },
-];
 
 function openUserMenu(event: Event): void {
   userMenuEvent.value = event;
@@ -99,31 +90,18 @@ function openUserMenu(event: Event): void {
 function openUserMenuFromKeyboard(event: KeyboardEvent): void {
   if (event.currentTarget instanceof HTMLButtonElement) event.currentTarget.click();
 }
-
-function go(path: string): void {
-  userMenuOpen.value = false;
-  void router.push(path);
-}
-
-function onThemeChange(event: CustomEvent<{ value?: string | number }>): void {
-  const mode = THEME_CHOICES.find((choice) => choice.mode === event.detail.value)?.mode;
-  if (mode) chooseThemeMode(mode);
-}
-
-async function signOut(): Promise<void> {
-  userMenuOpen.value = false;
-  try {
-    await userMenu.logout?.();
-  } catch (error) {
-    console.error('shell: sign out failed', error);
-    void toastError(t('userMenu.logoutFailed'));
-  }
-}
 </script>
 
 <template>
   <ion-app>
+    <!-- Launcher (the hub): no side menu at any width; the topbar carries the navigation. -->
+    <ion-router-outlet
+      v-if="launcher"
+      id="main"
+      :key="screenKey"
+    />
     <ion-split-pane
+      v-else
       :key="screenKey"
       content-id="main"
       when="lg"
@@ -167,84 +145,13 @@ async function signOut(): Promise<void> {
                 aria-hidden="true"
               />
             </button>
-            <ion-popover
+            <UserMenuPopover
               class="sidebar-user-popover"
               :is-open="userMenuOpen"
               :event="userMenuEvent"
-              side="bottom"
               alignment="start"
-              @did-dismiss="userMenuOpen = false"
-            >
-              <ion-content>
-                <ion-list lines="none">
-                  <ion-item
-                    v-for="item in userMenuItems"
-                    :key="item.id"
-                    button
-                    :detail="false"
-                    :data-testid="`user-menu-${item.id}`"
-                    @click="go(item.to)"
-                  >
-                    <HubIcon
-                      slot="start"
-                      :name="item.icon"
-                    />
-                    <ion-label>{{ t(item.labelKey) }}</ion-label>
-                  </ion-item>
-                  <ion-item
-                    v-if="userMenu.helpPath"
-                    button
-                    :detail="false"
-                    data-testid="user-menu-help"
-                    @click="go(userMenu.helpPath)"
-                  >
-                    <HubIcon
-                      slot="start"
-                      name="ion:help-circle-outline"
-                    />
-                    <ion-label>{{ t('userMenu.help') }}</ion-label>
-                  </ion-item>
-                  <ion-item
-                    class="user-menu-theme"
-                    data-testid="user-menu-theme"
-                  >
-                    <HubIcon
-                      slot="start"
-                      name="ion:contrast-outline"
-                    />
-                    <ion-label>{{ t('userMenu.theme') }}</ion-label>
-                    <ion-segment
-                      slot="end"
-                      :value="themeMode"
-                      :aria-label="t('userMenu.theme')"
-                      @ion-change="onThemeChange"
-                    >
-                      <ion-segment-button
-                        v-for="choice in THEME_CHOICES"
-                        :key="choice.mode"
-                        :value="choice.mode"
-                        :aria-label="t(choice.labelKey)"
-                      >
-                        <HubIcon :name="choice.icon" />
-                      </ion-segment-button>
-                    </ion-segment>
-                  </ion-item>
-                  <ion-item
-                    v-if="userMenu.logout"
-                    button
-                    :detail="false"
-                    data-testid="user-menu-logout"
-                    @click="signOut"
-                  >
-                    <HubIcon
-                      slot="start"
-                      name="ion:log-out-outline"
-                    />
-                    <ion-label>{{ t('userMenu.logout') }}</ion-label>
-                  </ion-item>
-                </ion-list>
-              </ion-content>
-            </ion-popover>
+              @dismiss="userMenuOpen = false"
+            />
           </ion-toolbar>
         </ion-header>
 
