@@ -6,7 +6,9 @@ import {
   cardTitleColumn,
   cellText,
   activeFilters,
+  declaredFilters,
   entityWord,
+  filterCount,
   filterKeys,
   filterRows,
   gridTemplate,
@@ -324,6 +326,40 @@ describe('filterKeys: the names a column filter takes in `filters`', () => {
 describe('activeFilters: what actually filters', () => {
   it('drops empty and blank values', () => {
     expect(activeFilters({ name: '  ', status: '', rate_from: '5', city: 'Madrid' })).toEqual({ rate_from: '5', city: 'Madrid' });
+  });
+});
+
+describe('declaredFilters: only what the page declared goes to the server (outfitkit#116)', () => {
+  const COLUMNS = [
+    col({ key: 'name', filter: { type: 'text' } }),
+    col({ key: 'category', filter: { type: 'select', key: 'category_id', options: [] } }),
+    col({ key: 'rate', filter: { type: 'range' } }),
+    col({ key: 'note' }),
+  ];
+
+  it('keeps the declared names with a value, by the name the filter takes, and drops the rest', () => {
+    expect(
+      declaredFilters(COLUMNS, { name: 'ana', category: 'x', category_id: 'c1', rate_from: '5', rate_to: ' ', note: 'y', page: '2' }),
+    ).toEqual({ name: 'ana', category_id: 'c1', rate_from: '5' });
+  });
+
+  it('nothing declared, nothing kept', () => {
+    expect(declaredFilters([col({ key: 'name' })], { name: 'ana' })).toEqual({});
+  });
+});
+
+describe('filterCount: the number on the funnel', () => {
+  const COLUMNS = [
+    col({ key: 'name', filter: { type: 'text' } }),
+    col({ key: 'rate', filter: { type: 'range' } }),
+    col({ key: 'day', filter: { type: 'date' } }),
+  ];
+
+  it('one per filtered column: a range with both ends counts once; blank and undeclared names do not count', () => {
+    expect(filterCount(COLUMNS, {})).toBe(0);
+    expect(filterCount(COLUMNS, { rate_from: '1', rate_to: '9' })).toBe(1);
+    expect(filterCount(COLUMNS, { name: 'a', rate_to: '9', day: '2026-10-14' })).toBe(3);
+    expect(filterCount(COLUMNS, { name: '  ', status: 'paid' })).toBe(0);
   });
 });
 

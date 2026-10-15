@@ -21,6 +21,7 @@ export const DATA_TABLE_ICONS = {
   next: 'chevron-forward',
   clear: 'close',
   clearFilters: 'close-circle-outline',
+  filters: 'funnel-outline',
   more: 'ellipsis-vertical',
   empty: 'file-tray-outline',
   error: 'alert-circle-outline',
@@ -106,6 +107,21 @@ export function filterKeys<T>(column: DataTableColumn<T>): string[] {
 /** The filters that filter: a blank value is no filter. */
 export function activeFilters(filters: DataTableFilters): DataTableFilters {
   return Object.fromEntries(Object.entries(filters).filter(([, value]) => value.trim() !== ''));
+}
+
+/** outfitkit#116 - The active filters the columns declare, by the name each filter takes: a name no
+ *  column declares (a stale one from the address, a page's own parameter) never reaches the server,
+ *  which answers 422 `unknown_filter` to it; a blank value is no filter. */
+export function declaredFilters<T>(columns: readonly DataTableColumn<T>[], filters: DataTableFilters): DataTableFilters {
+  const active = activeFilters(filters);
+  const names = new Set(columns.flatMap((column) => filterKeys(column)));
+  return Object.fromEntries(Object.entries(active).filter(([name]) => names.has(name)));
+}
+
+/** The number on the funnel: the filtered columns (a range counts once, whichever ends it has). */
+export function filterCount<T>(columns: readonly DataTableColumn<T>[], filters: DataTableFilters): number {
+  const active = activeFilters(filters);
+  return columns.filter((column) => filterKeys(column).some((name) => name in active)).length;
 }
 
 const pad = (n: number): string => String(n).padStart(2, '0');

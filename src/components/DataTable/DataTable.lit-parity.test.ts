@@ -49,7 +49,14 @@ const key = (media: string, selector: string) => (media ? `${media} || ${selecto
 
 /** What an --ok-* token paints in the shell: the shell defines none of them, so the Lit fallback
  *  paints, except the ones mirrored by an --ion-* (font) or kept as our --ep-* (with the fallback). */
-const OK_TOKENS: Record<string, string> = { font: '--ion-font-family', transition: '--ep-transition', 'tap-min': '--ep-tap-min' };
+const OK_TOKENS: Record<string, string> = {
+  font: '--ion-font-family',
+  transition: '--ep-transition',
+  'tap-min': '--ep-tap-min',
+  // The phone sheet's insets the table measures and publishes (`useFilterSheet`, outfitkit#197).
+  'sheet-top': '--data-table-sheet-top',
+  'sheet-bottom': '--data-table-sheet-bottom',
+};
 function resolveOkTokens(declaration: string): string {
   let out = declaration;
   for (let at = out.indexOf('var(--ok-'); at !== -1; at = out.indexOf('var(--ok-')) {
@@ -179,37 +186,45 @@ const PORTED: Record<string, string> = {
   'ion-button': 'ion-button',
   // The inline filters' boxed control (hub-next apps/tax/UI-REQUESTS.md: column filters are back).
   '.tk-filter': '.data-table__filter',
+  // The filters panel (`filterable`, PLAN-MIGRATIONS §13, 2026-10-15): the old table's funnel with its count,
+  // and its drawer inside the table: two columns from 834 px, a sheet over the content area below (#75/#197).
+  '.toolbtn': '.data-table__filter-button',
+  '.toolbtn .badge': '.data-table__filter-button .data-table__filter-count',
+  '@media (pointer: coarse), (max-width: 834px) || .toolbtn': '@media (pointer: coarse), (max-width: 834px) || .data-table__filter-button',
+  '.drawer': '.data-table__drawer',
+  '@media (min-width: 834px) || .card.has-panel': '@media (min-width: 834px) || .data-table__surface--panel',
+  '@media (min-width: 834px) || .card.has-panel > .bar': '@media (min-width: 834px) || .data-table__surface--panel > .data-table__bar',
+  '@media (min-width: 834px) || .card.has-panel > .scroll, .card.has-panel > .cards-grid, .card.has-panel > .empty, .card.has-panel > .load-error, .card.has-panel > .loading-state':
+    '@media (min-width: 834px) || .data-table__surface--panel > .data-table__scroll, .data-table__surface--panel > .data-table__cards, .data-table__surface--panel > .data-table__empty, .data-table__surface--panel > .data-table__error, .data-table__surface--panel > .data-table__loading',
+  '@media (min-width: 834px) || .card.has-panel > .pager': '@media (min-width: 834px) || .data-table__surface--panel > .data-table__pager',
+  '@media (min-width: 834px) || .card.has-panel > .drawer': '@media (min-width: 834px) || .data-table__surface--panel > .data-table__drawer',
+  '@media (max-width: 833.98px) || .drawer': '@media (max-width: 833.98px) || .data-table__drawer',
+  '.drawer .dh': '.data-table__drawer-head',
+  '.drawer .db': '.data-table__drawer-body',
+  '.fblock': '.data-table__drawer-field',
+  '.flabel': '.data-table__drawer-label',
+  '.frange': '.data-table__drawer-range',
+  '.df': '.data-table__drawer-foot',
+  '.df .df-clear': '.data-table__drawer-foot .data-table__drawer-clear',
 };
 
 /** Lit rules NOT ported, with why: what they style is not part of this component. */
 const DROPPED: Record<string, string> = {};
 const drop = (reason: string, ...rules: string[]) => rules.forEach((r) => (DROPPED[r] = reason));
 drop(
-  'side panel (create/edit form and filters drawer): not ported, the page opens its own ion-modal',
+  'filters panel: its scrim is never painted, the panel pushes the list from 834 px and is a whole sheet below (outfitkit kept it for a browser without media queries)',
   '.tk-scrim',
-  '.drawer',
-  '@media (min-width: 834px) || .card.has-panel',
-  '@media (min-width: 834px) || .card.has-panel > .bar',
-  '@media (min-width: 834px) || .card.has-panel > .scroll, .card.has-panel > .cards-grid, .card.has-panel > .empty, .card.has-panel > .load-error, .card.has-panel > .loading-state',
-  '@media (min-width: 834px) || .card.has-panel > .pager',
-  '@media (min-width: 834px) || .card.has-panel > .drawer',
   '@media (min-width: 834px) || .card.has-panel > .tk-scrim',
-  '@media (max-width: 833.98px) || .drawer',
   '@media (max-width: 833.98px) || .tk-scrim',
-  '.drawer .dh',
-  '.drawer .db',
-  '.df',
-  '.df .df-clear',
+);
+drop(
+  'filters panel: one footer in both modes, «Clear» and «Apply» on a draft; no live server filters closed by «Show results»',
   '.df .df-done',
 );
 drop(
-  'column filters come back as one filter row under the toolbar (the boxed .tk-filter control, ported), not as the drawer, the date-range pill nor the funnel badge',
-  '.fblock',
-  '.flabel',
-  '.frange',
+  'column filters: the filter row and the panel replace the old filter strip, a `date` filter is one day and a range is numeric (no date-range control nor pill)',
   '.daterange',
   '.daterange ion-input',
-  '.toolbtn .badge',
   '.tk-daterange',
   '.tk-daterange ion-icon',
   '.tk-daterange ion-input',
@@ -224,8 +239,6 @@ drop(
   'Ioan, 2026-10-13: the list/cards switch is an ion-segment, not a bordered box of square tool buttons (the only ones)',
   '.viewseg',
   '.viewseg ion-button',
-  '.toolbtn',
-  '@media (pointer: coarse), (max-width: 834px) || .toolbtn',
 );
 drop('no effect: ion-searchbar is a scoped component, it exposes no shadow parts', 'ion-searchbar.ion-no-border::part(native)');
 
@@ -253,6 +266,8 @@ const ADDED: Record<string, string> = {
   '.data-table__filter-range': 'column filters: the From and To of a range, side by side',
   '.data-table__filter-range .data-table__filter': 'column filters: each end of a range is a short number box',
   '.data-table__filters-clear': 'column filters: «Clear filters», an ion-chip in the row, at its font size',
+  '@media (max-width: 833.98px) || .data-table__drawer-foot':
+    'outfitkit#197: a sheet that reaches the screen edge keeps the safe area in its footer (a tab bar below keeps it already)',
   '@media (max-width: 640px) || .data-table--fill:not(.data-table--content-after)':
     '#218 on a phone, with nothing after the table: it grows with its rows instead of clipping them (measured at 390px)',
   '.data-table ion-checkbox': 'UX audit 2, R-13: a 24×24 selection box (Ionic ios paints 22)',
@@ -264,7 +279,15 @@ const ADDED: Record<string, string> = {
 
 /** Declarations a port carries on top of its Lit rule, with why. */
 const EXTRA: Record<string, string[]> = {
-  '.data-table': ['box-shadow: var(--ep-shadow-sm)', 'overflow: hidden'], // the frame polish.css gave the Lit host
+  '.data-table': [
+    // The phone filters sheet's insets and safe area (useFilterSheet, outfitkit#197): the Lit host set them inline.
+    '--data-table-sheet-top: 0px',
+    '--data-table-sheet-bottom: 0px',
+    '--data-table-sheet-safe-bottom: env(safe-area-inset-bottom, 0px)',
+    // The frame polish.css gave the Lit host.
+    'box-shadow: var(--ep-shadow-sm)',
+    'overflow: hidden',
+  ],
   '.data-table__title': ['letter-spacing: inherit'], // polish.css `h2` never reached the shadow root
   '.data-table__selection-clear': ['padding: revert'], // normalize.css `button { padding: 0 }` neither
 };

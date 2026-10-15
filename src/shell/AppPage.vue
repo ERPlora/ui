@@ -5,6 +5,14 @@
 // content, and the footer strip of sections (`tabs`, mockups README §3). Not ported: the strips over
 // the content (setup blocking strip, offline strip).
 //
+// Layouts (`contentLayout`): `fluid` (default) puts the view straight in `ion-content`; `detail` wraps it
+// in `.hub-detail-shell` (reading, forms, settings); `detail-fill` gives that box the content area's
+// height; `fill` is a list page: the `detail-fill` box holds a `.panel-fill` stack (polish.css) in which
+// what sits above or under the list keeps its height and a DataTable `fill` takes the rest, between the
+// topbar and the tabbar, with its toolbar and footer fixed and its rows scrolling inside (Ioan,
+// 2026-10-15; on a phone the list grows with its rows instead: one scroll). A page writes only
+// `<AppPage content-layout="fill"><DataTable fill … /></AppPage>`.
+//
 // Slots: default (the view, inside `ion-content`), `actions` (forwarded to the topbar), `footer`
 // (after the content: a sheet's action bar, or a view's own `ion-footer > ion-toolbar > ion-segment`).
 //
@@ -29,8 +37,9 @@ const props = withDefaults(
     title: string;
     /** Fallback href of Back; when passed the topbar shows Back (detail view). */
     backHref?: string;
-    /** Inner width: fluid for data/tables; `detail`/`detail-fill` for reading, forms and settings. */
-    contentLayout?: 'fluid' | 'detail' | 'detail-fill';
+    /** Inner layout: fluid for data/tables; `detail`/`detail-fill` for reading, forms and settings;
+     *  `fill` for a list page whose DataTable `fill` takes the height left between topbar and tabbar. */
+    contentLayout?: 'fluid' | 'detail' | 'detail-fill' | 'fill';
     /** The view already paints its own `<h1>` (hub#794): the toolbar title drops the heading role. */
     headingOnScreen?: boolean;
     /** The sections of the page, painted as the footer tabbar; none = no tabbar. */
@@ -135,9 +144,15 @@ onBeforeUnmount(() => {
       <div
         v-if="contentLayout !== 'fluid'"
         class="hub-detail-shell"
-        :class="{ 'hub-detail-shell--fill': contentLayout === 'detail-fill' }"
+        :class="{ 'hub-detail-shell--fill': contentLayout === 'detail-fill' || contentLayout === 'fill' }"
       >
-        <slot />
+        <div
+          v-if="contentLayout === 'fill'"
+          class="panel-fill"
+        >
+          <slot />
+        </div>
+        <slot v-else />
       </div>
       <slot v-else />
     </ion-content>

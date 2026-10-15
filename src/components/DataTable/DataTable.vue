@@ -17,7 +17,14 @@
 // a day, a numeric range), and «Clear filters» while any filters. It lives in the toolbar area, not
 // under the column headers, so it is there in the cards, in an empty result and on a phone.
 // Client mode filters `rows` (with the search, AND); server mode emits `filtersChange` with the
-// active filters by name and filters nothing. `v-model:filters` in both, as `search`.
+// active filters by name and filters nothing. `v-model:filters` in both, as `search`. Only the names
+// the columns declare are sent, and a blank value is no filter (outfitkit#116: the server refuses
+// any other name with 422 `unknown_filter`).
+// `filterable` puts those controls behind the toolbar's funnel instead (the old table, PLAN-MIGRATIONS
+// §13): the funnel counts the filtered columns and opens a panel INSIDE the table, two columns from
+// 834 px (the list narrows, nothing is covered) and a sheet over the content area below, between the
+// app's header and its tab bar (outfitkit#75/#197, `useFilterSheet`). The panel edits a draft: «Apply»
+// applies it and closes, «Clear» lifts every filter at once, Close, Escape and the funnel drop it.
 // `pageSizeChooser: false` drops «rows per page» (the footer still counts and pages);
 // `hideToolbarWhenEmpty` paints a list with no record as its empty state alone, without toolbar
 // nor footer (mockups/saas-panel §6.16): its `empty` slot then offers the create action.
@@ -69,7 +76,7 @@ import {
   IonSelectOption,
   IonSpinner,
 } from '@ionic/vue';
-import { computed, onMounted, onUpdated, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, onUpdated, ref, shallowRef, useId, watch } from 'vue';
 
 import { ionIconSrc } from '../../shell/icons';
 import { useDataTableLabels } from './labels';
@@ -79,7 +86,9 @@ import {
   cardTitleColumn as titleColumnByText,
   cellText,
   DATA_TABLE_ICONS,
+  declaredFilters,
   entityWord,
+  filterCount,
   filterKeys,
   filterRows,
   gridTemplate,
@@ -112,6 +121,7 @@ import type {
   DataTableView,
 } from './types';
 import { type DataTableFitStep, useDataTableLayout } from './useDataTableLayout';
+import { useFilterSheet } from './useFilterSheet';
 
 const props = withDefaults(
   defineProps<{
@@ -145,6 +155,9 @@ const props = withDefaults(
     search?: string;
     /** `v-model:filters` (the column filters by name). `undefined` = not controlled. */
     filters?: DataTableFilters;
+    /** The column filters live behind the toolbar's funnel (with the count in use), in a panel inside
+     *  the table, instead of a row under the toolbar. Same `filters`, `filtersChange` and hooks. */
+    filterable?: boolean;
     /** Sort, page and search are the parent's: they are emitted, never applied to `rows`. */
     serverSide?: boolean;
     /** Server mode: records of the whole query. */
@@ -367,7 +380,9 @@ const listColumns = computed(() =>
 /** The active filters on screen (own state; `filters` from the parent overrides it, like `search`). */
 const filterValues = ref<DataTableFilters>({});
 const filterColumns = computed(() => props.columns.filter((c) => c.filter));
-const filtering = computed(() => Object.keys(filterValues.value).length > 0);
+/** The filtered columns (a range counts once): a name no column declares is no filter (#116). */
+const filterCountNow = computed(() => filterCount(props.columns, filterValues.value));
+const filtering = computed(() => filterCountNow.value > 0);
 /** The name of a column's (single) filter in `filters`. */
 const filterName = (column: DataTableColumn<T>): string => filterKeys(column)[0] ?? column.key;
 const sameFilters = (a: DataTableFilters, b: DataTableFilters): boolean => {
@@ -376,7 +391,7 @@ const sameFilters = (a: DataTableFilters, b: DataTableFilters): boolean => {
 };
 
 function setFilters(next: DataTableFilters): void {
-  const active = activeFilters(next);
+  const active = declaredFilters(props.columns, next);
   if (sameFilters(active, filterValues.value)) return;
   filterValues.value = active;
   if (!props.serverSide) {
@@ -394,6 +409,69 @@ function onFilter(name: string, ev: CustomEvent<{ value?: unknown }>): void {
 function clearFilters(): void {
   setFilters({});
 }
+// ── Filters panel (`filterable`) ─────────────────────────────────────────────────────────────
+const filterPanelOpen = ref(false);
+/** What the panel shows and edits; applied only by «Apply». */
+const filterDraft = ref<DataTableFilters>({});
+const showFunnel = computed(() => props.filterable && filterColumns.value.length > 0);
+const filterTitleId = useId();
+const funnelName = computed(() => {
+  const n = filterCountNow.value;
+  if (!n) return label('filters');
+  return label(n === 1 ? 'filtersActiveOne' : 'filtersActiveMany', { n });
+});
+/** «Clear» has something to lift: a filter applied, or one written in the draft. */
+const canClearPanel = computed(() => filtering.value || Object.keys(activeFilters(filterDraft.value)).length > 0);
+// Below 834 px the panel is a sheet over the content area: where that area begins and ends (#197).
+useFilterSheet(() => root.value, () => filterPanelOpen.value);
+
+function openFilterPanel(): void {
+  filterDraft.value = declaredFilters(props.columns, filterValues.value);
+  filterPanelOpen.value = true;
+  void nextTick(() => root.value?.querySelector<HTMLElement>(':scope > .data-table__surface > .data-table__drawer')?.focus());
+}
+/** Closes the panel (its draft is dropped) and gives the focus back to the funnel. */
+function closeFilterPanel(): void {
+  if (!filterPanelOpen.value) return;
+  filterPanelOpen.value = false;
+  void nextTick(() => {
+    const funnel = root.value?.querySelector<HTMLElement>('.data-table__filter-button');
+    // An ion-button does not delegate its focus: its native button takes it.
+    (funnel?.shadowRoot?.querySelector<HTMLElement>('button') ?? funnel)?.focus();
+  });
+}
+function toggleFilterPanel(): void {
+  if (filterPanelOpen.value) closeFilterPanel();
+  else openFilterPanel();
+}
+function applyFilterPanel(): void {
+  setFilters(filterDraft.value);
+  closeFilterPanel();
+}
+function clearFilterPanel(): void {
+  filterDraft.value = {};
+  setFilters({});
+}
+/** One control of the panel: `ionInput` (text, range) or `ionChange` (select, date) into the draft. */
+function onDraftFilter(name: string, ev: CustomEvent<{ value?: unknown }>): void {
+  const value = ev.detail.value;
+  filterDraft.value = { ...filterDraft.value, [name]: value === null || value === undefined ? '' : String(value) };
+}
+/** Escape closes the panel, unless a control inside already used it (closing its own dropdown). */
+function onFilterPanelEscape(ev: KeyboardEvent): void {
+  if (ev.defaultPrevented) return;
+  ev.preventDefault();
+  closeFilterPanel();
+}
+// The applied filters changed while the panel is open (a «Clear», the parent): it shows them.
+watch(filterValues, (now) => {
+  if (filterPanelOpen.value) filterDraft.value = declaredFilters(props.columns, now);
+});
+// Its columns stopped declaring filters (or the page dropped `filterable`): nothing left to show.
+watch(showFunnel, (shown) => {
+  if (!shown) filterPanelOpen.value = false;
+});
+
 /** A range's two ends: their names, their hints and their accessible names. */
 function rangeEnds(column: DataTableColumn<T>): Array<{ name: string; hint: string; named: string }> {
   const [from, to] = filterKeys(column);
@@ -793,7 +871,7 @@ onUpdated(nameSearchBox);
     :class="['data-table', { 'data-table--fill': fill, 'data-table--content-after': contentAfter }]"
   >
     <div
-      class="data-table__surface"
+      :class="['data-table__surface', { 'data-table__surface--panel': filterPanelOpen }]"
       :aria-busy="loading ? 'true' : undefined"
     >
       <div
@@ -893,6 +971,32 @@ onUpdated(nameSearchBox);
               />
             </ion-segment-button>
           </ion-segment>
+          <!-- `filterable`: the old table's funnel, solid while filtering, with the count of filtered columns.
+               A toggle (`aria-pressed`): an ion-button hands a CHANGED aria-label/-pressed/-checked to its
+               native button, never an aria-expanded (it stays on the host, where no reader sees it). -->
+          <ion-button
+            v-if="showFunnel"
+            class="data-table__filter-button"
+            size="small"
+            :fill="filterPanelOpen || filtering ? 'solid' : 'outline'"
+            :title="label('filters')"
+            :aria-label="funnelName"
+            :aria-pressed="filterPanelOpen ? 'true' : 'false'"
+            :data-testid="tid('filters-toggle')"
+            @click="toggleFilterPanel"
+          >
+            <ion-icon
+              slot="icon-only"
+              :icon="icon(ICONS.filters)"
+              aria-hidden="true"
+            />
+            <span
+              v-if="filtering"
+              class="data-table__filter-count"
+              aria-hidden="true"
+              :data-testid="tid('filters-count')"
+            >{{ filterCountNow }}</span>
+          </ion-button>
           <!-- #113/#216 - The main action of the screen is read, not guessed: labelled, both viewports. -->
           <ion-button
             v-if="addable"
@@ -924,7 +1028,7 @@ onUpdated(nameSearchBox);
         </div>
         <!-- Column filters: one control per filtered column, in column order. -->
         <div
-          v-if="filterColumns.length"
+          v-if="filterColumns.length && !filterable"
           class="data-table__filters"
           role="group"
           :aria-label="label('filters')"
@@ -1589,6 +1693,133 @@ onUpdated(nameSearchBox);
           </ion-button>
         </div>
       </div>
+
+      <!-- `filterable`: the filters panel, inside the table (outfitkit's drawer): one control per
+           filtered column on a draft; «Clear» lifts them all now, «Apply» applies and closes. -->
+      <aside
+        v-if="filterPanelOpen"
+        class="data-table__drawer"
+        role="dialog"
+        tabindex="-1"
+        :aria-labelledby="filterTitleId"
+        :data-testid="tid('filters-panel')"
+        @keydown.esc="onFilterPanelEscape"
+      >
+        <header class="data-table__drawer-head">
+          <strong :id="filterTitleId">{{ label('filters') }}</strong>
+          <ion-button
+            fill="clear"
+            size="small"
+            :aria-label="label('close')"
+            :data-testid="tid('filters-close')"
+            @click="closeFilterPanel"
+          >
+            <ion-icon
+              slot="icon-only"
+              :icon="icon(ICONS.clear)"
+              aria-hidden="true"
+            />
+          </ion-button>
+        </header>
+        <div class="data-table__drawer-body">
+          <template
+            v-for="column in filterColumns"
+            :key="column.key"
+          >
+            <ion-select
+              v-if="column.filter?.type === 'select'"
+              :label="column.label"
+              label-placement="stacked"
+              fill="outline"
+              mode="md"
+              interface="popover"
+              :value="filterDraft[filterName(column)] ?? ''"
+              :data-testid="tid(`filter-${filterName(column)}`)"
+              @ion-change="onDraftFilter(filterName(column), $event)"
+            >
+              <ion-select-option value="">
+                {{ label('filterAll') }}
+              </ion-select-option>
+              <ion-select-option
+                v-for="option in column.filter.options ?? []"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </ion-select-option>
+            </ion-select>
+            <div
+              v-else-if="column.filter?.type === 'range'"
+              class="data-table__drawer-field"
+              role="group"
+              :aria-label="column.label"
+            >
+              <span
+                class="data-table__drawer-label"
+                aria-hidden="true"
+              >{{ column.label }}</span>
+              <div class="data-table__drawer-range">
+                <ion-input
+                  v-for="{ name, hint, named } in rangeEnds(column)"
+                  :key="name"
+                  type="number"
+                  inputmode="decimal"
+                  fill="outline"
+                  mode="md"
+                  :aria-label="named"
+                  :placeholder="hint"
+                  :value="filterDraft[name] ?? ''"
+                  :data-testid="tid(`filter-${name}`)"
+                  @ion-input="onDraftFilter(name, $event)"
+                />
+              </div>
+            </div>
+            <ion-input
+              v-else-if="column.filter?.type === 'date'"
+              type="date"
+              :label="column.label"
+              label-placement="stacked"
+              fill="outline"
+              mode="md"
+              :value="filterDraft[filterName(column)] ?? ''"
+              :data-testid="tid(`filter-${filterName(column)}`)"
+              @ion-change="onDraftFilter(filterName(column), $event)"
+            />
+            <ion-input
+              v-else
+              type="text"
+              :label="column.label"
+              label-placement="stacked"
+              fill="outline"
+              mode="md"
+              :clear-input="true"
+              :value="filterDraft[filterName(column)] ?? ''"
+              :data-testid="tid(`filter-${filterName(column)}`)"
+              @ion-input="onDraftFilter(filterName(column), $event)"
+            />
+          </template>
+        </div>
+        <footer class="data-table__drawer-foot">
+          <ion-button
+            class="data-table__drawer-clear"
+            fill="clear"
+            size="small"
+            :disabled="!canClearPanel"
+            :data-testid="tid('filters-clear')"
+            @click="clearFilterPanel"
+          >
+            {{ label('clear') }}
+          </ion-button>
+          <ion-button
+            class="data-table__primary-button"
+            size="small"
+            :data-testid="tid('filters-apply')"
+            @click="applyFilterPanel"
+          >
+            {{ label('apply') }}
+          </ion-button>
+        </footer>
+      </aside>
     </div>
   </div>
 </template>
@@ -1631,6 +1862,11 @@ onUpdated(nameSearchBox);
   --primary-contrast: var(--ion-color-primary-contrast, #ffffff);
   --border-radius: 16px;
   --font: var(--ion-font-family, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  /* The filters sheet below 834 px: where the content area begins and ends, and the safe area its
+     footer keeps. `useFilterSheet` publishes the measured ones while it is open (#197). */
+  --data-table-sheet-top: 0px;
+  --data-table-sheet-bottom: 0px;
+  --data-table-sheet-safe-bottom: env(safe-area-inset-bottom, 0px);
 
   display: block;
   color: var(--color);
@@ -1714,6 +1950,44 @@ onUpdated(nameSearchBox);
 .data-table__filter-range { display: inline-flex; align-items: center; gap: 0.35rem; }
 .data-table__filter-range .data-table__filter { min-width: 5.5rem; max-width: 7rem; }
 .data-table__filters-clear { margin: 0; font-size: 13px; }
+
+/* ── Filters panel (`filterable`) ────────────────────────────────────────────────────────────
+   The funnel: a 36px tool button, solid while filtering, with the count of filtered columns. */
+.data-table__filter-button { position: relative; --padding-start: 0; --padding-end: 0; --border-radius: 10px; width: 36px; height: 36px; margin: 0; }
+.data-table__filter-button .data-table__filter-count { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 999px; background: var(--primary); color: var(--primary-contrast); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
+/* The panel, INSIDE the table. Base: an overlay on the right edge (what a browser without media
+   queries sees). #75 - It PUSHES on a desk and is a WHOLE sheet on a phone, never half covering. */
+.data-table__drawer { position: absolute; top: 0; right: 0; height: 100%; width: 340px; max-width: 88%;
+  background: var(--background); border-left: 1px solid var(--border-color);
+  display: flex; flex-direction: column; z-index: 20;
+  animation: tk-slide-in 0.18s ease; }
+@keyframes tk-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+/* ≥ 834px: while it is open the surface is a grid of TWO columns (list | 360px panel): the list
+   narrows (it scrolls sideways inside, W-19) and nothing is covered (Square Dashboard). */
+@media (min-width: 834px) {
+  .data-table__surface--panel { display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto minmax(0, 1fr) auto; }
+  .data-table__surface--panel > .data-table__bar { grid-column: 1; grid-row: 1; }
+  .data-table__surface--panel > .data-table__scroll, .data-table__surface--panel > .data-table__cards, .data-table__surface--panel > .data-table__empty, .data-table__surface--panel > .data-table__error, .data-table__surface--panel > .data-table__loading { grid-column: 1; grid-row: 2; min-height: 0; overflow: auto; }
+  .data-table__surface--panel > .data-table__pager { grid-column: 1; grid-row: 3; }
+  .data-table__surface--panel > .data-table__drawer { position: static; grid-column: 2; grid-row: 1 / -1; width: auto; max-width: none; height: auto; min-height: 0; animation: none; }
+}
+/* < 834px: a sheet over the content area, with its header (title + Close): the app's header and
+   tab bar stay visible and in front (#197: the insets come from `useFilterSheet`; Shopify, Fresha). */
+@media (max-width: 833.98px) {
+  .data-table__drawer { position: fixed; inset: 0; top: var(--data-table-sheet-top, 0px); bottom: var(--data-table-sheet-bottom, 0px); width: 100%; max-width: none; height: auto; border-left: 0; z-index: 1000; }
+  /* Reaching the screen edge (no tab bar below), its footer keeps the safe area. */
+  .data-table__drawer-foot { padding-bottom: calc(0.6rem + var(--data-table-sheet-safe-bottom)); }
+}
+.data-table__drawer-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+  padding: 0.6rem 0.5rem 0.6rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 1rem; }
+.data-table__drawer-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.85rem; }
+/* A range: its column's name over its two ends. */
+.data-table__drawer-field { display: flex; flex-direction: column; gap: 0.45rem; }
+.data-table__drawer-label { font-size: 13px; font-weight: 500; color: var(--color); }
+.data-table__drawer-range { display: flex; gap: 0.5rem; }
+/* Its footer: «Clear» at the start, «Apply» at the end. */
+.data-table__drawer-foot { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; padding: 0.6rem 0.85rem; border-top: 1px solid var(--border-color); }
+.data-table__drawer-foot .data-table__drawer-clear { margin-right: auto; }
 .data-table__selection-bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.7rem; border-radius: 10px; font-size: 13px; color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
 /* `padding: revert`: the browser's own button padding, which normalize.css would zero. */
 .data-table__selection-clear { margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; cursor: pointer; font-weight: 500; color: inherit; background: none; border: 0; font: inherit; padding: revert; }
@@ -1818,6 +2092,7 @@ ion-card.data-table__card { margin: 0; }
 @media (pointer: coarse), (max-width: 834px) {
   .data-table__actions ion-button { min-width: 44px; min-height: 44px; margin: 0; }
   .data-table__view-segment ion-segment-button { min-height: 44px; }
+  .data-table__filter-button { width: 44px; height: 44px; }
   .data-table__add-button { min-height: 44px; }
   .data-table__pager-nav ion-button { min-width: 44px; min-height: 44px; margin: 0; }
   .data-table__error ion-button { min-height: 44px; --padding-start: 1rem; --padding-end: 1rem; }

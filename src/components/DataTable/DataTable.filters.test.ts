@@ -303,3 +303,258 @@ describe('in the card view', () => {
     expect([...t.element.querySelectorAll('.data-table__card')].map((c) => c.getAttribute('data-id'))).toEqual(['2']);
   });
 });
+
+// ── The filters panel (`filterable`): the old table's funnel, with the count of filters in use, opening a
+// panel INSIDE the table (PLAN-MIGRATIONS §13, 2026-10-15; outfitkit's `.drawer`): two columns from 834 px
+// (the list narrows, nothing is covered), a sheet over the content area below. The panel edits a draft:
+// «Apply» applies it and closes, «Clear» lifts every filter at once, Close and Escape drop the draft.
+describe('the filters panel (`filterable`)', () => {
+  const panelBase = { ...base, filterable: true, views: true, addable: true };
+  const funnel = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-toggle')[0] as HTMLElement & { fill?: string };
+  const panel = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-panel')[0] as HTMLElement | undefined;
+  const count = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-count')[0] as HTMLElement | undefined;
+  const surface = (t: ReturnType<typeof mountTable>) => t.element.querySelector('.data-table__surface') as HTMLElement;
+  /** An ARIA attribute of an Ionic control: once loaded, Ionic moves it from the host onto its native
+   *  element (in its shadow root, or a light child for a scoped one such as ion-input). */
+  const aria = (el: HTMLElement, name: string) =>
+    el.getAttribute(name) ?? (el.shadowRoot ?? el).querySelector(`[${name}]`)?.getAttribute(name) ?? null;
+  /** The `label` Ionic draws inside an input or a select (a property, not an attribute). */
+  const fieldLabel = (el: HTMLElement) => (el as HTMLElement & { label?: string }).label;
+  async function openPanel(t: ReturnType<typeof mountTable>): Promise<HTMLElement> {
+    await click(funnel(t));
+    return panel(t)!;
+  }
+
+  it('a funnel in the toolbar, after the list/cards switch and before «Add»; no filter row under the toolbar', async () => {
+    const t = mountTable(panelBase);
+    await settle();
+    expect(byTestId(t, 'rules-filters')).toHaveLength(0);
+    const bar = [...t.element.querySelector('.data-table__bar-main')!.children];
+    const at = (el: Element | null) => bar.indexOf(el as Element);
+    expect(at(funnel(t))).toBeGreaterThan(at(t.element.querySelector('.data-table__view-segment')));
+    expect(at(funnel(t))).toBeLessThan(at(t.element.querySelector('.data-table__add-button')));
+    expect(funnel(t).classList.contains('data-table__filter-button')).toBe(true);
+    expect(aria(funnel(t), 'aria-label')).toBe('Filters');
+    expect(aria(funnel(t), 'aria-pressed')).toBe('false');
+    expect(funnel(t).fill).toBe('outline');
+    expect(count(t)).toBeUndefined();
+    expect(panel(t)).toBeUndefined();
+  });
+
+  it('without `filterable` the column filters keep their row and there is no funnel (the lists that use it today)', async () => {
+    const t = mountTable(base);
+    await settle();
+    expect(byTestId(t, 'rules-filters')).toHaveLength(1);
+    expect(byTestId(t, 'rules-filters-toggle')).toHaveLength(0);
+  });
+
+  it('`filterable` with no filtered column paints no funnel', async () => {
+    const t = mountTable({ ...panelBase, columns: [{ key: 'name', label: 'Name' }] });
+    await settle();
+    expect(byTestId(t, 'rules-filters-toggle')).toHaveLength(0);
+  });
+
+  it('counts the filtered columns on the funnel (a range once) and says so to assistive tech', async () => {
+    const t = mountTable({ ...panelBase, filters: { status: 'active', rate_from: '5', rate_to: '30' } });
+    await settle();
+    expect(text(count(t))).toBe('2');
+    expect(count(t)!.getAttribute('aria-hidden')).toBe('true');
+    expect(aria(funnel(t), 'aria-label')).toBe('Filters (2 active)');
+    expect(funnel(t).fill).toBe('solid');
+  });
+
+  it('opens a panel inside the table: a named dialog with one labelled control per filtered column, in order, and the focus', async () => {
+    const t = mountTable(panelBase, { attachTo: document.body });
+    await settle();
+    const dialog = await openPanel(t);
+    expect(dialog.localName).toBe('aside');
+    expect(dialog.classList.contains('data-table__drawer')).toBe(true);
+    expect(dialog.getAttribute('role')).toBe('dialog');
+    const title = t.element.querySelector(`#${dialog.getAttribute('aria-labelledby')}`);
+    expect(text(title)).toBe('Filters');
+    expect(dialog.parentElement).toBe(surface(t));
+    expect(surface(t).classList.contains('data-table__surface--panel')).toBe(true);
+    expect(aria(funnel(t), 'aria-pressed')).toBe('true');
+    expect(document.activeElement === dialog, 'the focus is in the panel').toBe(true);
+    const names = [...dialog.querySelectorAll('[data-testid^="rules-filter-"]')].map((el) => el.getAttribute('data-testid'));
+    expect(names).toEqual(['rules-filter-name', 'rules-filter-status', 'rules-filter-rate_from', 'rules-filter-rate_to', 'rules-filter-day']);
+    expect(fieldLabel(control(t, 'name'))).toBe('Name');
+    expect(fieldLabel(control(t, 'status'))).toBe('Status');
+    expect(fieldLabel(control(t, 'day'))).toBe('Day');
+    expect((control(t, 'day') as HTMLElement & { type?: string }).type).toBe('date');
+    expect(aria(control(t, 'rate_from'), 'aria-label')).toBe('Rate: from');
+    // Ionic paints `fill` only in md (the shell pins ios): every control of the panel carries both.
+    for (const el of dialog.querySelectorAll<HTMLElement & { fill?: string; mode?: string }>('ion-input, ion-select')) {
+      expect(el.fill ?? el.getAttribute('fill'), el.getAttribute('data-testid') ?? '').toBe('outline');
+      expect(el.mode ?? el.getAttribute('mode'), el.getAttribute('data-testid') ?? '').toBe('md');
+    }
+  });
+
+  it('the panel edits a draft: nothing filters until «Apply», which applies, emits only the active filters and closes', async () => {
+    const t = mountTable(panelBase, { attachTo: document.body });
+    await settle();
+    await openPanel(t);
+    await change(control(t, 'status'), 'active');
+    await typeIn(control(t, 'rate_to'), '10');
+    await typeIn(control(t, 'name'), '  ');
+    expect(ids(t)).toEqual(['1', '2', '3']);
+    expect(t.emitted('update:filters')).toBeUndefined();
+    await click(byTestId(t, 'rules-filters-apply')[0]);
+    expect(ids(t)).toEqual(['3']);
+    expect(t.emitted('update:filters')).toEqual([[{ status: 'active', rate_to: '10' }]]);
+    expect(t.emitted('filtersChange')).toBeUndefined();
+    expect(panel(t)).toBeUndefined();
+    expect(surface(t).classList.contains('data-table__surface--panel')).toBe(false);
+    expect(text(count(t))).toBe('2');
+    expect(document.activeElement === funnel(t), 'the focus is back on the funnel').toBe(true);
+  });
+
+  it('«Clear» lifts every filter at once and keeps the panel open; with nothing to lift it is disabled', async () => {
+    const t = mountTable({ ...panelBase, filters: { status: 'inactive' } }, { attachTo: document.body });
+    await settle();
+    await openPanel(t);
+    const clear = () => byTestId(t, 'rules-filters-clear')[0] as HTMLButtonElement;
+    expect(clear().disabled).toBe(false);
+    await click(clear());
+    expect(t.emitted('update:filters')).toEqual([[{}]]);
+    expect(ids(t)).toEqual(['1', '2', '3']);
+    expect(panel(t)).toBeDefined();
+    expect(control(t, 'status').value).toBe('');
+    expect(count(t)).toBeUndefined();
+    expect(clear().disabled).toBe(true);
+    await typeIn(control(t, 'name'), 'ana');
+    expect(clear().disabled).toBe(false);
+  });
+
+  it('Close, Escape or the funnel again close it without applying; it opens again on what is applied', async () => {
+    const t = mountTable({ ...panelBase, filters: { status: 'inactive' } }, { attachTo: document.body });
+    await settle();
+    for (const close of [
+      () => click(byTestId(t, 'rules-filters-close')[0]),
+      async () => {
+        panel(t)!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await settle();
+      },
+      () => click(funnel(t)),
+    ]) {
+      await openPanel(t);
+      await change(control(t, 'status'), 'active');
+      await close();
+      expect(panel(t)).toBeUndefined();
+      expect(document.activeElement === funnel(t), 'the focus is back on the funnel').toBe(true);
+      expect(ids(t)).toEqual(['2']);
+      await openPanel(t);
+      expect(control(t, 'status').value).toBe('inactive');
+      await click(byTestId(t, 'rules-filters-close')[0]);
+    }
+    expect(t.emitted('update:filters')).toBeUndefined();
+  });
+
+  it('an Escape a control inside already used (its own dropdown) leaves the panel open', async () => {
+    const t = mountTable(panelBase, { attachTo: document.body });
+    await settle();
+    await openPanel(t);
+    const used = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    used.preventDefault();
+    control(t, 'status').dispatchEvent(used);
+    await settle();
+    expect(panel(t)).toBeDefined();
+  });
+
+  it('outfitkit#106: server mode with filters from outside (the address) paints them on the funnel and in the panel', async () => {
+    const t = mountTable({ ...panelBase, serverSide: true, total: 3, pageSizeOptions: [10], filters: { status: 'active', rate_from: '5', day: '2026-10-14' } });
+    await settle();
+    expect(text(count(t))).toBe('3');
+    await openPanel(t);
+    expect(control(t, 'status').value).toBe('active');
+    expect(control(t, 'rate_from').value).toBe('5');
+    expect(control(t, 'day').value).toBe('2026-10-14');
+    expect(control(t, 'name').value).toBe('');
+    await typeIn(control(t, 'rate_from'), '');
+    await click(byTestId(t, 'rules-filters-apply')[0]);
+    expect(t.emitted('filtersChange')).toEqual([[{ status: 'active', day: '2026-10-14' }]]);
+    expect(ids(t)).toEqual(['1', '2', '3']);
+    expect(text(count(t))).toBe('2');
+  });
+
+  it('outfitkit#116: a name no column declares (a stale address parameter) is never sent nor counted', async () => {
+    const t = mountTable({ ...panelBase, serverSide: true, total: 3, pageSizeOptions: [10], filters: { status: 'active', city: 'Madrid', name: ' ' } });
+    await settle();
+    expect(text(count(t))).toBe('1');
+    await openPanel(t);
+    await typeIn(control(t, 'name'), 'ana');
+    await click(byTestId(t, 'rules-filters-apply')[0]);
+    expect(t.emitted('filtersChange')).toEqual([[{ status: 'active', name: 'ana' }]]);
+    expect(t.emitted('update:filters')).toEqual([[{ status: 'active', name: 'ana' }]]);
+  });
+
+  it('a change of the applied filters from outside while it is open is what the panel shows', async () => {
+    const t = mountTable({ ...panelBase, filters: { status: 'inactive' } }, { attachTo: document.body });
+    await settle();
+    await openPanel(t);
+    await t.setProps({ filters: { status: 'active' } });
+    await settle();
+    expect(control(t, 'status').value).toBe('active');
+  });
+
+  it('closes when its columns stop declaring filters (nothing left to filter, no funnel to come back to)', async () => {
+    const t = mountTable(panelBase, { attachTo: document.body });
+    await settle();
+    await openPanel(t);
+    await t.setProps({ columns: [{ key: 'name', label: 'Name' }] });
+    await settle();
+    expect(panel(t)).toBeUndefined();
+    expect(surface(t).classList.contains('data-table__surface--panel')).toBe(false);
+  });
+
+  it('keeps the toolbar and its funnel when the filters leave nothing (hideToolbarWhenEmpty)', async () => {
+    const t = mountTable({ ...panelBase, serverSide: true, rows: [], total: 0, hideToolbarWhenEmpty: true, filters: { status: 'inactive' } });
+    await settle();
+    expect(byTestId(t, 'rules-filters-toggle')).toHaveLength(1);
+    expect(text(count(t))).toBe('1');
+  });
+
+  it('speaks Spanish: «Filtros», «Aplicar», «Limpiar», «Cerrar», the count, «Todos», «Desde»/«Hasta»', async () => {
+    const t = mountTable({ ...panelBase, filters: { status: 'active' } }, { locale: 'es', attachTo: document.body });
+    await settle();
+    expect(aria(funnel(t), 'aria-label')).toBe('Filtros (1 activo)');
+    await t.setProps({ filters: { status: 'active', name: 'a' } });
+    await settle();
+    expect(aria(funnel(t), 'aria-label')).toBe('Filtros (2 activos)');
+    const dialog = await openPanel(t);
+    expect(text(t.element.querySelector(`#${dialog.getAttribute('aria-labelledby')}`))).toBe('Filtros');
+    expect(text(byTestId(t, 'rules-filters-apply')[0])).toBe('Aplicar');
+    expect(text(byTestId(t, 'rules-filters-clear')[0])).toBe('Limpiar');
+    expect(aria(byTestId(t, 'rules-filters-close')[0], 'aria-label')).toBe('Cerrar');
+    expect(text(control(t, 'status').querySelector('ion-select-option'))).toBe('Todos');
+    expect((control(t, 'rate_from') as HTMLElement & { placeholder?: string }).placeholder).toBe('Desde');
+    expect((control(t, 'rate_to') as HTMLElement & { placeholder?: string }).placeholder).toBe('Hasta');
+  });
+
+  it('outfitkit#197: while open, the table publishes where the content area begins and ends (the phone sheet’s insets)', async () => {
+    const ionPage = document.createElement('div');
+    ionPage.className = 'ion-page';
+    ionPage.getBoundingClientRect = () => ({ top: 0, bottom: 844 }) as DOMRect;
+    const content = document.createElement('ion-content');
+    content.getBoundingClientRect = () => ({ top: 56, bottom: 778 }) as DOMRect;
+    ionPage.appendChild(content);
+    document.body.appendChild(ionPage);
+    const t = mountTable(panelBase, { attachTo: content });
+    await settle();
+    await openPanel(t);
+    expect(t.element.style.getPropertyValue('--data-table-sheet-top')).toBe('56px');
+    expect(t.element.style.getPropertyValue('--data-table-sheet-bottom')).toBe('66px');
+    await click(byTestId(t, 'rules-filters-close')[0]);
+    expect(t.element.style.getPropertyValue('--data-table-sheet-bottom')).toBe('');
+  });
+});
+
+describe('the filter row sends only what the columns declare (outfitkit#116)', () => {
+  it('a name no column declares, passed in by the parent, is not sent again nor offers «Clear filters»', async () => {
+    const t = mountTable({ ...base, serverSide: true, total: 3, pageSizeOptions: [10], filters: { city: 'Madrid' } });
+    await settle();
+    expect(clearChip(t)).toBeUndefined();
+    await change(control(t, 'status'), 'active');
+    expect(t.emitted('filtersChange')).toEqual([[{ status: 'active' }]]);
+  });
+});
