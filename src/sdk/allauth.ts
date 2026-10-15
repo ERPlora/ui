@@ -1,8 +1,10 @@
 /**
  * Client of allauth.headless's browser API (`/_allauth/browser/v1`), for the SaaS's account pages.
- * Only transport: the session, the password login, the logout, two-factor authentication (the
- * login's 2FA step, TOTP, recovery codes and reauthentication), the password change and the linked
- * provider accounts; allauth decides everything.
+ * Only transport: the session, the password login (which also signs up an unknown address), the
+ * code steps that follow (the email verification of a sign-up, the code mailed at every password
+ * sign-in), the logout, the password reset by link, two-factor
+ * authentication (the login's 2FA step, TOTP, recovery codes and reauthentication), the password
+ * change and the linked provider accounts; allauth decides everything.
  *
  * - Same-origin session cookie; unsafe methods carry Django's CSRF token from the header provider
  *   (the SPA's HTML sets the cookie, and so does `GET …/auth/session`).
@@ -157,6 +159,18 @@ export interface AllauthClient {
   getSession(): Promise<AuthState>;
   login(credentials: { email: string; password: string }): Promise<AuthState>;
   logout(): Promise<AuthState>;
+  /** The code mailed to a login or sign-up whose `pendingFlow` is `verify_email` (allauth's `key`). */
+  verifyEmail(code: string): Promise<AuthState>;
+  /** Mails a new code for the pending `verify_email`; 409 when the server sends no more. */
+  resendEmailVerification(): Promise<void>;
+  /** The code mailed to a password login whose `pendingFlow` is `login_by_code`; 409 when none waits. */
+  confirmLoginCode(code: string): Promise<AuthState>;
+  /** Mails a reset link; the same answer whether the address has an account or not. */
+  requestPasswordReset(email: string): Promise<void>;
+  /** Checks the key of a reset link and answers its account; an invalid or used key rejects on `key`. */
+  passwordResetKeyInfo(key: string): Promise<AllauthUser>;
+  /** Sets the new password with the link's key: signed in, or the anonymous state (sign in next). */
+  resetPassword(key: string, password: string): Promise<AuthState>;
   /** The second step of a login whose `pendingFlow` is `mfa_authenticate` (TOTP or recovery code). */
   mfaAuthenticate(code: string): Promise<AuthState>;
   reauthenticate(password: string): Promise<void>;
@@ -261,8 +275,8 @@ export function createAllauthClient(cfg: AllauthConfig, overrides: Partial<Allau
   const deps: AllauthDeps = { ...browserDeps(cfg), ...overrides };
 
   /** One round trip: a JSON object answer, or the transport errors and the reauthentication. */
-  async function send(method: string, path: string, body?: object): Promise<Reply> {
-    const headers: Record<string, string> = { ...deps.headers.apiHeaders(method), Accept: "application/json" };
+  async function send(method: string, path: string, body?: object, extra: Record<string, string> = {}): Promise<Reply> {
+    const headers: Record<string, string> = { ...deps.headers.apiHeaders(method), Accept: "application/json", ...extra };
     if (body !== undefined) headers["Content-Type"] = "application/json";
     let res: Response;
     try {
@@ -312,10 +326,32 @@ export function createAllauthClient(cfg: AllauthConfig, overrides: Partial<Allau
     throw errorOf(reply.status, reply.payload.errors);
   }
 
+  /** A call of an anonymous visitor answered with a plain 200; anything else rejects. */
+  async function anonymousCall(method: string, path: string, body?: object, extra?: Record<string, string>): Promise<Reply> {
+    const reply = await send(method, path, body, extra);
+    if (reply.status === 200) return reply;
+    throw errorOf(reply.status, reply.payload.errors);
+  }
+
   return {
     getSession: () => authState("GET", "/auth/session"),
     login: (credentials) => authState("POST", "/auth/login", credentials),
     logout: () => authState("DELETE", "/auth/session"),
+    verifyEmail: (code) => authState("POST", "/auth/email/verify", { key: code }),
+    resendEmailVerification: async () => {
+      await anonymousCall("POST", "/auth/email/verify/resend");
+    },
+    confirmLoginCode: (code) => authState("POST", "/auth/code/confirm", { code }),
+    requestPasswordReset: async (email) => {
+      await anonymousCall("POST", "/auth/password/request", { email });
+    },
+    passwordResetKeyInfo: async (key) => {
+      const { status, payload } = await anonymousCall("GET", "/auth/password/reset", undefined, { "X-Password-Reset-Key": key });
+      const data = isRecord(payload.data) ? payload.data : {};
+      if (!isRecord(data.user)) throw unexpected(status);
+      return data.user as unknown as AllauthUser;
+    },
+    resetPassword: (key, password) => authState("POST", "/auth/password/reset", { key, password }),
     mfaAuthenticate: (code) => authState("POST", "/auth/2fa/authenticate", { code }),
     reauthenticate: async (password) => {
       await account("POST", "/auth/reauthenticate", { password });

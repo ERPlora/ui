@@ -5,6 +5,7 @@ import * as a11y from './a11y';
 import * as happyDom from './happyDom';
 import * as icons from './icons';
 import * as testing from './index';
+import * as mail from './mail';
 
 describe('@erplora/ui/testing (helpers for the tests of this package and of the apps; Node only)', () => {
   it('is a package entry point', () => {
@@ -25,5 +26,17 @@ describe('@erplora/ui/testing (helpers for the tests of this package and of the 
 
   it('carries the happy-dom gaps an app’s test setup fills for Ionic: fillHappyDomGaps', () => {
     expect(testing.fillHappyDomGaps).toBe(happyDom.fillHappyDomGaps);
+  });
+
+  it('carries the mails of a Django file backend: readMailCode, readPasswordResetLink, waitForMail, readMails', () => {
+    expect(testing.readMailCode).toBe(mail.readMailCode);
+    expect(testing.readPasswordResetLink).toBe(mail.readPasswordResetLink);
+    expect(testing.waitForMail).toBe(mail.waitForMail);
+    expect(testing.readMails).toBe(mail.readMails);
+    expect(testing.MAIL_CODE).toBe(mail.MAIL_CODE);
+  });
+
+  it('serves the mails alone for an e2e in plain Node (Playwright), without the icons Vite bakes', () => {
+    expect((pkg.exports as Record<string, string>)['./testing/mail']).toBe('./src/testing/mail.ts');
   });
 });

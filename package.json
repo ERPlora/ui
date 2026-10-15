@@ -9,7 +9,8 @@
     "./vite": "./src/vite.ts",
     "./shell": "./src/shell/index.ts",
     "./components": "./src/components/index.ts",
-    "./testing": "./src/testing/index.ts"
+    "./testing": "./src/testing/index.ts",
+    "./testing/mail": "./src/testing/mail.ts"
   },
   "scripts": {
     "test": "vitest run",

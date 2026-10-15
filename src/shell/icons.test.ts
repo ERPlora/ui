@@ -111,6 +111,12 @@ describe('resolveIcon', () => {
     }
   });
 
+  it("resolves the lucide icons of the SaaS's sign-in steps (the mailed code of a new account)", () => {
+    const src = resolveIcon('lucide:mail-check');
+    expect(src).toMatch(SVG_URL);
+    expect(src).toContain('currentColor');
+  });
+
   it("resolves the lucide icons of the SaaS panel's menu (saas-next base/navigation.py)", () => {
     for (const name of ['lucide:store', 'lucide:shopping-bag', 'lucide:receipt', 'lucide:circle-user']) {
       const src = resolveIcon(name);

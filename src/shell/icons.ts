@@ -116,6 +116,7 @@ import lucideLayers from '~icons/lucide/layers';
 import lucideLayoutDashboard from '~icons/lucide/layout-dashboard';
 import lucideLifeBuoy from '~icons/lucide/life-buoy';
 import lucideLock from '~icons/lucide/lock';
+import lucideMailCheck from '~icons/lucide/mail-check';
 import lucideMailOpen from '~icons/lucide/mail-open';
 import lucideMonitorDown from '~icons/lucide/monitor-down';
 import lucidePanelLeft from '~icons/lucide/panel-left';
@@ -252,6 +253,7 @@ const SET_ICONS: Readonly<Record<string, string>> = Object.freeze({
   'lucide:layout-dashboard': svgUrl(lucideLayoutDashboard),
   'lucide:life-buoy': svgUrl(lucideLifeBuoy),
   'lucide:lock': svgUrl(lucideLock),
+  'lucide:mail-check': svgUrl(lucideMailCheck),
   'lucide:mail-open': svgUrl(lucideMailOpen),
   'lucide:monitor-down': svgUrl(lucideMonitorDown),
   'lucide:panel-left': svgUrl(lucidePanelLeft),
