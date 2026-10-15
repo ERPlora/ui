@@ -1,6 +1,6 @@
 // Pure logic of the DataTable, ported from `ok-data-table.ts` (OutfitKit) with the cases of its
 // Lit tests that do not need a DOM.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   cardTitleColumn,
@@ -369,6 +369,23 @@ describe('filterColumnsOf: the filters a table offers, in a stable order', () =>
     expect(all[2]).toEqual({ key: 'is_active', label: 'Active', filter: fields[0] });
     expect(all.flatMap((c) => filterKeys(c))).toEqual(['name', 'rate_from', 'rate_to', 'is_active', 'spent_from', 'spent_to']);
     expect(filterColumnsOf(columns, undefined).map((c) => c.key)).toEqual(['name', 'rate']);
+  });
+
+  it('a field whose name a column’s filter or an earlier field already takes is left out, with a warning (the column wins)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const columns = [col({ key: 'rate', filter: { type: 'range' } }), col({ key: 'city', filter: { type: 'select', key: 'city_id', options: [] } })];
+    const fields = [
+      { key: 'rate', label: 'Rate again', type: 'text' as const },
+      { key: 'city_id', label: 'City again', type: 'text' as const },
+      { key: 'other', label: 'Its ends clash', type: 'range' as const, keys: ['rate_from', 'other_to'] as const },
+      { key: 'is_active', label: 'Active', type: 'boolean' as const },
+      { key: 'is_active', label: 'Active again', type: 'boolean' as const },
+    ];
+    const all = filterColumnsOf(columns, fields);
+    expect(all.map((c) => c.label)).toEqual(['rate', 'city', 'Active']);
+    expect(warn).toHaveBeenCalledTimes(4);
+    expect(String(warn.mock.calls[0][0])).toContain('rate');
+    warn.mockRestore();
   });
 
   it('a field filters the rows by its own key, counts on the funnel and is sent (#116)', () => {

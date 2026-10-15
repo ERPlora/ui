@@ -28,7 +28,8 @@
 // `filterable` puts those controls behind the toolbar's funnel instead (the old table, PLAN-MIGRATIONS
 // §13): the funnel counts the filtered columns and opens a panel INSIDE the table, two columns from
 // 834 px (the list narrows, nothing is covered) and a sheet over the content area below, between the
-// app's header and its tab bar (outfitkit#75/#197, `useFilterSheet`). The panel edits a draft: «Apply»
+// app's header and its tab bar (outfitkit#75/#197, `useFilterSheet`), modal there (`aria-modal`, Tab kept
+// inside it). The panel edits a draft: «Apply»
 // applies it and closes, «Clear» lifts every filter at once, Close, Escape and the funnel drop it.
 // `pageSizeChooser: false` drops «rows per page» (the footer still counts and pages);
 // `hideToolbarWhenEmpty` paints a list with no record as its empty state alone, without toolbar
@@ -132,7 +133,7 @@ import type {
   DataTableView,
 } from './types';
 import { type DataTableFitStep, useDataTableLayout } from './useDataTableLayout';
-import { useFilterSheet } from './useFilterSheet';
+import { trapTab, useFilterSheet } from './useFilterSheet';
 
 const props = withDefaults(
   defineProps<{
@@ -445,7 +446,11 @@ const funnelName = computed(() => {
 /** «Clear» has something to lift: a filter applied, or one written in the draft. */
 const canClearPanel = computed(() => filtering.value || Object.keys(activeFilters(filterDraft.value)).length > 0);
 // Below 834 px the panel is a sheet over the content area: where that area begins and ends (#197).
-useFilterSheet(() => root.value, () => filterPanelOpen.value);
+const { sheet: panelIsSheet } = useFilterSheet(() => root.value, () => filterPanelOpen.value);
+/** Below 834 px the panel is a modal sheet over the list: Tab stays inside it. */
+function onFilterPanelTab(ev: KeyboardEvent): void {
+  if (panelIsSheet.value) trapTab(ev.currentTarget as HTMLElement, ev);
+}
 
 function openFilterPanel(): void {
   filterDraft.value = declaredFilters(filterColumns.value, filterValues.value);
@@ -1812,8 +1817,10 @@ onUpdated(nameSearchBox);
         role="dialog"
         tabindex="-1"
         :aria-labelledby="filterTitleId"
+        :aria-modal="panelIsSheet ? 'true' : undefined"
         :data-testid="tid('filters-panel')"
         @keydown.esc="onFilterPanelEscape"
+        @keydown.tab="onFilterPanelTab"
       >
         <header class="data-table__drawer-head">
           <strong :id="filterTitleId">{{ label('filters') }}</strong>

@@ -2,7 +2,8 @@
 // accounts…): one choice among more than a list can hold, inside the table's filters panel (no dialog of its
 // own). The current choice is named (with a clear button); a search box asks the page's `load` for what is
 // typed (the first matches on focus) and lists them; loading, empty and failed answers are said, a failure
-// with «Retry»; the server's refusal (`filterErrors`) is painted under the field.
+// with «Retry»; the server's refusal (`filterErrors`) is painted under the field. The search box is an ARIA
+// combobox over a listbox (WAI-ARIA APG): arrows move the active option, Enter picks it, Escape folds the list.
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -21,7 +22,7 @@ const PEOPLE: DataTableFilterOption[] = [
 
 function mountLookup(props: Record<string, unknown> = {}, locale: 'en' | 'es' = 'en') {
   return mount(DataTableLookup, {
-    props: { label: 'Employee', value: '', load: vi.fn(async () => PEOPLE), testid: 'staff-filter-user_id', ...props },
+    props: { label: 'Employee', value: '', load: vi.fn(async () => PEOPLE), testid: 'staff-filter-user_id', debounce: 0, ...props },
     global: { plugins: [createShellI18n({ locale })] },
     attachTo: document.body,
   });
@@ -38,13 +39,22 @@ const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace
 /** An ARIA attribute of an Ionic control, on its host or its native element. */
 const aria = (el: HTMLElement, name: string) => el.getAttribute(name) ?? (el.shadowRoot ?? el).querySelector(`[${name}]`)?.getAttribute(name) ?? null;
 
+const input = (w: Lookup) => hook(w, '-search') as HTMLInputElement;
 async function focus(w: Lookup): Promise<void> {
-  hook(w, '-search')!.dispatchEvent(new CustomEvent('ionFocus'));
+  input(w).dispatchEvent(new FocusEvent('focus'));
   await flushPromises();
 }
 async function type(w: Lookup, value: string): Promise<void> {
-  hook(w, '-search')!.dispatchEvent(new CustomEvent('ionInput', { detail: { value } }));
+  input(w).value = value;
+  input(w).dispatchEvent(new Event('input', { bubbles: true }));
   await flushPromises();
+}
+/** A key on the search box; returns the event (to read `defaultPrevented`). */
+async function key(w: Lookup, name: string): Promise<KeyboardEvent> {
+  const ev = new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true });
+  input(w).dispatchEvent(ev);
+  await flushPromises();
+  return ev;
 }
 
 describe('DataTableLookup', () => {
@@ -54,7 +64,8 @@ describe('DataTableLookup', () => {
     expect(hook(w)!.getAttribute('role')).toBe('group');
     expect(hook(w)!.getAttribute('aria-label')).toBe('Employee');
     expect(text(w.element.querySelector('.data-table-lookup__label'))).toBe('Employee');
-    expect(hook(w, '-search')!.localName).toBe('ion-searchbar');
+    expect(input(w).localName).toBe('input');
+    expect(input(w).labels?.[0]?.textContent?.trim()).toBe('Employee');
     expect(hook(w, '-chosen')).toBeNull();
     expect(load).not.toHaveBeenCalled();
   });
@@ -74,7 +85,7 @@ describe('DataTableLookup', () => {
     await flushPromises();
     expect(w.emitted('change')).toEqual([['9', 'Luis Pérez']]);
     expect(all(w, '-option')).toHaveLength(0);
-    expect((hook(w, '-search') as HTMLElement & { value?: string }).value).toBe('');
+    expect(input(w).value).toBe('');
   });
 
   it('names the current choice (its label, else the value) and clears it', async () => {
@@ -87,12 +98,6 @@ describe('DataTableLookup', () => {
     expect(w.emitted('change')).toEqual([['', '']]);
     await w.setProps({ value: '12', display: undefined });
     expect(text(hook(w, '-chosen'))).toBe('12');
-  });
-
-  it('marks the current choice in the list', async () => {
-    const w = mountLookup({ value: '9', display: 'Luis Pérez' });
-    await focus(w);
-    expect(all(w, '-option').map((el) => el.getAttribute('aria-current'))).toEqual([null, 'true']);
   });
 
   it('says it is loading, and that nothing matched', async () => {
@@ -138,14 +143,82 @@ describe('DataTableLookup', () => {
     const w = mountLookup({ errorText: 'Unknown employee.' });
     const error = hook(w, '-field-error')!;
     expect(text(error)).toBe('Unknown employee.');
-    expect(aria(hook(w, '-search')!, 'aria-describedby')).toBe(error.id);
+    expect(input(w).getAttribute('aria-describedby')).toBe(error.id);
   });
 
   it('speaks Spanish', async () => {
     const w = mountLookup({ value: '7', display: 'Ana García', load: vi.fn(async () => []) }, 'es');
     expect(aria(hook(w, '-clear')!, 'aria-label')).toBe('Quitar Employee');
-    expect((hook(w, '-search') as HTMLElement & { placeholder?: string }).placeholder).toBe('Buscar…');
+    expect(input(w).placeholder).toBe('Buscar…');
     await focus(w);
     expect(text(hook(w, '-empty'))).toBe('Sin coincidencias');
+  });
+
+  it('is a combobox over a listbox: expanded while options are listed, each option named and marked when chosen', async () => {
+    const load = async (query: string) => PEOPLE.filter((p) => p.label.toLowerCase().includes(query));
+    const w = mountLookup({ value: '9', display: 'Luis Pérez', load });
+    const box = input(w);
+    expect(box.getAttribute('role')).toBe('combobox');
+    expect(box.getAttribute('aria-autocomplete')).toBe('list');
+    expect(box.getAttribute('aria-expanded')).toBe('false');
+    await focus(w);
+    expect(box.getAttribute('aria-expanded')).toBe('true');
+    const list = w.element.querySelector(`#${box.getAttribute('aria-controls')}`)!;
+    expect(list.getAttribute('role')).toBe('listbox');
+    expect(list.getAttribute('aria-label')).toBe('Employee');
+    expect(all(w, '-option').map((o) => [o.getAttribute('role'), o.getAttribute('aria-selected')])).toEqual([
+      ['option', 'false'],
+      ['option', 'true'],
+    ]);
+    await type(w, 'nobody');
+    expect(box.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('the arrows move the active option (aria-activedescendant), Enter picks it', async () => {
+    const w = mountLookup();
+    await key(w, 'ArrowDown');
+    const options = () => all(w, '-option');
+    expect(input(w).getAttribute('aria-activedescendant')).toBe(options()[0].id);
+    expect(options()[0].classList.contains('data-table-lookup__option--active')).toBe(true);
+    await key(w, 'ArrowDown');
+    await key(w, 'ArrowDown');
+    expect(input(w).getAttribute('aria-activedescendant')).toBe(options()[1].id);
+    await key(w, 'ArrowUp');
+    expect(input(w).getAttribute('aria-activedescendant')).toBe(options()[0].id);
+    const enter = await key(w, 'Enter');
+    expect(enter.defaultPrevented).toBe(true);
+    expect(w.emitted('change')).toEqual([['7', 'Ana García']]);
+    expect(input(w).hasAttribute('aria-activedescendant')).toBe(false);
+  });
+
+  it('Escape folds an open list and stops there; with the list folded it is left to the panel', async () => {
+    const w = mountLookup();
+    await focus(w);
+    const fold = await key(w, 'Escape');
+    expect(fold.defaultPrevented).toBe(true);
+    expect(input(w).getAttribute('aria-expanded')).toBe('false');
+    expect(all(w, '-option')).toHaveLength(0);
+    const leave = await key(w, 'Escape');
+    expect(leave.defaultPrevented).toBe(false);
+    const enter = await key(w, 'Enter');
+    expect(enter.defaultPrevented).toBe(false);
+    expect(w.emitted('change')).toBeUndefined();
+  });
+
+  it('asks once the person stops typing (300 ms by default)', async () => {
+    vi.useFakeTimers();
+    try {
+      const load = vi.fn(async () => PEOPLE);
+      const w = mountLookup({ load, debounce: undefined });
+      input(w).value = 'a';
+      input(w).dispatchEvent(new Event('input'));
+      input(w).value = 'an';
+      input(w).dispatchEvent(new Event('input'));
+      expect(load).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(300);
+      expect(load.mock.calls).toEqual([['an']]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

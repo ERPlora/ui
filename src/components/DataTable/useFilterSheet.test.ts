@@ -6,8 +6,8 @@ import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, ref } from 'vue';
 
-import { mockResizeObserver } from './__tests__/harness';
-import { sheetInsets, useFilterSheet } from './useFilterSheet';
+import { crossBreakpoint, mockResizeObserver, ResizeObserverMock, viewport } from './__tests__/harness';
+import { sheetInsets, trapTab, useFilterSheet } from './useFilterSheet';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -39,15 +39,16 @@ function page(pageBox: DOMRect | null, contentBox: DOMRect | null): HTMLElement 
 }
 
 function mountProbe(host: HTMLElement, open = ref(false)) {
+  let sheet = ref(false);
   const Probe = defineComponent({
     setup() {
       const root = ref<HTMLElement | null>(null);
-      useFilterSheet(() => root.value, () => open.value);
+      sheet = useFilterSheet(() => root.value, () => open.value).sheet;
       return () => h('div', { ref: root, class: 'probe' });
     },
   });
   const wrapper = mount(Probe, { attachTo: host });
-  return { wrapper, open, el: () => wrapper.element as HTMLElement };
+  return { wrapper, open, el: () => wrapper.element as HTMLElement, sheet: () => sheet.value };
 }
 
 const vars = (el: HTMLElement) => ({
@@ -154,5 +155,84 @@ describe('useFilterSheet', () => {
     const removed = vi.spyOn(window, 'removeEventListener');
     wrapper.unmount();
     expect(removed).toHaveBeenCalledWith('resize', expect.any(Function));
+  });
+
+  it('stops observing the content when it closes and when it is unmounted', async () => {
+    mockResizeObserver();
+    const disconnect = vi.spyOn(ResizeObserverMock.prototype, 'disconnect');
+    const { wrapper, open } = mountProbe(page(box(0, 844), box(56, 778)));
+    open.value = true;
+    await nextTick();
+    const opened = disconnect.mock.calls.length;
+    open.value = false;
+    await nextTick();
+    expect(disconnect.mock.calls.length, 'on close').toBe(opened + 1);
+    open.value = true;
+    await nextTick();
+    const reopened = disconnect.mock.calls.length;
+    wrapper.unmount();
+    expect(disconnect.mock.calls.length, 'on unmount').toBe(reopened + 1);
+  });
+
+  it('says whether the open panel is a sheet (below 834 px), following the breakpoint while open', async () => {
+    viewport(true);
+    const { open, sheet } = mountProbe(page(box(0, 844), box(56, 778)));
+    expect(sheet()).toBe(false);
+    open.value = true;
+    await nextTick();
+    expect(sheet()).toBe(true);
+    crossBreakpoint(false);
+    expect(sheet()).toBe(false);
+    crossBreakpoint(true);
+    expect(sheet()).toBe(true);
+    open.value = false;
+    await nextTick();
+    expect(sheet()).toBe(false);
+    viewport(false);
+    open.value = true;
+    await nextTick();
+    expect(sheet()).toBe(false);
+  });
+});
+
+describe('trapTab: Tab and Shift+Tab cycle inside the sheet', () => {
+  function sheetWith(...html: string[]): HTMLElement[] {
+    const sheet = document.createElement('aside');
+    sheet.tabIndex = -1;
+    sheet.innerHTML = html.join('');
+    document.body.appendChild(sheet);
+    return [sheet, ...sheet.querySelectorAll<HTMLElement>('[data-k]')];
+  }
+  const tab = (from: HTMLElement, sheet: HTMLElement, shiftKey = false) => {
+    from.focus();
+    const ev = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
+    trapTab(sheet, ev);
+    return ev;
+  };
+
+  it('from the last control Tab goes to the first; from the first Shift+Tab goes to the last', () => {
+    const [sheet, first, , , last] = sheetWith(
+      '<button data-k>Close</button>',
+      '<button data-k disabled>Off</button>',
+      '<input data-k>',
+      '<button data-k>Apply</button>',
+    );
+    expect(tab(last, sheet).defaultPrevented).toBe(true);
+    expect(document.activeElement === first).toBe(true);
+    expect(tab(first, sheet, true).defaultPrevented).toBe(true);
+    expect(document.activeElement === last).toBe(true);
+  });
+
+  it('in between it leaves Tab to the browser; from outside (the sheet itself) it starts at the first', () => {
+    const [sheet, first, middle] = sheetWith('<button data-k>Close</button>', '<input data-k>', '<button data-k>Apply</button>');
+    expect(tab(middle, sheet).defaultPrevented).toBe(false);
+    expect(tab(sheet, sheet).defaultPrevented).toBe(true);
+    expect(document.activeElement === first).toBe(true);
+  });
+
+  it('skips what cannot take the focus (disabled, tabindex -1)', () => {
+    const [sheet, , focusable] = sheetWith('<span tabindex="-1" data-k>no</span>', '<button data-k>Only</button>', '<button data-k disabled>Off</button>');
+    expect(tab(focusable, sheet).defaultPrevented).toBe(true);
+    expect(document.activeElement === focusable).toBe(true);
   });
 });

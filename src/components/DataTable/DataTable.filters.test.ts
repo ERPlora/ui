@@ -450,6 +450,38 @@ describe('the filters panel (`filterable`)', () => {
     expect(t.emitted('update:filters')).toBeUndefined();
   });
 
+  it('below 834 px the panel is a modal sheet: Tab and Shift+Tab cycle inside it, and the trap goes with it', async () => {
+    viewport(true);
+    const t = mountTable(panelBase, { attachTo: document.body });
+    await settle();
+    const dialog = await openPanel(t);
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    const close = byTestId(t, 'rules-filters-close')[0];
+    const apply = byTestId(t, 'rules-filters-apply')[0];
+    const tab = (from: HTMLElement, shiftKey = false) => {
+      (from.shadowRoot?.querySelector('button') ?? from).focus();
+      const ev = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
+      from.dispatchEvent(ev);
+      return ev;
+    };
+    expect(tab(apply).defaultPrevented).toBe(true);
+    expect(document.activeElement === close, 'Tab on «Apply» goes back to «Close»').toBe(true);
+    expect(tab(close, true).defaultPrevented).toBe(true);
+    expect(document.activeElement === apply, 'Shift+Tab on «Close» goes to «Apply»').toBe(true);
+  });
+
+  it('from 834 px the panel sits beside the list: not modal, Tab leaves it', async () => {
+    viewport(false);
+    const t = mountTable(panelBase, { attachTo: document.body });
+    await settle();
+    const dialog = await openPanel(t);
+    expect(dialog.hasAttribute('aria-modal')).toBe(false);
+    const apply = byTestId(t, 'rules-filters-apply')[0];
+    const ev = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    apply.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(false);
+  });
+
   it('an Escape a control inside already used (its own dropdown) leaves the panel open', async () => {
     const t = mountTable(panelBase, { attachTo: document.body });
     await settle();
@@ -619,8 +651,11 @@ describe('the other filter types', () => {
     await change(field(t, 'issued_from'), '2026-10-05');
     await typeIn(field(t, 'total_max'), '99,0');
     await change(field(t, 'is_active'), 'false');
-    const search = byTestId(t, 'rules-filter-user_id-search')[0];
-    search.dispatchEvent(new CustomEvent('ionInput', { detail: { value: 'luis' } }));
+    const search = byTestId(t, 'rules-filter-user_id-search')[0] as HTMLInputElement;
+    search.value = 'luis';
+    search.dispatchEvent(new Event('input'));
+    // The lookup asks 300 ms after the last key.
+    await new Promise((resolve) => setTimeout(resolve, 320));
     await settle();
     await click(byTestId(t, 'rules-filter-user_id-option')[0]);
     expect(text(byTestId(t, 'rules-filter-user_id-chosen')[0])).toBe('Luis Pérez');
@@ -732,6 +767,17 @@ describe('`filterFields`: filters with no column', () => {
     expect(panelNames(t).slice(-3)).toEqual(['is_active', 'spent_from', 'spent_to']);
     expect((control(t, 'spent_to') as HTMLElement & { errorText?: string }).errorText).toBe('Not an amount.');
     expect((control(t, 'spent_to') as HTMLElement & { inputmode?: string }).inputmode).toBe('decimal');
+  });
+
+  it('a field that repeats a column filter’s name is left out: one control per name, the column’s', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const t = mountTable({ ...withFields, filterable: true, filterFields: [{ key: 'status', label: 'Status again', type: 'text' }, ...FIELDS] }, { attachTo: document.body });
+    await settle();
+    await click(byTestId(t, 'rules-filters-toggle')[0]);
+    expect(panelNames(t)).toEqual(['name', 'status', 'rate_from', 'rate_to', 'day', 'is_active', 'spent_from', 'spent_to']);
+    expect(control(t, 'status').localName).toBe('ion-select');
+    expect(warn.mock.calls.some((call) => String(call[0]).includes('Duplicate keys'))).toBe(false);
+    warn.mockRestore();
   });
 
   it('fields alone (no column filters) still bring the funnel or the row', async () => {

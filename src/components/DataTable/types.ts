@@ -113,7 +113,9 @@ export type DataTableColumnFilter =
  * (`key`) and the label the panel shows. Order of a table's filters, in the panel and in the filter row:
  * the columns' own first, in column order, then `filterFields`, in theirs. They count on the funnel, are
  * sent like the others (only declared names, outfitkit#116), take `filterErrors`, filter `rows` in client
- * mode by `row[key]`, and the column chooser never offers them.
+ * mode by `row[key]`, and the column chooser never offers them. One name, one control: a field whose `key`
+ * or names in `filters` a column's filter (or an earlier field) already takes is left out, with a warning
+ * in the console in development — the column wins.
  */
 export type DataTableFilterField = DataTableColumnFilter & {
   /** Its name in `filters` (a range: `<key>_from`/`<key>_to` unless `keys`) and the row field it reads. */
