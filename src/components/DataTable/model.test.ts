@@ -1,12 +1,15 @@
 // Pure logic of the DataTable, ported from `ok-data-table.ts` (OutfitKit) with the cases of its
 // Lit tests that do not need a DOM.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   cardTitleColumn,
   cellText,
   activeFilters,
+  declaredFilters,
   entityWord,
+  filterColumnsOf,
+  filterCount,
   filterKeys,
   filterRows,
   gridTemplate,
@@ -319,11 +322,97 @@ describe('filterKeys: the names a column filter takes in `filters`', () => {
     expect(filterKeys(col({ key: 'rate', filter: { type: 'range' } }))).toEqual(['rate_from', 'rate_to']);
     expect(filterKeys(col({ key: 'name' }))).toEqual([]);
   });
+
+  it('a date range takes `<key>_from`/`<key>_to` too; a range or date range may name its two ends; one name for the others', () => {
+    expect(filterKeys(col({ key: 'issue_date', filter: { type: 'daterange' } }))).toEqual(['issue_date_from', 'issue_date_to']);
+    expect(filterKeys(col({ key: 'price', filter: { type: 'range', keys: ['priceMin', 'priceMax'] } }))).toEqual(['priceMin', 'priceMax']);
+    expect(filterKeys(col({ key: 'hired', filter: { type: 'daterange', keys: ['hire_date_from', 'hire_date_to'] } }))).toEqual(['hire_date_from', 'hire_date_to']);
+    expect(filterKeys(col({ key: 'active', filter: { type: 'boolean', key: 'is_active' } }))).toEqual(['is_active']);
+    expect(filterKeys(col({ key: 'user', filter: { type: 'lookup', key: 'user_id', load: async () => [] } }))).toEqual(['user_id']);
+  });
 });
 
 describe('activeFilters: what actually filters', () => {
   it('drops empty and blank values', () => {
     expect(activeFilters({ name: '  ', status: '', rate_from: '5', city: 'Madrid' })).toEqual({ rate_from: '5', city: 'Madrid' });
+  });
+});
+
+describe('declaredFilters: only what the page declared goes to the server (outfitkit#116)', () => {
+  const COLUMNS = [
+    col({ key: 'name', filter: { type: 'text' } }),
+    col({ key: 'category', filter: { type: 'select', key: 'category_id', options: [] } }),
+    col({ key: 'rate', filter: { type: 'range' } }),
+    col({ key: 'note' }),
+  ];
+
+  it('keeps the declared names with a value, by the name the filter takes, and drops the rest', () => {
+    expect(
+      declaredFilters(COLUMNS, { name: 'ana', category: 'x', category_id: 'c1', rate_from: '5', rate_to: ' ', note: 'y', page: '2' }),
+    ).toEqual({ name: 'ana', category_id: 'c1', rate_from: '5' });
+  });
+
+  it('nothing declared, nothing kept', () => {
+    expect(declaredFilters([col({ key: 'name' })], { name: 'ana' })).toEqual({});
+  });
+});
+
+describe('filterColumnsOf: the filters a table offers, in a stable order', () => {
+  it('the columns’ own in column order, then the page’s `filterFields` in theirs, each as a column of its own', () => {
+    const columns = [col({ key: 'name', filter: { type: 'text' } }), col({ key: 'note' }), col({ key: 'rate', filter: { type: 'range' } })];
+    const fields = [
+      { key: 'is_active', label: 'Active', type: 'boolean' as const },
+      { key: 'spent', label: 'Spent', type: 'range' as const, amount: true },
+    ];
+    const all = filterColumnsOf(columns, fields);
+    expect(all.map((c) => c.key)).toEqual(['name', 'rate', 'is_active', 'spent']);
+    expect(all[2]).toEqual({ key: 'is_active', label: 'Active', filter: fields[0] });
+    expect(all.flatMap((c) => filterKeys(c))).toEqual(['name', 'rate_from', 'rate_to', 'is_active', 'spent_from', 'spent_to']);
+    expect(filterColumnsOf(columns, undefined).map((c) => c.key)).toEqual(['name', 'rate']);
+  });
+
+  it('a field whose name a column’s filter or an earlier field already takes is left out, with a warning (the column wins)', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const columns = [col({ key: 'rate', filter: { type: 'range' } }), col({ key: 'city', filter: { type: 'select', key: 'city_id', options: [] } })];
+    const fields = [
+      { key: 'rate', label: 'Rate again', type: 'text' as const },
+      { key: 'city_id', label: 'City again', type: 'text' as const },
+      { key: 'other', label: 'Its ends clash', type: 'range' as const, keys: ['rate_from', 'other_to'] as const },
+      { key: 'is_active', label: 'Active', type: 'boolean' as const },
+      { key: 'is_active', label: 'Active again', type: 'boolean' as const },
+    ];
+    const all = filterColumnsOf(columns, fields);
+    expect(all.map((c) => c.label)).toEqual(['rate', 'city', 'Active']);
+    expect(warn).toHaveBeenCalledTimes(4);
+    expect(String(warn.mock.calls[0][0])).toContain('rate');
+    warn.mockRestore();
+  });
+
+  it('a field filters the rows by its own key, counts on the funnel and is sent (#116)', () => {
+    const fields = [{ key: 'is_active', label: 'Active', type: 'boolean' as const }];
+    const all = filterColumnsOf([col({ key: 'name', filter: { type: 'text' } })], fields);
+    const rows: Row[] = [
+      { id: 'a', name: 'Ana', is_active: true },
+      { id: 'b', name: 'Luis', is_active: false },
+    ];
+    expect(filterRows(rows, all, { is_active: 'false' }).map((r) => r.id)).toEqual(['b']);
+    expect(filterCount(all, { is_active: 'true', city: 'x' })).toBe(1);
+    expect(declaredFilters(all, { is_active: 'true', city: 'x' })).toEqual({ is_active: 'true' });
+  });
+});
+
+describe('filterCount: the number on the funnel', () => {
+  const COLUMNS = [
+    col({ key: 'name', filter: { type: 'text' } }),
+    col({ key: 'rate', filter: { type: 'range' } }),
+    col({ key: 'day', filter: { type: 'date' } }),
+  ];
+
+  it('one per filtered column: a range with both ends counts once; blank and undeclared names do not count', () => {
+    expect(filterCount(COLUMNS, {})).toBe(0);
+    expect(filterCount(COLUMNS, { rate_from: '1', rate_to: '9' })).toBe(1);
+    expect(filterCount(COLUMNS, { name: 'a', rate_to: '9', day: '2026-10-14' })).toBe(3);
+    expect(filterCount(COLUMNS, { name: '  ', status: 'paid' })).toBe(0);
   });
 });
 
@@ -375,6 +464,36 @@ describe('filterRows (client mode)', () => {
   it('a day: the date part of an ISO value, or the local day of a Date', () => {
     expect(ids(filterRows(ROWS, COLUMNS, { day: '2026-10-14' }))).toEqual(['1', '4']);
     expect(ids(filterRows(ROWS, COLUMNS, { day: '2026-10-13' }))).toEqual(['2']);
+  });
+
+  it('a date range: inclusive days, either end alone; a row without a day is out', () => {
+    const range = [col({ key: 'day', filter: { type: 'daterange' } })];
+    expect(ids(filterRows(ROWS, range, { day_from: '2026-10-14', day_to: '2026-10-14' }))).toEqual(['1', '4']);
+    expect(ids(filterRows(ROWS, range, { day_to: '2026-10-13' }))).toEqual(['2']);
+    expect(ids(filterRows(ROWS, range, { day_from: '2026-10-13' }))).toEqual(['1', '2', '4']);
+  });
+
+  it('a range with named ends reads them; an amount is read as typed, with a decimal comma', () => {
+    const named = [col({ key: 'rate', filter: { type: 'range', keys: ['rateMin', 'rateMax'], amount: true } })];
+    expect(ids(filterRows(ROWS, named, { rateMin: '9,5', rateMax: '21,0' }))).toEqual(['1', '2']);
+    expect(ids(filterRows(ROWS, named, { rate_from: '20' }))).toEqual(['1', '2', '3', '4']);
+  });
+
+  it('a yes/no: `true` keeps what is on, `false` what is off', () => {
+    const rows: Row[] = [
+      { id: 'a', on: true },
+      { id: 'b', on: false },
+      { id: 'c', on: 'true' },
+      { id: 'd', on: null },
+    ];
+    const yesNo = [col({ key: 'on', filter: { type: 'boolean' } })];
+    expect(ids(filterRows(rows, yesNo, { on: 'true' }))).toEqual(['a', 'c']);
+    expect(ids(filterRows(rows, yesNo, { on: 'false' }))).toEqual(['b', 'd']);
+  });
+
+  it('a lookup: exact equality on its field, as a closed domain', () => {
+    const lookup = [col({ key: 'city', filter: { type: 'lookup', key: 'city_id', load: async () => [] } })];
+    expect(ids(filterRows(ROWS, lookup, { city_id: 'b' }))).toEqual(['2']);
   });
 
   it('every active filter must match (AND)', () => {

@@ -33,6 +33,15 @@
     "filterFrom": "Desde",
     "filterTo": "Hasta",
     "filterFromOf": "{label}: desde",
-    "filterToOf": "{label}: hasta"
+    "filterToOf": "{label}: hasta",
+    "apply": "Aplicar",
+    "close": "Cerrar",
+    "filtersActiveOne": "Filtros ({n} activo)",
+    "filtersActiveMany": "Filtros ({n} activos)",
+    "lookupEmpty": "Sin coincidencias",
+    "lookupClear": "Quitar {label}",
+    "filterYes": "Sí",
+    "filterNo": "No",
+    "filtersInvalid": "Filtros (revisa los marcados)"
   }
 }

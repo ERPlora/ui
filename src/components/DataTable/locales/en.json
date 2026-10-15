@@ -33,6 +33,15 @@
     "filterFrom": "From",
     "filterTo": "To",
     "filterFromOf": "{label}: from",
-    "filterToOf": "{label}: to"
+    "filterToOf": "{label}: to",
+    "apply": "Apply",
+    "close": "Close",
+    "filtersActiveOne": "Filters ({n} active)",
+    "filtersActiveMany": "Filters ({n} active)",
+    "lookupEmpty": "No matches",
+    "lookupClear": "Clear {label}",
+    "filterYes": "Yes",
+    "filterNo": "No",
+    "filtersInvalid": "Filters (check the marked ones)"
   }
 }

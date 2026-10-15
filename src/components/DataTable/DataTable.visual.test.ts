@@ -369,3 +369,36 @@ describe('the rules that carry the look (one per Lit regression)', () => {
     expect(rule(':where(.data-table__search) .searchbar-clear-button', WEAK)).toBe('font: revert; cursor: revert;');
   });
 });
+
+describe('the filters panel (`filterable`): pushes the list from 834 px, a sheet over the content area below', () => {
+  it('≥ 834px: while open the surface is two columns, the list (toolbar, rows, footer) and the 360px panel', () => {
+    const desk = media('(min-width: 834px)');
+    expect(rule('.data-table__surface--panel', desk)).toBe(
+      'display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto minmax(0, 1fr) auto;',
+    );
+    expect(rule('.data-table__surface--panel > .data-table__pager', desk)).toBe('grid-column: 1; grid-row: 3;');
+    expect(rule('.data-table__surface--panel > .data-table__drawer', desk)).toMatch(/^position: static; grid-column: 2; grid-row: 1 \/ -1;/);
+  });
+
+  it('< 834px (outfitkit#197): a fixed sheet between the measured top and bottom of the content area, its footer over the safe area', () => {
+    const sheet = media('(max-width: 833.98px)');
+    expect(rule('.data-table__drawer', sheet)).toMatch(
+      /^position: fixed; inset: 0; top: var\(--data-table-sheet-top, 0px\); bottom: var\(--data-table-sheet-bottom, 0px\); width: 100%;/,
+    );
+    expect(rule('.data-table__drawer-foot', sheet)).toBe('padding-bottom: calc(0.6rem + var(--data-table-sheet-safe-bottom));');
+    // Unmeasured, the sheet keeps the screen edges and the device's safe area.
+    const root = rule('.data-table');
+    expect(root).toContain('--data-table-sheet-top: 0px;');
+    expect(root).toContain('--data-table-sheet-bottom: 0px;');
+    expect(root).toContain('--data-table-sheet-safe-bottom: env(safe-area-inset-bottom, 0px);');
+  });
+
+  it('the funnel is a 36px tool button (44px on touch) with its count in a pill on its corner', () => {
+    expect(rule('.data-table__filter-button')).toMatch(/width: 36px; height: 36px/);
+    // Ionic clips its native button (`--overflow: hidden`): the pill on the corner was cut in half
+    // (measured in Chromium at 390, 834 and 1440 px, FIX-DATATABLE).
+    expect(rule('.data-table__filter-button')).toContain('--overflow: visible');
+    expect(rule('.data-table__filter-button', media('(pointer: coarse), (max-width: 834px)'))).toBe('width: 44px; height: 44px;');
+    expect(rule('.data-table__filter-button .data-table__filter-count')).toMatch(/^position: absolute; top: -5px; right: -5px;/);
+  });
+});

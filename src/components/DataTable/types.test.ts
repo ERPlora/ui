@@ -9,6 +9,7 @@ import type {
   DataTableColumn,
   DataTableColumnPriority,
   DataTableEntityLabel,
+  DataTableFilterField,
   DataTableFilters,
   DataTableFilterType,
   DataTableLabelKey,
@@ -82,8 +83,17 @@ describe('DataTable types', () => {
     expect([column.priority, open.pinned, transfer.menuOnly, wrong.key]).toEqual(['low', true, true, 'name']);
   });
 
-  it('a column filter is text, a closed domain, a day or a range; the filters are names to texts', () => {
-    expectTypeOf<DataTableFilterType>().toEqualTypeOf<'text' | 'select' | 'date' | 'range'>();
+  it('a column filter is text, a closed domain, a day, a range, a date range, a yes/no or a lookup; the filters are names to texts', () => {
+    expectTypeOf<DataTableFilterType>().toEqualTypeOf<'text' | 'select' | 'date' | 'range' | 'daterange' | 'boolean' | 'lookup'>();
+    const user: DataTableColumn<Item> = {
+      key: 'user',
+      label: 'User',
+      filter: { type: 'lookup', key: 'user_id', load: async () => [{ value: '7', label: 'Ana' }], selected: { value: '7', label: 'Ana' } },
+    };
+    // @ts-expect-error -- a lookup asks the server: it needs `load`
+    const blind: DataTableColumn<Item> = { key: 'user', label: 'User', filter: { type: 'lookup' } };
+    const amount: DataTableColumn<Item> = { key: 'total', label: 'Total', filter: { type: 'range', amount: true, min: 0, max: 100, step: 0.01, keys: ['totalMin', 'totalMax'] } };
+    expect([user.filter?.type, blind.key, amount.filter?.type]).toEqual(['lookup', 'user', 'range']);
     const status: DataTableColumn<Item> = {
       key: 'status',
       label: 'Status',
@@ -93,6 +103,16 @@ describe('DataTable types', () => {
     const wrong: DataTableColumn<Item> = { key: 'name', label: 'Name', filter: { type: 'contains' } };
     expectTypeOf<DataTableFilters>().toEqualTypeOf<Record<string, string>>();
     expect([status.filter?.type, wrong.key]).toEqual(['select', 'name']);
+  });
+
+  it('a filter with no column of its own (`filterFields`) is a column filter with its name and its label', () => {
+    const active: DataTableFilterField = { key: 'is_active', label: 'Active', type: 'boolean' };
+    const user: DataTableFilterField = { key: 'user_id', label: 'User', type: 'lookup', load: async () => [] };
+    // @ts-expect-error -- a field needs its label (the panel shows it)
+    const nameless: DataTableFilterField = { key: 'is_active', type: 'boolean' };
+    // @ts-expect-error -- and its name in `filters`
+    const keyless: DataTableFilterField = { label: 'Active', type: 'boolean' };
+    expect([active.type, user.type, nameless.key, keyless.label]).toEqual(['boolean', 'lookup', 'is_active', 'Active']);
   });
 
   it('the footer noun is `{ one, many }` or a function of the count', () => {

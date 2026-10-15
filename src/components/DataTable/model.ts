@@ -5,6 +5,7 @@ import type {
   DataTableAction,
   DataTableColumn,
   DataTableEntityLabel,
+  DataTableFilterField,
   DataTableFilters,
   DataTableRowKey,
   DataTableSortDir,
@@ -21,6 +22,7 @@ export const DATA_TABLE_ICONS = {
   next: 'chevron-forward',
   clear: 'close',
   clearFilters: 'close-circle-outline',
+  filters: 'funnel-outline',
   more: 'ellipsis-vertical',
   empty: 'file-tray-outline',
   error: 'alert-circle-outline',
@@ -95,17 +97,58 @@ export function searchRows<T extends object>(rows: readonly T[], keys: readonly 
 /** Pages of the numbered pager (1-based): first, last, neighbours of the current one and «…» in
  *  the jumps. Page 1 of 52 → [1, 2, 3, '…', 52]. */
 // ── Column filters ──────────────────────────────────────────────────────────────────────────
+/** The filters a table offers, as columns: the columns' own, in column order, then each of the page's
+ *  `filterFields` as a column of its own (its key, its label, the field itself as its filter). A field
+ *  whose key or names in `filters` a column's filter or an earlier field already takes is left out with
+ *  a warning in development: the column (or the first field) wins, and no name has two controls. */
+export function filterColumnsOf<T>(
+  columns: readonly DataTableColumn<T>[],
+  fields: readonly DataTableFilterField[] | undefined,
+): DataTableColumn<T>[] {
+  const own = columns.filter((column) => column.filter);
+  const taken = new Set(own.flatMap((column) => [column.key, ...filterKeys(column)]));
+  const extra: DataTableColumn<T>[] = [];
+  for (const field of fields ?? []) {
+    const column: DataTableColumn<T> = { key: field.key, label: field.label, filter: field };
+    const names = [field.key, ...filterKeys(column)];
+    const clash = names.find((name) => taken.has(name));
+    if (clash !== undefined) {
+      if (import.meta.env.DEV) console.warn(`DataTable: the filter field «${field.key}» is left out, «${clash}» is already another filter's.`);
+      continue;
+    }
+    names.forEach((name) => taken.add(name));
+    extra.push(column);
+  }
+  return [...own, ...extra];
+}
+
 /** The names a column's filter takes in `filters` (none without a filter). */
 export function filterKeys<T>(column: DataTableColumn<T>): string[] {
   const filter = column.filter;
   if (!filter) return [];
   const key = filter.key ?? column.key;
-  return filter.type === 'range' ? [`${key}_from`, `${key}_to`] : [key];
+  if (filter.type === 'range' || filter.type === 'daterange') return filter.keys ? [...filter.keys] : [`${key}_from`, `${key}_to`];
+  return [key];
 }
 
 /** The filters that filter: a blank value is no filter. */
 export function activeFilters(filters: DataTableFilters): DataTableFilters {
   return Object.fromEntries(Object.entries(filters).filter(([, value]) => value.trim() !== ''));
+}
+
+/** outfitkit#116 - The active filters the columns declare, by the name each filter takes: a name no
+ *  column declares (a stale one from the address, a page's own parameter) never reaches the server,
+ *  which answers 422 `unknown_filter` to it; a blank value is no filter. */
+export function declaredFilters<T>(columns: readonly DataTableColumn<T>[], filters: DataTableFilters): DataTableFilters {
+  const active = activeFilters(filters);
+  const names = new Set(columns.flatMap((column) => filterKeys(column)));
+  return Object.fromEntries(Object.entries(active).filter(([name]) => names.has(name)));
+}
+
+/** The number on the funnel: the filtered columns (a range counts once, whichever ends it has). */
+export function filterCount<T>(columns: readonly DataTableColumn<T>[], filters: DataTableFilters): number {
+  const active = activeFilters(filters);
+  return columns.filter((column) => filterKeys(column).some((name) => name in active)).length;
 }
 
 const pad = (n: number): string => String(n).padStart(2, '0');
@@ -125,17 +168,34 @@ function numberOf(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** An end of a range as typed: an amount may carry a decimal comma (`2,50`). */
+function endOf(value: string | undefined, amount: boolean): number | undefined {
+  return numberOf(amount && value ? value.replace(',', '.') : value);
+}
+
+/** A yes/no field: on when `true`, `'true'`, `1` or `'1'`. */
+const isOn = (value: unknown): boolean => value === true || value === 'true' || value === 1 || value === '1';
+
 function matchesFilter<T extends object>(column: DataTableColumn<T>, row: T, filters: DataTableFilters): boolean {
   const filter = column.filter;
   if (!filter) return true;
   const key = filter.key ?? column.key;
   const field = fields(row)[key];
   if (filter.type === 'range') {
-    const from = numberOf(filters[`${key}_from`]);
-    const to = numberOf(filters[`${key}_to`]);
+    const [fromKey, toKey] = filterKeys(column);
+    const from = endOf(filters[fromKey], filter.amount === true);
+    const to = endOf(filters[toKey], filter.amount === true);
     if (from === undefined && to === undefined) return true;
     const n = numberOf(field);
     return n !== undefined && (from === undefined || n >= from) && (to === undefined || n <= to);
+  }
+  if (filter.type === 'daterange') {
+    const [fromKey, toKey] = filterKeys(column);
+    const from = filters[fromKey]?.trim();
+    const to = filters[toKey]?.trim();
+    if (!from && !to) return true;
+    const day = dayOf(field);
+    return day !== '' && (!from || day >= from) && (!to || day <= to);
   }
   const wanted = filters[key]?.trim();
   if (!wanted) return true;
@@ -144,6 +204,7 @@ function matchesFilter<T extends object>(column: DataTableColumn<T>, row: T, fil
     return text.toLowerCase().includes(wanted.toLowerCase());
   }
   if (filter.type === 'date') return dayOf(field) === wanted;
+  if (filter.type === 'boolean') return isOn(field) === (wanted === 'true');
   return String(field ?? '') === wanted;
 }
 

@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { flushPromises, mount } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { describe, expect, it, vi } from 'vitest';
@@ -50,6 +54,19 @@ describe('AppPage (ADR-0045: the single layout of the shell screens)', () => {
     expect(mountPage({ contentLayout: 'detail-fill' }).get('.hub-detail-shell').classes()).toContain(
       'hub-detail-shell--fill',
     );
+  });
+
+  it('`fill`: a list page; the view is a `.page-fill` stack inside the detail-fill box, so a DataTable `fill` reaches the tabbar', () => {
+    const wrapper = mountPage({ contentLayout: 'fill' }, { default: '<p class="kpis">kpis</p><div class="list">list</div>' });
+    const shell = wrapper.get('ion-content > .hub-detail-shell');
+    expect(shell.classes()).toEqual(['hub-detail-shell', 'hub-detail-shell--fill']);
+    const stack = shell.get(':scope > .page-fill');
+    expect(stack.classes()).toEqual(['page-fill']);
+    expect([...stack.element.children].map((el) => el.className)).toEqual(['kpis', 'list']);
+    // The other layouts carry no stack.
+    for (const contentLayout of ['fluid', 'detail', 'detail-fill']) {
+      expect(mountPage({ contentLayout }).find('.page-fill').exists(), contentLayout).toBe(false);
+    }
   });
 
   it('renders the footer slot after the content (tabbar / sheet actions)', () => {
@@ -171,6 +188,100 @@ describe('AppPage: section tabbar', () => {
       expect(buttonsOf(mountTabs({ tabs }).wrapper)).toHaveLength(3);
     } finally {
       applySurface('web');
+    }
+  });
+});
+
+// The height chain of a list page (Ioan, 2026-10-15, PLAN-MIGRATIONS §13: the DataTable takes the space
+// between the topbar and the tabbar): ported from the SaaS's panel-fill.css (2026-10-14, measured there at
+// 390, 834 and 1440 px), so the Hub and the SaaS share ONE stylesheet. Every ancestor needs a height,
+// never a min-height: `detail-fill` gives the page's box its height; a `.panel-fill` stack takes it whole;
+// what sits above and under the list keeps its height and the list takes the rest. happy-dom lays nothing
+// out, so this reads the stylesheet.
+describe('polish.css: the height chain of a list page (`.page-fill`, `.panel-fill`)', () => {
+  const CSS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'theme/polish.css'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\s+/g, ' ');
+
+  /** Every `@media (…)` block of the stylesheet with that condition, joined (polish.css has several). */
+  function media(condition: string): string {
+    const blocks: string[] = [];
+    for (let start = CSS.indexOf(`@media ${condition} {`); start !== -1; start = CSS.indexOf(`@media ${condition} {`, start + 1)) {
+      let depth = 0;
+      for (let at = CSS.indexOf('{', start); at < CSS.length; at += 1) {
+        if (CSS[at] === '{') depth += 1;
+        if (CSS[at] === '}' && --depth === 0) {
+          blocks.push(CSS.slice(CSS.indexOf('{', start) + 1, at));
+          break;
+        }
+      }
+    }
+    return blocks.join(' } ');
+  }
+
+  /** The declarations of the rule with exactly that selector list in `css` (top level unless a block is given). */
+  function rule(selector: string, css = CSS.replace(/@media[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '')): string {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s*');
+    const found = new RegExp(`(?:^|\\})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css);
+    return found ? found[1].trim() : '';
+  }
+
+  const PHONE = '(max-width: 640px)';
+  const DESK = '(min-width: 641px)';
+
+  it('the page’s box has its height (detail-fill)', () => {
+    expect(rule('.hub-detail-shell--fill')).toBe('height: 100%; min-height: var(--ep-work-surface-min);');
+  });
+
+  it('a stack takes its box whole, as a column; what sits above and under the list keeps its height (AppPage’s and the SaaS’s)', () => {
+    expect(rule('.page-fill, .panel-fill')).toBe('display: flex; flex-direction: column; height: 100%; min-height: 0;');
+    expect(rule('.page-fill > *, .panel-fill > *')).toBe('flex: 0 0 auto;');
+  });
+
+  it('on a desk or a tablet the list takes the rest, never less than a few rows (notices above push the page)', () => {
+    // Stronger than DataTable's scoped `min-height: 0` of `.data-table--fill` (a class and its attribute).
+    const lists =
+      '.page-fill > .data-table.data-table--fill, .page-fill > .page-fill, .panel-fill > .data-table.data-table--fill, .panel-fill > .panel-fill';
+    expect(rule(lists, media(DESK))).toBe('flex: 1 1 0; min-height: var(--panel-list-min, 20rem);');
+    expect(rule(lists)).toBe('');
+  });
+
+  it('on a phone the list grows with its rows from the page’s height, as DataTable’s `fill` does there (one scroll)', () => {
+    const phone = media(PHONE);
+    const lists =
+      '.page-fill > .data-table.data-table--fill, .page-fill > .page-fill, .panel-fill > .data-table.data-table--fill, .panel-fill > .panel-fill';
+    expect(rule(lists, phone)).toBe('flex: 1 0 auto;');
+    expect(rule('.page-fill > .page-fill, .panel-fill > .panel-fill', phone)).toBe('height: auto;');
+    expect(phone).not.toMatch(/data-table__cards|data-table__surface|data-table__scroll/);
+  });
+
+  // The SaaS panel's own decisions (2026-10-14: R-14 and the phone heading) stay under its `.panel-fill`:
+  // the Hub's pages (AppPage `fill`, `.page-fill`) keep the old hub's toolbar and their heading.
+  it('the SaaS panel: on a phone a list with a search drops its heading (its topbar and tabbar name it)', () => {
+    expect(rule('.panel-fill .data-table__bar-main:has(> .data-table__search) > .data-table__title-wrap', media(PHONE))).toBe('display: none;');
+    expect(rule('.panel-fill .data-table__bar-main:has(> .data-table__search) > .data-table__title-wrap')).toBe('');
+  });
+
+  it('the SaaS panel: on a desk or a tablet the search gives way first, so the toolbar stays in one row from 834 to 1180 px (R-14)', () => {
+    expect(rule('.panel-fill .data-table .data-table__search', media(DESK))).toBe('flex: 1 1 11rem; min-width: 9rem; max-width: 22rem;');
+    expect(rule('.panel-fill .data-table .data-table__search')).toBe('');
+  });
+
+  it('a Hub list (AppPage `fill`) keeps its heading at 390 and its own search box: no SaaS-only rule reaches it', () => {
+    const toolbar =
+      '<div class="data-table data-table--fill"><div class="data-table__bar"><div class="data-table__bar-main">' +
+      '<div class="data-table__title-wrap"><h2>Rules</h2></div><div class="data-table__search"></div></div></div></div>';
+    const hub = mountPage({ contentLayout: 'fill' }, { default: toolbar });
+    const saas = mount({ template: `<div class="panel-fill">${toolbar}</div>` });
+    const onlySaas = [...CSS.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .map((m) => m[1].trim())
+      .filter((selector) => /data-table__title-wrap|data-table__search/.test(selector))
+      .flatMap((selector) => selector.split(','))
+      .map((selector) => selector.trim());
+    expect(onlySaas.length).toBeGreaterThan(0);
+    for (const selector of onlySaas) {
+      expect(hub.get('.data-table__title-wrap').element.matches(selector) || hub.get('.data-table__search').element.matches(selector), selector).toBe(false);
+      expect(saas.get('.data-table__title-wrap').element.matches(selector) || saas.get('.data-table__search').element.matches(selector), selector).toBe(true);
     }
   });
 });
