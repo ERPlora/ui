@@ -201,16 +201,16 @@ describe('AppsLauncher (the topbar door to the apps: «My apps» sheet, nav laun
 // hub#2489 / hub#2325: with a flaky network, tapping an app opened nothing and said nothing (its page
 // is a lazy chunk; the failed import left the screen where it was).
 describe('AppsLauncher: an app whose page fails to load (hub#2489)', () => {
-  it('tries once more on its own, and opens the app when the network comes back', async () => {
+  it('tries once, no hidden retry: a failed import stays failed in the browser, the toast says so', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     ticketsChunk.mockRejectedValueOnce(new TypeError('Failed to fetch dynamically imported module'));
     const { wrapper } = mountLauncher();
     await open(wrapper);
     await tiles(wrapper)[1].trigger('click');
     await flushPromises();
-    expect(ticketsChunk).toHaveBeenCalledTimes(2);
-    expect(router.currentRoute.value.path).toBe('/sale/tickets');
-    expect(toast).not.toHaveBeenCalled();
+    expect(ticketsChunk).toHaveBeenCalledOnce();
+    expect(router.currentRoute.value.path).toBe('/demo/items');
+    expect(toast).toHaveBeenCalledOnce();
     wrapper.unmount();
   });
 

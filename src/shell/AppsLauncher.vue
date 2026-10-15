@@ -3,7 +3,7 @@
 // opens the «My apps» sheet, one tile per app of `useMyApps` (the same list as the Home grid). A
 // tile opens its app and closes the sheet; an app that is not on yet says so and opens nothing.
 // The app's page is a lazy chunk: when it fails to load (a flaky network, hub#2489 / hub#2325) the
-// launcher tries once more and, if it still fails, says which app with a Retry; never silent.
+// launcher says which app, with a Retry that loads its page afresh; never silent.
 import {
   IonButton,
   IonButtons,
@@ -44,18 +44,14 @@ async function open(app: MyApp): Promise<void> {
   isOpen.value = false;
   try {
     await router.push(path);
-  } catch {
-    try {
-      await router.push(path);
-    } catch (error) {
-      console.error(`shell: could not open the app ${app.id}`, error);
-      void toast(t('launcher.openFailed', { app: app.name }), 'danger', 0, 'apps-launcher-open', {
-        text: t('launcher.retry'),
-        // The browser keeps a failed dynamic import failed for the life of the document, so a Retry
-        // inside the SPA fails again: load the app's page afresh (Vite's advice for a lost chunk).
-        handler: () => window.location.assign(router.resolve(path).href),
-      });
-    }
+  } catch (error) {
+    console.error(`shell: could not open the app ${app.id}`, error);
+    void toast(t('launcher.openFailed', { app: app.name }), 'danger', 0, 'apps-launcher-open', {
+      text: t('launcher.retry'),
+      // The browser keeps a failed dynamic import failed for the life of the document, so a retry
+      // inside the SPA fails again: load the app's page afresh (Vite's advice for a lost chunk).
+      handler: () => window.location.assign(router.resolve(path).href),
+    });
   }
 }
 </script>
