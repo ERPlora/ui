@@ -685,3 +685,61 @@ describe('the other filter types', () => {
     expect([...field(t, 'is_active').querySelectorAll('ion-select-option')].map(text)).toEqual(['Todos', 'Sí', 'No']);
   });
 });
+
+// ── Filters with no column of their own (`filterFields`, FIX-DATATABLE round 3): the Hub filters by fields it
+// does not paint (customer `is_active`, dates, amounts). After the columns' own filters, in their order; they
+// count, are sent (#116) and take `filterErrors`, and the column chooser never offers them.
+describe('`filterFields`: filters with no column', () => {
+  const FIELDS = [
+    { key: 'is_active', label: 'Active', type: 'boolean' },
+    { key: 'spent', label: 'Spent', type: 'range', amount: true },
+  ];
+  const ROWS_ACTIVE: Row[] = ROWS.map((row, i) => ({ ...row, is_active: i !== 1, spent_cents: 0 }));
+  const withFields = { ...base, rows: ROWS_ACTIVE, filterFields: FIELDS };
+  const panelNames = (t: ReturnType<typeof mountTable>) =>
+    [...(byTestId(t, 'rules-filters-panel')[0] ?? t.element).querySelectorAll('[data-testid^="rules-filter-"]')].map((el) =>
+      el.getAttribute('data-testid')?.replace('rules-filter-', ''),
+    );
+
+  it('in the panel after the columns’ own, counted on the funnel; never in the column chooser', async () => {
+    const t = mountTable({ ...withFields, filterable: true, filters: { is_active: 'true', spent_from: '5' } }, { attachTo: document.body });
+    await settle();
+    expect(text(byTestId(t, 'rules-filters-count')[0])).toBe('2');
+    const chooser = [...t.element.querySelectorAll('.data-table__columns-select ion-select-option')].map((o) => text(o));
+    expect(chooser).toEqual(['Name', 'Status', 'Rate', 'Day', 'Note']);
+    await click(byTestId(t, 'rules-filters-toggle')[0]);
+    expect(panelNames(t)).toEqual(['name', 'status', 'rate_from', 'rate_to', 'day', 'is_active', 'spent_from', 'spent_to']);
+    expect(control(t, 'is_active').value).toBe('true');
+    expect(control(t, 'spent_from').value).toBe('5');
+  });
+
+  it('client mode filters the rows by the field; server mode sends it, and nothing undeclared (#116)', async () => {
+    const t = mountTable({ ...withFields, filterable: true }, { attachTo: document.body });
+    await settle();
+    await click(byTestId(t, 'rules-filters-toggle')[0]);
+    await change(control(t, 'is_active'), 'false');
+    await click(byTestId(t, 'rules-filters-apply')[0]);
+    expect(ids(t)).toEqual(['2']);
+    const server = mountTable({ ...withFields, serverSide: true, total: 3, pageSizeOptions: [10], filters: { city: 'x' } });
+    await settle();
+    await change(control(server, 'is_active'), 'true');
+    expect(server.emitted('filtersChange')).toEqual([[{ is_active: 'true' }]]);
+  });
+
+  it('the filter row paints them after the columns’ own, and `filterErrors` reaches them', async () => {
+    const t = mountTable({ ...withFields, filterErrors: { spent_to: 'Not an amount.' }, filters: { spent_to: 'x' } });
+    await settle();
+    expect(panelNames(t).slice(-3)).toEqual(['is_active', 'spent_from', 'spent_to']);
+    expect((control(t, 'spent_to') as HTMLElement & { errorText?: string }).errorText).toBe('Not an amount.');
+    expect((control(t, 'spent_to') as HTMLElement & { inputmode?: string }).inputmode).toBe('decimal');
+  });
+
+  it('fields alone (no column filters) still bring the funnel or the row', async () => {
+    const t = mountTable({ rows: ROWS_ACTIVE, columns: [{ key: 'name', label: 'Name' }], testid: 'rules', filterable: true, filterFields: FIELDS });
+    await settle();
+    expect(byTestId(t, 'rules-filters-toggle')).toHaveLength(1);
+    const row = mountTable({ rows: ROWS_ACTIVE, columns: [{ key: 'name', label: 'Name' }], testid: 'rules', filterFields: FIELDS });
+    await settle();
+    expect(byTestId(row, 'rules-filters')).toHaveLength(1);
+  });
+});

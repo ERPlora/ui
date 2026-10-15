@@ -19,6 +19,8 @@
 // filters» while any filters. It lives in the toolbar area, not under the column headers, so it is there
 // in the cards, in an empty result and on a phone. `filterErrors` (a 422's `fieldErrors`, by filter
 // name) paints each message under its control until that value changes, and turns the funnel red.
+// `filterFields` adds filters with no column of their own (a field the list does not paint), after the
+// columns' own: they count, are sent and take errors like them, and the column chooser never offers them.
 // Client mode filters `rows` (with the search, AND); server mode emits `filtersChange` with the
 // active filters by name and filters nothing. `v-model:filters` in both, as `search`. Only the names
 // the columns declare are sent, and a blank value is no filter (outfitkit#116: the server refuses
@@ -94,6 +96,7 @@ import {
   DATA_TABLE_ICONS,
   declaredFilters,
   entityWord,
+  filterColumnsOf,
   filterCount,
   filterKeys,
   filterRows,
@@ -118,6 +121,7 @@ import type {
   DataTableActionEvent,
   DataTableColumn,
   DataTableEntityLabel,
+  DataTableFilterField,
   DataTableFilterOption,
   DataTableFilters,
   DataTableLabels,
@@ -165,6 +169,9 @@ const props = withDefaults(
     /** The column filters live behind the toolbar's funnel (with the count in use), in a panel inside
      *  the table, instead of a row under the toolbar. Same `filters`, `filtersChange` and hooks. */
     filterable?: boolean;
+    /** Filters with no column of their own (a field the list does not paint): after the columns' own,
+     *  in the panel and the filter row; never in the column chooser (`DataTableFilterField`). */
+    filterFields?: DataTableFilterField[];
     /** What the server refused (a 422's `fieldErrors`, or the page's own reading of an amount), by
      *  filter name: painted under its control until that value changes; the funnel turns red. */
     filterErrors?: Record<string, string>;
@@ -243,6 +250,7 @@ const props = withDefaults(
     search: undefined,
     filters: undefined,
     filterErrors: undefined,
+    filterFields: undefined,
     total: 0,
     page: 0,
     sort: undefined,
@@ -390,9 +398,10 @@ const listColumns = computed(() =>
 // ── Column filters ────────────────────────────────────────────────────────────────────────────
 /** The active filters on screen (own state; `filters` from the parent overrides it, like `search`). */
 const filterValues = ref<DataTableFilters>({});
-const filterColumns = computed(() => props.columns.filter((c) => c.filter));
+/** Every filter, as a column: the columns' own in column order, then `filterFields` (types.ts). */
+const filterColumns = computed(() => filterColumnsOf(props.columns, props.filterFields));
 /** The filtered columns (a range counts once): a name no column declares is no filter (#116). */
-const filterCountNow = computed(() => filterCount(props.columns, filterValues.value));
+const filterCountNow = computed(() => filterCount(filterColumns.value, filterValues.value));
 const filtering = computed(() => filterCountNow.value > 0);
 /** The name of a column's (single) filter in `filters`. */
 const filterName = (column: DataTableColumn<T>): string => filterKeys(column)[0] ?? column.key;
@@ -402,7 +411,7 @@ const sameFilters = (a: DataTableFilters, b: DataTableFilters): boolean => {
 };
 
 function setFilters(next: DataTableFilters): void {
-  const active = declaredFilters(props.columns, next);
+  const active = declaredFilters(filterColumns.value, next);
   if (sameFilters(active, filterValues.value)) return;
   filterValues.value = active;
   if (!props.serverSide) {
@@ -439,7 +448,7 @@ const canClearPanel = computed(() => filtering.value || Object.keys(activeFilter
 useFilterSheet(() => root.value, () => filterPanelOpen.value);
 
 function openFilterPanel(): void {
-  filterDraft.value = declaredFilters(props.columns, filterValues.value);
+  filterDraft.value = declaredFilters(filterColumns.value, filterValues.value);
   filterPanelOpen.value = true;
   void nextTick(() => root.value?.querySelector<HTMLElement>(':scope > .data-table__surface > .data-table__drawer')?.focus());
 }
@@ -485,7 +494,7 @@ function onFilterPanelEscape(ev: KeyboardEvent): void {
 }
 // The applied filters changed while the panel is open (a «Clear», the parent): it shows them.
 watch(filterValues, (now) => {
-  if (filterPanelOpen.value) filterDraft.value = declaredFilters(props.columns, now);
+  if (filterPanelOpen.value) filterDraft.value = declaredFilters(filterColumns.value, now);
 });
 // Its columns stopped declaring filters (or the page dropped `filterable`): nothing left to show.
 watch(showFunnel, (shown) => {
@@ -562,7 +571,7 @@ function rangeEnds(column: DataTableColumn<T>): Array<{ name: string; hint: stri
 
 // ── Rows on screen ────────────────────────────────────────────────────────────────────────────
 const clientRows = computed(() => {
-  const found = filterRows(searchRows(props.rows, props.searchKeys, q.value), props.columns, filterValues.value);
+  const found = filterRows(searchRows(props.rows, props.searchKeys, q.value), filterColumns.value, filterValues.value);
   const column = clientSort.value ? props.columns.find((c) => c.key === clientSort.value) : undefined;
   return column ? sortRows(found, column, clientSortDir.value) : found;
 });

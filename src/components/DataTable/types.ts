@@ -107,6 +107,21 @@ export type DataTableColumnFilter =
   | DataTableDateRangeFilter
   | DataTableLookupFilter;
 
+/**
+ * A filter with no column of its own (`filterFields` of the table): a field the list does not paint
+ * (customer `is_active`, a date, an amount). The same filters as a column's, with their name in `filters`
+ * (`key`) and the label the panel shows. Order of a table's filters, in the panel and in the filter row:
+ * the columns' own first, in column order, then `filterFields`, in theirs. They count on the funnel, are
+ * sent like the others (only declared names, outfitkit#116), take `filterErrors`, filter `rows` in client
+ * mode by `row[key]`, and the column chooser never offers them.
+ */
+export type DataTableFilterField = DataTableColumnFilter & {
+  /** Its name in `filters` (a range: `<key>_from`/`<key>_to` unless `keys`) and the row field it reads. */
+  key: string;
+  /** What the panel and the filter row call it. */
+  label: string;
+};
+
 /** The active filters by name (`v-model:filters`, `filtersChange`): `{ status: 'paid', rate_from: '5' }`.
  *  A filter without a value is absent, never `''`. */
 export type DataTableFilters = Record<string, string>;

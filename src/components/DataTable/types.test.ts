@@ -9,6 +9,7 @@ import type {
   DataTableColumn,
   DataTableColumnPriority,
   DataTableEntityLabel,
+  DataTableFilterField,
   DataTableFilters,
   DataTableFilterType,
   DataTableLabelKey,
@@ -102,6 +103,16 @@ describe('DataTable types', () => {
     const wrong: DataTableColumn<Item> = { key: 'name', label: 'Name', filter: { type: 'contains' } };
     expectTypeOf<DataTableFilters>().toEqualTypeOf<Record<string, string>>();
     expect([status.filter?.type, wrong.key]).toEqual(['select', 'name']);
+  });
+
+  it('a filter with no column of its own (`filterFields`) is a column filter with its name and its label', () => {
+    const active: DataTableFilterField = { key: 'is_active', label: 'Active', type: 'boolean' };
+    const user: DataTableFilterField = { key: 'user_id', label: 'User', type: 'lookup', load: async () => [] };
+    // @ts-expect-error -- a field needs its label (the panel shows it)
+    const nameless: DataTableFilterField = { key: 'is_active', type: 'boolean' };
+    // @ts-expect-error -- and its name in `filters`
+    const keyless: DataTableFilterField = { label: 'Active', type: 'boolean' };
+    expect([active.type, user.type, nameless.key, keyless.label]).toEqual(['boolean', 'lookup', 'is_active', 'Active']);
   });
 
   it('the footer noun is `{ one, many }` or a function of the count', () => {

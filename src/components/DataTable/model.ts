@@ -5,6 +5,7 @@ import type {
   DataTableAction,
   DataTableColumn,
   DataTableEntityLabel,
+  DataTableFilterField,
   DataTableFilters,
   DataTableRowKey,
   DataTableSortDir,
@@ -96,6 +97,18 @@ export function searchRows<T extends object>(rows: readonly T[], keys: readonly 
 /** Pages of the numbered pager (1-based): first, last, neighbours of the current one and «…» in
  *  the jumps. Page 1 of 52 → [1, 2, 3, '…', 52]. */
 // ── Column filters ──────────────────────────────────────────────────────────────────────────
+/** The filters a table offers, as columns: the columns' own, in column order, then each of the page's
+ *  `filterFields` as a column of its own (its key, its label, the field itself as its filter). */
+export function filterColumnsOf<T>(
+  columns: readonly DataTableColumn<T>[],
+  fields: readonly DataTableFilterField[] | undefined,
+): DataTableColumn<T>[] {
+  return [
+    ...columns.filter((column) => column.filter),
+    ...(fields ?? []).map((field) => ({ key: field.key, label: field.label, filter: field })),
+  ];
+}
+
 /** The names a column's filter takes in `filters` (none without a filter). */
 export function filterKeys<T>(column: DataTableColumn<T>): string[] {
   const filter = column.filter;

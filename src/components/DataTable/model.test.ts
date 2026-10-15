@@ -8,6 +8,7 @@ import {
   activeFilters,
   declaredFilters,
   entityWord,
+  filterColumnsOf,
   filterCount,
   filterKeys,
   filterRows,
@@ -353,6 +354,33 @@ describe('declaredFilters: only what the page declared goes to the server (outfi
 
   it('nothing declared, nothing kept', () => {
     expect(declaredFilters([col({ key: 'name' })], { name: 'ana' })).toEqual({});
+  });
+});
+
+describe('filterColumnsOf: the filters a table offers, in a stable order', () => {
+  it('the columns’ own in column order, then the page’s `filterFields` in theirs, each as a column of its own', () => {
+    const columns = [col({ key: 'name', filter: { type: 'text' } }), col({ key: 'note' }), col({ key: 'rate', filter: { type: 'range' } })];
+    const fields = [
+      { key: 'is_active', label: 'Active', type: 'boolean' as const },
+      { key: 'spent', label: 'Spent', type: 'range' as const, amount: true },
+    ];
+    const all = filterColumnsOf(columns, fields);
+    expect(all.map((c) => c.key)).toEqual(['name', 'rate', 'is_active', 'spent']);
+    expect(all[2]).toEqual({ key: 'is_active', label: 'Active', filter: fields[0] });
+    expect(all.flatMap((c) => filterKeys(c))).toEqual(['name', 'rate_from', 'rate_to', 'is_active', 'spent_from', 'spent_to']);
+    expect(filterColumnsOf(columns, undefined).map((c) => c.key)).toEqual(['name', 'rate']);
+  });
+
+  it('a field filters the rows by its own key, counts on the funnel and is sent (#116)', () => {
+    const fields = [{ key: 'is_active', label: 'Active', type: 'boolean' as const }];
+    const all = filterColumnsOf([col({ key: 'name', filter: { type: 'text' } })], fields);
+    const rows: Row[] = [
+      { id: 'a', name: 'Ana', is_active: true },
+      { id: 'b', name: 'Luis', is_active: false },
+    ];
+    expect(filterRows(rows, all, { is_active: 'false' }).map((r) => r.id)).toEqual(['b']);
+    expect(filterCount(all, { is_active: 'true', city: 'x' })).toBe(1);
+    expect(declaredFilters(all, { is_active: 'true', city: 'x' })).toEqual({ is_active: 'true' });
   });
 });
 
