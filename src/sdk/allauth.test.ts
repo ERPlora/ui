@@ -205,7 +205,10 @@ describe("createAllauthClient: signup", () => {
 
   it("rejects the limit of sign-ups (429 without errors) with its status", async () => {
     const h = setup(() => json(429, { status: 429 }));
-    await expect(h.client.signup({ email: "new@example.com", password: "p" })).rejects.toMatchObject({ status: 429 });
+    await expect(h.client.signup({ email: "new@example.com", password: "p" })).rejects.toMatchObject({
+      status: 429,
+      code: "too_many_requests",
+    });
   });
 
   it("rejects an already signed-in session (409) with a conflict", async () => {
