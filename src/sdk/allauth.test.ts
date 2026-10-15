@@ -164,6 +164,70 @@ describe("createAllauthClient: login", () => {
   });
 });
 
+describe("createAllauthClient: signup", () => {
+  // The «Create account» tab of the SaaS's launcher: allauth's own sign-up, never its login. allauth
+  // answers a new address and one it already holds alike (enumeration prevention): the code mailed to
+  // prove the address is pending.
+  it("posts the email and password to …/auth/signup with the CSRF header and answers the pending code", async () => {
+    const flows = [{ id: "login" }, { id: "verify_email", is_pending: true }];
+    const h = setup(() => json(401, { status: 401, data: { flows }, meta: { is_authenticated: false } }));
+    const state = await h.client.signup({ email: "new@example.com", password: "a long password" });
+    expect(state).toEqual({ authenticated: false, flows, pendingFlow: "verify_email" });
+    expect(h.last().url).toBe("/_allauth/browser/v1/auth/signup");
+    expect(h.last().init.method).toBe("POST");
+    expect(JSON.parse(h.last().init.body as string)).toEqual({ email: "new@example.com", password: "a long password" });
+    expect(headersOf(h.last())).toEqual({
+      "X-Device-Id": "dev-1",
+      "X-CSRFToken": "tok",
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    });
+  });
+
+  it("answers the signed-in user when no code is asked", async () => {
+    const h = setup(() => json(200, { status: 200, data: { user: USER, methods: [] }, meta: { is_authenticated: true } }));
+    expect(await h.client.signup({ email: "new@example.com", password: "p" })).toEqual({ authenticated: true, user: USER });
+  });
+
+  it("maps a refused password to the password field", async () => {
+    const h = setup(() =>
+      json(400, {
+        status: 400,
+        errors: [{ message: "This password is too short.", code: "password_too_short", param: "password" }],
+      }),
+    );
+    await expect(h.client.signup({ email: "new@example.com", password: "123" })).rejects.toMatchObject({
+      status: 400,
+      code: "password_too_short",
+      fields: { password: "This password is too short." },
+    });
+  });
+
+  it("rejects the limit of sign-ups (429 without errors) with its status", async () => {
+    const h = setup(() => json(429, { status: 429 }));
+    await expect(h.client.signup({ email: "new@example.com", password: "p" })).rejects.toMatchObject({
+      status: 429,
+      code: "too_many_requests",
+    });
+  });
+
+  it("rejects an already signed-in session (409) with a conflict", async () => {
+    const h = setup(() => json(409, { status: 409 }));
+    await expect(h.client.signup({ email: "new@example.com", password: "p" })).rejects.toMatchObject({
+      status: 409,
+      code: "conflict",
+    });
+  });
+
+  it("rejects a request that never got an answer as a network error (status 0)", async () => {
+    const h = setup(() => Promise.reject(new TypeError("Failed to fetch")));
+    await expect(h.client.signup({ email: "new@example.com", password: "p" })).rejects.toMatchObject({
+      status: 0,
+      code: "network_error",
+    });
+  });
+});
+
 describe("createAllauthClient: logout and plain forms", () => {
   it("signs out with DELETE …/auth/session and the CSRF header: the 401 that follows is success", async () => {
     const h = setup(() => json(401, { status: 401, data: { flows: [{ id: "login" }] }, meta: { is_authenticated: false } }));

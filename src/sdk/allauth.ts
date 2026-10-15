@@ -1,8 +1,9 @@
 /**
  * Client of allauth.headless's browser API (`/_allauth/browser/v1`), for the SaaS's account pages.
- * Only transport: the session, the password login (which also signs up an unknown address), the
- * code steps that follow (the email verification of a sign-up, the code mailed at every password
- * sign-in), the logout, the password reset by link, two-factor
+ * Only transport: the session, the password login and the sign-up (two calls, `login` for allauth's
+ * login and `signup` for allauth's sign-up; whether either may create or open an account is allauth's
+ * and the SaaS's decision), the code steps that follow (the email verification of a sign-up, the code
+ * mailed at every password sign-in), the logout, the password reset by link, two-factor
  * authentication (the login's 2FA step, TOTP, recovery codes and reauthentication), the password
  * change and the linked provider accounts; allauth decides everything.
  *
@@ -158,6 +159,12 @@ export interface AllauthDeps {
 export interface AllauthClient {
   getSession(): Promise<AuthState>;
   login(credentials: { email: string; password: string }): Promise<AuthState>;
+  /**
+   * allauth's sign-up (`…/auth/signup`), answered as the same `AuthState` as `login`: the signed-in
+   * user, or the pending code that proves the address (`pendingFlow` `verify_email`). How an address
+   * allauth already holds is answered depends on its config (`ACCOUNT_PREVENT_ENUMERATION`).
+   */
+  signup(credentials: { email: string; password: string }): Promise<AuthState>;
   logout(): Promise<AuthState>;
   /** The code mailed to a login or sign-up whose `pendingFlow` is `verify_email` (allauth's `key`). */
   verifyEmail(code: string): Promise<AuthState>;
@@ -336,6 +343,7 @@ export function createAllauthClient(cfg: AllauthConfig, overrides: Partial<Allau
   return {
     getSession: () => authState("GET", "/auth/session"),
     login: (credentials) => authState("POST", "/auth/login", credentials),
+    signup: (credentials) => authState("POST", "/auth/signup", credentials),
     logout: () => authState("DELETE", "/auth/session"),
     verifyEmail: (code) => authState("POST", "/auth/email/verify", { key: code }),
     resendEmailVerification: async () => {
