@@ -48,7 +48,7 @@ import { createShellI18n, type ShellI18nOptions, shellLocale } from './i18n';
 import { ION_ICONS } from './icons';
 import { createShellRouter } from './router';
 import { provideSession, type SessionMe, type SessionStatus } from './session';
-import { provideShellConfig } from './shell-config';
+import { provideShellConfig, type ShellNav } from './shell-config';
 import { bootSurface, type Surface } from './surface';
 import { bootTheme, type ThemeContrast } from './theme';
 import { provideUserMenu, type ShellUserMenu } from './user-menu';
@@ -69,6 +69,12 @@ export interface CreateShellOptions {
    * Default off (the SaaS has its own landing and its own menu).
    */
   home?: boolean;
+  /**
+   * How the person moves between apps (`shell-config.ts`): `'launcher'` (the hub) paints no side
+   * menu at any width and puts Back, the apps («My apps») and the user menu in the topbar.
+   * Default `'menu'` (the SaaS: the side menu).
+   */
+  nav?: ShellNav;
   /** App catalogues (`en` + `es`), merged over the shell's. */
   messages?: ShellI18nOptions['messages'];
   /** Router history. Default `createWebHistory()`. */
@@ -91,7 +97,13 @@ export interface CreateShellOptions {
   trustedScriptOrigins?: readonly string[];
 }
 
+const SHELL_NAVS: readonly (ShellNav | undefined)[] = [undefined, 'menu', 'launcher'];
+
 export async function createShell(options: CreateShellOptions): Promise<{ app: App; router: Router }> {
+  // A typo would fall back to the side menu in silence (the hub would grow one back): refuse it.
+  if (!SHELL_NAVS.includes(options.nav)) {
+    throw new Error(`createShell: unknown nav ${JSON.stringify(options.nav)} (expected 'menu' or 'launcher')`);
+  }
   // Before anything writes HTML: only `<svg>` goes through innerHTML in production, and a script URL
   // only from the origins the project trusts.
   installTrustedTypesPolicy(window, import.meta.env.DEV, options.trustedScriptOrigins ?? []);
@@ -114,7 +126,7 @@ export async function createShell(options: CreateShellOptions): Promise<{ app: A
     home: options.home,
   });
   app.use(IonicVue, { mode: 'ios', swipeBackEnabled: false }).use(router).use(i18n);
-  provideShellConfig({ homePath: options.homePath, home: options.home }, app);
+  provideShellConfig({ homePath: options.homePath, home: options.home, nav: options.nav }, app);
   provideUserMenu(options.userMenu, app);
 
   // The language is the person's (`base.session.me.language`): follow it live, and keep

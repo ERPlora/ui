@@ -7,12 +7,20 @@
     "title": "Inicio",
     "empty": {
       "title": "Aún no hay aplicaciones",
-      "body": "Las aplicaciones que active este hub aparecerán aquí y en el menú."
+      "body": "Las aplicaciones que active este hub aparecerán aquí."
     },
     "state": {
       "activating": "Activando…",
       "off": "Desactivada"
     }
+  },
+  "launcher": {
+    "title": "Mis apps",
+    "close": "Cerrar",
+    "loading": "Cargando tus apps…",
+    "error": "No se han podido cargar tus apps. Comprueba la conexión e inténtalo de nuevo.",
+    "openFailed": "No se ha podido abrir {app}. Comprueba la conexión e inténtalo de nuevo.",
+    "retry": "Reintentar"
   },
   "tabbar": {
     "label": "Secciones"

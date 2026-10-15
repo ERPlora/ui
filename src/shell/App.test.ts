@@ -217,6 +217,38 @@ describe('App (shell root)', () => {
 });
 
 
+// FIX-SHELL-NAV (PLAN-MIGRATIONS §13, Ioan 2026-10-15): the hub's shell moves between apps from the
+// topbar (Back, «My apps», the user), as the old hub did; no menu on the left at any width.
+describe('App: launcher navigation (nav: launcher, the hub)', () => {
+  const LAUNCHER: ShellConfig = { homePath: '/', home: true, nav: 'launcher' };
+
+  it('is ion-app > the router outlet #main: no split pane and no side menu', () => {
+    const wrapper = mountApp(undefined, { config: LAUNCHER });
+    expect(wrapper.find('ion-split-pane').exists()).toBe(false);
+    expect(wrapper.find('ion-menu').exists()).toBe(false);
+    expect(wrapper.find('ion-menu-toggle').exists()).toBe(false);
+    expect(wrapper.get('ion-app > .router-outlet-stub').attributes('id')).toBe('main');
+  });
+
+  it('nor on Home, nor without a user', async () => {
+    await router.push('/');
+    expect(mountApp(undefined, { config: LAUNCHER }).find('ion-menu').exists()).toBe(false);
+    session.value = me({ user: null });
+    expect(mountApp(undefined, { config: LAUNCHER }).find('ion-menu').exists()).toBe(false);
+  });
+
+  it('mounts the screens again when the person changes (hub#2539)', async () => {
+    const wrapper = mountApp(undefined, { config: LAUNCHER });
+    const before = wrapper.get('.router-outlet-stub').element;
+    session.value = me({ user: { id: 'u1', label: 'Ana P.' } });
+    await flushPromises();
+    expect(wrapper.get('.router-outlet-stub').element).toBe(before);
+    session.value = me({ user: { id: 'u2', label: 'Luis' } });
+    await flushPromises();
+    expect(wrapper.get('.router-outlet-stub').element).not.toBe(before);
+  });
+});
+
 // The shell's Home (`createShell({ home: true })`, the hub): the apps of the hub as a grid at `/`
 // (HomePage) and «Home» first in the menu, the way back to it from any screen. The SaaS has none.
 describe('App: Home', () => {

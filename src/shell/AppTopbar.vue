@@ -1,13 +1,26 @@
 <script setup lang="ts">
 // AppTopbar — the shared topbar of the shell. Ported from ERPlora hub
-// `apps/web/src/components/AppTopbar.vue` (origin/develop), phase-1 minimum: menu button, contextual
-// back, the screen title as its heading (with the section on screen after it, «Billing · Invoices»,
-// mockups README §3) and the view's own actions. Not ported (phase 1 has none
-// of them): app launcher, management link, change hub, assistant, notification bell, rail toggle
+// `apps/web/src/components/AppTopbar.vue` (origin/develop): the screen title as its heading (with the
+// section on screen after it, «Billing · Invoices», mockups README §3), contextual Back and the
+// view's own actions. Two navigations (`createShell({ nav })`, shell-config.ts):
+// - `menu` (the SaaS): the menu button opens the side menu; Back only on a detail (`backHref`).
+// - `launcher` (the hub, PLAN-MIGRATIONS §13, the old hub's shell): no side menu. Back on the left
+//   on every screen but Home (also the root of an app), the title in the middle, and on the right
+//   the view's actions, the ⠿ «My apps» sheet (AppsLauncher) and the user (avatar → UserMenuPopover).
+//   Apps and user are the authenticated chrome: only behind its gate (useChromeVisible, hub#925).
+// Not ported (phase 1 has none of them): management link, change hub, assistant, notification bell
 // and the progress bar.
-import { IonButton, IonButtons, IonHeader, IonIcon, IonMenuButton, IonTitle, IonToolbar } from '@ionic/vue';
+import { IonButton, IonButtons, IonHeader, IonMenuButton, IonTitle, IonToolbar } from '@ionic/vue';
+import { computed, inject, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+
+import { UserAvatar } from '../components/UserAvatar';
+import AppsLauncher from './AppsLauncher.vue';
+import HubIcon from './HubIcon.vue';
+import { SESSION_KEY } from './session';
+import { shellNav, useChromeVisible, useShellConfig } from './shell-config';
+import UserMenuPopover from './UserMenuPopover.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -15,7 +28,11 @@ const props = withDefaults(
     title: string;
     /** The section on screen (the active tab of the page), said after the title, muted. */
     section?: string;
-    /** Fallback href of the Back button. When passed, the view is a detail one and shows Back. */
+    /**
+     * Fallback href of the Back button. With `nav: 'menu'`, passing it makes the view a detail one
+     * and shows Back; with `nav: 'launcher'`, Back is always there off Home and this is where it
+     * goes on a deep link (Home when absent).
+     */
     backHref?: string;
     /**
      * Is this title the main HEADING of the screen? (hub#794). `true` by default: a screen opts
@@ -28,11 +45,34 @@ const props = withDefaults(
 
 const { t } = useI18n();
 const router = useRouter();
+const route = useRoute();
+const config = useShellConfig();
+const launcher = shellNav(config) === 'launcher';
+const chromeVisible = useChromeVisible();
+const user = useTopbarUser();
+
+// An empty `backHref` is no `backHref` (as the SaaS always had it): no Back in `menu`, Home in `launcher`.
+const showBack = computed(() => (launcher ? route.path !== config.homePath : Boolean(props.backHref)));
+const fallback = computed(() => props.backHref || (launcher ? config.homePath : undefined));
+
+const userMenuOpen = shallowRef(false);
+const userMenuEvent = shallowRef<Event>();
 
 function goBack(): void {
   // With history inside the app, go back; on a deep link, to the fallback href.
   if (window.history.state?.back) router.back();
-  else if (props.backHref) void router.push(props.backHref);
+  else if (fallback.value) void router.push(fallback.value);
+}
+
+function openUserMenu(event: Event): void {
+  userMenuEvent.value = event;
+  userMenuOpen.value = true;
+}
+
+/** The signed-in person, when the shell has a session (the SaaS's topbar may be mounted without). */
+function useTopbarUser() {
+  const session = inject(SESSION_KEY, null);
+  return computed(() => session?.user.value ?? null);
 }
 </script>
 
@@ -44,21 +84,21 @@ function goBack(): void {
              happens after the screen is painted, so a phone showed the page with no way out of it.
              Hiding it where the menu is pinned (≥lg) is the stylesheet's job: `polish.css`. -->
         <ion-menu-button
+          v-if="!launcher"
           class="menu-toggle"
           :auto-hide="false"
           :aria-label="t('topbar.menu')"
         />
         <ion-button
-          v-if="backHref"
+          v-if="showBack"
           fill="clear"
           data-testid="topbar-back"
           :aria-label="t('topbar.back')"
           @click="goBack"
         >
-          <ion-icon
+          <HubIcon
             slot="icon-only"
-            name="arrow-back-outline"
-            aria-hidden="true"
+            name="ion:arrow-back-outline"
           />
         </ion-button>
       </ion-buttons>
@@ -78,6 +118,31 @@ function goBack(): void {
 
       <ion-buttons slot="end">
         <slot name="actions" />
+        <template v-if="launcher && chromeVisible && user">
+          <AppsLauncher />
+          <ion-button
+            class="topbar-user"
+            data-testid="topbar-user"
+            aria-haspopup="dialog"
+            :aria-expanded="String(userMenuOpen)"
+            :aria-label="t('userMenu.open')"
+            @click="openUserMenu"
+          >
+            <UserAvatar
+              :name="user.label"
+              :email="user.email"
+              size="md"
+              decorative
+            />
+          </ion-button>
+          <UserMenuPopover
+            class="topbar-user-popover"
+            :is-open="userMenuOpen"
+            :event="userMenuEvent"
+            alignment="end"
+            @dismiss="userMenuOpen = false"
+          />
+        </template>
       </ion-buttons>
     </ion-toolbar>
   </ion-header>

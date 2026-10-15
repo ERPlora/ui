@@ -23,7 +23,7 @@ vi.mock('@ionic/vue', async (importOriginal) => ({
 import { createShell, type CreateShellOptions } from './createShell';
 import { ION_ICONS } from './icons';
 import { SESSION_KEY, type SessionMe, type SessionStatus } from './session';
-import { SHELL_CONFIG_KEY } from './shell-config';
+import { type ShellConfig, SHELL_CONFIG_KEY, shellNav } from './shell-config';
 import { applySurface, IN_APP_CLASS } from './surface';
 import { USER_MENU_KEY } from './user-menu';
 
@@ -156,6 +156,30 @@ describe('createShell: home', () => {
     const { app, router } = await boot();
     expect(router.hasRoute('home')).toBe(false);
     expect((provides(app)[SHELL_CONFIG_KEY as symbol] as { home?: boolean }).home).toBeFalsy();
+  });
+});
+
+// FIX-SHELL-NAV (PLAN-MIGRATIONS §13): the hub moves between apps from the topbar, with no side
+// menu; the SaaS keeps its menu, which is what leaving `nav` unset means.
+describe('createShell: nav', () => {
+  it("nav: 'launcher' is provided app-wide, next to the rest of the config", async () => {
+    const { app } = await boot('es', { home: true, nav: 'launcher' });
+    expect(provides(app)[SHELL_CONFIG_KEY as symbol]).toEqual({ homePath: '/demo/items', home: true, nav: 'launcher' });
+  });
+
+  it('unset by default: the side menu, as the SaaS has it', async () => {
+    const { app } = await boot();
+    expect(shellNav(provides(app)[SHELL_CONFIG_KEY as symbol] as ShellConfig)).toBe('menu');
+  });
+
+  it("nav: 'menu' is accepted as the explicit default", async () => {
+    const { app } = await boot('es', { nav: 'menu' });
+    expect(shellNav(provides(app)[SHELL_CONFIG_KEY as symbol] as ShellConfig)).toBe('menu');
+  });
+
+  // A typo would otherwise fall back to the side menu in silence, and the hub would grow one back.
+  it.each(['sidebar', 'Launcher', ''])('refuses an unknown nav (%j) instead of falling back to the menu', async (nav) => {
+    await expect(boot('es', { nav: nav as never })).rejects.toThrow(/nav/);
   });
 });
 
