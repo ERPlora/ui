@@ -11,10 +11,11 @@
 // input with `role="combobox"` (an Ionic field would keep a changing aria-expanded/-activedescendant on its
 // host), expanded while options are listed; ArrowDown/ArrowUp move the active option, Enter picks it,
 // Escape folds an open list and stops there (a folded list leaves Escape to the panel, which closes).
+// The active option is brought into view: the list scrolls past 15rem.
 // Hooks (`testid`): the group itself, `-chosen`, `-clear`, `-search`, `-option` (`data-value`),
 // `-loading`, `-empty`, `-error`, `-retry`, `-field-error`.
 import { IonButton, IonIcon, IonSpinner } from '@ionic/vue';
-import { computed, onBeforeUnmount, ref, shallowRef, useId } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, useId } from 'vue';
 
 import { ionIconSrc } from '../../shell/icons';
 import { useDataTableLabels } from './labels';
@@ -128,6 +129,9 @@ async function onKeydown(ev: KeyboardEvent): Promise<void> {
     const last = found.value.length - 1;
     if (last < 0) return;
     active.value = ev.key === 'ArrowDown' ? Math.min(active.value + 1, last) : Math.max(active.value - 1, 0);
+    // The list scrolls (15rem): the option the arrows reach comes into view.
+    await nextTick();
+    document.getElementById(optionId(active.value))?.scrollIntoView({ block: 'nearest' });
     return;
   }
   if (ev.key === 'Enter' && expanded.value && active.value >= 0) {

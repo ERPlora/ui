@@ -174,6 +174,26 @@ describe('useFilterSheet', () => {
     expect(disconnect.mock.calls.length, 'on unmount').toBe(reopened + 1);
   });
 
+  it('stops following the breakpoint when it closes and when it is unmounted', async () => {
+    const media = { matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+    vi.stubGlobal('matchMedia', vi.fn(() => media));
+    const { wrapper, open } = mountProbe(page(box(0, 844), box(56, 778)));
+    open.value = true;
+    await nextTick();
+    expect(media.addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
+    const first = media.addEventListener.mock.calls[0][1];
+    open.value = false;
+    await nextTick();
+    expect(media.removeEventListener, 'on close').toHaveBeenCalledTimes(1);
+    expect(media.removeEventListener).toHaveBeenLastCalledWith('change', first);
+    open.value = true;
+    await nextTick();
+    const second = media.addEventListener.mock.calls[1][1];
+    wrapper.unmount();
+    expect(media.removeEventListener, 'on unmount').toHaveBeenCalledTimes(2);
+    expect(media.removeEventListener).toHaveBeenLastCalledWith('change', second);
+  });
+
   it('says whether the open panel is a sheet (below 834 px), following the breakpoint while open', async () => {
     viewport(true);
     const { open, sheet } = mountProbe(page(box(0, 844), box(56, 778)));

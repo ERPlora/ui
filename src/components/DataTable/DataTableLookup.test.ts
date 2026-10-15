@@ -189,6 +189,30 @@ describe('DataTableLookup', () => {
     expect(enter.defaultPrevented).toBe(true);
     expect(w.emitted('change')).toEqual([['7', 'Ana García']]);
     expect(input(w).hasAttribute('aria-activedescendant')).toBe(false);
+    await key(w, 'ArrowDown');
+    await key(w, 'ArrowDown');
+    expect(input(w).getAttribute('aria-activedescendant')).toBe(options()[1].id);
+    await key(w, 'Enter');
+    expect(w.emitted('change')?.[1], 'Enter picks the active option, not the first').toEqual(['9', 'Luis Pérez']);
+  });
+
+  it('the arrows bring the active option into view when the list scrolls', async () => {
+    const many = Array.from({ length: 20 }, (_, i) => ({ value: String(i + 1), label: `Person ${i + 1}` }));
+    const scrolled = vi.fn();
+    const spy = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(function (this: Element, options) {
+      scrolled(this.id, options);
+    });
+    try {
+      const w = mountLookup({ load: vi.fn(async () => many) });
+      for (let i = 0; i < 12; i += 1) await key(w, 'ArrowDown');
+      const active = input(w).getAttribute('aria-activedescendant');
+      expect(active).toBe(all(w, '-option')[11].id);
+      expect(scrolled).toHaveBeenLastCalledWith(active, { block: 'nearest' });
+      await key(w, 'ArrowUp');
+      expect(scrolled).toHaveBeenLastCalledWith(all(w, '-option')[10].id, { block: 'nearest' });
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('Escape folds an open list and stops there; with the list folded it is left to the panel', async () => {
