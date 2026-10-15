@@ -214,7 +214,7 @@ describe('AppsLauncher: an app whose page fails to load (hub#2489)', () => {
     wrapper.unmount();
   });
 
-  it('never stays silent: when it still fails, an error toast says which app, with a Retry that opens it', async () => {
+  it('never stays silent: when it still fails, an error toast says which app, with a Retry that loads it afresh', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     ticketsChunk.mockRejectedValue(new TypeError('Failed to fetch dynamically imported module'));
     const { wrapper } = mountLauncher();
@@ -231,10 +231,15 @@ describe('AppsLauncher: an app whose page fails to load (hub#2489)', () => {
     expect(id).toBe('apps-launcher-open');
     expect(action.text).toBe('Retry');
 
-    ticketsChunk.mockResolvedValue({ template: '<div />' });
+    // The browser keeps a failed dynamic import failed for the life of the document (Chromium: no new
+    // request, the same error), so a Retry inside the SPA would fail again: Retry loads the app's
+    // page afresh, as Vite recommends for a chunk that did not load.
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
     action.handler();
     await flushPromises();
-    expect(router.currentRoute.value.path).toBe('/sale/tickets');
+    expect(assign).toHaveBeenCalledWith('/sale/tickets');
+    vi.unstubAllGlobals();
     wrapper.unmount();
   });
 });

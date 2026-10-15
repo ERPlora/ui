@@ -39,18 +39,21 @@ const stateText = (app: MyApp): string | undefined =>
 const tileLabel = (app: MyApp): string => [app.name, stateText(app)].filter(Boolean).join(', ');
 
 async function open(app: MyApp): Promise<void> {
-  if (!app.path) return;
+  const path = app.path;
+  if (!path) return;
   isOpen.value = false;
   try {
-    await router.push(app.path);
+    await router.push(path);
   } catch {
     try {
-      await router.push(app.path);
+      await router.push(path);
     } catch (error) {
       console.error(`shell: could not open the app ${app.id}`, error);
       void toast(t('launcher.openFailed', { app: app.name }), 'danger', 0, 'apps-launcher-open', {
         text: t('launcher.retry'),
-        handler: () => void open(app),
+        // The browser keeps a failed dynamic import failed for the life of the document, so a Retry
+        // inside the SPA fails again: load the app's page afresh (Vite's advice for a lost chunk).
+        handler: () => window.location.assign(router.resolve(path).href),
       });
     }
   }
