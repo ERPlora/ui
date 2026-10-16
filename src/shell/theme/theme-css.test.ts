@@ -110,23 +110,55 @@ describe('palettes.css (the optional brand palettes, ported from OutfitKit with 
   });
 });
 
+/** The declarations of a block, one per entry, in order and without their whitespace. */
+const declarations = (body: string | undefined): string[] =>
+  (body ?? '')
+    .split(';')
+    .map((declaration) => declaration.trim().replace(/\s+/g, ' '))
+    .filter(Boolean);
+
+/** Body of the block `selector` inside every `@media <query>` of `css`. */
+function mediaBlocks(css: string, query: string, selector: string): string[] {
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return [...css.matchAll(new RegExp(`@media ${escaped}\\s*\\{((?:[^{}]*\\{[^}]*\\})*)\\s*\\}`, 'g'))].flatMap((m) =>
+    blocks(m[1], selector),
+  );
+}
+
 describe('tabbar.css (the footer ion-segment as navigation, ported from OutfitKit)', () => {
   const tabbar = plain(read('tabbar.css'));
 
-  it('fills the footer, with a minimum tab width before it scrolls (--ep-tabbar-min, 88px)', () => {
-    const [rule] = blocks(tabbar, '.tabbar');
-    for (const declaration of [
-      'width: 100%',
-      'margin-inline: 0',
-      'box-sizing: border-box',
-      'grid-auto-columns: minmax(var(--ep-tabbar-min, 88px), 1fr)',
-      'justify-content: start',
-      'overflow-x: auto',
-      'scrollbar-width: none',
-      'cursor: grab',
-    ]) {
-      expect(rule, declaration).toContain(declaration);
-    }
+  it('fills the footer, with a minimum tab width before it scrolls (--ep-tabbar-min, 64px)', () => {
+    expect(blocks(tabbar, '.tabbar')).toHaveLength(1);
+    expect(declarations(blocks(tabbar, '.tabbar')[0]).join('; ')).toBe(
+      [
+        'width: 100%',
+        'margin-inline: 0',
+        'box-sizing: border-box',
+        'grid-auto-columns: minmax(var(--ep-tabbar-min, 64px), 1fr)',
+        'justify-content: start',
+        'overflow-x: auto',
+        'scrollbar-width: none',
+        'cursor: grab',
+      ].join('; '),
+    );
+  });
+
+  // FIX-UI-TABBAR-375: a phone's bottom bar shows four or five tabs whole (iOS tab bar, Material's
+  // navigation bar). Ionic's iOS segment button brings `min-width: 70px` and 13px of side padding, made
+  // for the compact segmented control: five of them need 374px, more than a 375px phone's strip (367px).
+  it('lets a footer tab shrink to the floor and keeps its label 4px off its edges', () => {
+    expect(blocks(tabbar, '.tabbar ion-segment-button')).toHaveLength(1);
+    expect(declarations(blocks(tabbar, '.tabbar ion-segment-button')[0]).join('; ')).toBe(
+      ['min-width: 0', '--padding-start: 4px', '--padding-end: 4px'].join('; '),
+    );
+  });
+
+  it('on a phone (≤640px) writes the tab labels at 11px, between the iOS tab bar (10pt) and Material (12sp)', () => {
+    expect(mediaBlocks(tabbar, '(max-width: 640px)', '.tabbar ion-segment-button')).toHaveLength(1);
+    expect(declarations(mediaBlocks(tabbar, '(max-width: 640px)', '.tabbar ion-segment-button')[0]).join('; ')).toBe(
+      'font-size: 11px',
+    );
   });
 
   it('fades only the edge that hides tabs (--ep-tabbar-fade, 36px) and drags without selecting text', () => {
