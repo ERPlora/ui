@@ -2122,6 +2122,9 @@ onUpdated(nameSearchBox);
 .data-table__drawer-field { display: flex; flex-direction: column; gap: 0.45rem; }
 .data-table__drawer-label { font-size: 13px; font-weight: 500; color: var(--color); }
 .data-table__drawer-range { display: flex; gap: 0.5rem; }
+/* Both ends share the panel width: a flex item never shrinks below its content, and two date fields
+   reached 21px past the 360px panel, «To» without its border (FIX-UI-DATATABLE-CLIP). */
+.data-table__drawer-range > ion-input { flex: 1 1 0; min-width: 0; }
 /* Its footer: «Clear» at the start, «Apply» at the end. */
 .data-table__drawer-foot { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; padding: 0.6rem 0.85rem; border-top: 1px solid var(--border-color); }
 .data-table__drawer-foot .data-table__drawer-clear { margin-right: auto; }
@@ -2192,7 +2195,8 @@ ion-card.data-table__card { margin: 0; }
 /* #79 - The head is ONE row: Ionic's ios host CSS gives ion-card-header a column direction. */
 .data-table__card-head { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 0.5rem; }
 .data-table__card-icon { display: inline-flex; color: var(--primary); }
-.data-table__card-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+/* The title wraps, two lines at most (Polaris, Material): never «…» on one line while there is room. */
+.data-table__card-title { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-weight: 600; }
 .data-table__card-body { display: flex; flex-direction: column; gap: 0.4rem; }
 .data-table__field { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 13px; }
 .data-table__field-label { color: var(--color-muted); }

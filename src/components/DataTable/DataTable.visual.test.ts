@@ -402,3 +402,19 @@ describe('the filters panel (`filterable`): pushes the list from 834 px, a sheet
     expect(rule('.data-table__filter-button .data-table__filter-count')).toMatch(/^position: absolute; top: -5px; right: -5px;/);
   });
 });
+
+describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Chromium by the Hub e2e)', () => {
+  it('a range shares the panel width: its two ends may shrink below the date field’s own width', () => {
+    // A flex item never shrinks below its content (`min-width: auto`): two date fields side by side
+    // reached 21px past the 360px panel and «To» lost its border (Hub: Staff «Hire date», 834 and 1440 px).
+    expect(rule('.data-table__drawer-range > ion-input')).toBe('flex: 1 1 0; min-width: 0;');
+  });
+
+  it('a card title wraps (two lines at most, the whole text in the page), never «…» on one line', () => {
+    const title = rule('.data-table__card-title');
+    expect(title).not.toContain('white-space: nowrap');
+    expect(title).not.toContain('text-overflow: ellipsis');
+    expect(title).toContain('-webkit-line-clamp: 2');
+    expect(title).toContain('overflow-wrap: anywhere');
+  });
+});
