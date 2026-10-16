@@ -8,7 +8,7 @@
  * where the scroll is).
  *
  * Tokens:
- *   --ep-tabbar-min   minimum tab width before it scrolls (default 88px)
+ *   --ep-tabbar-min   minimum tab width before it scrolls (default 64px)
  *   --ep-tabbar-fade  width of the edge fade (default 36px)
  *
  * Load order: after the theme (createShell.ts).
@@ -24,10 +24,13 @@
   box-sizing: border-box;
 
   /* With few tabs the `1fr` wins and they fill the width; with many the minimum wins and they are
-     NOT squashed. The 88px default comes from MEASURING the threshold at which the Hub's longest
-     label is cut (86px) plus 2px of margin in case the font renders a little wider. Each product
-     can tune it with `--ep-tabbar-min`: scrolling beats cut labels. */
-  grid-auto-columns: minmax(var(--ep-tabbar-min, 88px), 1fr);
+     NOT squashed. 64px lets five tabs fit a 360px phone (a 352px strip: 4px of padding each side and
+     four 4px gaps leave 65.6px a tab), as a bottom bar does (iOS tab bar, Material's navigation bar:
+     up to five destinations, all on screen; FIX-UI-TABBAR-375). It is only a floor: a label whose
+     longest word does not fit widens every tab (`bindTabbarPeek`, hub#2414) and the strip scrolls,
+     peeking at the next tab. Each product can tune it with `--ep-tabbar-min`: scrolling beats cut
+     labels. */
+  grid-auto-columns: minmax(var(--ep-tabbar-min, 64px), 1fr);
   justify-content: start;
 
   overflow-x: auto;
@@ -52,6 +55,24 @@
 
 .tabbar::-webkit-scrollbar {
   display: none;
+}
+
+/* A footer tab is a bottom-bar item, not a button of the compact segmented control Ionic's `ios` mode
+   styles: that one brings `min-width: 70px` (five tabs need 374px, more than the 367px strip of a
+   375px phone) and 13px of side padding, which left a phone's labels 40px to live in. The floor above
+   sizes the tab; 4px keeps the label off the edges. */
+.tabbar ion-segment-button {
+  min-width: 0;
+  --padding-start: 4px;
+  --padding-end: 4px;
+}
+
+/* On a phone the label is the bar's: 11px, between the iOS tab bar (10pt) and Material's navigation
+   bar (12sp), so «Schedules» or «Ausencias» fit a fifth of the strip. Wider, Ionic's 13px stays. */
+@media (max-width: 640px) {
+  .tabbar ion-segment-button {
+    font-size: 11px;
+  }
 }
 
 /* Edge fade. With the scrollbar hidden, the tabs left outside must be signalled some other way:

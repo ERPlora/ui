@@ -69,7 +69,7 @@ export function hidesTabsSilently(geometry: TabbarGeometry): boolean {
  *     firstTabLeft + whole · (width + gap) + width / 2 = visibleWidth − PEEK_MARGIN_PX
  *
  * and takes the largest `whole` whose answer still respects the width the tabs already had (the
- * floor, per product: 88px in `tabbar.css`). When not even one whole tab and the peek fit at the
+ * floor, per product: 64px in `tabbar.css`). When not even one whole tab and the peek fit at the
  * floor, the floor stands and there is no peek (hub#1841): a squeezed label is worse.
  */
 export function peekTabWidth(geometry: TabbarGeometry): number | null {
