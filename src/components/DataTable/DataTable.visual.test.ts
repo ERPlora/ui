@@ -411,10 +411,10 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
   });
 
   it('a card title wraps (two lines at most, the whole text in the page), never «…» on one line', () => {
-    const title = rule('.data-table__card-title');
-    expect(title).not.toContain('white-space: nowrap');
-    expect(title).not.toContain('text-overflow: ellipsis');
-    expect(title).toContain('-webkit-line-clamp: 2');
-    expect(title).toContain('overflow-wrap: anywhere');
+    // The whole rule: as an addition the Lit parity no longer checks it, so its weight, its share of
+    // the head and the clamp's box are pinned here (no `white-space: nowrap`, no `text-overflow: ellipsis`).
+    expect(rule('.data-table__card-title')).toBe(
+      'flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-weight: 600;',
+    );
   });
 });
