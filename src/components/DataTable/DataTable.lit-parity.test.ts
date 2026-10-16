@@ -149,7 +149,6 @@ const PORTED: Record<string, string> = {
     '@media (prefers-reduced-motion: reduce) || .data-table__cell--sortable:hover, .data-table__cell--sortable:active, .data-table__row--data:hover, .data-table__row--data:active',
   'ion-card-header.rcard-head': '.data-table__card-head',
   '.rcard-head .rc-icon': '.data-table__card-icon',
-  '.rcard-head .rc-title': '.data-table__card-title',
   'ion-card-content.rcard-body': '.data-table__card-body',
   '.rrow': '.data-table__field',
   '.rrow .rk': '.data-table__field-label',
@@ -212,6 +211,10 @@ const PORTED: Record<string, string> = {
 const DROPPED: Record<string, string> = {};
 const drop = (reason: string, ...rules: string[]) => rules.forEach((r) => (DROPPED[r] = reason));
 drop(
+  'FIX-UI-DATATABLE-CLIP: its one-line «…» cut card titles that fit in two lines; `.data-table__card-title` wraps instead',
+  '.rcard-head .rc-title',
+);
+drop(
   'filters panel: its scrim is never painted, the panel pushes the list from 834 px and is a whole sheet below (outfitkit kept it for a browser without media queries)',
   '.tk-scrim',
   '@media (min-width: 834px) || .card.has-panel > .tk-scrim',
@@ -266,6 +269,10 @@ const ADDED: Record<string, string> = {
   '.data-table__filter-range': 'column filters: the From and To of a range, side by side',
   '.data-table__filter-range .data-table__filter': 'column filters: each end of a range is a short number box',
   '.data-table__filters-clear': 'column filters: «Clear filters», an ion-chip in the row, at its font size',
+  '.data-table__drawer-range > ion-input':
+    'FIX-UI-DATATABLE-CLIP: the two ends of a range share the 360px panel (two date fields reached 21px past it, measured in Chromium)',
+  '.data-table__card-title':
+    'FIX-UI-DATATABLE-CLIP: the card title wraps, two lines at most (Polaris, Material), instead of the Lit one-line «…»',
   '@media (max-width: 833.98px) || .data-table__drawer-foot':
     'outfitkit#197: a sheet that reaches the screen edge keeps the safe area in its footer (a tab bar below keeps it already)',
   '@media (max-width: 640px) || .data-table--fill:not(.data-table--content-after)':
