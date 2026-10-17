@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// AppsLauncher — the topbar's door to the apps (`nav: 'launcher'`, the old hub's ⠿): a button that
+// AppsLauncher — the topbar's door to the apps (with the hub's sidebar, the old hub's ⠿): a button that
 // opens the «My apps» sheet, one tile per app of `useMyApps` (the same list as the Home grid). A
 // tile opens its app and closes the sheet; an app that is not on yet says so and opens nothing.
 // The app's page is a lazy chunk: when it fails to load (a flaky network, hub#2489 / hub#2325) the

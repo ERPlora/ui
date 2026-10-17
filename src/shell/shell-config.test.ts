@@ -5,7 +5,7 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import { describe, expect, it } from 'vitest';
 
 import { createShellSession, SESSION_KEY, type SessionMe, type SessionStatus } from './session';
-import { provideShellConfig, shellNav, useChromeVisible, useShellConfig } from './shell-config';
+import { provideShellConfig, useChromeVisible, useShellConfig } from './shell-config';
 
 const Probe = defineComponent({
   setup() {
@@ -40,33 +40,33 @@ describe('shell config', () => {
   });
 });
 
-// FIX-SHELL-NAV (PLAN-MIGRATIONS §13): the hub's shell has no side menu; Back, the apps and the user
-// live in the topbar. The SaaS keeps its menu: `menu` is what an unset `nav` means.
-describe('shell config: nav', () => {
-  const NavProbe = defineComponent({
-    setup() {
-      const config = useShellConfig();
-      return () => h('p', shellNav(config));
-    },
+// FIX-SHELL-SPLIT-PANE (PLAN-MIGRATIONS §16): the hub paints the old hub's side menu (`sidebar`); the
+// SaaS keeps the menu of its session, which is what leaving it unset means.
+describe('shell config: sidebar', () => {
+  const SIDEBAR = { groups: [[{ id: 'employees', labelKey: 'sidebar.employees', icon: 'ion:people-outline', to: '/employees' }]] };
+
+  it("is unset when nothing says otherwise (the SaaS's shell, unchanged)", () => {
+    expect(useShellConfigIn(createApp(Probe)).sidebar).toBeUndefined();
   });
 
-  it("is the side menu when nothing says otherwise (the SaaS's shell, unchanged)", () => {
-    expect(mount(NavProbe).text()).toBe('menu');
-    expect(shellNav({ homePath: '/' })).toBe('menu');
-  });
-
-  it('is the launcher when the project asks for it (the hub)', () => {
-    const app = createApp(NavProbe);
-    provideShellConfig({ homePath: '/', nav: 'launcher' }, app);
-    const el = document.createElement('div');
-    app.mount(el);
-    expect(el.textContent).toBe('launcher');
-    app.unmount();
+  it('is provided app-wide when the project hands one (the hub)', () => {
+    const app = createApp(Probe);
+    provideShellConfig({ homePath: '/', sidebar: SIDEBAR }, app);
+    expect(useShellConfigIn(app)).toEqual({ homePath: '/', sidebar: SIDEBAR });
   });
 });
 
+/** What `useShellConfig` answers inside `app`. */
+function useShellConfigIn(app: ReturnType<typeof createApp>) {
+  let config: ReturnType<typeof useShellConfig> | undefined;
+  app.runWithContext(() => {
+    config = useShellConfig();
+  });
+  return config as ReturnType<typeof useShellConfig>;
+}
+
 // The one gate of the authenticated chrome (hub#925), shared by the side menu (App.vue) and the
-// topbar's apps and user buttons (launcher): a session REQUIRED by the route and PRESENT, and a
+// topbar's apps and rail buttons (the hub's sidebar): a session REQUIRED by the route and PRESENT, and a
 // screen that does not paint its own frame.
 describe('shell config: useChromeVisible', () => {
   const ChromeProbe = defineComponent({

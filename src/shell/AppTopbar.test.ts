@@ -15,6 +15,7 @@ import HubIcon from './HubIcon.vue';
 import { createShellI18n } from './i18n';
 import { createShellSession, SESSION_KEY, type SessionMe } from './session';
 import { SHELL_CONFIG_KEY, type ShellConfig } from './shell-config';
+import { railCollapsed } from './sidebar';
 import UserMenuPopover from './UserMenuPopover.vue';
 
 let router: Router;
@@ -176,10 +177,11 @@ const PopoverStub = defineComponent({
   },
 });
 
-// PLAN-MIGRATIONS §13 (Ioan, 2026-10-15): the hub's shell is the old hub's. No side menu at any
-// width; the topbar carries the way around: Back on the left whenever the screen is not Home, the
-// title in the middle, and on the right the view's actions, the ⠿ «My apps» sheet and the user.
-describe('AppTopbar with nav launcher (the hub)', () => {
+// FIX-SHELL-SPLIT-PANE (PLAN-MIGRATIONS §16, Ioan 2026-10-17): the topbar of the old hub — the drawer
+// button below lg, Back only on a detail (`backHref`: never on the screens of a module), the rail toggle
+// from lg, the title centred and, at the end, the view's actions and the ⠿ «My apps». The person lives
+// at the top of the side menu, not in the bar (hub#146).
+describe("AppTopbar with the hub's sidebar", () => {
   const ME: SessionMe = {
     user: { id: 'u1', label: 'Ana Pérez' },
     permissions: ['demo.view'],
@@ -187,11 +189,12 @@ describe('AppTopbar with nav launcher (the hub)', () => {
     apps: [{ label: 'demo', state: 'on' }],
     language: 'en',
   };
+  const HUB: Partial<ShellConfig> = { homePath: '/', home: true, sidebar: { groups: [] } };
 
-  let launcherRouter: Router;
+  let hubRouter: Router;
 
   beforeEach(async () => {
-    launcherRouter = createRouter({
+    hubRouter = createRouter({
       history: createMemoryHistory(),
       routes: [
         { path: '/', component: { template: '<div />' }, meta: { auth: true } },
@@ -200,20 +203,24 @@ describe('AppTopbar with nav launcher (the hub)', () => {
         { path: '/welcome', component: { template: '<div />' }, meta: { auth: true, chrome: false } },
       ],
     });
-    await launcherRouter.push('/demo/items');
+    await hubRouter.push('/demo/items');
   });
 
-  function mountLauncherTopbar(
+  afterEach(() => {
+    railCollapsed.value = false;
+  });
+
+  function mountHubTopbar(
     props: Record<string, unknown> = {},
-    { locale = 'en', me = ME as SessionMe | null, config = {} as Partial<ShellConfig>, slots = {} } = {},
+    { locale = 'en', me = ME as SessionMe | null, config = HUB, slots = {} } = {},
   ) {
     return mount(AppTopbar, {
       props: { title: 'Items', ...props },
       slots,
       global: {
-        plugins: [launcherRouter, createShellI18n({ locale })],
+        plugins: [hubRouter, createShellI18n({ locale })],
         provide: {
-          [SHELL_CONFIG_KEY as symbol]: { homePath: '/', nav: 'launcher', ...config },
+          [SHELL_CONFIG_KEY as symbol]: { homePath: '/', ...config },
           [SESSION_KEY as symbol]: createShellSession(ref(me ?? undefined), ref('live')),
         },
         stubs: { IonModal: IonModalStub, IonPopover: PopoverStub },
@@ -221,137 +228,98 @@ describe('AppTopbar with nav launcher (the hub)', () => {
     });
   }
 
-  const start = (wrapper: ReturnType<typeof mountLauncherTopbar>) => wrapper.get('ion-buttons[slot="start"]');
-  const end = (wrapper: ReturnType<typeof mountLauncherTopbar>) => wrapper.get('ion-buttons[slot="end"]');
+  /** What the start group holds, in order: the menu button, Back and the rail toggle. */
+  const startOrder = (wrapper: ReturnType<typeof mountHubTopbar>) =>
+    wrapper
+      .get('ion-buttons[slot="start"]')
+      .findAll('ion-menu-button, [data-testid="topbar-back"], [data-testid="topbar-rail"]')
+      .map((el) => el.attributes('data-testid') ?? 'menu');
+  const end = (wrapper: ReturnType<typeof mountHubTopbar>) => wrapper.get('ion-buttons[slot="end"]');
 
-  it('has no menu button: there is no side menu to open', () => {
-    expect(mountLauncherTopbar().find('ion-menu-button').exists()).toBe(false);
+  it('on a screen of a module: the drawer button and the rail toggle; no Back', () => {
+    expect(startOrder(mountHubTopbar())).toEqual(['menu', 'topbar-rail']);
   });
 
-  // The SaaS stays on the side menu: with a person signed in on an authenticated screen, the bar
-  // keeps the menu button and paints neither the apps nor the user (they live in the side menu).
-  describe('with nav menu (the SaaS), signed in on an authenticated screen', () => {
-    it.each([
-      ['nav unset', { nav: undefined }],
-      ["nav: 'menu'", { nav: 'menu' as const }],
-    ])('%s: the menu button, and no apps, no user button and no user menu', (_label, config) => {
-      const wrapper = mountLauncherTopbar({}, { config });
-      expect(wrapper.find('ion-menu-button').exists()).toBe(true);
-      expect(wrapper.find('[data-testid="topbar-apps"]').exists()).toBe(false);
-      expect(wrapper.find('[data-testid="topbar-user"]').exists()).toBe(false);
-      expect(wrapper.findComponent(UserMenuPopover).exists()).toBe(false);
-    });
+  it('nor Back on Home', async () => {
+    await hubRouter.push('/');
+    expect(startOrder(mountHubTopbar({ title: 'Home' }))).toEqual(['menu', 'topbar-rail']);
   });
 
-  // hub#1831: on a phone the way out showed late, waiting for an `ion-menu` to register. Back and
-  // the apps are plain buttons, there on the first paint.
-  it('paints Back on the left and the apps and the user on the right, on the first paint', () => {
-    const wrapper = mountLauncherTopbar();
-    expect(start(wrapper).find('[data-testid="topbar-back"]').exists()).toBe(true);
-    expect(end(wrapper).find('[data-testid="topbar-apps"]').exists()).toBe(true);
-    expect(end(wrapper).find('[data-testid="topbar-user"]').exists()).toBe(true);
+  it('Back on a detail (backHref), between the drawer button and the rail toggle, as the old hub', async () => {
+    await hubRouter.push('/demo/items/1');
+    const wrapper = mountHubTopbar({ backHref: '/demo/items' });
+    expect(startOrder(wrapper)).toEqual(['menu', 'topbar-back', 'topbar-rail']);
+    await wrapper.get('[data-testid="topbar-back"]').trigger('click');
+    await flushPromises();
+    expect(hubRouter.currentRoute.value.path).toBe('/demo/items');
   });
 
-  it('keeps the view actions first on the right, then the apps, then the user', () => {
-    const wrapper = mountLauncherTopbar({}, { slots: { actions: '<button class="new-item">New</button>' } });
+  it('the rail toggle folds the pinned menu to its icons and opens it again, saying which', async () => {
+    const wrapper = mountHubTopbar();
+    const rail = wrapper.get('[data-testid="topbar-rail"]');
+    expect(rail.classes()).toContain('rail-toggle');
+    expect(rail.getComponent(HubIcon).props('name')).toBe('lucide:panel-left');
+    expect([rail.attributes('aria-label'), rail.attributes('aria-expanded')]).toEqual(['Collapse menu', 'true']);
+    await rail.trigger('click');
+    expect(railCollapsed.value).toBe(true);
+    expect([rail.attributes('aria-label'), rail.attributes('aria-expanded')]).toEqual(['Expand menu', 'false']);
+    await rail.trigger('click');
+    expect(railCollapsed.value).toBe(false);
+    expect(rail.attributes('aria-label')).toBe('Collapse menu');
+  });
+
+  it('at the end, the view actions and then the apps; no avatar: the person is in the side menu (hub#146)', () => {
+    const wrapper = mountHubTopbar({}, { slots: { actions: '<button class="new-item">New</button>' } });
     const order = end(wrapper)
-      .findAll('.new-item, [data-testid="topbar-apps"], [data-testid="topbar-user"]')
+      .findAll('.new-item, [data-testid="topbar-apps"]')
       .map((el) => el.attributes('data-testid') ?? 'actions');
-    expect(order).toEqual(['actions', 'topbar-apps', 'topbar-user']);
+    expect(order).toEqual(['actions', 'topbar-apps']);
+    expect(wrapper.find('[data-testid="topbar-user"]').exists()).toBe(false);
+    expect(wrapper.findComponent(UserMenuPopover).exists()).toBe(false);
   });
 
-  it('shows Back on the root screen of an app (no backHref), and never on Home', async () => {
-    expect(mountLauncherTopbar().find('[data-testid="topbar-back"]').exists()).toBe(true);
-    await launcherRouter.push('/');
-    const home = mountLauncherTopbar({ title: 'Home' });
-    expect(home.find('[data-testid="topbar-back"]').exists()).toBe(false);
-    // The start group stays, empty: both groups share the row, so the title stays centred.
-    expect(home.find('ion-buttons[slot="start"]').exists()).toBe(true);
-  });
-
-  it('Home is the configured one: Back hides on homePath', async () => {
-    await launcherRouter.push('/demo/items/1');
-    expect(mountLauncherTopbar({}, { config: { homePath: '/demo/items/1' } }).find('[data-testid="topbar-back"]').exists()).toBe(false);
-  });
-
-  it('Back goes back in history when there is a previous screen', async () => {
-    window.history.replaceState({ back: '/' }, '');
-    const back = vi.spyOn(launcherRouter, 'back').mockImplementation(() => {});
-    const push = vi.spyOn(launcherRouter, 'push');
-    await mountLauncherTopbar().get('[data-testid="topbar-back"]').trigger('click');
-    expect(back).toHaveBeenCalledOnce();
-    expect(push).not.toHaveBeenCalled();
-  });
-
-  it('Back from the root of an app opened by a link goes Home', async () => {
-    await mountLauncherTopbar().get('[data-testid="topbar-back"]').trigger('click');
-    await flushPromises();
-    expect(launcherRouter.currentRoute.value.path).toBe('/');
-  });
-
-  it('an empty backHref is no backHref: Back from a link still goes Home', async () => {
-    await mountLauncherTopbar({ backHref: '' }).get('[data-testid="topbar-back"]').trigger('click');
-    await flushPromises();
-    expect(launcherRouter.currentRoute.value.path).toBe('/');
-  });
-
-  it('Back from a detail opened by a link goes to its backHref', async () => {
-    await launcherRouter.push('/demo/items/1');
-    await mountLauncherTopbar({ backHref: '/demo/items' }).get('[data-testid="topbar-back"]').trigger('click');
-    await flushPromises();
-    expect(launcherRouter.currentRoute.value.path).toBe('/demo/items');
-  });
-
-  it('the user button is the avatar, named «User menu», and opens the user menu under it', async () => {
-    const wrapper = mountLauncherTopbar();
-    const user = wrapper.get('[data-testid="topbar-user"]');
-    expect(user.attributes('aria-label')).toBe('User menu');
-    expect(user.attributes('aria-haspopup')).toBe('dialog');
-    expect(user.attributes('aria-expanded')).toBe('false');
-    expect(user.get('.user-avatar').text()).toBe('AP');
-    expect(user.get('.user-avatar').attributes('aria-hidden')).toBe('true');
-    expect(wrapper.getComponent(UserMenuPopover).props('alignment')).toBe('end');
-    await user.trigger('click');
-    expect(user.attributes('aria-expanded')).toBe('true');
-    expect(wrapper.find('[data-stub="ion-popover"]').exists()).toBe(true);
-    wrapper.getComponent(UserMenuPopover).vm.$emit('dismiss');
-    await flushPromises();
-    expect(user.attributes('aria-expanded')).toBe('false');
-  });
-
-  it('names every button in the user language; nothing in the bar goes unnamed', () => {
-    const wrapper = mountLauncherTopbar();
-    expect(wrapper.get('[data-testid="topbar-back"]').attributes('aria-label')).toBe('Back');
+  it('names every button in the user language; nothing in the bar goes unnamed', async () => {
+    await hubRouter.push('/demo/items/1');
+    const wrapper = mountHubTopbar({ backHref: '/demo/items' });
     expect(wrapper.get('[data-testid="topbar-apps"]').attributes('aria-label')).toBe('My apps');
-    expect(wrapper.get('[data-testid="topbar-back"]').getComponent(HubIcon).attributes('aria-hidden')).toBe('true');
     expect(unnamedIcons(wrapper.element)).toEqual([]);
     expect(unnamedButtons(wrapper.element)).toEqual([]);
-    const es = mountLauncherTopbar({}, { locale: 'es' });
+    const es = mountHubTopbar({ backHref: '/demo/items' }, { locale: 'es' });
+    expect(es.get('ion-menu-button').attributes('aria-label')).toBe('Abrir menú');
     expect(es.get('[data-testid="topbar-back"]').attributes('aria-label')).toBe('Atrás');
+    expect(es.get('[data-testid="topbar-rail"]').attributes('aria-label')).toBe('Colapsar menú');
     expect(es.get('[data-testid="topbar-apps"]').attributes('aria-label')).toBe('Mis apps');
-    expect(es.get('[data-testid="topbar-user"]').attributes('aria-label')).toBe('Menú de usuario');
   });
 
   // hub#925: a screen that asks for credentials, or paints its own frame, shows none of the
-  // authenticated chrome: no apps and no user (the same gate as the side menu, useChromeVisible).
-  it('without a person signed in, or on a screen with its own frame, no apps and no user', async () => {
-    const anonymous = mountLauncherTopbar({}, { me: null });
+  // authenticated chrome: no apps, and no rail of a menu that is not there (useChromeVisible).
+  it('without a person signed in, or on a screen with its own frame, no apps and no rail toggle', async () => {
+    const anonymous = mountHubTopbar({}, { me: null });
     expect(anonymous.find('[data-testid="topbar-apps"]').exists()).toBe(false);
-    expect(anonymous.find('[data-testid="topbar-user"]').exists()).toBe(false);
-    await launcherRouter.push('/welcome');
-    const framed = mountLauncherTopbar();
+    expect(anonymous.find('[data-testid="topbar-rail"]').exists()).toBe(false);
+    await hubRouter.push('/welcome');
+    const framed = mountHubTopbar();
     expect(framed.find('[data-testid="topbar-apps"]').exists()).toBe(false);
-    expect(framed.find('[data-testid="topbar-user"]').exists()).toBe(false);
+    expect(framed.find('[data-testid="topbar-rail"]').exists()).toBe(false);
+  });
+
+  // The SaaS stays as it is: the menu button, Back only on a detail, and neither apps nor rail.
+  it('the SaaS (no sidebar), signed in on an authenticated screen: only the menu button', () => {
+    const wrapper = mountHubTopbar({}, { config: { homePath: '/' } });
+    expect(startOrder(wrapper)).toEqual(['menu']);
+    expect(wrapper.find('[data-testid="topbar-apps"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="topbar-user"]').exists()).toBe(false);
   });
 
   // hub#690: on a phone (ios) the icons covered the title. Every button of the bar lives in one of
   // the two `ion-buttons` groups the scoped rules size (see «a long title never covers the buttons»),
   // so the title keeps the room between them and is cut with «…» instead.
-  it('every button sits in a scoped button group, so none of them covers the title', () => {
-    const wrapper = mountLauncherTopbar({}, { slots: { actions: '<button class="new-item">New</button>' } });
+  it('every button sits in a scoped button group, so none of them covers the title', async () => {
+    await hubRouter.push('/demo/items/1');
+    const wrapper = mountHubTopbar({ backHref: '/demo/items' }, { slots: { actions: '<button class="new-item">New</button>' } });
     const scope = (element: Element) => element.getAttributeNames().filter((name) => name.startsWith('data-v-'));
     const [id] = scope(wrapper.get('ion-header').element);
-    for (const testid of ['topbar-back', 'topbar-apps', 'topbar-user']) {
+    for (const testid of ['topbar-back', 'topbar-rail', 'topbar-apps']) {
       const group = wrapper.get(`[data-testid="${testid}"]`).element.closest('ion-buttons');
       expect(group, testid).not.toBeNull();
       expect(scope(group as Element)).toContain(id);

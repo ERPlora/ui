@@ -54,7 +54,7 @@ afterEach(() => {
 function mountPopover(menu: ShellUserMenu = MENU, isOpen = true) {
   return mount(UserMenuPopover, {
     props: { isOpen },
-    attrs: { class: 'topbar-user-popover' },
+    attrs: { class: 'sidebar-user-popover' },
     global: {
       plugins: [router, createShellI18n({ locale: 'en' })],
       provide: { [USER_MENU_KEY as symbol]: menu },
@@ -66,7 +66,7 @@ function mountPopover(menu: ShellUserMenu = MENU, isOpen = true) {
 const rows = (wrapper: ReturnType<typeof mountPopover>) =>
   wrapper.findAll('[data-stub="ion-popover"] ion-item').map((row) => row.attributes('data-testid'));
 
-describe('UserMenuPopover (the user menu: the side menu header and the launcher topbar)', () => {
+describe('UserMenuPopover (the user menu, under the person at the top of the side menu)', () => {
   it("lists the project's entries, Help, the theme and Sign out; nothing while closed", () => {
     expect(rows(mountPopover())).toEqual([
       'user-menu-account',
@@ -78,8 +78,8 @@ describe('UserMenuPopover (the user menu: the side menu header and the launcher 
     expect(mountPopover(MENU, false).find('[data-stub="ion-popover"]').exists()).toBe(false);
   });
 
-  it('takes the class of where it opens (the sidebar card or the topbar avatar)', () => {
-    expect(mountPopover().get('[data-stub="ion-popover"]').classes()).toContain('topbar-user-popover');
+  it('takes the class of where it opens (the sidebar card)', () => {
+    expect(mountPopover().get('[data-stub="ion-popover"]').classes()).toContain('sidebar-user-popover');
   });
 
   it('a web-only entry is not offered on the app surfaces', () => {

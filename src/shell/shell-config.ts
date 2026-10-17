@@ -1,26 +1,22 @@
 // Static facts of the shell an app passes to `createShell`: where «Home» is (brand link of the
-// menu, «Go to Home» of the 404), whether the shell's own Home (HomePage) is on, and how the person
-// moves between apps (`nav`). Plus the one gate of the authenticated chrome (`useChromeVisible`).
+// menu, «Go to Home» of the 404), whether the shell's own Home (HomePage) is on, and the hub's side
+// menu (`sidebar`). Plus the one gate of the authenticated chrome (`useChromeVisible`).
 import { type App, computed, type ComputedRef, inject, type InjectionKey } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { SESSION_KEY } from './session';
-
-/**
- * How the person moves between apps:
- * - `menu` (default, the SaaS): the side menu, a drawer on a phone and pinned from lg.
- * - `launcher` (the hub, PLAN-MIGRATIONS §13): no side menu at any width; the topbar carries Back
- *   (on every screen but Home), the apps («My apps» sheet) and the user menu, as the old hub did.
- */
-export type ShellNav = 'menu' | 'launcher';
+import type { ShellSidebar } from './sidebar';
 
 export interface ShellConfig {
   /** Path of «Home». */
   homePath: string;
   /** The shell's Home is on (`createShell({ home: true })`, the hub): «Home» goes first in the menu. */
   home?: boolean;
-  /** How the person moves between apps; unset is `menu`. */
-  nav?: ShellNav;
+  /**
+   * The hub's side menu (sidebar.ts): the platform's entries instead of the session's menu, the QR in
+   * its footer, the rail toggle and «My apps» in the topbar. Unset (the SaaS): the session's menu.
+   */
+  sidebar?: ShellSidebar;
 }
 
 const DEFAULTS: ShellConfig = { homePath: '/' };
@@ -40,13 +36,8 @@ export function useShellConfig(): ShellConfig {
   return inject(SHELL_CONFIG_KEY, DEFAULTS);
 }
 
-/** The navigation of a config: `menu` unless it says `launcher`. */
-export function shellNav(config: ShellConfig): ShellNav {
-  return config.nav ?? 'menu';
-}
-
 /**
- * The one gate of the authenticated chrome (hub#925): the side menu, or the topbar's apps and user
+ * The one gate of the authenticated chrome (hub#925): the side menu, and the topbar's apps and rail
  * buttons. It exists where a session is REQUIRED (the route's `meta.auth`, the flag the auth gate
  * reads) and PRESENT; a screen that asks for credentials is outside it by construction, and so is one
  * that paints its own frame (`meta.chrome: false`). Without a session provided, it is simply off.

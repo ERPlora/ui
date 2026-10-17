@@ -1,5 +1,5 @@
 // The apps of this hub, as the person may open them: the Home grid (HomePage, Odoo's home) and the
-// topbar's «My apps» sheet (AppsLauncher, the launcher of `nav: 'launcher'`) paint the same list.
+// topbar's «My apps» sheet (AppsLauncher, with the hub's sidebar) paint the same list.
 // Everything comes from `base.session.me`, already filtered by permission and translated: one entry
 // per app that has a menu section (its name, the icon and path of its first entry), so neither
 // offers what the server does not (on the app surfaces, neither offers a web-only entry). An app
