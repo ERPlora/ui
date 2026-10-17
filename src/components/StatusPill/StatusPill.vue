@@ -8,6 +8,9 @@
 // pill; the tint is that tone over the surface and the text is the tone mixed with black (light)
 // or with white (dark), each tone by its own amount.
 //   - default slot → replaces `label` (e.g. a status with a date)
+// It never grows past its box (hub#53: a narrow table cell cut «● Document pending» to «● Document
+// pend»): the label wraps between words, a word that alone does not fit ends in «…», and the label
+// is the pill's `title`, so the whole text is one hover away.
 import type { StatusPillSize, StatusPillTone } from './types';
 
 withDefaults(
@@ -35,8 +38,9 @@ defineSlots<{ default?: () => unknown }>();
     :class="{ 'status-pill--dot': dot, 'status-pill--busy': busy }"
     :data-tone="tone"
     :data-size="size"
+    :title="$slots.default ? undefined : label || undefined"
   >
-    <slot>{{ label }}</slot>
+    <span class="status-pill__label"><slot>{{ label }}</slot></span>
   </span>
 </template>
 
@@ -53,12 +57,13 @@ defineSlots<{ default?: () => unknown }>();
   align-items: center;
   gap: 0.3rem;
   flex: none;
+  box-sizing: border-box;
+  max-width: 100%;
   padding: 0.15rem 0.6rem;
   border-radius: var(--ep-radius-pill, 999px);
   font-size: 11.5px;
   font-weight: 500;
   line-height: 1.4;
-  white-space: nowrap;
   color: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-ink), black);
   background: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-wash), transparent);
 }
@@ -92,6 +97,14 @@ defineSlots<{ default?: () => unknown }>();
   gap: 0.25rem;
   padding: 0.1rem 0.45rem;
   font-size: 10.5px;
+}
+
+/* Its own `white-space`: a table cell paints its spans on one line, and that would cut the pill. */
+.status-pill__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
 }
 
 /* The dot: decoration, so a pseudo-element (nothing for a screen reader to read). */

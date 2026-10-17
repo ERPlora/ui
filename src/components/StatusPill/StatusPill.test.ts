@@ -68,6 +68,74 @@ describe('StatusPill', () => {
     expect(sfc).not.toMatch(/--ok-|ok-[a-z]/);
   });
 
+  it('paints its text inside a label of its own, and the label is its title (the whole text on hover)', () => {
+    const pill = mountPill({ label: 'Document pending', tone: 'warning', size: 'sm' });
+    expect(pill.get('.status-pill > .status-pill__label').text()).toBe('Document pending');
+    expect(pill.get('.status-pill').attributes('title')).toBe('Document pending');
+  });
+
+  it('a slot is painted inside the label too, with no title (the pill cannot tell what it says)', () => {
+    const pill = mountPill({ label: 'Cancelled' }, { default: () => 'Ends on 31 Oct' });
+    expect(pill.get('.status-pill > .status-pill__label').text()).toBe('Ends on 31 Oct');
+    expect(pill.get('.status-pill').attributes('title')).toBeUndefined();
+  });
+
+  it('a title passed in wins over the label', () => {
+    const pill = mount(StatusPill, { props: { label: 'Active' }, attrs: { title: 'Since 1 Oct' } });
+    expect(pill.attributes('title')).toBe('Since 1 Oct');
+  });
+
+  // hub#53 - In a narrow table cell (Sales at 834 px) «● Document pending» came out «● Document pend»:
+  // the pill never got narrower than its text, and the cell clips what overflows it. Now the pill is
+  // never wider than its box, and its label wraps between words; a word that alone does not fit ends
+  // in «…» (the whole text stays in the DOM and in `title`). happy-dom does not lay out: the geometry
+  // is the e2e of the Hub (`tests/e2e/fix-ui-statuspill.spec.ts`); this pins the rules that carry it.
+  describe('fits its box, never cut mid-word', () => {
+    const sfc = readFileSync(join(HERE, 'StatusPill.vue'), 'utf8');
+    const style = (sfc.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\/\*[\s\S]*?\*\//g, '');
+    /** Declarations of the first rule whose selector is exactly `selector`, in order. */
+    const declarations = (selector: string): string[] => {
+      const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const body = style.match(new RegExp(`(?:^|\\})\\s*${escaped}\\s*\\{([^}]*)\\}`))?.[1];
+      if (body === undefined) throw new Error(`no rule for «${selector}»`);
+      return body
+        .split(';')
+        .map((d) => d.replace(/\s+/g, ' ').trim())
+        .filter(Boolean);
+    };
+
+    it('the pill keeps its width beside others but never grows past its box', () => {
+      expect(declarations('.status-pill')).toEqual([
+        '--status-pill-tone: var(--ep-medium, var(--ion-color-medium, #636469))',
+        '--status-pill-wash: 14%',
+        '--status-pill-ink: 75%',
+        '--status-pill-ink-dark: 70%',
+        'display: inline-flex',
+        'align-items: center',
+        'gap: 0.3rem',
+        'flex: none',
+        'box-sizing: border-box',
+        'max-width: 100%',
+        'padding: 0.15rem 0.6rem',
+        'border-radius: var(--ep-radius-pill, 999px)',
+        'font-size: 11.5px',
+        'font-weight: 500',
+        'line-height: 1.4',
+        'color: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-ink), black)',
+        'background: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-wash), transparent)',
+      ]);
+    });
+
+    it('the label wraps between words and ends a word that alone does not fit in «…»', () => {
+      expect(declarations('.status-pill__label')).toEqual([
+        'min-width: 0',
+        'overflow: hidden',
+        'text-overflow: ellipsis',
+        'white-space: normal',
+      ]);
+    });
+  });
+
   it('is exported from its folder, from `@erplora/ui/components` and from the package root', () => {
     expect(entry.StatusPill).toBe(StatusPill);
     expect((components as Record<string, unknown>).StatusPill).toBe(StatusPill);
