@@ -1,7 +1,9 @@
 {
   "topbar": {
     "menu": "Abrir menú",
-    "back": "Atrás"
+    "back": "Atrás",
+    "collapseMenu": "Colapsar menú",
+    "expandMenu": "Expandir menú"
   },
   "home": {
     "title": "Inicio",
@@ -21,6 +23,19 @@
     "error": "No se han podido cargar tus apps. Comprueba la conexión e inténtalo de nuevo.",
     "openFailed": "No se ha podido abrir {app}. Comprueba la conexión e inténtalo de nuevo.",
     "retry": "Reintentar"
+  },
+  "sidebar": {
+    "employees": "Empleados",
+    "files": "Archivos",
+    "billing": "Mi plan",
+    "apps": "Apps",
+    "system": "Sistema",
+    "settings": "Ajustes"
+  },
+  "installQr": {
+    "title": "Ábrelo en el móvil",
+    "hint": "Escanea el código. Para dejarlo fijo, añádelo a la pantalla de inicio desde el menú del navegador.",
+    "alt": "Código QR de {url}"
   },
   "tabbar": {
     "label": "Secciones"

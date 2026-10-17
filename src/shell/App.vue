@@ -1,14 +1,15 @@
 <script setup lang="ts">
-// App — root of the shell. Ported from ERPlora hub `apps/web/src/App.vue` (origin/develop).
-// Two navigations (`createShell({ nav })`, shell-config.ts):
-// - `menu` (the SaaS): split pane, side menu painted from `base.session.me` (with Home first when the
-//   shell's Home is on), the user menu under the person at the top (mockups README §3: «usuario
-//   arriba, logo abajo») and the router outlet.
-// - `launcher` (the hub, PLAN-MIGRATIONS §13): the router outlet alone, at every width. Back, the apps
-//   («My apps») and the user menu live in the topbar of every screen (AppTopbar.vue).
-// Not ported (phase 1 has none of them, or they come later): switch user, app update / install QR /
-// upgrade plan in the footer, the version, the rail toggle, and the overlays mounted next to the
-// pane (assistant, elevation, user switch).
+// App — root of the shell. Ported from ERPlora hub `apps/web/src/App.vue` (origin/develop): the split
+// pane (`when="lg"`: a drawer on a phone, pinned from 992 px), the side menu and the router outlet. The
+// person at the top opens the user menu (mockups README §3: «usuario arriba, logo abajo»). What the
+// menu lists:
+// - the SaaS: the sections of `base.session.me` (with Home first when the shell's Home is on);
+// - the hub (`createShell({ sidebar })`, PLAN-MIGRATIONS §16): the old hub's — Home and the platform's
+//   entries whose screen exists, in groups, and no module (they open from «My apps» and Home); the QR
+//   «Open on your phone» in the footer, and the rail the topbar folds it to (sidebar.ts).
+// Not ported (phase 1 has none of them, or they come later): switch user, app update and «Upgrade plan»
+// in the footer, the version, and the overlays mounted next to the pane (assistant, elevation, user
+// switch).
 import {
   IonApp,
   IonContent,
@@ -30,7 +31,9 @@ import { useRoute, useRouter } from 'vue-router';
 
 import HubIcon from './HubIcon.vue';
 import { useSession } from './session';
-import { shellNav, useChromeVisible, useShellConfig } from './shell-config';
+import { useChromeVisible, useShellConfig } from './shell-config';
+import { railCollapsed, type ShellSidebarItem, sidebarGroups } from './sidebar';
+import SidebarInstallQr from './SidebarInstallQr.vue';
 import { useSurface } from './surface';
 import UserMenuPopover from './UserMenuPopover.vue';
 
@@ -39,8 +42,7 @@ const SHELL_MENU_ID = 'shell-navigation';
 
 const { user, menu } = useSession();
 const config = useShellConfig();
-const { homePath, home } = config;
-const launcher = shellNav(config) === 'launcher';
+const { homePath, home, sidebar } = config;
 const { isWeb } = useSurface();
 const { t } = useI18n();
 const route = useRoute();
@@ -51,8 +53,7 @@ const showMenu = useChromeVisible();
 
 // Keyed on the person (hub#2539): the next one gets every screen mounted again, never what was read
 // with the session of the one who left. On the split pane and not on the outlet alone: Ionic wires
-// `ion-split-pane` and `ion-menu` to their `content-id` once, when they connect. With the launcher
-// there is no pane: the key goes on the outlet.
+// `ion-split-pane` and `ion-menu` to their `content-id` once, when they connect.
 const screenKey = computed(() => user.value?.id ?? '');
 
 const initials = computed(() => {
@@ -68,6 +69,22 @@ const sections = computed(() =>
 );
 
 const isActive = (path: string): boolean => route.path === path || route.path.startsWith(`${path}/`);
+
+/** «Home» as an entry of the hub's sidebar: the first of its first group. */
+const HOME_ITEM: ShellSidebarItem = { id: 'home', labelKey: 'home.title', icon: 'ion:home-outline', to: homePath };
+
+/**
+ * The hub's sidebar, as it can be painted: Home first (with the shell's Home on) and only the entries
+ * whose screen exists. The routes are fixed from boot, so this is read once.
+ */
+const platformGroups = sidebar
+  ? sidebarGroups(router, {
+      groups: home ? [[HOME_ITEM, ...(sidebar.groups[0] ?? [])], ...sidebar.groups.slice(1)] : sidebar.groups,
+    })
+  : [];
+
+/** Home is selected on itself only (its path is a prefix of every other); the rest, on their sub-paths too. */
+const isCurrent = (item: ShellSidebarItem): boolean => (item.id === HOME_ITEM.id ? route.path === item.to : isActive(item.to));
 
 /** The menu sends `set:name` of any registered set (HubIcon paints them all); a bare name is Ionicons. */
 const iconName = (icon: string): string => (icon.includes(':') ? icon : `ion:${icon}`);
@@ -94,17 +111,11 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
 
 <template>
   <ion-app>
-    <!-- Launcher (the hub): no side menu at any width; the topbar carries the navigation. -->
-    <ion-router-outlet
-      v-if="launcher"
-      id="main"
-      :key="screenKey"
-    />
     <ion-split-pane
-      v-else
       :key="screenKey"
       content-id="main"
       when="lg"
+      :class="{ rail: sidebar && railCollapsed }"
     >
       <!-- Side menu: drawer on a phone, pinned from lg. -->
       <ion-menu
@@ -155,8 +166,55 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
           </ion-toolbar>
         </ion-header>
 
-        <ion-content class="sidebar-content">
-          <!-- Home first (the hub): the way back to the apps grid (HomePage) from any screen. -->
+        <!-- The hub's sidebar: its groups, each opened by a divider (the old hub's «General» and
+             «Account», without their words): one under the person, one between the two. -->
+        <ion-content
+          v-if="sidebar"
+          class="sidebar-content"
+        >
+          <ion-list
+            v-for="group in platformGroups"
+            :key="group[0].id"
+            lines="none"
+            class="nav-list"
+          >
+            <ion-list-header
+              class="nav-section-label"
+              role="separator"
+            />
+            <ion-menu-toggle
+              v-for="item in group"
+              :key="item.id"
+              :auto-hide="false"
+            >
+              <ion-item
+                button
+                class="nav-item"
+                :class="{ selected: isCurrent(item) }"
+                :router-link="item.to"
+                router-direction="root"
+                :detail="false"
+                :aria-current="isCurrent(item) ? 'page' : undefined"
+                :data-testid="`nav-${item.id}`"
+              >
+                <HubIcon
+                  slot="start"
+                  class="nav-icon"
+                  :name="item.icon"
+                />
+                <ion-label class="nav-label">
+                  {{ t(item.labelKey) }}
+                </ion-label>
+              </ion-item>
+            </ion-menu-toggle>
+          </ion-list>
+        </ion-content>
+
+        <ion-content
+          v-else
+          class="sidebar-content"
+        >
+          <!-- Home first (with the shell's Home on): the way back to the apps grid (HomePage). -->
           <ion-list
             v-if="home"
             lines="none"
@@ -224,6 +282,10 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
         </ion-content>
 
         <ion-footer class="ion-no-border sidebar-foot">
+          <!-- hub#1715: unconditional, and NOT inside an ion-menu-toggle — the code is read by a
+               camera, not pressed, and closing the drawer as somebody leans in to scan it is the one
+               thing it must not do. -->
+          <SidebarInstallQr v-if="sidebar" />
           <div class="sidebar-foot-brand">
             <ion-menu-toggle :auto-hide="false">
               <a

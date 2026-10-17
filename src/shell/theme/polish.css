@@ -28,13 +28,7 @@ ion-toolbar {
 ion-title { font-weight: 650; letter-spacing: -0.01em; font-size: 1.0625rem; }
 
 /* ── Shared topbar (AppTopbar.vue) — parity with Cloud's .dash-header ─────────────────── */
-/* The user: with `nav: 'menu'` it lives in the sidebar header; with `nav: 'launcher'` (the hub,
-   PLAN-MIGRATIONS §13) it is the avatar at the end of the topbar, after the ⠿ apps. */
-.app-topbar ion-button.topbar-user { --padding-start: 4px; --padding-end: 4px; }
-/* Its menu, under the avatar: as wide as the side menu's, so the theme row fits. Global: Ionic
-   moves an inline popover to ion-app when it presents it. */
-.topbar-user-popover { --width: 248px; }
-.topbar-user-popover ion-item { --min-height: 42px; font-size: 0.9rem; }
+/* The user lives in the sidebar header (.sidebar-user), never in the topbar (hub#146). */
 .app-topbar { position: relative; }
 /* The section on screen after the title («Billing · Invoices», mockups README §3): muted, and gone on
    a phone, where the footer tabbar already says it and the title needs the room. */
@@ -67,8 +61,6 @@ ion-title { font-weight: 650; letter-spacing: -0.01em; font-size: 1.0625rem; }
 /* Secondary text at AA (UX-AUDIT-2 V-03: the 55 % mix it had read 3.74:1 on the canvas). */
 .sidebar-foot-text { color: var(--ep-text-muted); }
 .ml-auto { margin-inline-start: auto; }
-/* Collapsed rail: logo only, centered (the version is .nav-label → already hidden). */
-ion-split-pane.rail .sidebar-foot-brand { justify-content: center; padding-inline: 0; }
 
 /* ── Cards: radius + soft elevation + hover on clickable cards ────────────────────────────── */
 ion-card {
@@ -401,19 +393,26 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
    (that is what left it hidden for up to a second after the first paint), so the breakpoint that
    hides it is this one, the same `lg` (992px) at which `ion-split-pane when="lg"` pins the menu. */
 @media (min-width: 992px) { .app-topbar ion-menu-button.menu-toggle { display: none; } }
-ion-split-pane.rail .erp-wordmark,
-ion-split-pane.rail .nav-label,
-ion-split-pane.rail .sidebar-user-meta { display: none; }
-/* The brand's menu-toggle (footer) shrinks to its content; forcing it to take the full width
-   lets the lockup fall in the center of the rail (68px). */
-ion-split-pane.rail .sidebar-foot-brand ion-menu-toggle {
-  display: flex; width: 100%; justify-content: center;
+/* The rail is folded from the topbar at ≥lg, and only there does it change the menu: a tablet turned
+   to portrait with it folded gets the drawer back whole — labels, the person and the QR — since the
+   toggle that would unfold it is not shown below lg. */
+@media (min-width: 992px) {
+  ion-split-pane.rail .erp-wordmark,
+  ion-split-pane.rail .nav-label,
+  ion-split-pane.rail .sidebar-user-meta { display: none; }
+  /* Logo only, centered (the version is .nav-label → already hidden). */
+  ion-split-pane.rail .sidebar-foot-brand { justify-content: center; padding-inline: 0; }
+  /* The brand's menu-toggle (footer) shrinks to its content; forcing it to take the full width
+     lets the lockup fall in the center of the rail (68px). */
+  ion-split-pane.rail .sidebar-foot-brand ion-menu-toggle {
+    display: flex; width: 100%; justify-content: center;
+  }
+  ion-split-pane.rail .brand-link { padding-inline-start: 0; justify-content: center; width: 100%; }
+  ion-split-pane.rail .nav-item { --inner-padding-end: 0; }
+  ion-split-pane.rail .nav-item::part(native) { justify-content: center; }
+  ion-split-pane.rail .nav-icon { margin-inline-end: 0; }
+  ion-split-pane.rail .sidebar-user { justify-content: center; }
 }
-ion-split-pane.rail .brand-link { padding-inline-start: 0; justify-content: center; width: 100%; }
-ion-split-pane.rail .nav-item { --inner-padding-end: 0; }
-ion-split-pane.rail .nav-item::part(native) { justify-content: center; }
-ion-split-pane.rail .nav-icon { margin-inline-end: 0; }
-ion-split-pane.rail .sidebar-user { justify-content: center; }
 
 /* hub#1715 — «Open on your phone». Sits in the sidebar footer, always, for everyone.
    NO `max-width` anywhere (hub#1605): the code is sized by its own `size` attribute, and the block
@@ -442,9 +441,20 @@ ion-split-pane.rail .sidebar-user { justify-content: center; }
    `v-if` on purpose: the guard in `SidebarInstallQr.test.ts` forbids conditions on this block, and
    the rail is a desktop panel the user collapsed themselves — not a gate on who gets the code. */
 .sidebar-install-qr-rail { display: none; }
-ion-split-pane.rail .sidebar-install-qr-full { display: none; }
-ion-split-pane.rail .sidebar-install-qr { padding-inline: 0; }
-ion-split-pane.rail .sidebar-install-qr-rail { display: inline-flex; }
+@media (min-width: 992px) {
+  ion-split-pane.rail .sidebar-install-qr-full { display: none; }
+  ion-split-pane.rail .sidebar-install-qr { padding-inline: 0; }
+  ion-split-pane.rail .sidebar-install-qr-rail { display: inline-flex; }
+}
+/* While the code is drawn its room is kept, so the footer does not jump; if it cannot be drawn, the
+   address to type takes its place (SidebarInstallQr.vue). */
+.sidebar-install-qr-pending { width: 132px; height: 132px; }
+.sidebar-install-qr-url {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
 
 /* ── Content area = card-like surface (shell unification) ───────────────────── */
 /* Each shell page mounts its content in the main outlet's ion-content

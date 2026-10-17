@@ -23,7 +23,7 @@ vi.mock('@ionic/vue', async (importOriginal) => ({
 import { createShell, type CreateShellOptions } from './createShell';
 import { ION_ICONS } from './icons';
 import { SESSION_KEY, type SessionMe, type SessionStatus } from './session';
-import { type ShellConfig, SHELL_CONFIG_KEY, shellNav } from './shell-config';
+import { SHELL_CONFIG_KEY } from './shell-config';
 import { applySurface, IN_APP_CLASS } from './surface';
 import { USER_MENU_KEY } from './user-menu';
 
@@ -159,27 +159,19 @@ describe('createShell: home', () => {
   });
 });
 
-// FIX-SHELL-NAV (PLAN-MIGRATIONS §13): the hub moves between apps from the topbar, with no side
-// menu; the SaaS keeps its menu, which is what leaving `nav` unset means.
-describe('createShell: nav', () => {
-  it("nav: 'launcher' is provided app-wide, next to the rest of the config", async () => {
-    const { app } = await boot('es', { home: true, nav: 'launcher' });
-    expect(provides(app)[SHELL_CONFIG_KEY as symbol]).toEqual({ homePath: '/demo/items', home: true, nav: 'launcher' });
+// FIX-SHELL-SPLIT-PANE (PLAN-MIGRATIONS §16): the hub's side menu is the old hub's (`sidebar`: the
+// platform's entries, the QR in the footer, the rail); the SaaS keeps the menu of its session.
+describe('createShell: sidebar', () => {
+  const SIDEBAR = { groups: [[{ id: 'employees', labelKey: 'sidebar.employees', icon: 'ion:people-outline', to: '/employees' }]] };
+
+  it('is provided app-wide, next to the rest of the config', async () => {
+    const { app } = await boot('es', { home: true, sidebar: SIDEBAR });
+    expect(provides(app)[SHELL_CONFIG_KEY as symbol]).toEqual({ homePath: '/demo/items', home: true, sidebar: SIDEBAR });
   });
 
-  it('unset by default: the side menu, as the SaaS has it', async () => {
+  it('unset by default: the menu of the session, as the SaaS has it', async () => {
     const { app } = await boot();
-    expect(shellNav(provides(app)[SHELL_CONFIG_KEY as symbol] as ShellConfig)).toBe('menu');
-  });
-
-  it("nav: 'menu' is accepted as the explicit default", async () => {
-    const { app } = await boot('es', { nav: 'menu' });
-    expect(shellNav(provides(app)[SHELL_CONFIG_KEY as symbol] as ShellConfig)).toBe('menu');
-  });
-
-  // A typo would otherwise fall back to the side menu in silence, and the hub would grow one back.
-  it.each(['sidebar', 'Launcher', ''])('refuses an unknown nav (%j) instead of falling back to the menu', async (nav) => {
-    await expect(boot('es', { nav: nav as never })).rejects.toThrow(/nav/);
+    expect(provides(app)[SHELL_CONFIG_KEY as symbol]).toEqual({ homePath: '/demo/items' });
   });
 });
 

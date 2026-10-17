@@ -406,6 +406,17 @@ describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA
     expect(blocks(polish, 'ion-menu.dash-menu')[0]).toContain('--width: 280px');
   });
 
+  // FIX-SHELL-SPLIT-PANE: the rail is folded at ≥lg; a tablet turned to portrait with it folded gets the
+  // drawer, which must keep its labels, the person and the QR (the rail toggle is not there to undo it).
+  it('the rail is a desktop state: what it hides inside the menu, it hides only from lg', () => {
+    const desktop = /@media \(min-width: 992px\)\s*\{((?:[^{}]*\{[^}]*\})*)\s*\}/g;
+    const railRules = (css: string) => [...css.matchAll(/(?:^|[}{,])\s*(ion-split-pane\.rail\s+[^,{]+)/g)].map((m) => m[1].trim());
+    expect(railRules(polish.replace(desktop, ''))).toEqual([]);
+    expect(railRules([...polish.matchAll(desktop)].map((m) => m[1]).join('\n'))).toEqual(
+      expect.arrayContaining(['ion-split-pane.rail .nav-label', 'ion-split-pane.rail .sidebar-install-qr-full']),
+    );
+  });
+
   it('the topbar names the section after the title, muted, hidden on a phone', () => {
     expect(blocks(polish, '.topbar-section::before')[0]).toContain("content: '· '");
     expect(blocks(polish, '.topbar-section')[0]).toContain('color: var(--ep-text-muted)');

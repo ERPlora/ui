@@ -1,7 +1,9 @@
 {
   "topbar": {
     "menu": "Open menu",
-    "back": "Back"
+    "back": "Back",
+    "collapseMenu": "Collapse menu",
+    "expandMenu": "Expand menu"
   },
   "home": {
     "title": "Home",
@@ -21,6 +23,19 @@
     "error": "Could not load your apps. Check the connection and try again.",
     "openFailed": "Could not open {app}. Check the connection and try again.",
     "retry": "Retry"
+  },
+  "sidebar": {
+    "employees": "Employees",
+    "files": "Files",
+    "billing": "My plan",
+    "apps": "Apps",
+    "system": "System",
+    "settings": "Settings"
+  },
+  "installQr": {
+    "title": "Open on your phone",
+    "hint": "Scan the code. To keep it there, add it to your home screen from your browser menu.",
+    "alt": "QR code of {url}"
   },
   "tabbar": {
     "label": "Sections"

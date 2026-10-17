@@ -34,6 +34,14 @@ describe('ION_ICONS (registered with addIcons by createShell)', () => {
       'add-outline',
       'arrow-back-outline',
       'cube-outline',
+      // The hub's sidebar (PLAN-MIGRATIONS §16): its entries and the QR on the rail.
+      'people-outline',
+      'folder-outline',
+      'card-outline',
+      'storefront-outline',
+      'hardware-chip-outline',
+      'settings-outline',
+      'qr-code-outline',
     ]) {
       expect(ION_ICONS, name).toHaveProperty(name);
     }

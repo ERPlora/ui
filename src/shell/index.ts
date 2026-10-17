@@ -63,7 +63,8 @@ export type {
   ShellSession,
 } from './session';
 export { provideShellConfig, SHELL_CONFIG_KEY, useShellConfig } from './shell-config';
-export type { ShellConfig, ShellNav } from './shell-config';
+export type { ShellConfig } from './shell-config';
+export type { ShellSidebar, ShellSidebarItem } from './sidebar';
 export { applySurface, bootSurface, detectSurface, IN_APP_CLASS, isSurface, SURFACES, useSurface, vWebOnly } from './surface';
 export type { Surface, SurfaceState, SurfaceWindow } from './surface';
 export { bindTabbar, syncTabbarOverflow, tabbarOverflow } from './tabbar';

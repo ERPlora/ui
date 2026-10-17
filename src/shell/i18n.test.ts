@@ -11,7 +11,7 @@ function keys(tree: Record<string, unknown>, prefix = ''): string[] {
 }
 
 describe('shell catalogues', () => {
-  it('carry only what the shell and its components say (topbar, tabbar, home, apps launcher, user menu, 404, not in the app, banner and toast close)', () => {
+  it('carry only what the shell and its components say (topbar, tabbar, home, apps launcher, side menu and its QR, user menu, 404, not in the app, banner and toast close)', () => {
     expect(keys(en).sort()).toEqual([
       'home.empty.body',
       'home.empty.title',
@@ -19,6 +19,9 @@ describe('shell catalogues', () => {
       'home.state.off',
       'home.title',
       'inlineFeedback.dismiss',
+      'installQr.alt',
+      'installQr.hint',
+      'installQr.title',
       'launcher.close',
       'launcher.error',
       'launcher.loading',
@@ -31,9 +34,17 @@ describe('shell catalogues', () => {
       'notInApp.action',
       'notInApp.body',
       'notInApp.title',
+      'sidebar.apps',
+      'sidebar.billing',
+      'sidebar.employees',
+      'sidebar.files',
+      'sidebar.settings',
+      'sidebar.system',
       'tabbar.label',
       'toast.close',
       'topbar.back',
+      'topbar.collapseMenu',
+      'topbar.expandMenu',
       'topbar.menu',
       'userMenu.help',
       'userMenu.logout',
