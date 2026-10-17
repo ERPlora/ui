@@ -83,9 +83,6 @@ const platformGroups = sidebar
     })
   : [];
 
-/** Home is selected on itself only (its path is a prefix of every other); the rest, on their sub-paths too. */
-const isCurrent = (item: ShellSidebarItem): boolean => (item.id === HOME_ITEM.id ? route.path === item.to : isActive(item.to));
-
 /** The menu sends `set:name` of any registered set (HubIcon paints them all); a bare name is Ionicons. */
 const iconName = (icon: string): string => (icon.includes(':') ? icon : `ion:${icon}`);
 
@@ -190,11 +187,11 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
               <ion-item
                 button
                 class="nav-item"
-                :class="{ selected: isCurrent(item) }"
+                :class="{ selected: isActive(item.to) }"
                 :router-link="item.to"
                 router-direction="root"
                 :detail="false"
-                :aria-current="isCurrent(item) ? 'page' : undefined"
+                :aria-current="isActive(item.to) ? 'page' : undefined"
                 :data-testid="`nav-${item.id}`"
               >
                 <HubIcon
