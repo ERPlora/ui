@@ -417,6 +417,17 @@ describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA
     );
   });
 
+  // The code is drawn at 264 px for a dense screen and painted at 132 (hub#1715: readable by a phone,
+  // and it fits the 280 px drawer); its box keeps those 132 px while it is drawn.
+  it('the sidebar QR is painted at 132 px, centred, whatever size it was drawn at', () => {
+    expect(declarations(blocks(polish, '.sidebar-install-qr-code')[0])).toEqual([
+      'display: block',
+      'width: 132px',
+      'height: 132px',
+      'margin-inline: auto',
+    ]);
+  });
+
   it('the topbar names the section after the title, muted, hidden on a phone', () => {
     expect(blocks(polish, '.topbar-section::before')[0]).toContain("content: '· '");
     expect(blocks(polish, '.topbar-section')[0]).toContain('color: var(--ep-text-muted)');
