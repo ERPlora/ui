@@ -99,12 +99,14 @@ defineSlots<{ default?: () => unknown }>();
   font-size: 10.5px;
 }
 
-/* Its own `white-space`: a table cell paints its spans on one line, and that would cut the pill. */
+/* Its own `white-space`: a table cell paints its spans on one line, and that would cut the pill. Its
+   own `overflow-wrap`: Ionic's `body` breaks a long word anywhere; here it ends in «…» instead. */
 .status-pill__label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: normal;
+  overflow-wrap: normal;
 }
 
 /* The dot: decoration, so a pseudo-element (nothing for a screen reader to read). */

@@ -126,12 +126,14 @@ describe('StatusPill', () => {
       ]);
     });
 
+    // `overflow-wrap: normal`: Ionic gives `body` `break-word`, and the long word was split mid-letter.
     it('the label wraps between words and ends a word that alone does not fit in «…»', () => {
       expect(declarations('.status-pill__label')).toEqual([
         'min-width: 0',
         'overflow: hidden',
         'text-overflow: ellipsis',
         'white-space: normal',
+        'overflow-wrap: normal',
       ]);
     });
   });
