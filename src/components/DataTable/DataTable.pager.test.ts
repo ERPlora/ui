@@ -279,6 +279,85 @@ describe('phone: «Load more» instead of the numbered pager (#78)', () => {
   });
 });
 
+// A parent that keeps its rows live can only hold so many in one window (the server's longest page):
+// past it, «Load more» would stay on screen and bring nothing. With `maxWindow`, a query longer than that
+// pages on a phone too (previous / next, the page out of the pages); without it nothing changes.
+describe('phone: a query longer than the parent can hold pages instead (`maxWindow`)', () => {
+  beforeEach(() => {
+    viewport(true);
+  });
+
+  const long = (extra: Record<string, unknown> = {}) =>
+    mountTable({ serverSide: true, rows: rowsOf(25), total: 1801, page: 0, pageSize: 25, maxWindow: 100, columns: NAME, testid: 'items', ...extra });
+
+  it('no «Load more»: previous and next move one page, and the footer says which page of how many', async () => {
+    const t = long();
+    await settle();
+    expect(loadMore(t)).toBeNull();
+    expect(info(t)).toBe('Showing 1–25 of 1801 records');
+    expect(text(t.element.querySelector('.data-table__page-of'))).toBe('1 / 73');
+    expect((byTestId(t, 'items-page-prev')[0] as HTMLElement & { disabled?: boolean }).disabled).toBe(true);
+    await click(byTestId(t, 'items-page-next')[0]);
+    expect(t.emitted('pageChange')).toEqual([[1]]);
+    expect(t.emitted('loadMore')).toBeUndefined();
+  });
+
+  it('a later page counts from its own first row and goes back', async () => {
+    const t = long({ rows: rowsOf(25, 25), page: 1 });
+    await settle();
+    expect(info(t)).toBe('Showing 26–50 of 1801 records');
+    expect(text(t.element.querySelector('.data-table__page-of'))).toBe('2 / 73');
+    await click(byTestId(t, 'items-page-prev')[0]);
+    expect(t.emitted('pageChange')).toEqual([[0]]);
+  });
+
+  it('the last page cannot go further', async () => {
+    const t = long({ rows: rowsOf(1, 1800), page: 72 });
+    await settle();
+    expect(info(t)).toBe('Showing 1801–1801 of 1801 records');
+    expect((byTestId(t, 'items-page-next')[0] as HTMLElement & { disabled?: boolean }).disabled).toBe(true);
+  });
+
+  it('a window grown before the query outgrew it shows its first page only, as the footer says', async () => {
+    const t = long({ rows: rowsOf(75), total: 101 });
+    await settle();
+    expect(dataRows(t)).toHaveLength(25);
+    expect(info(t)).toBe('Showing 1–25 of 101 records');
+  });
+
+  it('a query the window holds keeps «Load more»', async () => {
+    const t = long({ total: 100 });
+    await settle();
+    expect(loadMore(t)).not.toBeNull();
+    expect(t.find('.data-table__pager-nav').exists()).toBe(false);
+  });
+
+  it('without `maxWindow` a phone keeps «Load more», however long the query', async () => {
+    const t = long({ maxWindow: undefined });
+    await settle();
+    expect(loadMore(t)).not.toBeNull();
+    expect(t.find('.data-table__pager-nav').exists()).toBe(false);
+  });
+
+  it('a desk keeps its numbered pager', async () => {
+    viewport(false);
+    const t = long();
+    await settle();
+    expect(page(t, 73)).toBeTruthy();
+    expect(t.element.querySelector('.data-table__page-of')).toBeNull();
+  });
+
+  it('previous and next are named in each language', async () => {
+    const t = long();
+    await settle();
+    expect(byTestId(t, 'items-page-next')[0].getAttribute('aria-label')).toBe('Next page');
+    t.unmount();
+    const es = mountTable({ serverSide: true, rows: rowsOf(25), total: 1801, page: 0, pageSize: 25, maxWindow: 100, columns: NAME, testid: 'items' }, { locale: 'es' });
+    await settle();
+    expect(byTestId(es, 'items-page-next')[0].getAttribute('aria-label')).toBe('Página siguiente');
+  });
+});
+
 describe('the footer names what it counts: `entityLabel` (§3b: «4 negocios», «12 facturas»)', () => {
   it('`{ one, many }`: the right one for the count, in the count and in the range', async () => {
     const entityLabel = { one: 'negocio', many: 'negocios' };

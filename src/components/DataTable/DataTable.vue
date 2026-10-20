@@ -9,7 +9,9 @@
 //     events and the parent queries again. On a phone there is no pager: `rows` is a WINDOW from the
 //     first row that «Load more» asks the parent to grow by one page (`loadMore`, never `pageChange`),
 //     and crossing the phone breakpoint asks for the first page again (`pageChange(0)`) whenever the
-//     window is not just that page. `update:search` is emitted in both modes (v-model).
+//     window is not just that page. `maxWindow` (the most rows the parent can hold in that window, the
+//     server's longest page): a longer query pages on a phone too — previous / next and «page / pages»,
+//     `pageChange` — so no row is out of reach and «Load more» never stays on screen bringing nothing. `update:search` is emitted in both modes (v-model).
 // Toolbar order is FIXED (the same in every list): search · the `filters` slot · ‹spacer› · column
 // chooser · rows per page · list/cards segment · create · primary action · the `toolbar` slot.
 // Column filters (`DataTableColumn.filter`): a filter row under the toolbar's main row, one Ionic
@@ -106,6 +108,7 @@ import {
   inlineActions,
   pageList,
   pagerState,
+  phonePages,
   rowActionsFolded,
   rowKeyOf,
   type RowActionsFold,
@@ -182,6 +185,10 @@ const props = withDefaults(
     total?: number;
     /** Server mode: current page, 0-based. */
     page?: number;
+    /** Server mode on a phone: the most rows the parent can keep in its window (the server's longest
+     *  page). A query with more pages there too (previous / next) instead of growing with «Load more»;
+     *  without it, a phone always grows the window. */
+    maxWindow?: number;
     /** Server mode: active sort column. */
     sort?: string;
     /** Server mode: direction of the active sort. */
@@ -254,6 +261,7 @@ const props = withDefaults(
     filterFields: undefined,
     total: 0,
     page: 0,
+    maxWindow: undefined,
     sort: undefined,
     sortDir: 'asc',
     labels: undefined,
@@ -590,7 +598,12 @@ const pager = computed(() =>
     pageSize: pageSizeNow.value,
     isMobile: isMobile.value,
     mobileShown: mobileShown.value,
+    maxWindow: props.maxWindow,
   }),
+);
+/** A phone in server mode whose query is longer than the parent's window: it pages instead of «Load more». */
+const phonePaged = computed(() =>
+  phonePages({ serverSide: props.serverSide, isMobile: isMobile.value, total: props.total, maxWindow: props.maxWindow }),
 );
 
 const hasError = computed(() => !!props.error?.trim());
@@ -1729,7 +1742,7 @@ onUpdated(nameSearchBox);
 
       <div
         v-if="showPager"
-        class="data-table__pager"
+        :class="['data-table__pager', { 'data-table__pager--phone-pages': phonePaged }]"
       >
         <div class="data-table__pager-info">
           <span>
@@ -1751,8 +1764,42 @@ onUpdated(nameSearchBox);
             </option>
           </select>
         </div>
-        <!-- #78 - On a phone one «Load more» instead of page buttons. -->
-        <template v-if="isMobile">
+        <!-- #78 - On a phone one «Load more» instead of page buttons; past `maxWindow`, previous / next. -->
+        <div
+          v-if="phonePaged && pager.pages > 1 && !awaitingRows"
+          class="data-table__pager-nav"
+        >
+          <ion-button
+            size="small"
+            fill="clear"
+            :data-testid="tid('page-prev')"
+            :aria-label="label('previousPage')"
+            :disabled="pager.current === 0"
+            @click="goTo(pager.current - 1)"
+          >
+            <ion-icon
+              slot="icon-only"
+              :icon="icon(ICONS.previous)"
+              aria-hidden="true"
+            />
+          </ion-button>
+          <span class="data-table__page-of">{{ pager.current + 1 }} / {{ pager.pages }}</span>
+          <ion-button
+            size="small"
+            fill="clear"
+            :data-testid="tid('page-next')"
+            :aria-label="label('nextPage')"
+            :disabled="pager.current >= pager.pages - 1"
+            @click="goTo(pager.current + 1)"
+          >
+            <ion-icon
+              slot="icon-only"
+              :icon="icon(ICONS.next)"
+              aria-hidden="true"
+            />
+          </ion-button>
+        </div>
+        <template v-else-if="isMobile">
           <ion-button
             v-if="pager.canLoadMore && !awaitingRows"
             class="data-table__load-more"
@@ -2263,6 +2310,10 @@ ion-card.data-table__card { margin: 0; }
 .data-table__pager-count { font-weight: 600; color: var(--color); }
 .data-table__pager-size { font: inherit; font-size: 12.5px; padding: 0.2rem 0.35rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--background); color: var(--color); }
 .data-table__pager-nav { display: flex; align-items: center; gap: 0.2rem; }
+/* A phone past `maxWindow`: previous / next and «page / pages»; the nav takes its own line if the count needs it. */
+.data-table__pager--phone-pages { flex-wrap: wrap; row-gap: 0.25rem; }
+.data-table__pager--phone-pages .data-table__pager-nav { margin-inline-start: auto; }
+.data-table__page-of { min-width: 4.5rem; text-align: center; font-weight: 600; color: var(--color); white-space: nowrap; }
 /* #78 - One «Load more» on a phone, 44px tall. */
 .data-table__load-more { min-height: 44px; margin: 0; --padding-start: 1rem; --padding-end: 1rem; font-size: 13px; }
 /* #92 - A page button matches the 44px of prev/next. */

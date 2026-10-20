@@ -192,6 +192,18 @@ describe('pagerState (hub#1984, #78, hub#2365)', () => {
     expect(pagerState({ ...phone, rows: [], page: 1 })).toMatchObject({ rangeFrom: 11, rangeTo: 20 });
     expect(pagerState({ ...phone, rows: [], total: 0 })).toMatchObject({ rangeTo: 0, canLoadMore: false });
   });
+
+  // `maxWindow`: the most rows the parent can hold in one window. A longer query pages on a phone too.
+  it('phone server past `maxWindow`: one page at a time, never «Load more»', () => {
+    const phone = { ...base, serverSide: true, isMobile: true, pageSize: 25, total: 1801, maxWindow: 100 };
+    expect(pagerState({ ...phone, rows: rows(25), page: 0 })).toMatchObject({ pages: 73, current: 0, rangeFrom: 1, rangeTo: 25, canLoadMore: false });
+    expect(pagerState({ ...phone, rows: rows(25), page: 1 })).toMatchObject({ current: 1, rangeFrom: 26, rangeTo: 50, canLoadMore: false });
+    const grown = pagerState({ ...phone, rows: rows(75), total: 101, page: 0 });
+    expect(grown).toMatchObject({ rangeFrom: 1, rangeTo: 25, canLoadMore: false });
+    expect(grown.visible).toHaveLength(25);
+    expect(pagerState({ ...phone, rows: rows(25), total: 100, page: 0 })).toMatchObject({ rangeTo: 25, canLoadMore: true });
+    expect(pagerState({ ...phone, maxWindow: undefined, rows: rows(25), page: 0 })).toMatchObject({ rangeTo: 25, canLoadMore: true });
+  });
 });
 
 describe('gridTemplate (#120, #121)', () => {
