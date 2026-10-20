@@ -187,6 +187,77 @@ describe('the list fits its BOX: low columns → extra actions → all but pinne
   });
 });
 
+// hub#94 (Time clock › Records at 834px): folded into «⋮», the list still did not fit, yet it stayed a
+// list scrolled sideways, with the pinned «⋮» over its last column, instead of handing over to the
+// cards. The «Actions» header no longer fitting its narrower track was written while the actions were
+// folded, a state the render does not read: no render followed, and the ladder waited for one forever.
+describe('a measurement that paints nothing never stalls the ladder (hub#94)', () => {
+  const LABEL = 60; // the «Actions» header label, wider than «⋮» alone
+  const COLUMNS_4 = COLUMNS.filter((c) => c.priority !== 'low');
+  const LABELLED = [
+    { id: 'correct', label: 'Correct', icon: 'create-outline', showLabel: true },
+    { id: 'history', label: 'History', icon: 'time-outline', showLabel: true },
+  ];
+
+  /** The header's actions cell is as wide as the track its row paints (the last of its template). */
+  function playBackActionsHeader(): void {
+    const clientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth')!.get!;
+    const scrollWidth = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollWidth')!.get!;
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+      if (this.matches('.data-table__row--head > .data-table__cell--actions')) {
+        const track = (this.parentElement as HTMLElement).style.gridTemplateColumns.split(' ').pop() ?? '';
+        return track.endsWith('px') ? parseFloat(track) : 0;
+      }
+      return clientWidth.call(this);
+    });
+    vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
+      return this.matches('.data-table__row--head > .data-table__cell--actions > span') ? LABEL : scrollWidth.call(this);
+    });
+  }
+
+  beforeEach(playBackActionsHeader);
+
+  it('folded and still too wide, the list hands over to the cards; nothing stays under «⋮»', async () => {
+    // 4 columns: both actions out 512 · «⋮» alone 472. The box is 460: not even folded.
+    const t = await mountAt(460, { columns: COLUMNS_4, actions: LABELLED });
+    expect(isCards(t)).toBe(true);
+    expect((segment(t) as HTMLElement & { value?: string }).value).toBe('cards');
+    expect(t.element.querySelectorAll('.data-table__scroll')).toHaveLength(0);
+  });
+
+  it('folded and fitting, it stays the list, with «⋮» in its own track and nothing hidden sideways', async () => {
+    const t = await mountAt(480, { columns: COLUMNS_4, actions: LABELLED });
+    expect(isCards(t)).toBe(false);
+    expect(rowButtons(t)).toEqual(['menu']);
+    expect((t.element.querySelector('.data-table__row--head') as HTMLElement).style.gridTemplateColumns).toBe(
+      'minmax(5.5rem,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 40px',
+    );
+    expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
+  });
+
+  it('wide again, the list comes back with both buttons and its «Actions» header painted', async () => {
+    const t = await mountAt(460, { columns: COLUMNS_4, actions: LABELLED });
+    expect(isCards(t)).toBe(true);
+    await resize(600);
+    expect(isCards(t)).toBe(false);
+    expect(rowButtons(t)).toEqual(['correct', 'history']);
+    const header = t.element.querySelector('.data-table__row--head > .data-table__cell--actions > span') as HTMLElement;
+    expect(header.className).toBe('');
+  });
+  it('the rescue is not a one-shot: narrow → cards, wide → list, narrow again → cards again', async () => {
+    // A second stall (the label written again while folded) must be measured past as well: a settle
+    // that never re-arms would rescue the first and leave every later one under «⋮».
+    const t = await mountAt(460, { columns: COLUMNS_4, actions: LABELLED });
+    expect(isCards(t), '460: cards').toBe(true);
+    await resize(600);
+    expect(isCards(t), '600: the list').toBe(false);
+    await resize(460);
+    expect(isCards(t), '460 again: cards again').toBe(true);
+    expect(t.element.querySelectorAll('.data-table__scroll')).toHaveLength(0);
+  });
+
+});
+
 describe('a refresh of the rows keeps what the box decided (W-19)', () => {
   it('the same rows again (a live update) do not paint the hidden columns back, not even for a moment', async () => {
     const address = vi.fn((value: unknown) => String(value));
