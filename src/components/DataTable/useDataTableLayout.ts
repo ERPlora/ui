@@ -11,7 +11,7 @@
 //   - #218 `fill`: is there content in flow after the table?
 // Everything measured runs after each render and on resize, and only writes a state when it
 // CHANGES, so a measurement never schedules a render loop.
-import { computed, onBeforeUnmount, onMounted, onUpdated, type Ref, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, type Ref, ref, watch } from 'vue';
 
 import type { DataTableView } from './types';
 
@@ -174,11 +174,27 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   let fitShape = source.shape();
   /** A state was written that the DOM does not show yet (Lit's `isUpdatePending`). */
   let renderPending = false;
+  let settleQueued = false;
 
   function write<V>(target: Ref<V>, value: V): void {
     if (target.value === value) return;
     target.value = value;
     renderPending = true;
+    settleAfterFlush();
+  }
+
+  /** hub#94 - A state the render does not read (the «Actions» label while the actions are folded)
+   *  paints nothing, so no `onUpdated` comes to clear `renderPending`: the ladder waited for that
+   *  render forever and a folded list that still did not fit never handed over to the cards (the
+   *  pinned «⋮» stayed over its last column). Once Vue has flushed, what was written is on screen,
+   *  painted or not: measure again from there. */
+  function settleAfterFlush(): void {
+    if (settleQueued) return;
+    settleQueued = true;
+    void nextTick(() => {
+      settleQueued = false;
+      if (renderPending) afterRender();
+    });
   }
 
   // ── Phone breakpoint (#274) ─────────────────────────────────────────────────────────────────
