@@ -29,6 +29,31 @@
   ion-badge {
     padding: revert-layer;
   }
+
+  /* Same reset, same cure for the icon of a button: preflight's `margin: 0` beat ion-button's
+     `::slotted(ion-icon[slot=start|end])` margins, so every `HubIcon slot="start"` sat against its
+     label («⊘Deactivate» in a confirmation, FIX-UI-CONFIRMDIALOG-ICON-GAP). Only the side of the gap
+     comes back (Ionic's 0.3em of the icon, both modes): Ionic's pull on the outer side stays 0, as
+     before, because the SaaS sets its own gap on that one side (`buttons.css`) and the whole margin
+     pulled its icons 4.5–5.3 px into the padding (saas#54). A spinner in the icon's place while a
+     command runs gets no slotted margin from Ionic: it takes the icon's gap, in ems of the icon,
+     which is 1.35em of its button. A component's own rule (DataTable, the SaaS) still wins: it is
+     not layered. */
+  ion-button > ion-icon[slot="start"] {
+    margin-inline-end: revert-layer;
+  }
+
+  ion-button > ion-icon[slot="end"] {
+    margin-inline-start: revert-layer;
+  }
+
+  ion-button > ion-spinner[slot="start"] {
+    margin-inline-end: calc(0.3em * 1.35);
+  }
+
+  ion-button > ion-spinner[slot="end"] {
+    margin-inline-start: calc(0.3em * 1.35);
+  }
 }
 
 html,

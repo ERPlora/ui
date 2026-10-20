@@ -32,3 +32,44 @@ describe('global.css: Ionic hosts Tailwind’s preflight must not reset', () => 
     expect(baseRule('ion-badge')).toBe('padding: revert-layer;');
   });
 });
+
+/** Selectors of the `base` layer's rules that start with `prefix`, whitespace-normalised, in file order. */
+function baseSelectors(prefix: string): string[] {
+  return [...baseLayer().matchAll(/(?:^|[}])\s*([^{}]+?)\s*\{/g)]
+    .map((m) => m[1].replace(/\s+/g, ' ').trim())
+    .filter((selector) => selector.startsWith(prefix));
+}
+
+describe('global.css: the icon of a button keeps its gap to the label (FIX-UI-CONFIRMDIALOG-ICON-GAP)', () => {
+  // Preflight's `* { margin: 0 }` is a document rule too, and it beats ion-button's
+  // `::slotted(ion-icon[slot=start|end])` margins: «⊘Deactivate», the icon against the word. Only the side
+  // of the gap comes back: the outer side stays 0, as the SaaS's own rules (`margin-inline-end` only) expect.
+  it('an ion-icon in the start slot of an ion-button gets back Ionic’s gap to its label, and only that', () => {
+    expect(baseRule('ion-button > ion-icon[slot="start"]')).toBe('margin-inline-end: revert-layer;');
+  });
+
+  it('an ion-icon in the end slot of an ion-button gets back Ionic’s gap to its label, and only that', () => {
+    expect(baseRule('ion-button > ion-icon[slot="end"]')).toBe('margin-inline-start: revert-layer;');
+  });
+
+  // Ionic gives a spinner no slotted margin: in the icon's place while a command runs, it takes the icon's
+  // gap, 0.3em of the icon, an icon being 1.35em of its button.
+  it('an ion-spinner in the start slot of an ion-button keeps the icon’s gap to its label, and only that', () => {
+    expect(baseRule('ion-button > ion-spinner[slot="start"]')).toBe('margin-inline-end: calc(0.3em * 1.35);');
+  });
+
+  it('an ion-spinner in the end slot of an ion-button keeps the icon’s gap to its label, and only that', () => {
+    expect(baseRule('ion-button > ion-spinner[slot="end"]')).toBe('margin-inline-start: calc(0.3em * 1.35);');
+  });
+
+  // saas#54: a `margin: revert-layer` (or any rule on the outer side) pulled every SaaS icon 4.5–5.3 px into
+  // the button's padding. These four are the only rules of the layer on what an ion-button holds.
+  it('no other base rule touches what an ion-button holds', () => {
+    expect(baseSelectors('ion-button')).toEqual([
+      'ion-button > ion-icon[slot="start"]',
+      'ion-button > ion-icon[slot="end"]',
+      'ion-button > ion-spinner[slot="start"]',
+      'ion-button > ion-spinner[slot="end"]',
+    ]);
+  });
+});
