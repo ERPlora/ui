@@ -414,9 +414,11 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
     // A flex item never shrinks below its longest word (`min-width: auto`): a 54-character email ran
     // past the card's right edge and ion-card cut it with no «…» (Hub: Staff › Members at 375 px). The
     // value may shrink; its default text wraps between words as before and clips a word that does not
-    // fit with «…»; a tap unfolds it, breaking the word anywhere (the table's #217).
+    // fit with «…»; a tap unfolds it, breaking the word anywhere (the table's #217). Its own
+    // `overflow-wrap`: Ionic's `body` breaks a long word at the box edge, which split the email into
+    // «…clips.e2» / «e@example.com» with no sign (measured in Chromium, as StatusPill's label).
     expect(rule('.data-table__field-value')).toBe('font-weight: 500; text-align: right; color: var(--color); min-width: 0;');
-    expect(rule('.data-table__field-text')).toBe('display: block; overflow: hidden; text-overflow: ellipsis;');
+    expect(rule('.data-table__field-text')).toBe('display: block; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal;');
     expect(rule('.data-table__field-text--unfolded')).toBe('overflow-wrap: anywhere;');
   });
 

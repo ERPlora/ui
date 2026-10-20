@@ -2209,9 +2209,10 @@ ion-card.data-table__card { margin: 0; }
 .data-table__field-label { color: var(--color-muted); }
 /* FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP - The value may shrink below its longest word (a flex item's
    `min-width: auto` let a long email run past the card, cut with no «…»). Its default text wraps
-   between words as before; a word that still does not fit ends in «…», and a tap unfolds it (#217). */
+   between words as before; a word that still does not fit ends in «…», and a tap unfolds it (#217).
+   Its own `overflow-wrap`: Ionic's `body` breaks a long word at the edge, with no sign (as StatusPill). */
 .data-table__field-value { font-weight: 500; text-align: right; color: var(--color); min-width: 0; }
-.data-table__field-text { display: block; overflow: hidden; text-overflow: ellipsis; }
+.data-table__field-text { display: block; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 .data-table__field-text--unfolded { overflow-wrap: anywhere; }
 .data-table__card-actions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0 0.5rem 0.5rem; }
 /* ERPlora/appointments#154 - A card's action row never clips: it wraps. Only on the card: the
