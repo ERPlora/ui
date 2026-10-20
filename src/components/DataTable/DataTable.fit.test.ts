@@ -244,6 +244,18 @@ describe('a measurement that paints nothing never stalls the ladder (hub#94)', (
     const header = t.element.querySelector('.data-table__row--head > .data-table__cell--actions > span') as HTMLElement;
     expect(header.className).toBe('');
   });
+  it('the rescue is not a one-shot: narrow → cards, wide → list, narrow again → cards again', async () => {
+    // A second stall (the label written again while folded) must be measured past as well: a settle
+    // that never re-arms would rescue the first and leave every later one under «⋮».
+    const t = await mountAt(460, { columns: COLUMNS_4, actions: LABELLED });
+    expect(isCards(t), '460: cards').toBe(true);
+    await resize(600);
+    expect(isCards(t), '600: the list').toBe(false);
+    await resize(460);
+    expect(isCards(t), '460 again: cards again').toBe(true);
+    expect(t.element.querySelectorAll('.data-table__scroll')).toHaveLength(0);
+  });
+
 });
 
 describe('a refresh of the rows keeps what the box decided (W-19)', () => {
