@@ -829,7 +829,7 @@ function notePointer(ev: PointerEvent): void {
   lastPointerType = ev.pointerType;
 }
 /** #217 - A touch screen has no hover for the title: in a table whose rows open nothing, a tap on a
- *  clipped cell unfolds it in place. A cell that fits, and a mouse click, change nothing. */
+ *  clipped cell (or card value) unfolds it in place. A cell that fits, and a mouse click, change nothing. */
 function onCellTap(ev: MouseEvent, id: string): void {
   if (props.rowClickable || lastPointerType !== 'touch') return;
   const span = ev.currentTarget as HTMLElement;
@@ -1378,7 +1378,14 @@ onUpdated(nameSearchBox);
                     :value="fieldOf(row, column.key)"
                     :column="column"
                   />
-                  <template v-else>{{ cellText(column, row) }}</template>
+                  <!-- Its own box: a word too long for the card ends in «…» and unfolds like a cell (#217). -->
+                  <span
+                    v-else
+                    :class="['data-table__field-text', { 'data-table__field-text--unfolded': unfoldedCells.has(cellId(row, column)) }]"
+                    :title="cellText(column, row) || undefined"
+                    @pointerdown="notePointer"
+                    @click="onCellTap($event, cellId(row, column))"
+                  >{{ cellText(column, row) }}</span>
                 </span>
               </div>
             </template>
@@ -2200,7 +2207,13 @@ ion-card.data-table__card { margin: 0; }
 .data-table__card-body { display: flex; flex-direction: column; gap: 0.4rem; }
 .data-table__field { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 13px; }
 .data-table__field-label { color: var(--color-muted); }
-.data-table__field-value { font-weight: 500; text-align: right; color: var(--color); }
+/* FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP - The value may shrink below its longest word (a flex item's
+   `min-width: auto` let a long email run past the card, cut with no «…»). Its default text wraps
+   between words as before; a word that still does not fit ends in «…», and a tap unfolds it (#217).
+   Its own `overflow-wrap`: Ionic's `body` breaks a long word at the edge, with no sign (as StatusPill). */
+.data-table__field-value { font-weight: 500; text-align: right; color: var(--color); min-width: 0; }
+.data-table__field-text { display: block; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.data-table__field-text--unfolded { overflow-wrap: anywhere; }
 .data-table__card-actions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0 0.5rem 0.5rem; }
 /* ERPlora/appointments#154 - A card's action row never clips: it wraps. Only on the card: the
    list's row is measured to pin its track (#121). */
