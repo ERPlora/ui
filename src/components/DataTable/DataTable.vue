@@ -691,6 +691,11 @@ watch(
 watch(
   () => props.rows,
   (now, before) => {
+    // A phone that pages scrolls WITH the page (#218): tapped at the foot, the new page would open at its end.
+    if (scrollToNewPage) {
+      scrollToNewPage = false;
+      root.value?.scrollIntoView({ block: 'start' });
+    }
     // #217 - New rows: every cell starts folded again.
     if (unfoldedCells.value.size) unfoldedCells.value = new Set();
     // #78/hub#2245 - A new result set starts at one page; the same records refreshed keep the window.
@@ -795,7 +800,10 @@ function onHeaderClick(column: DataTableColumn<T>): void {
 }
 
 // ── Pager ─────────────────────────────────────────────────────────────────────────────────────
+/** A phone paging past `maxWindow` asked for another page: its rows show from the first once they arrive. */
+let scrollToNewPage = false;
 function goTo(page: number): void {
+  if (phonePaged.value) scrollToNewPage = true;
   if (props.serverSide) emit('pageChange', page);
   else clientPage.value = page;
 }

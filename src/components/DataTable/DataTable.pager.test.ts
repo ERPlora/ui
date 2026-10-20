@@ -318,6 +318,21 @@ describe('phone: a query longer than the parent can hold pages instead (`maxWind
     expect((byTestId(t, 'items-page-next')[0] as HTMLElement & { disabled?: boolean }).disabled).toBe(true);
   });
 
+  it('a new page shows from its first row: the list scrolls back to its top once the page arrives, not on a refresh', async () => {
+    const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => undefined);
+    const t = long();
+    await settle();
+    await click(byTestId(t, 'items-page-next')[0]);
+    expect(scrolled, 'the old rows stay put until the new page comes').not.toHaveBeenCalled();
+    await t.setProps({ rows: rowsOf(25, 25), page: 1 });
+    await settle();
+    expect(scrolled.mock.contexts).toEqual([t.element]);
+    expect(scrolled).toHaveBeenCalledWith({ block: 'start' });
+    await t.setProps({ rows: rowsOf(25, 25).map((r) => ({ ...r, name: `${r.name} (renamed)` })) });
+    await settle();
+    expect(scrolled, 'a live refresh of the same page does not move the screen').toHaveBeenCalledTimes(1);
+  });
+
   it('a window grown before the query outgrew it shows its first page only, as the footer says', async () => {
     const t = long({ rows: rowsOf(75), total: 101 });
     await settle();
