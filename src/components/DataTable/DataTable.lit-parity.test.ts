@@ -273,6 +273,9 @@ const ADDED: Record<string, string> = {
     'FIX-UI-DATATABLE-CLIP: the two ends of a range share the 360px panel (two date fields reached 21px past it, measured in Chromium)',
   '.data-table__card-title':
     'FIX-UI-DATATABLE-CLIP: the card title wraps, two lines at most (Polaris, Material), instead of the Lit one-line «…»',
+  '.data-table__field-text':
+    'FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP: a card value’s own box, which ends a word too long for the card in «…» (a 54-character email ran past it, measured in Chromium)',
+  '.data-table__field-text--unfolded': 'FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP: a tapped clipped card value unfolds in place, as a cell does (#217)',
   '@media (max-width: 833.98px) || .data-table__drawer-foot':
     'outfitkit#197: a sheet that reaches the screen edge keeps the safe area in its footer (a tab bar below keeps it already)',
   '@media (max-width: 640px) || .data-table--fill:not(.data-table--content-after)':
@@ -299,6 +302,8 @@ const EXTRA: Record<string, string[]> = {
   '.data-table__selection-clear': ['padding: revert'], // normalize.css `button { padding: 0 }` neither
   // Ionic clips its native button: the count pill on the corner was cut in half (measured in Chromium).
   '.data-table__filter-button': ['--overflow: visible'],
+  // A flex item never shrinks below its longest word: a long email ran past its card (FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP).
+  '.data-table__field-value': ['min-width: 0'],
 };
 
 const LIT = parse(litCss);

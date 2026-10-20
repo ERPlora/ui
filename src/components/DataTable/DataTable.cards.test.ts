@@ -170,6 +170,78 @@ describe('the card opens the record like the row (#74)', () => {
   });
 });
 
+// FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP (hub#91): on a phone a 54-character email ran past the right
+// edge of its card, cut with no «…». The default text is its own box, which clips with «…» (the rules
+// are in the visual test) and, as a table cell does (#217), carries its whole text: the title, and a
+// tap that unfolds it in place when the card opens nothing.
+describe('a card value too long for its card can be read in full', () => {
+  const EMAIL = 'e2e.card.value.with.a.long.address.no.spaces@example.com';
+  const ROWS = [
+    { id: '1', name: 'Ana', email: EMAIL, phone: '' },
+    { id: '2', name: 'Bea', email: 'bea@example.com', phone: null },
+  ];
+  const COLUMNS = [{ key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' }];
+  const base = { rows: ROWS, columns: COLUMNS, views: true, defaultView: 'cards', cardTitle: (r: Row) => r.name, testid: 'staff' };
+  /** The default text of a field, by its card and its label. */
+  const value = (t: ReturnType<typeof mountTable>, id: string, label: string) =>
+    [...(t.element.querySelector(`[data-testid="staff-row"][data-id="${id}"]`)?.querySelectorAll('.data-table__field') ?? [])]
+      .find((f) => text(f.querySelector('.data-table__field-label')) === label)
+      ?.querySelector('.data-table__field-value > .data-table__field-text') as HTMLElement;
+  const clip = (el: HTMLElement, clipped: boolean) => {
+    Object.defineProperty(el, 'scrollWidth', { configurable: true, get: () => (clipped ? 380 : 90) });
+    Object.defineProperty(el, 'clientWidth', { configurable: true, get: () => 90 });
+  };
+  async function tap(el: HTMLElement, pointerType: 'touch' | 'mouse') {
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType }));
+    await click(el);
+  }
+
+  it('the default text is its own box, with the whole painted (formatted) text as title; an empty one has none', async () => {
+    const t = mountTable({ ...base, columns: [COLUMNS[0], { ...COLUMNS[1], format: (v: unknown) => `<${String(v)}>` }, COLUMNS[2]] });
+    await settle();
+    expect(value(t, '1', 'Email').textContent).toBe(`<${EMAIL}>`);
+    expect(value(t, '1', 'Email').getAttribute('title')).toBe(`<${EMAIL}>`);
+    expect(value(t, '1', 'Phone').hasAttribute('title')).toBe(false);
+    expect(value(t, '2', 'Phone').hasAttribute('title')).toBe(false);
+  });
+
+  it('a slot paints the value as it is: no box of ours around it, no title', async () => {
+    const t = mountTable({ ...base, columns: [COLUMNS[0], { ...COLUMNS[1], cell: 'email' }] }, { slots: { email: '<template #email="{ value }"><a class="own">{{ value }}</a></template>' } });
+    await settle();
+    const cell = cards(t)[0].querySelectorAll('.data-table__field-value')[0] as HTMLElement;
+    expect([...cell.children].map((el) => el.className)).toEqual(['own']);
+    expect(cell.hasAttribute('title')).toBe(false);
+  });
+
+  it('touch, cards that open nothing: a tap on a clipped value unfolds only that value', async () => {
+    const t = mountTable(base);
+    await settle();
+    clip(value(t, '1', 'Email'), true);
+    await tap(value(t, '1', 'Email'), 'touch');
+    expect(value(t, '1', 'Email').className).toBe('data-table__field-text data-table__field-text--unfolded');
+    expect(value(t, '1', 'Phone').className).toBe('data-table__field-text');
+    expect(value(t, '2', 'Email').className).toBe('data-table__field-text');
+    expect(t.emitted('rowClick')).toBeUndefined();
+  });
+
+  it('a value that fits, a mouse click, or cards that open a record never unfold', async () => {
+    const t = mountTable(base);
+    await settle();
+    clip(value(t, '2', 'Email'), false);
+    await tap(value(t, '2', 'Email'), 'touch');
+    clip(value(t, '1', 'Email'), true);
+    await tap(value(t, '1', 'Email'), 'mouse');
+    expect(t.findAll('.data-table__field-text--unfolded')).toHaveLength(0);
+
+    const opening = mountTable({ ...base, rowClickable: true });
+    await settle();
+    clip(value(opening, '1', 'Email'), true);
+    await tap(value(opening, '1', 'Email'), 'touch');
+    expect(opening.findAll('.data-table__field-text--unfolded')).toHaveLength(0);
+    expect(opening.emitted('rowClick')).toEqual([[ROWS[0]]]);
+  });
+});
+
 // hub-next apps/tax/UI-REQUESTS.md: in Rules the card title is the category's NAME and the column is
 // its KEY, so the text match of #205 cannot find it and the key was repeated in the body.
 describe('cardTitleColumn: the column the card title stands for', () => {

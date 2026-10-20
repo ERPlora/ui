@@ -410,6 +410,16 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
     expect(rule('.data-table__drawer-range > ion-input')).toBe('flex: 1 1 0; min-width: 0;');
   });
 
+  it('FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP: a card value never runs past its card; a word too long for it ends in «…»', () => {
+    // A flex item never shrinks below its longest word (`min-width: auto`): a 54-character email ran
+    // past the card's right edge and ion-card cut it with no «…» (Hub: Staff › Members at 375 px). The
+    // value may shrink; its default text wraps between words as before and clips a word that does not
+    // fit with «…»; a tap unfolds it, breaking the word anywhere (the table's #217).
+    expect(rule('.data-table__field-value')).toBe('font-weight: 500; text-align: right; color: var(--color); min-width: 0;');
+    expect(rule('.data-table__field-text')).toBe('display: block; overflow: hidden; text-overflow: ellipsis;');
+    expect(rule('.data-table__field-text--unfolded')).toBe('overflow-wrap: anywhere;');
+  });
+
   it('a card title wraps (two lines at most, the whole text in the page), never «…» on one line', () => {
     // The whole rule: as an addition the Lit parity no longer checks it, so its weight, its share of
     // the head and the clamp's box are pinned here (no `white-space: nowrap`, no `text-overflow: ellipsis`).
