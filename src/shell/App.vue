@@ -95,7 +95,9 @@ const userMenuOpen = ref(false);
 const userMenuEvent = ref<Event | undefined>(undefined);
 
 function openUserMenu(event: Event): void {
-  userMenuEvent.value = event;
+  // Ionic anchors a popover to `event.target`, the span clicked (name, email or avatar): from the name
+  // it covered the card's email line. `ionShadowTarget` is Ionic's own way to name the anchor: the card.
+  userMenuEvent.value = new CustomEvent('click', { detail: { ionShadowTarget: event.currentTarget } });
   userMenuOpen.value = true;
 }
 

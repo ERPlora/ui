@@ -445,6 +445,17 @@ describe('App: user menu', () => {
     expect(popover(wrapper).attributes('alignment')).toBe('start');
   });
 
+  it('the menu hangs from the whole card, wherever it was clicked (the name, the email, the avatar)', async () => {
+    // Ionic anchors a popover to `trigger || event.detail.ionShadowTarget || event.target`: the span
+    // clicked put it right under the name, over the card's email line.
+    session.value = me({ user: { id: 'u1', label: 'Laura Martín', email: 'laura@panaderialopez.es' } });
+    const wrapper = mountApp(SAAS_MENU);
+    await trigger(wrapper).get('.sidebar-user-name').trigger('click');
+    await flushPromises();
+    const event = wrapper.getComponent({ name: 'IonPopover' }).props('event') as CustomEvent<{ ionShadowTarget?: Element }>;
+    expect(event.detail?.ionShadowTarget).toBe(trigger(wrapper).element);
+  });
+
   it('Enter and Space on the card click it, which is what opens the menu (webviews do not always)', async () => {
     const wrapper = mountApp(SAAS_MENU);
     const clicks = vi.fn();

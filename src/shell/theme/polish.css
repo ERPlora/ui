@@ -371,17 +371,21 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
   color: var(--ep-primary-text);
 }
 /* The user menu (App.vue): the project's entries, Help, Theme and Sign out under the person. The
-   theme row's segment is three icon-only buttons (40px wide, the 46px height of every segment
-   button), sized to its buttons instead of Ionic's full width so the label keeps its room. */
-.user-menu-theme ion-segment { width: auto; min-width: 7.5rem; }
-.user-menu-theme ion-segment-button { min-width: 2.5rem; }
+   theme row's segment is three icon-only buttons in a FIXED 7.5rem (each 34px wide and 44px tall,
+   iOS's 4px gaps between them): with `width: auto` they grew to 50px each (166px) and left «Theme»
+   18px of the 248px menu, one letter a line (measured at 390, 834 and 1440). The end slot is the
+   only lever: a min-width on the label does not hold (hub#1733, «Settings row» above). */
+.user-menu-theme ion-segment { flex: none; width: 7.5rem; }
+.user-menu-theme ion-segment-button { min-width: 0; }
 .sidebar-user-meta { min-width: 0; flex: 1; }
+/* Blocks, not inline spans: text-overflow only cuts a block, so a long name or address ends in «…»
+   before the chevron instead of running under it and out of the menu. */
 .sidebar-user-name {
-  font-size: 0.85rem; font-weight: 600;
+  display: block; font-size: 0.85rem; font-weight: 600;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sidebar-user-email {
-  font-size: 0.72rem; color: var(--ep-text-muted);
+  display: block; font-size: 0.72rem; color: var(--ep-text-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sidebar-foot ion-button { --color: var(--ion-color-medium); height: 34px; }
