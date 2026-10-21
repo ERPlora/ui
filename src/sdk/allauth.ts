@@ -21,13 +21,16 @@
  * - Anything else rejects with the SDK's `ApiError`: allauth's `errors[{param, code, message}]`
  *   become `fields` per input (an error without `param` under `__all__`, as in Django forms),
  *   `unexpected_response` for a body that is not JSON (Django's HTML 403 of a missing CSRF token)
- *   and `network_error` (status 0) when the request never got an answer.
+ *   and `network_error` (status 0) when the request never got an answer. What the SDK words itself
+ *   (those two, an error without allauth's message, the signed-out 401) is a sentence for a person in
+ *   their language (`sdkMessage`, hub#2281).
  * - The provider redirect (`…/auth/provider/redirect`) is a synchronous form post, never a fetch:
  *   `providerRedirectForm` only builds the form the page submits.
  */
 import type { SpaConfig } from "./config";
 import { ApiError, type FieldErrors } from "./errors";
 import { createHeaderProvider, type HeaderProvider, readCookie } from "./headers";
+import { sdkMessage } from "./messages";
 
 export const ALLAUTH_BROWSER_BASE = "/_allauth/browser/v1";
 
@@ -242,12 +245,12 @@ function errorOf(status: number, errors: unknown): ApiError {
   }
   const first = list.find((error) => typeof error.message === "string");
   const code = typeof first?.code === "string" ? first.code : (STATUS_CODES[status] ?? "error");
-  const message = typeof first?.message === "string" ? first.message : `Request failed (HTTP ${status})`;
+  const message = typeof first?.message === "string" ? first.message : sdkMessage("unexpected");
   return new ApiError(status, code, message, Object.keys(fields).length > 0 ? fields : undefined);
 }
 
 function unexpected(status: number): ApiError {
-  return new ApiError(status, "unexpected_response", `Unexpected response (HTTP ${status})`);
+  return new ApiError(status, "unexpected_response", sdkMessage("unexpected"));
 }
 
 function flowsOf(raw: unknown): AllauthFlow[] {
@@ -303,7 +306,7 @@ export function createAllauthClient(cfg: AllauthConfig, overrides: Partial<Allau
       });
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      throw new ApiError(0, "network_error", `Network error (${reason})`);
+      throw new ApiError(0, "network_error", sdkMessage("network"), undefined, { reason });
     }
     let payload: unknown;
     try {
@@ -337,7 +340,7 @@ export function createAllauthClient(cfg: AllauthConfig, overrides: Partial<Allau
   async function account(method: string, path: string, body?: object, notFoundIsAnswer = false): Promise<Reply> {
     const reply = await send(method, path, body);
     if (reply.status === 200 || (notFoundIsAnswer && reply.status === 404)) return reply;
-    if (reply.status === 401) throw new ApiError(401, "not_authenticated", "Not signed in");
+    if (reply.status === 401) throw new ApiError(401, "not_authenticated", sdkMessage("signedOut"));
     throw errorOf(reply.status, reply.payload.errors);
   }
 

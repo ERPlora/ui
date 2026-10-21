@@ -4,7 +4,11 @@
  * Any other key of `error` (`limit` and `used` of `hubs.seat_limit`, `retry_after`…) is kept in
  * `ApiError.details`.
  * Errors delivered through the live stream carry `status` 0 (there is no HTTP status per frame).
+ * A body that is not the envelope is `unexpected_response`, whose message is the SDK's sentence for a
+ * person (`sdkMessage`, hub#2281): its status says which answer it was.
  */
+
+import { sdkMessage } from "./messages";
 
 export type FieldErrors = Record<string, string>;
 
@@ -64,7 +68,7 @@ export function parseErrorEnvelope(status: number, body: unknown): ApiError {
   if (isRecord(error) && typeof error.code === "string" && typeof error.message === "string") {
     return new ApiError(status, error.code, error.message, normaliseFields(error.fields), detailsOf(error));
   }
-  return new ApiError(status, "unexpected_response", `Unexpected response (HTTP ${status})`);
+  return new ApiError(status, "unexpected_response", sdkMessage("unexpected"));
 }
 
 export function fieldErrors(err: unknown): FieldErrors {

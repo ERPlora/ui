@@ -10,6 +10,7 @@
 import { type Ref, shallowRef } from "vue";
 import { ApiError } from "./errors";
 import { type LiveClient, useLiveClient } from "./live-client";
+import { sdkMessage } from "./messages";
 import type { InputArgs, InputOf, OpName, OutputOf } from "./operations";
 
 /**
@@ -40,7 +41,8 @@ let overlaySeq = 0;
 
 function toApiError(err: unknown): ApiError {
   if (err instanceof ApiError) return err;
-  return new ApiError(0, "client_error", err instanceof Error ? err.message : String(err));
+  const reason = err instanceof Error ? err.message : String(err);
+  return new ApiError(0, "client_error", sdkMessage("unexpected"), undefined, { reason });
 }
 
 export function useCommand<Op extends OpName>(op: Op, options: UseCommandOptions<Op> = {}): UseCommand<Op> {

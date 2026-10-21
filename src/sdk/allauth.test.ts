@@ -3,7 +3,7 @@
 // `errors[{param, code, message}]` become the SDK's `ApiError` with `fields` per input (an error
 // without `param` goes under `__all__`, as in Django forms); a 401 is not an error but the anonymous
 // state, with the `flows` the visitor can take (a pending one: a further step of the login).
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   ALLAUTH_BROWSER_BASE,
@@ -13,6 +13,7 @@ import {
   ReauthenticationRequiredError,
 } from "./allauth";
 import { ApiError } from "./errors";
+import es from "./locales/es.json";
 
 const CFG = { csrfCookieName: "csrftoken", csrfHeader: "X-CSRFToken", deviceIdStorageKey: "erplora.device_id" };
 const USER = { id: 7, email: "owner@example.com", display: "Owner", has_usable_password: true };
@@ -908,6 +909,49 @@ describe("createAllauthClient: the password reset by link", () => {
     );
     await expect(used.client.resetPassword("1-abc", "a new long password")).rejects.toMatchObject({
       fields: { key: "The password reset token was invalid." },
+    });
+  });
+});
+
+describe("createAllauthClient: what a person reads when the server did not word the failure (hub#2281)", () => {
+  afterEach(() => {
+    document.documentElement.lang = "";
+  });
+
+  it("says, in the language of the page, that an answer that is not allauth's could not be completed", async () => {
+    document.documentElement.lang = "es";
+    const h = setup(() => new Response("<h1>Forbidden</h1>", { status: 403 }));
+    await expect(h.client.login({ email: "a@b.c", password: "p" })).rejects.toMatchObject({
+      status: 403,
+      code: "unexpected_response",
+      message: es.sdk.errors.unexpected,
+    });
+  });
+
+  it("says the same for allauth's own answer without a message, keeping its code", async () => {
+    document.documentElement.lang = "es";
+    const h = setup(() => json(500, { status: 500 }));
+    const err = (await h.client.login({ email: "a@b.c", password: "p" }).catch((e: unknown) => e)) as ApiError;
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(500);
+    expect(err.message).toBe(es.sdk.errors.unexpected);
+  });
+
+  it("says a request that never got an answer could not reach the server, and keeps why", async () => {
+    document.documentElement.lang = "es";
+    const h = setup(() => Promise.reject(new TypeError("Failed to fetch")));
+    const err = (await h.client.login({ email: "a@b.c", password: "p" }).catch((e: unknown) => e)) as ApiError;
+    expect(err).toMatchObject({ status: 0, code: "network_error", message: es.sdk.errors.network });
+    expect(err.details).toEqual({ reason: "Failed to fetch" });
+  });
+
+  it("says a signed-out session has ended and to sign in again", async () => {
+    document.documentElement.lang = "es";
+    const h = setup(() => json(401, LOGGED_OUT_401));
+    await expect(h.client.authenticators()).rejects.toMatchObject({
+      status: 401,
+      code: "not_authenticated",
+      message: es.sdk.errors.signedOut,
     });
   });
 });
