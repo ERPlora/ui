@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, h } from "vue";
 import {
   createTestClient,
+  errorFrame,
   flush,
   HELLO,
   memoryStorage,
@@ -116,6 +117,49 @@ describe("createLiveClient: optimistic wiring", () => {
     second.push(HELLO + resultFrame(sub.id, ["a", "x"], 1));
     await flush();
     expect(client.optimistic.view(sub.id, ["a", "x"])).toEqual(["a", "x"]);
+  });
+});
+
+describe("createLiveClient: a host that no longer serves the app", () => {
+  it("reloads the page once when a command hears it, and the stream stops reconnecting", async () => {
+    const reload = vi.fn();
+    const { client, net, goLive, clock } = createTestClient({ reload, session: memoryStorage(), wallClock: () => 1 });
+    client.stream.subscribe("test.item.list", {}, () => {});
+    const call = await goLive();
+    net.onApi(() => Response.json({ error: { code: "base.hub_suspended", message: "Suspended" } }, { status: 402 }));
+
+    await expect(client.api.call("test.item.add_line", { id: "i1", text: "x", client_line_id: "c1" })).rejects.toThrow(
+      "Suspended",
+    );
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    call.push(errorFrame(call.subs[0].id, "base.hub_suspended"));
+    await flush();
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(call.aborted()).toBe(true);
+    await clock.advance(60000);
+    expect(net.streams).toHaveLength(1);
+    client.close();
+  });
+
+  it("reloads when the live stream hears it first", async () => {
+    const reload = vi.fn();
+    const { client, goLive } = createTestClient({ reload, session: memoryStorage(), wallClock: () => 1 });
+    client.stream.subscribe("test.item.list", {}, () => {});
+    const call = await goLive();
+    call.push(errorFrame(call.subs[0].id, "base.hub_gone"));
+    await flush();
+    expect(reload).toHaveBeenCalledTimes(1);
+    client.close();
+  });
+
+  it("leaves any other refusal to the page", async () => {
+    const reload = vi.fn();
+    const { client, net } = createTestClient({ reload, session: memoryStorage(), wallClock: () => 1 });
+    net.onApi(() => Response.json({ error: { code: "app_inactive", message: "Off" } }, { status: 404 }));
+    await expect(client.api.call("test.session.me")).rejects.toThrow("Off");
+    expect(reload).not.toHaveBeenCalled();
+    client.close();
   });
 });
 

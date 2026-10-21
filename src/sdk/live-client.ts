@@ -7,11 +7,14 @@
  *
  * Results feed the optimistic store once per frame, and a new stream (`hello` → `live`) restarts
  * its revisions, so overlays are released by the first fresh result after their command settles.
+ * An answer of a host that no longer serves the app, to a call or on the stream, reloads the page once
+ * (`host-closed.ts`) and stops the stream.
  */
 import { type App, getCurrentInstance, hasInjectionContext, inject, type InjectionKey, provide } from "vue";
 import { type ApiClient, createApiClient } from "./api-client";
 import type { SpaConfig } from "./config";
 import { createHeaderProvider } from "./headers";
+import { createHostClosedGuard } from "./host-closed";
 import type { OperationRoutes } from "./operations";
 import { createOptimisticStore, type OptimisticStore } from "./optimistic";
 import { createStreamManager, type StreamManager } from "./stream-manager";
@@ -30,6 +33,12 @@ export interface BrowserDeps {
   random: () => number;
   logger: Pick<Console, "warn" | "error">;
   getElevationToken: () => string | undefined;
+  /** Reloads the page (the host no longer serves the app: it answers the reload with its own page). */
+  reload: () => void;
+  /** The tab's storage, which outlives a reload (the reload guard). */
+  session: Pick<Storage, "getItem" | "setItem">;
+  /** Epoch milliseconds. */
+  wallClock: () => number;
   /** Op → route map; wins over `SpaConfig.routes`. */
   routes: OperationRoutes;
 }
@@ -68,6 +77,13 @@ function browserDeps(): Omit<BrowserDeps, "routes"> {
     random: Math.random,
     logger: console,
     getElevationToken: () => undefined,
+    reload: () => window.location.reload(),
+    // Resolved on each call, like `storage`: reading `sessionStorage` itself can throw (blocked storage).
+    session: {
+      getItem: (key) => window.sessionStorage.getItem(key),
+      setItem: (key, value) => window.sessionStorage.setItem(key, value),
+    },
+    wallClock: () => Date.now(),
   };
 }
 
@@ -81,6 +97,12 @@ export function createLiveClient(cfg: SpaConfig, overrides: Partial<BrowserDeps>
     cookies: deps.cookies,
     randomUUID: deps.randomUUID,
     getElevationToken: deps.getElevationToken,
+  });
+  const hostClosed = createHostClosedGuard({
+    reload: deps.reload,
+    session: deps.session,
+    wallClock: deps.wallClock,
+    logger: deps.logger,
   });
   const optimistic = createOptimisticStore({
     setTimeout: deps.setTimeout,
@@ -99,11 +121,18 @@ export function createLiveClient(cfg: SpaConfig, overrides: Partial<BrowserDeps>
     logger: deps.logger,
     random: deps.random,
     onResult: (id, rev) => optimistic.onResult(id, rev),
+    onError: (error) => hostClosed.notice(error),
   });
   const stopStatus = stream.onStatus((status) => {
     if (status === "live") optimistic.resetRevisions();
   });
-  const api = createApiClient({ fetchImpl: deps.fetchImpl, headers, apiBase: cfg.apiBase, routes });
+  const api = createApiClient({
+    fetchImpl: deps.fetchImpl,
+    headers,
+    apiBase: cfg.apiBase,
+    routes,
+    onError: (error) => void hostClosed.notice(error),
+  });
 
   return {
     config: cfg,
