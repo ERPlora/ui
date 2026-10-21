@@ -488,6 +488,35 @@ describe("createAllauthClient: the 2FA step of a login", () => {
   });
 });
 
+describe("createAllauthClient: «Trust this browser» after the 2FA step", () => {
+  it("posts the answer to …/auth/2fa/trust with the CSRF token and answers the signed-in user", async () => {
+    const h = setup(() => json(200, { status: 200, data: { user: USER, methods: [] }, meta: { is_authenticated: true } }));
+    expect(await h.client.mfaTrust(true)).toEqual({ authenticated: true, user: USER });
+    expect(h.last().url).toBe("/_allauth/browser/v1/auth/2fa/trust");
+    expect(h.last().init.method).toBe("POST");
+    expect(JSON.parse(h.last().init.body as string)).toEqual({ trust: true });
+    expect(headersOf(h.last())["X-CSRFToken"]).toBe("tok");
+    expect(headersOf(h.last())["Content-Type"]).toBe("application/json");
+  });
+
+  it("sends «not now» as trust: false", async () => {
+    const h = setup(() => json(200, { status: 200, data: { user: USER, methods: [] }, meta: { is_authenticated: true } }));
+    await h.client.mfaTrust(false);
+    expect(JSON.parse(h.last().init.body as string)).toEqual({ trust: false });
+  });
+
+  it("answers a login that still waits for another step as the anonymous state", async () => {
+    const flows = [{ id: "login" }, { id: "mfa_trust", is_pending: true }];
+    const h = setup(() => json(401, { status: 401, data: { flows }, meta: { is_authenticated: false } }));
+    expect(await h.client.mfaTrust(true)).toEqual({ authenticated: false, flows, pendingFlow: "mfa_trust" });
+  });
+
+  it("rejects with a conflict when no login waits for the question (409)", async () => {
+    const h = setup(() => json(409, { status: 409 }));
+    await expect(h.client.mfaTrust(true)).rejects.toMatchObject({ status: 409, code: "conflict" });
+  });
+});
+
 describe("createAllauthClient: reauthentication", () => {
   it("confirms the password with POST …/auth/reauthenticate", async () => {
     const h = setup(() => json(200, { status: 200, data: { user: USER, methods: [] }, meta: { is_authenticated: true } }));
