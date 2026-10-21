@@ -20,12 +20,19 @@ describe("isHostClosed", () => {
     expect(isHostClosed(closed(code, 0))).toBe(true);
   });
 
-  it.each(["app_inactive", "base.app_required", "not_found", "unauthorized", "network_error"])(
-    "is not any other refusal (%s)",
-    (code) => {
-      expect(isHostClosed(closed(code, 404))).toBe(false);
-    },
-  );
+  it.each([
+    // The same status as the gate's, another code: an app the business has no right to (402) and one being
+    // prepared (503) are the page's to show, not a host that no longer serves the app.
+    ["app_entitlement_blocked", 402],
+    ["app_activating", 503],
+    ["app_inactive", 404],
+    ["base.app_required", 409],
+    ["not_found", 404],
+    ["unauthorized", 401],
+    ["network_error", 0],
+  ])("is not any other refusal (%s, %i)", (code, status) => {
+    expect(isHostClosed(closed(code, status))).toBe(false);
+  });
 });
 
 describe("createHostClosedGuard", () => {
@@ -43,9 +50,10 @@ describe("createHostClosedGuard", () => {
     expect(h.reload).toHaveBeenCalledTimes(1);
   });
 
-  it("leaves any other error alone", () => {
+  it("leaves any other error alone, also one with the gate's own status", () => {
     const h = setup();
     expect(h.guard.notice(closed("app_inactive", 404))).toBe(false);
+    expect(h.guard.notice(closed("app_entitlement_blocked", 402))).toBe(false);
     expect(h.reload).not.toHaveBeenCalled();
   });
 
