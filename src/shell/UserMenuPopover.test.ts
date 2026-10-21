@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h } from 'vue';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
@@ -117,5 +121,36 @@ describe('UserMenuPopover (the user menu, under the person at the top of the sid
     const wrapper = mountPopover();
     await wrapper.get('[data-stub="ion-popover"]').trigger('click');
     expect(wrapper.emitted('dismiss')).toHaveLength(1);
+  });
+});
+
+// happy-dom lays nothing out, so this reads the stylesheet; the boxes are measured by the panel's e2e
+// (saas tests/e2e/panel/accounts-flows.spec.ts, «the user menu reads whole»), at 390, 834 and 1440.
+describe('polish.css: the user menu and its card read whole', () => {
+  const CSS = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'theme/polish.css'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\s+/g, ' ');
+
+  /** The declarations of the top-level rule whose selector list is exactly `selector`. */
+  function rule(selector: string): string {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s*');
+    const found = new RegExp(`(?:^|\\})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(CSS);
+    return found ? found[1].trim() : '';
+  }
+
+  it('the theme buttons are a fixed 7.5rem (three of 40px), so «Theme» keeps its line in the 248px menu', () => {
+    // `width: auto` let Ionic's buttons grow to 55px each (166px), leaving the label 18px: «Th/e/m/e».
+    // The end slot is the only lever: a min-width on ion-label does not hold (hub#1733).
+    expect(rule('.user-menu-theme ion-segment')).toBe('flex: none; width: 7.5rem;');
+    expect(rule('.user-menu-theme ion-segment-button')).toBe('min-width: 0; --padding-start: 0; --padding-end: 0;');
+  });
+
+  it("the card's name and email are blocks, so a long one ends in «…» before the chevron", () => {
+    // Inline spans ignore text-overflow: the address ran under the chevron and out of the menu.
+    for (const line of ['.sidebar-user-name', '.sidebar-user-email']) {
+      const declarations = rule(line);
+      expect(declarations, line).toContain('display: block;');
+      expect(declarations, line).toContain('overflow: hidden; text-overflow: ellipsis; white-space: nowrap;');
+    }
   });
 });
