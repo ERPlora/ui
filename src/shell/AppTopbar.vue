@@ -165,14 +165,15 @@ function goBack(): void {
             :event="moreEvent"
             @did-dismiss="moreOpen = false"
           >
-            <!-- Choosing an action runs it (its own click) and closes the list. -->
-            <div
+            <!-- A button group, as in the bar, so Ionic paints them clear: a menu, not solid blocks.
+                 Choosing an action runs it (its own click) and closes the list. -->
+            <ion-buttons
               class="topbar-more"
               data-testid="topbar-more-menu"
               @click="moreOpen = false"
             >
               <slot name="actions" />
-            </div>
+            </ion-buttons>
           </ion-popover>
         </template>
         <slot
@@ -221,6 +222,7 @@ function goBack(): void {
 .topbar-more {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   padding-block: 4px;
 }
 

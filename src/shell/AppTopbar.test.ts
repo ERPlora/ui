@@ -405,6 +405,8 @@ describe('AppTopbar: on a phone, two or more actions fold into «More actions» 
     const wrapper = mountBar(actions('edit', 'done', 'delete'));
     await wrapper.get('[data-testid="topbar-more"]').trigger('click');
     const menu = wrapper.get('[data-testid="topbar-more-menu"]');
+    // A button group, as in the bar: Ionic paints its buttons clear (a menu), not as solid blocks.
+    expect(menu.element.tagName).toBe('ION-BUTTONS');
     expect(menu.findAll('button').map((button) => button.attributes('data-testid'))).toEqual(['edit', 'done', 'delete']);
     expect(wrapper.get('[data-testid="topbar-more"]').attributes('aria-expanded')).toBe('true');
     await menu.get('[data-testid="done"]').trigger('click');
