@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { flushPromises, mount } from '@vue/test-utils';
-import { defineComponent, h, ref } from 'vue';
+import { createCommentVNode, defineComponent, h, ref } from 'vue';
 import { parse } from 'vue/compiler-sfc';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -324,5 +324,109 @@ describe("AppTopbar with the hub's sidebar", () => {
       expect(group, testid).not.toBeNull();
       expect(scope(group as Element)).toContain(id);
     }
+  });
+});
+
+// FIX of APP-DEMO (hub#111): at 390 a detail with three text actions in the bar («Edit», «Mark done»,
+// «Delete») left its title as «Flo…». On a phone (≤767 px), two or more actions of the view fold into
+// «⋮» («More actions»), which lists them in a popover, as Material's top app bar, Apple's navigation
+// bars and Polaris' page header do; one action, or a wider window, keeps them in the bar.
+describe('AppTopbar: on a phone, two or more actions fold into «More actions» (⋮)', () => {
+  /** A window whose phone query (`max-width: 767px`) answers `phone`, and can be resized. */
+  function screenOf(phone: boolean) {
+    const listeners = new Set<(event: { matches: boolean }) => void>();
+    const query = {
+      matches: phone,
+      media: '(max-width: 767px)',
+      addEventListener: (_: string, listener: (event: { matches: boolean }) => void) => listeners.add(listener),
+      removeEventListener: (_: string, listener: (event: { matches: boolean }) => void) => listeners.delete(listener),
+    };
+    const spy = vi.spyOn(window, 'matchMedia').mockReturnValue(query as unknown as MediaQueryList);
+    return {
+      spy,
+      resize(next: boolean) {
+        query.matches = next;
+        for (const listener of listeners) listener({ matches: next });
+      },
+    };
+  }
+
+  const ran: string[] = [];
+  /** The view's actions, as a page passes them; one hidden by its `v-if` (a comment node). */
+  const actions = (...names: string[]) => () => [
+    ...names.map((name) => h('button', { 'data-testid': name, onClick: () => ran.push(name) }, name)),
+    createCommentVNode('v-if'),
+  ];
+
+  function mountBar(slot: () => unknown[], locale = 'en') {
+    return mount(AppTopbar, {
+      props: { title: 'Table 4', backHref: '/demo/items' },
+      slots: { actions: slot },
+      global: { plugins: [router, createShellI18n({ locale })], stubs: { IonPopover: PopoverStub } },
+    });
+  }
+
+  beforeEach(() => {
+    ran.length = 0;
+  });
+
+  it('asks the window whether it is a phone (767 px or less)', () => {
+    const { spy } = screenOf(false);
+    mountBar(actions('edit', 'done'));
+    expect(spy).toHaveBeenCalledWith('(max-width: 767px)');
+  });
+
+  it('on a phone, three actions leave the bar for «⋮», named in the user language', () => {
+    screenOf(true);
+    const wrapper = mountBar(actions('edit', 'done', 'delete'));
+    const more = wrapper.get('ion-buttons[slot="end"] [data-testid="topbar-more"]');
+    expect(more.attributes('aria-label')).toBe('More actions');
+    expect(more.attributes('aria-haspopup')).toBe('true');
+    for (const name of ['edit', 'done', 'delete']) expect(wrapper.find(`[data-testid="${name}"]`).exists(), name).toBe(false);
+    expect(unnamedButtons(wrapper.element)).toEqual([]);
+    expect(mountBar(actions('edit', 'done'), 'es').get('[data-testid="topbar-more"]').attributes('aria-label')).toBe(
+      'Más acciones',
+    );
+  });
+
+  it('«⋮» opens them in a popover, in their order; choosing one runs it and closes the popover', async () => {
+    screenOf(true);
+    const wrapper = mountBar(actions('edit', 'done', 'delete'));
+    await wrapper.get('[data-testid="topbar-more"]').trigger('click');
+    const menu = wrapper.get('[data-testid="topbar-more-menu"]');
+    expect(menu.findAll('button').map((button) => button.attributes('data-testid'))).toEqual(['edit', 'done', 'delete']);
+    expect(wrapper.get('[data-testid="topbar-more"]').attributes('aria-expanded')).toBe('true');
+    await menu.get('[data-testid="done"]').trigger('click');
+    expect(ran).toEqual(['done']);
+    expect(wrapper.find('[data-testid="topbar-more-menu"]').exists()).toBe(false);
+  });
+
+  it('on a phone, a single action stays in the bar (a hidden one does not count)', () => {
+    screenOf(true);
+    const wrapper = mountBar(actions('edit'));
+    expect(wrapper.find('ion-buttons[slot="end"] [data-testid="edit"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="topbar-more"]').exists()).toBe(false);
+  });
+
+  it('wider than a phone, every action stays in the bar', () => {
+    screenOf(false);
+    const wrapper = mountBar(actions('edit', 'done', 'delete'));
+    for (const name of ['edit', 'done', 'delete']) {
+      expect(wrapper.find(`ion-buttons[slot="end"] [data-testid="${name}"]`).exists(), name).toBe(true);
+    }
+    expect(wrapper.find('[data-testid="topbar-more"]').exists()).toBe(false);
+  });
+
+  it('follows the window: turning into a phone folds them, back to a desk unfolds them', async () => {
+    const screen = screenOf(false);
+    const wrapper = mountBar(actions('edit', 'done'));
+    screen.resize(true);
+    await flushPromises();
+    expect(wrapper.find('[data-testid="topbar-more"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="edit"]').exists()).toBe(false);
+    screen.resize(false);
+    await flushPromises();
+    expect(wrapper.find('[data-testid="topbar-more"]').exists()).toBe(false);
+    expect(wrapper.find('ion-buttons[slot="end"] [data-testid="edit"]').exists()).toBe(true);
   });
 });

@@ -46,6 +46,7 @@ describe('shell catalogues', () => {
       'topbar.collapseMenu',
       'topbar.expandMenu',
       'topbar.menu',
+      'topbar.moreActions',
       'userMenu.help',
       'userMenu.logout',
       'userMenu.logoutFailed',
