@@ -142,7 +142,7 @@ describe('polish.css: the user menu and its card read whole', () => {
     // `width: auto` let Ionic's buttons grow to 50px each (166px), leaving the label 18px: «Th/e/m/e».
     // The end slot is the only lever: a min-width on ion-label does not hold (hub#1733).
     expect(rule('.user-menu-theme ion-segment')).toBe('flex: none; width: 7.5rem;');
-    expect(rule('.user-menu-theme ion-segment-button')).toBe('min-width: 0; --padding-start: 0; --padding-end: 0;');
+    expect(rule('.user-menu-theme ion-segment-button')).toBe('min-width: 0;');
   });
 
   it("the card's name and email are blocks, so a long one ends in «…» before the chevron", () => {

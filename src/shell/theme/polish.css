@@ -376,7 +376,7 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
    18px of the 248px menu, one letter a line (measured at 390, 834 and 1440). The end slot is the
    only lever: a min-width on the label does not hold (hub#1733, «Settings row» above). */
 .user-menu-theme ion-segment { flex: none; width: 7.5rem; }
-.user-menu-theme ion-segment-button { min-width: 0; --padding-start: 0; --padding-end: 0; }
+.user-menu-theme ion-segment-button { min-width: 0; }
 .sidebar-user-meta { min-width: 0; flex: 1; }
 /* Blocks, not inline spans: text-overflow only cuts a block, so a long name or address ends in «…»
    before the chevron instead of running under it and out of the menu. */
