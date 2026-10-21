@@ -4,7 +4,8 @@
  * login and `signup` for allauth's sign-up; whether either may create or open an account is allauth's
  * and the SaaS's decision), the code steps that follow (the email verification of a sign-up, the code
  * mailed at every password sign-in), the logout, the password reset by link, two-factor
- * authentication (the login's 2FA step, TOTP, recovery codes and reauthentication), the password
+ * authentication (the login's 2FA step and its «Trust this browser» answer, TOTP, recovery codes and
+ * reauthentication), the password
  * change and the linked provider accounts; allauth decides everything.
  *
  * - Same-origin session cookie; unsafe methods carry Django's CSRF token from the header provider
@@ -180,6 +181,13 @@ export interface AllauthClient {
   resetPassword(key: string, password: string): Promise<AuthState>;
   /** The second step of a login whose `pendingFlow` is `mfa_authenticate` (TOTP or recovery code). */
   mfaAuthenticate(code: string): Promise<AuthState>;
+  /**
+   * The answer to «Trust this browser» when the login's `pendingFlow` is `mfa_trust` (allauth's `MFA_TRUST_ENABLED`,
+   * after a right 2FA code): `true` skips the app's code in this browser for a while. When no login waits for it
+   * (none, asked before the code, or already signed in from another tab) allauth answers the anonymous state (401,
+   * no `mfa_trust` pending), like any other call here; it never answers a 409 for that.
+   */
+  mfaTrust(trust: boolean): Promise<AuthState>;
   reauthenticate(password: string): Promise<void>;
   mfaReauthenticate(code: string): Promise<void>;
   authenticators(): Promise<Authenticator[]>;
@@ -361,6 +369,7 @@ export function createAllauthClient(cfg: AllauthConfig, overrides: Partial<Allau
     },
     resetPassword: (key, password) => authState("POST", "/auth/password/reset", { key, password }),
     mfaAuthenticate: (code) => authState("POST", "/auth/2fa/authenticate", { code }),
+    mfaTrust: (trust) => authState("POST", "/auth/2fa/trust", { trust }),
     reauthenticate: async (password) => {
       await account("POST", "/auth/reauthenticate", { password });
     },
