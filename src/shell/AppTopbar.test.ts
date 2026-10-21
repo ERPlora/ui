@@ -165,6 +165,15 @@ describe('AppTopbar: a long title never covers the buttons', () => {
     expect(rule('.app-topbar ion-toolbar.ios > ion-buttons')).toContain('min-width: 5.5rem;');
   });
 
+  it('lists each folded action with its label at the start, as a menu (not centred like a bar button)', () => {
+    // Ionic centres the label in `.button-inner`, a box as wide as the button that no `::part` reaches; a
+    // `justify-content` on `native` alone changed nothing (measured at 375: «Edit» 85 px in, «Delete» 74 px
+    // in). As a grid whose track does not stretch, `native` sizes that box to the label and leads with it.
+    const rule = /\.topbar-more :deep\(ion-button\)::part\(native\)\s*\{([^}]*)\}/.exec(css)?.[1]?.replace(/\s+/g, ' ').trim() ?? '';
+    expect(rule).toContain('display: grid;');
+    expect(rule).toContain('justify-content: start;');
+  });
+
   it('scopes the rules to this component, and they reach the rendered title and button groups', () => {
     expect(styles.length).toBeGreaterThan(0);
     expect(styles.every((style) => style.scoped)).toBe(true);
@@ -355,6 +364,7 @@ describe('AppTopbar: on a phone, two or more actions fold into «More actions» 
     const spy = vi.spyOn(window, 'matchMedia').mockReturnValue(query as unknown as MediaQueryList);
     return {
       spy,
+      listeners,
       resize(next: boolean) {
         query.matches = next;
         for (const listener of listeners) listener({ matches: next });
@@ -441,5 +451,14 @@ describe('AppTopbar: on a phone, two or more actions fold into «More actions» 
     await flushPromises();
     expect(wrapper.find('[data-testid="topbar-more"]').exists()).toBe(false);
     expect(wrapper.find('ion-buttons[slot="end"] [data-testid="edit"]').exists()).toBe(true);
+  });
+
+  it('stops listening to the window when it leaves: a bar that is gone never folds or unfolds again', () => {
+    const screen = screenOf(false);
+    const wrapper = mountBar(actions('edit', 'done'));
+    expect(screen.listeners.size).toBe(1);
+    wrapper.unmount();
+    // The listener left with the bar: a resize after it reaches no one.
+    expect(screen.listeners.size).toBe(0);
   });
 });

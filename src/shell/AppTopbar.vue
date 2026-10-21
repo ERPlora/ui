@@ -218,7 +218,10 @@ function goBack(): void {
   }
 }
 
-/* The folded actions, one per row, as a menu: each one as wide as the list, its label at the start. */
+/* The folded actions, one per row, as a menu: each one as wide as the list, its label at the start
+   (Material's menu and iOS's menus lead with the label). Ionic centres the label inside `.button-inner`,
+   which spans the whole button and is out of reach (`native` is the only part): as a grid that does
+   not stretch its track, `native` sizes that inner box to its label and places it at the start. */
 .topbar-more {
   display: flex;
   flex-direction: column;
@@ -232,6 +235,7 @@ function goBack(): void {
 }
 
 .topbar-more :deep(ion-button)::part(native) {
-  justify-content: flex-start;
+  display: grid;
+  justify-content: start;
 }
 </style>
