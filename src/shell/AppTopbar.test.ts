@@ -154,6 +154,17 @@ describe('AppTopbar: a long title never covers the buttons', () => {
     );
   });
 
+  it('on a phone (≤767 px) each button group takes only what its buttons need, both alike, and the title the rest', () => {
+    // At 390 the three thirds left the title 127 px between two groups of two icons (hub#111).
+    const phone = /@media\s*\(max-width:\s*767px\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    const rule = (selector: string) =>
+      (new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(phone)?.[1] ?? '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    expect(rule('.app-topbar ion-toolbar.ios > ion-buttons')).toContain('flex: 0 0 auto;');
+    expect(rule('.app-topbar ion-toolbar.ios > ion-buttons')).toContain('min-width: 5.5rem;');
+  });
+
   it('scopes the rules to this component, and they reach the rendered title and button groups', () => {
     expect(styles.length).toBeGreaterThan(0);
     expect(styles.every((style) => style.scoped)).toBe(true);

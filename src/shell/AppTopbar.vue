@@ -207,6 +207,16 @@ function goBack(): void {
   padding-inline: 4px;
 }
 
+/* On a phone the three equal thirds left the title 127 px between two groups of two icons (hub#111):
+   there each group takes only what its buttons need, both at least two buttons wide so the title
+   stays centred, and the title takes the rest — about what Ionic's own ios bar gives it. */
+@media (max-width: 767px) {
+  .app-topbar ion-toolbar.ios > ion-buttons {
+    flex: 0 0 auto;
+    min-width: 5.5rem;
+  }
+}
+
 /* The folded actions, one per row, as a menu: each one as wide as the list, its label at the start. */
 .topbar-more {
   display: flex;
