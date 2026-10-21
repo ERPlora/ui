@@ -8,10 +8,14 @@
 // the actions, the ⠿ «My apps» sheet (AppsLauncher): the modules are not in the menu. Both are the
 // authenticated chrome: only behind its gate (useChromeVisible, hub#925). The person is not here but
 // at the top of the side menu (hub#146).
+// On a phone (≤767 px) two or more actions of the view fold into «⋮» («More actions»), which lists
+// them in a popover: three text actions left the title as «Flo…» at 390 (hub#111). One action, or a
+// wider window, keeps them in the bar. Material's top app bar, Apple's navigation bars and Polaris'
+// page header roll them up the same way.
 // Not ported (phase 1 has none of them): management link, change hub, assistant, notification bell
-// (and the «⋮» that folds them on a phone) and the progress bar.
-import { IonButton, IonButtons, IonHeader, IonMenuButton, IonTitle, IonToolbar } from '@ionic/vue';
-import { computed } from 'vue';
+// and the progress bar.
+import { IonButton, IonButtons, IonHeader, IonMenuButton, IonPopover, IonTitle, IonToolbar } from '@ionic/vue';
+import { Comment, computed, Fragment, onBeforeUnmount, ref, Text, useSlots, type VNode } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
@@ -47,6 +51,36 @@ const chromeVisible = useChromeVisible();
 
 /** The hub's chrome of the bar (rail toggle, «My apps»): with its sidebar, behind the gate. */
 const hubChrome = computed(() => Boolean(sidebar) && chromeVisible.value);
+
+/** The window width at or below which the view's actions fold into «⋮». */
+const PHONE_QUERY = '(max-width: 767px)';
+const phone = ref(false);
+const phoneQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(PHONE_QUERY) : null;
+const onPhoneChange = (event: { matches: boolean }) => (phone.value = event.matches);
+if (phoneQuery) {
+  phone.value = phoneQuery.matches;
+  phoneQuery.addEventListener('change', onPhoneChange);
+}
+onBeforeUnmount(() => phoneQuery?.removeEventListener('change', onPhoneChange));
+
+const slots = useSlots();
+/** How many actions the view puts in the bar: its rendered nodes, without what a `v-if` left out. */
+function countNodes(nodes: VNode[]): number {
+  return nodes.reduce((count, node) => {
+    if (node.type === Fragment) return count + countNodes(node.children as VNode[]);
+    if (node.type === Comment || (node.type === Text && !String(node.children).trim())) return count;
+    return count + 1;
+  }, 0);
+}
+/** Called while rendering, so it follows what the view's slot shows. */
+const foldActions = (): boolean => phone.value && countNodes(slots.actions?.() ?? []) > 1;
+
+const moreOpen = ref(false);
+const moreEvent = ref<Event>();
+function openMore(event: Event): void {
+  moreEvent.value = event;
+  moreOpen.value = true;
+}
 
 function goBack(): void {
   // With history inside the app, go back; on a deep link, to `backHref`.
@@ -112,7 +146,40 @@ function goBack(): void {
       </ion-title>
 
       <ion-buttons slot="end">
-        <slot name="actions" />
+        <template v-if="foldActions()">
+          <ion-button
+            fill="clear"
+            data-testid="topbar-more"
+            aria-haspopup="true"
+            :aria-expanded="String(moreOpen)"
+            :aria-label="t('topbar.moreActions')"
+            @click="openMore"
+          >
+            <HubIcon
+              slot="icon-only"
+              name="ion:ellipsis-vertical"
+            />
+          </ion-button>
+          <ion-popover
+            :is-open="moreOpen"
+            :event="moreEvent"
+            @did-dismiss="moreOpen = false"
+          >
+            <!-- A button group, as in the bar, so Ionic paints them clear: a menu, not solid blocks.
+                 Choosing an action runs it (its own click) and closes the list. -->
+            <ion-buttons
+              class="topbar-more"
+              data-testid="topbar-more-menu"
+              @click="moreOpen = false"
+            >
+              <slot name="actions" />
+            </ion-buttons>
+          </ion-popover>
+        </template>
+        <slot
+          v-else
+          name="actions"
+        />
         <AppsLauncher v-if="hubChrome" />
       </ion-buttons>
     </ion-toolbar>
@@ -139,5 +206,36 @@ function goBack(): void {
 .app-topbar ion-title.ios {
   position: relative;
   padding-inline: 4px;
+}
+
+/* On a phone the three equal thirds left the title 127 px between two groups of two icons (hub#111):
+   there each group takes only what its buttons need, both at least two buttons wide so the title
+   stays centred, and the title takes the rest — about what Ionic's own ios bar gives it. */
+@media (max-width: 767px) {
+  .app-topbar ion-toolbar.ios > ion-buttons {
+    flex: 0 0 auto;
+    min-width: 5.5rem;
+  }
+}
+
+/* The folded actions, one per row, as a menu: each one as wide as the list, its label at the start
+   (Material's menu and iOS's menus lead with the label). Ionic centres the label inside `.button-inner`,
+   which spans the whole button and is out of reach (`native` is the only part): as a grid that does
+   not stretch its track, `native` sizes that inner box to its label and places it at the start. */
+.topbar-more {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding-block: 4px;
+}
+
+.topbar-more :deep(ion-button) {
+  margin: 0;
+  --border-radius: 0;
+}
+
+.topbar-more :deep(ion-button)::part(native) {
+  display: grid;
+  justify-content: start;
 }
 </style>

@@ -3,7 +3,8 @@
     "menu": "Open menu",
     "back": "Back",
     "collapseMenu": "Collapse menu",
-    "expandMenu": "Expand menu"
+    "expandMenu": "Expand menu",
+    "moreActions": "More actions"
   },
   "home": {
     "title": "Home",
