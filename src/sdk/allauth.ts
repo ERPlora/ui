@@ -183,8 +183,9 @@ export interface AllauthClient {
   mfaAuthenticate(code: string): Promise<AuthState>;
   /**
    * The answer to «Trust this browser» when the login's `pendingFlow` is `mfa_trust` (allauth's `MFA_TRUST_ENABLED`,
-   * after a right 2FA code): `true` skips the app's code in this browser for a while. Rejects with a conflict (409)
-   * when no login waits for it.
+   * after a right 2FA code): `true` skips the app's code in this browser for a while. When no login waits for it
+   * (none, asked before the code, or already signed in from another tab) allauth answers the anonymous state (401,
+   * no `mfa_trust` pending), like any other call here; it never answers a 409 for that.
    */
   mfaTrust(trust: boolean): Promise<AuthState>;
   reauthenticate(password: string): Promise<void>;

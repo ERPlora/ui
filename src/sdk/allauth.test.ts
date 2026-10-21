@@ -511,7 +511,13 @@ describe("createAllauthClient: «Trust this browser» after the 2FA step", () =>
     expect(await h.client.mfaTrust(true)).toEqual({ authenticated: false, flows, pendingFlow: "mfa_trust" });
   });
 
-  it("rejects with a conflict when no login waits for the question (409)", async () => {
+  it("when no login waits for the question (none, too early, or another tab already answered) answers the anonymous state: allauth sends a 401 without a pending flow, never a 409", async () => {
+    const flows = [{ id: "login" }, { id: "signup" }];
+    const h = setup(() => json(401, { status: 401, data: { flows }, meta: { is_authenticated: null } }));
+    expect(await h.client.mfaTrust(true)).toEqual({ authenticated: false, flows });
+  });
+
+  it("a 409 rejects with a conflict, like every call", async () => {
     const h = setup(() => json(409, { status: 409 }));
     await expect(h.client.mfaTrust(true)).rejects.toMatchObject({ status: 409, code: "conflict" });
   });
