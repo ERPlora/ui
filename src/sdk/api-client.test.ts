@@ -168,6 +168,37 @@ describe("createApiClient: responses and errors", () => {
   });
 });
 
+describe("createApiClient: onError", () => {
+  it("hands every error it rejects with to onError first", async () => {
+    const seen: ApiError[] = [];
+    const api = createApiClient({
+      fetchImpl: () =>
+        Promise.resolve(Response.json({ error: { code: "base.hub_suspended", message: "Suspended" } }, { status: 402 })),
+      headers,
+      apiBase: "/api",
+      routes: ROUTES,
+      onError: (error) => void seen.push(error),
+    });
+    const failed = await api.call("test.item.delete", { id: "i1" }).catch((err: unknown) => err);
+    expect(failed).toBeInstanceOf(ApiError);
+    expect(seen).toEqual([failed]);
+    expect([seen[0].status, seen[0].code]).toEqual([402, "base.hub_suspended"]);
+  });
+
+  it("is not called for an answer that succeeds", async () => {
+    const seen: ApiError[] = [];
+    const api = createApiClient({
+      fetchImpl: () => Promise.resolve(Response.json({ ok: true })),
+      headers,
+      apiBase: "/api",
+      routes: ROUTES,
+      onError: (error) => void seen.push(error),
+    });
+    await api.call("test.session.me");
+    expect(seen).toEqual([]);
+  });
+});
+
 describe("createApiClient: API base", () => {
   it("prefixes paths relative to the API base and keeps those already under it", async () => {
     const calls: string[] = [];

@@ -25,6 +25,8 @@ export interface ApiClientOptions {
   /** API root, e.g. `/api`. Route paths already under it are used as they are. */
   apiBase: string;
   routes: OperationRoutes;
+  /** Sees every `ApiError` a call rejects with, before the caller (a host that no longer serves the app). */
+  onError?: (error: ApiError) => void;
 }
 
 export interface ApiClient {
@@ -124,7 +126,16 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
     return readBody(res);
   }
 
+  async function reported(op: string, input: unknown): Promise<unknown> {
+    try {
+      return await call(op, input);
+    } catch (err) {
+      if (err instanceof ApiError) opts.onError?.(err);
+      throw err;
+    }
+  }
+
   return {
-    call: <Op extends OpName>(op: Op, ...args: InputArgs<Op>) => call(op, args[0]) as Promise<OutputOf<Op>>,
+    call: <Op extends OpName>(op: Op, ...args: InputArgs<Op>) => reported(op, args[0]) as Promise<OutputOf<Op>>,
   };
 }

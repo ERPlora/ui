@@ -7,6 +7,9 @@
  * - `bye`, a network error, an HTTP error or 45 s without frames → `reconnecting` with backoff
  *   from the last `retry:` (×2 up to 30 s, with jitter). On reconnect the server resends every result.
  * - Hidden for more than 60 s → the stream is closed; visible again → reopened at once.
+ * - `onError` sees every error envelope of the host (the HTTP answer to an open, an `error` frame) after its
+ *   listeners; when it says the page is leaving (the host no longer serves the app: `host-closed.ts`), the
+ *   stream stops for good (`closed`).
  * - For the SDK above it: `subscribe` returns its subscription id, `subscriptions(op)` lists the
  *   active ones of an operation, `onResult` sees every result frame once (before its listeners)
  *   and `reconnect()` reopens the stream now (the server re-runs every subscription).
@@ -43,6 +46,8 @@ export interface StreamManagerOptions {
   random?: () => number;
   /** Called once per `result` frame, before its listeners (optimistic overlays use it). */
   onResult?: (id: string, rev: number) => void;
+  /** Sees every error envelope of the host; `true` when the page is leaving because of it: the stream stops. */
+  onError?: (error: ApiError) => boolean;
 }
 
 export interface StreamManager {
@@ -89,6 +94,7 @@ export function createStreamManager(opts: StreamManagerOptions): StreamManager {
   let warnedQuery = "";
   let paused = false;
   let closed = false;
+  let left = false;
   let debounceTimer: unknown;
   let backoffTimer: unknown;
   let watchdogTimer: unknown;
@@ -137,7 +143,26 @@ export function createStreamManager(opts: StreamManagerOptions): StreamManager {
     if (conn !== current) return;
     disconnect();
     if (error) registry.broadcast({ type: "error", error });
+    if (error && leaving(error)) return;
     scheduleReconnect();
+  }
+
+  /** Whether the page leaves because of `error`; then the stream stops for good. */
+  function leaving(error: ApiError): boolean {
+    if (!opts.onError) return false;
+    let leaves = false;
+    try {
+      leaves = opts.onError(error);
+    } catch (err) {
+      logger.error("live: the error hook failed", err);
+    }
+    if (!leaves) return false;
+    left = true;
+    debounceTimer = clear(debounceTimer);
+    backoffTimer = clear(backoffTimer);
+    disconnect();
+    setStatus("closed");
+    return true;
   }
 
   function checkWatchdog(): void {
@@ -186,6 +211,7 @@ export function createStreamManager(opts: StreamManagerOptions): StreamManager {
     const error = parseErrorEnvelope(LIVE_ERROR_STATUS, payload);
     if (payload.id === undefined) registry.broadcast({ type: "error", error });
     else if (id) registry.emitTo(id, { type: "error", error });
+    leaving(error);
   }
 
   function onFrame(conn: Connection, frame: SseFrame): void {
@@ -232,6 +258,7 @@ export function createStreamManager(opts: StreamManagerOptions): StreamManager {
 
   function connect(): void {
     disconnect();
+    if (left) return;
     const list = registry.active();
     if (list.length === 0) {
       setStatus("idle");
