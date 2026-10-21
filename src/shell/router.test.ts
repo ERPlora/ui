@@ -1,7 +1,7 @@
 import { flushPromises } from '@vue/test-utils';
 import { ref } from 'vue';
 import { createMemoryHistory } from 'vue-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const ionicCreateRouter = vi.hoisted(() => ({ calls: 0 }));
 vi.mock('@ionic/vue-router', async (importOriginal) => {
@@ -56,6 +56,13 @@ describe('createShellRouter', () => {
     expect(missing.meta.auth).toBe(true);
     expect(NOT_FOUND_ROUTE.path).toBe('/:pathMatch(.*)*');
   });
+
+  // HOME_ROUTE loads its page lazily: the first load transforms HomePage and what it imports (AppPage, Ionic…),
+  // ~0.7 s on an idle machine and past the 5 s of a test on a loaded one (FIX-SAAS-SESSIONS-RESULT-TOO-BIG). Loaded
+  // once here through the route's own loader, with its own limit, the test below times the routing only.
+  beforeAll(async () => {
+    await (HOME_ROUTE.component as () => Promise<unknown>)();
+  }, 60_000);
 
   // After the login `safe_next` falls back to `/`: without a page there, a hub with no app opened
   // on the 404. The shell's Home is the hub's (`home: true`); the SaaS has its own landing.

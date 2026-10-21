@@ -271,6 +271,10 @@ const ADDED: Record<string, string> = {
   '.data-table__filters-clear': 'column filters: «Clear filters», an ion-chip in the row, at its font size',
   '.data-table__drawer-range > ion-input':
     'FIX-UI-DATATABLE-CLIP: the two ends of a range share the 360px panel (two date fields reached 21px past it, measured in Chromium)',
+  '.data-table__pager--phone-pages':
+    'FIX-SAAS-SESSIONS-RESULT-TOO-BIG: a phone past `maxWindow` pages; its footer wraps the nav to a line of its own if the count needs it',
+  '.data-table__pager--phone-pages .data-table__pager-nav': 'FIX-SAAS-SESSIONS-RESULT-TOO-BIG: that nav stays at the end of its line',
+  '.data-table__page-of': 'FIX-SAAS-SESSIONS-RESULT-TOO-BIG: «page / pages» between previous and next on that phone',
   '.data-table__card-title':
     'FIX-UI-DATATABLE-CLIP: the card title wraps, two lines at most (Polaris, Material), instead of the Lit one-line «…»',
   '.data-table__field-text':

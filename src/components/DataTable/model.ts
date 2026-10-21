@@ -248,6 +248,8 @@ export interface PagerInput<T> {
   isMobile: boolean;
   /** #78 - Client mode on a phone: rows «Load more» has accumulated (0 = one page). */
   mobileShown: number;
+  /** Server mode on a phone: the most rows the parent can hold in one window; a longer query pages. */
+  maxWindow?: number;
 }
 
 export interface PagerState<T> {
@@ -261,11 +263,20 @@ export interface PagerState<T> {
 }
 
 /** What the page shows and what the footer says, for both modes and both viewports. */
+/** Server mode on a phone, a query longer than the window the parent can hold: it pages as on a desk. */
+export function phonePages(input: Pick<PagerInput<unknown>, 'serverSide' | 'isMobile' | 'total' | 'maxWindow'>): boolean {
+  return input.serverSide && input.isMobile && input.maxWindow !== undefined && input.total > input.maxWindow;
+}
+
 export function pagerState<T>(input: PagerInput<T>): PagerState<T> {
   const { serverSide, rows, total, page, pageSize: ps, isMobile, mobileShown } = input;
   const count = serverSide ? total : rows.length;
   const pages = Math.max(1, Math.ceil(count / ps));
   const current = Math.min(page, pages - 1);
+  if (phonePages(input)) {
+    // A window grown by «Load more» before the query outgrew it: its first page only, as the footer says.
+    return { visible: rows.slice(0, ps), pages, current, count, rangeFrom: current * ps + 1, rangeTo: Math.min((current + 1) * ps, count), canLoadMore: false };
+  }
   if (serverSide && isMobile) {
     // #78 - Server mode on a phone: `rows` is the WINDOW the parent keeps live, from the row of
     // `page` (0 on a phone) and grown one page per «Load more» (`loadMore`). The footer and «Load

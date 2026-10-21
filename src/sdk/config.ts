@@ -18,6 +18,8 @@ export interface SpaConfig {
   loginUrl?: string;
   /** SaaS login: whether «Continue with Google» is configured (the button is hidden otherwise). */
   googleEnabled?: boolean;
+  /** SaaS: whether two-step verification is switched on (its endpoints answer 404 otherwise: nothing to ask). */
+  mfaEnabled?: boolean;
   /** SaaS: a hub's origin with `{slug}` to fill in (`https://{slug}.erplora.com`), to name a hub from its slug. */
   hubOrigin?: string;
   routes?: OperationRoutes;
@@ -107,6 +109,8 @@ export function readSpaConfig(doc: Document = document): SpaConfig {
   };
   const googleEnabled = optionalBoolean(raw, "googleEnabled");
   if (googleEnabled !== undefined) cfg.googleEnabled = googleEnabled;
+  const mfaEnabled = optionalBoolean(raw, "mfaEnabled");
+  if (mfaEnabled !== undefined) cfg.mfaEnabled = mfaEnabled;
   if (raw.routes !== undefined) {
     try {
       cfg.routes = parseOperationRoutes(raw.routes);

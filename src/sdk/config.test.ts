@@ -121,6 +121,13 @@ describe("readSpaConfig", () => {
     );
   });
 
+  it("keeps mfaEnabled, the SaaS's switch for two-step verification (its endpoints answer 404 without it)", () => {
+    expect(readSpaConfig(docWith('{"csrfCookieName":"c","lang":"en","mfaEnabled":true}')).mfaEnabled).toBe(true);
+    expect(readSpaConfig(docWith('{"csrfCookieName":"c","lang":"en","mfaEnabled":false}')).mfaEnabled).toBe(false);
+    expect(readSpaConfig(docWith('{"csrfCookieName":"c","lang":"en"}'))).not.toHaveProperty("mfaEnabled");
+    expect(() => readSpaConfig(docWith('{"csrfCookieName":"c","lang":"en","mfaEnabled":"no"}'))).toThrow(/mfaEnabled/);
+  });
+
   it("keeps hubOrigin, a hub's origin with {slug} to fill in (the SaaS names a hub from its slug)", () => {
     const raw = '{"csrfCookieName":"c","lang":"en","hubOrigin":"https://{slug}.erplora.com"}';
     expect(readSpaConfig(docWith(raw)).hubOrigin).toBe("https://{slug}.erplora.com");
