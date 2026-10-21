@@ -1,0 +1,9 @@
+{
+  "sdk": {
+    "errors": {
+      "unexpected": "The operation could not be completed. Try again in a few seconds, and tell an administrator if it keeps happening.",
+      "network": "Could not connect to the server. Check your connection and try again in a few seconds.",
+      "signedOut": "Your session has ended. Sign in again."
+    }
+  }
+}

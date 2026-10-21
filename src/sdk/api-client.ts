@@ -8,8 +8,10 @@
  * - `{param}` placeholders in the path are filled from the input and removed from query and body.
  * - Every runtime failure rejects with an `ApiError`: the error envelope for non-2xx responses,
  *   `unexpected_response` for bodies that are not JSON and `network_error` (status 0) when the
- *   request never got an answer. Programming errors (unknown operation, missing path parameter,
- *   nested object in a query) reject with a plain `Error`.
+ *   request never got an answer (the failure's own text kept in `details.reason`); those two carry
+ *   a sentence for a person in their language (`sdkMessage`, hub#2281), never an English internal
+ *   text. Programming errors (unknown operation, missing path parameter, nested object in a query)
+ *   reject with a plain `Error`.
  *
  * Plain `fetch` instead of `openapi-fetch`: its typing is keyed by path and method, while the SDK
  * is keyed by operation name, so it would only add a second lookup; the headers, the error
@@ -17,6 +19,7 @@
  */
 import { ApiError, parseErrorEnvelope } from "./errors";
 import type { HeaderProvider } from "./headers";
+import { sdkMessage } from "./messages";
 import type { InputArgs, OperationRoutes, OpName, OutputOf } from "./operations";
 
 export interface ApiClientOptions {
@@ -117,7 +120,7 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
       res = await opts.fetchImpl(url, { method, headers, body, credentials: "same-origin" });
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      throw new ApiError(0, "network_error", `Network error (${reason})`);
+      throw new ApiError(0, "network_error", sdkMessage("network"), undefined, { reason });
     }
     if (!res.ok) {
       const text = await res.text().catch(() => undefined);

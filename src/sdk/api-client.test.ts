@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { createApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import es from "./locales/es.json";
 import type { HeaderProvider } from "./headers";
 import type { OperationRoutes } from "./operations";
 
@@ -158,6 +159,32 @@ describe("createApiClient: responses and errors", () => {
       name: "ApiError",
       status: 0,
       code: "network_error",
+    });
+  });
+
+  describe("in the language of the page, never an English internal text (hub#2281)", () => {
+    afterEach(() => {
+      document.documentElement.lang = "";
+    });
+
+    it("says a 502 with a proxy's HTML page could not be completed and to try again", async () => {
+      document.documentElement.lang = "es";
+      const h = setup(() => new Response("<html>Bad gateway</html>", { status: 502 }));
+      await expect(h.api.call("test.item.detail", { id: "i1" })).rejects.toMatchObject({
+        status: 502,
+        code: "unexpected_response",
+        message: es.sdk.errors.unexpected,
+      });
+    });
+
+    it("says a request that never got an answer could not reach the server, and keeps why for whoever debugs", async () => {
+      document.documentElement.lang = "es";
+      const h = setup(() => {
+        throw new TypeError("Failed to fetch");
+      });
+      const err = (await h.api.call("test.item.detail", { id: "i1" }).catch((e: unknown) => e)) as ApiError;
+      expect(err).toMatchObject({ status: 0, code: "network_error", message: es.sdk.errors.network });
+      expect(err.details).toEqual({ reason: "Failed to fetch" });
     });
   });
 

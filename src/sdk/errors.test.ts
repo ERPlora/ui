@@ -1,5 +1,7 @@
-import { describe, expect, expectTypeOf, it } from "vitest";
+import { afterEach, describe, expect, expectTypeOf, it } from "vitest";
 import { ApiError, type ErrorDetails, fieldErrors, isConflict, isUnauthorized, parseErrorEnvelope } from "./errors";
+import en from "./locales/en.json";
+import es from "./locales/es.json";
 
 describe("ApiError", () => {
   it("is an Error with status, code, message and fields", () => {
@@ -83,14 +85,25 @@ describe("parseErrorEnvelope", () => {
     expect(err.code).toBe("permission_denied");
   });
 
+  afterEach(() => {
+    document.documentElement.lang = "";
+  });
+
   it("falls back to a generic error when the body is not an envelope", () => {
-    for (const body of [null, undefined, "<html>502</html>", { detail: "x" }, { error: "x" }, { error: {} }]) {
+    for (const body of [null, undefined, "", "<html>502</html>", { detail: "x" }, { error: "x" }, { error: {} }]) {
       const err = parseErrorEnvelope(502, body);
       expect(err.status).toBe(502);
       expect(err.code).toBe("unexpected_response");
-      expect(err.message).toBe("Unexpected response (HTTP 502)");
+      expect(err.message).toBe(en.sdk.errors.unexpected);
       expect(err.details).toEqual({});
     }
+  });
+
+  it("words that generic error for a person, in the language of the page (hub#2281)", () => {
+    document.documentElement.lang = "es";
+    const err = parseErrorEnvelope(502, "<html><body>502 Bad Gateway</body></html>");
+    expect(err).toMatchObject({ status: 502, code: "unexpected_response", message: es.sdk.errors.unexpected });
+    expect(err.message).not.toMatch(/Unexpected response|HTTP/);
   });
 });
 
