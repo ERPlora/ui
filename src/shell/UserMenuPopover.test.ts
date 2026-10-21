@@ -138,8 +138,8 @@ describe('polish.css: the user menu and its card read whole', () => {
     return found ? found[1].trim() : '';
   }
 
-  it('the theme buttons are a fixed 7.5rem (three of 40px), so «Theme» keeps its line in the 248px menu', () => {
-    // `width: auto` let Ionic's buttons grow to 55px each (166px), leaving the label 18px: «Th/e/m/e».
+  it('the theme buttons share a fixed 7.5rem, so «Theme» keeps its line in the 248px menu', () => {
+    // `width: auto` let Ionic's buttons grow to 50px each (166px), leaving the label 18px: «Th/e/m/e».
     // The end slot is the only lever: a min-width on ion-label does not hold (hub#1733).
     expect(rule('.user-menu-theme ion-segment')).toBe('flex: none; width: 7.5rem;');
     expect(rule('.user-menu-theme ion-segment-button')).toBe('min-width: 0; --padding-start: 0; --padding-end: 0;');

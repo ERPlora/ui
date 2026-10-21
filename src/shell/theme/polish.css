@@ -371,8 +371,8 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
   color: var(--ep-primary-text);
 }
 /* The user menu (App.vue): the project's entries, Help, Theme and Sign out under the person. The
-   theme row's segment is three icon-only buttons (40px wide, the 46px height of every segment
-   button) in a FIXED 7.5rem: with `width: auto` Ionic's buttons grew to 55px each and left «Theme»
+   theme row's segment is three icon-only buttons in a FIXED 7.5rem (each 34px wide and 44px tall,
+   iOS's 4px gaps between them): with `width: auto` they grew to 50px each (166px) and left «Theme»
    18px of the 248px menu, one letter a line (measured at 390, 834 and 1440). The end slot is the
    only lever: a min-width on the label does not hold (hub#1733, «Settings row» above). */
 .user-menu-theme ion-segment { flex: none; width: 7.5rem; }
