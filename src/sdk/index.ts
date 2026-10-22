@@ -1,5 +1,5 @@
-// Public entry of the SDK (`@erplora/ui/sdk`): transport, typed API client, optimistic overlays
-// and the Vue composables. Projects augment `Operations` here from their generated OpenAPI types.
+// Public entry of the SDK (`@erplora/ui/sdk`): transport, typed API client, file downloads, optimistic
+// overlays and the Vue composables. Projects augment `Operations` here from their generated OpenAPI types.
 export {
   ALLAUTH_BROWSER_BASE,
   createAllauthClient,
@@ -23,6 +23,7 @@ export {
 export { createApiClient, type ApiClient, type ApiClientOptions } from "./api-client";
 export { backoffDelay, DEFAULT_RETRY_MS, MAX_BACKOFF_MS } from "./backoff";
 export { readSpaConfig, SPA_CONFIG_ELEMENT_ID, SpaConfigError, type SpaConfig } from "./config";
+export { attachmentName, fetchFile, type FetchedFile } from "./download";
 export {
   ApiError,
   fieldErrors,
