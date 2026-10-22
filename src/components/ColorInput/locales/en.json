@@ -1,0 +1,6 @@
+{
+  "colorInput": {
+    "swatch": "Pick “{label}” on a palette",
+    "invalid": "Write the colour as #RRGGBB, for example #1A73E8."
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "imageUpload": {
+    "choose": "Elegir imagen",
+    "replace": "Cambiar imagen",
+    "remove": "Quitar",
+    "empty": "Todavía no hay imagen",
+    "broken": "No se ha podido mostrar la imagen",
+    "uploading": "Subiendo…",
+    "rules": "{types}, hasta {size}",
+    "rulesAny": "Hasta {size}",
+    "tooLarge": "La imagen ocupa más de {size}. Elige una más pequeña.",
+    "wrongType": "Ese tipo de archivo no se admite. Elige un archivo {types}.",
+    "wrongTypeAny": "Ese tipo de archivo no se admite.",
+    "uploadFailed": "No se ha podido subir la imagen. Inténtalo de nuevo."
+  }
+}

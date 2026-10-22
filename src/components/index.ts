@@ -11,3 +11,5 @@ export * from './ConfirmDialog';
 export * from './UserAvatar';
 export * from './UsageMeter';
 export * from './Combo';
+export * from './ColorInput';
+export * from './ImageUpload';
