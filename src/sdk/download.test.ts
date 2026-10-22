@@ -105,6 +105,18 @@ describe("fetchFile", () => {
       const failure = (await fetchFile("/api/billing/invoices/csv", "text/csv", offline).catch((e: unknown) => e)) as ApiError;
       expect(failure.details).toEqual({ reason: "Failed to fetch" });
     });
+
+    it("a connection that drops while the file comes is the same failure, never the browser's own text", async () => {
+      document.documentElement.lang = "es";
+      const cut = () =>
+        new Response(new ReadableStream({ start: (controller) => controller.error(new TypeError("network error")) }), {
+          status: 200,
+          headers: { "Content-Type": "application/pdf" },
+        });
+      const failure = await fetchFile("/api/billing/invoices/pdf?id=i-1", "application/pdf", serve(cut).fetchImpl).catch((e: unknown) => e);
+      expect(failure).toBeInstanceOf(ApiError);
+      expect(failure).toMatchObject({ status: 0, code: "network_error", message: es.sdk.errors.network });
+    });
   });
 });
 
