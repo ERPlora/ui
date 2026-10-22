@@ -48,7 +48,7 @@ import { createShellI18n, type ShellI18nOptions, shellLocale } from './i18n';
 import { ION_ICONS } from './icons';
 import { createShellRouter } from './router';
 import { provideSession, type SessionMe, type SessionStatus } from './session';
-import { provideShellConfig } from './shell-config';
+import { provideShellConfig, type ShellChrome } from './shell-config';
 import type { ShellSidebar } from './sidebar';
 import { bootSurface, type Surface } from './surface';
 import { bootTheme, type ThemeContrast } from './theme';
@@ -77,6 +77,11 @@ export interface CreateShellOptions {
    * the one of its session.
    */
   sidebar?: ShellSidebar;
+  /**
+   * The project's pieces of the authenticated chrome (the hub's bell at the end of the topbar, «Upgrade
+   * plan» in the side menu's footer and the blocking strip over every screen). Default none.
+   */
+  chrome?: ShellChrome;
   /** App catalogues (`en` + `es`), merged over the shell's. */
   messages?: ShellI18nOptions['messages'];
   /** Router history. Default `createWebHistory()`. */
@@ -122,7 +127,10 @@ export async function createShell(options: CreateShellOptions): Promise<{ app: A
     home: options.home,
   });
   app.use(IonicVue, { mode: 'ios', swipeBackEnabled: false }).use(router).use(i18n);
-  provideShellConfig({ homePath: options.homePath, home: options.home, sidebar: options.sidebar }, app);
+  provideShellConfig(
+    { homePath: options.homePath, home: options.home, sidebar: options.sidebar, chrome: options.chrome },
+    app,
+  );
   provideUserMenu(options.userMenu, app);
 
   // The language is the person's (`base.session.me.language`): follow it live, and keep

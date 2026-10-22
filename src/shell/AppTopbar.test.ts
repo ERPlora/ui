@@ -323,6 +323,34 @@ describe("AppTopbar with the hub's sidebar", () => {
     expect(framed.find('[data-testid="topbar-rail"]').exists()).toBe(false);
   });
 
+  // APP-BASE-1: the project's piece of the bar (the hub's bell) closes it, after «My apps», as the old
+  // hub's bell did; it is authenticated chrome like the apps (useChromeVisible).
+  const Bell = { name: 'ProjectBell', render: () => h('button', { 'data-testid': 'bell', 'aria-label': 'Bell' }) };
+
+  it("ends with the project's piece of the bar, after the view actions and «My apps»", () => {
+    const wrapper = mountHubTopbar(
+      {},
+      { config: { ...HUB, chrome: { topbar: Bell } }, slots: { actions: '<button class="new-item">New</button>' } },
+    );
+    const order = end(wrapper)
+      .findAll('.new-item, [data-testid="topbar-apps"], [data-testid="bell"]')
+      .map((el) => el.attributes('data-testid') ?? 'actions');
+    expect(order).toEqual(['actions', 'topbar-apps', 'bell']);
+  });
+
+  it("mounts the project's piece of the bar only behind a session, never on a screen with its own frame", async () => {
+    const config = { ...HUB, chrome: { topbar: Bell } };
+    expect(mountHubTopbar({}, { config, me: null }).findComponent(Bell).exists()).toBe(false);
+    await hubRouter.push('/welcome');
+    expect(mountHubTopbar({}, { config }).findComponent(Bell).exists()).toBe(false);
+  });
+
+  it("mounts it on any authenticated screen, with or without the hub's sidebar", () => {
+    expect(mountHubTopbar({}, { config: { homePath: '/', chrome: { topbar: Bell } } }).findComponent(Bell).exists()).toBe(
+      true,
+    );
+  });
+
   // The SaaS stays as it is: the menu button, Back only on a detail, and neither apps nor rail.
   it('the SaaS (no sidebar), signed in on an authenticated screen: only the menu button', () => {
     const wrapper = mountHubTopbar({}, { config: { homePath: '/' } });

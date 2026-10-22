@@ -21,6 +21,8 @@ describe("sdk entry point", () => {
       "backoffDelay",
       "stableJson",
       "encodeSubscriptions",
+      "fetchFile",
+      "attachmentName",
     ]) {
       expect(typeof (sdk as Record<string, unknown>)[name], name).toBe("function");
     }

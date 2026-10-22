@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { flushPromises, mount } from '@vue/test-utils';
+import { h, ref } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -10,6 +11,8 @@ import AppPage from './AppPage.vue';
 import AppTopbar from './AppTopbar.vue';
 import HubIcon from './HubIcon.vue';
 import { createShellI18n } from './i18n';
+import { createShellSession, SESSION_KEY, type SessionMe } from './session';
+import { SHELL_CONFIG_KEY } from './shell-config';
 import { applySurface } from './surface';
 
 function mountPage(props: Record<string, unknown> = {}, slots: Record<string, string> = {}) {
@@ -283,5 +286,55 @@ describe('polish.css: the height chain of a list page (`.page-fill`, `.panel-fil
       expect(hub.get('.data-table__title-wrap').element.matches(selector) || hub.get('.data-table__search').element.matches(selector), selector).toBe(false);
       expect(saas.get('.data-table__title-wrap').element.matches(selector) || saas.get('.data-table__search').element.matches(selector), selector).toBe(true);
     }
+  });
+});
+
+// APP-BASE-1: the project's notice over every screen (the hub's blocking strip, hub#374). It goes
+// between the topbar and the scroller, as in the old hub's AppPage: a warning that scrolls away is not
+// a warning. Authenticated chrome only (useChromeVisible); the piece decides itself when to paint.
+describe('AppPage: the project notice', () => {
+  const Strip = { name: 'ProjectStrip', render: () => h('div', { class: 'strip' }, 'You cannot invoice yet') };
+  const ME: SessionMe = { user: { id: 'u1', label: 'Ana' }, permissions: [], menu: [], apps: [], language: 'en' };
+
+  function mountWithNotice({ me = ME as SessionMe | null, auth = true, chrome = { notice: Strip } as object } = {}) {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/', component: { template: '<div />' }, meta: { auth } }],
+    });
+    void router.push('/');
+    return router.isReady().then(() =>
+      mount(AppPage, {
+        props: { title: 'Items' },
+        slots: { default: '<p class="body">content</p>' },
+        global: {
+          plugins: [router, createShellI18n({ locale: 'en' })],
+          provide: {
+            [SHELL_CONFIG_KEY as symbol]: { homePath: '/', chrome },
+            [SESSION_KEY as symbol]: createShellSession(ref(me ?? undefined), ref('live')),
+          },
+        },
+      }),
+    );
+  }
+
+  it('mounts it between the topbar and ion-content, outside the scroller', async () => {
+    const wrapper = await mountWithNotice();
+    const children = [...wrapper.element.children].map((el) =>
+      el.classList.contains('page-notice') ? 'notice' : el.tagName.toLowerCase(),
+    );
+    expect(children.slice(0, 3)).toEqual(['ion-header', 'notice', 'ion-content']);
+    expect(wrapper.get('.page-notice').findComponent(Strip).exists()).toBe(true);
+    expect(wrapper.get('ion-content').find('.strip').exists()).toBe(false);
+  });
+
+  it('mounts nothing without a person signed in, nor on a screen without the authenticated chrome', async () => {
+    expect((await mountWithNotice({ me: null })).find('.page-notice').exists()).toBe(false);
+    expect((await mountWithNotice({ auth: false })).find('.page-notice').exists()).toBe(false);
+  });
+
+  it('mounts nothing when the project has no notice (the SaaS)', async () => {
+    const wrapper = await mountWithNotice({ chrome: {} });
+    expect(wrapper.find('.page-notice').exists()).toBe(false);
+    expect(wrapper.findComponent(Strip).exists()).toBe(false);
   });
 });

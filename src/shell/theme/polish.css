@@ -58,6 +58,11 @@ ion-title { font-weight: 650; letter-spacing: -0.01em; font-size: 1.0625rem; }
   display: flex; align-items: center; gap: 0.4rem;
   padding: 0.45rem 0.75rem 0.7rem; font-size: 0.72rem;
 }
+/* The project's piece of the footer (APP-BASE-1, the hub's «Upgrade plan»), centred under the QR. */
+.sidebar-foot-chrome { padding: 0 0.75rem 0.25rem; text-align: center; }
+/* The project's notice over a screen (AppPage, APP-BASE-1): its own height, never squeezed by the
+   column of ion-page, and the content below takes the rest. */
+.page-notice { flex: 0 0 auto; }
 /* Secondary text at AA (UX-AUDIT-2 V-03: the 55 % mix it had read 3.74:1 on the canvas). */
 .sidebar-foot-text { color: var(--ep-text-muted); }
 .ml-auto { margin-inline-start: auto; }

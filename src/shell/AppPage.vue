@@ -2,8 +2,10 @@
 // AppPage — the ONE layout of the shell screens (ADR-0045). Ported from ERPlora hub
 // `apps/web/src/components/AppPage.vue` (origin/develop): `ion-page` + `AppTopbar` + a single
 // `ion-content`, so every view shares the same container, padding and margins and only injects its
-// content, and the footer strip of sections (`tabs`, mockups README §3). Not ported: the strips over
-// the content (setup blocking strip, offline strip).
+// content, and the footer strip of sections (`tabs`, mockups README §3). Over the content, between the
+// topbar and the scroller, the project's notice (`createShell({ chrome: { notice } })`, the hub's
+// blocking strip, hub#374): there and not inside ion-content because a warning that scrolls away is not
+// a warning, and here because every screen shares this layout. Not ported: the offline strip.
 //
 // Layouts (`contentLayout`): `fluid` (default) puts the view straight in `ion-content`; `detail` wraps it
 // in `.hub-detail-shell` (reading, forms, settings); `detail-fill` gives that box the content area's
@@ -27,6 +29,7 @@ import { useRoute, useRouter } from 'vue-router';
 
 import AppTopbar from './AppTopbar.vue';
 import HubIcon from './HubIcon.vue';
+import { useChromeVisible, useShellConfig } from './shell-config';
 import { useSurface } from './surface';
 import { bindTabbar, type ShellTab } from './tabbar';
 import { bindTabbarPeek } from './tabbar-peek';
@@ -57,6 +60,8 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { isWeb } = useSurface();
+const { chrome } = useShellConfig();
+const chromeVisible = useChromeVisible();
 
 const visibleTabs = computed(() => props.tabs.filter((item) => !item.webOnly || isWeb.value));
 const routeTab = computed(
@@ -133,6 +138,13 @@ onBeforeUnmount(() => {
         <slot name="actions" />
       </template>
     </AppTopbar>
+
+    <div
+      v-if="chrome?.notice && chromeVisible"
+      class="page-notice"
+    >
+      <component :is="chrome.notice" />
+    </div>
 
     <!-- fullscreen=false: the ion-content sits STRICTLY between the topbar and the footer (it does not
          scroll behind them). The shell's rounded content card (polish.css) needs it: with fullscreen
