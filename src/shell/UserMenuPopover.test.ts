@@ -124,6 +124,61 @@ describe('UserMenuPopover (the user menu, under the person at the top of the sid
   });
 });
 
+// An entry that leaves the app (`href`): another project's page, as the hub's «My account» and «Report a
+// problem» on erplora.com (APP-BASE-1). A browser opens it in a new tab, like «Upgrade plan»; the installed app
+// opens nothing on `target=_blank`, so it hands the address to the system browser (`open_external_url`, which
+// checks it is ours) and a refusal is said, never a button that does nothing.
+describe('UserMenuPopover: an entry that leaves the app', () => {
+  const REPORT = 'https://erplora.com/report-a-problem';
+  const OUT: ShellUserMenu = {
+    items: [{ id: 'report', labelKey: 'userMenu.help', icon: 'ion:chatbubbles-outline', href: REPORT }],
+  };
+  type TauriWindow = { __TAURI__?: { core: { invoke: (cmd: string, args?: unknown) => Promise<unknown> } } };
+
+  afterEach(() => {
+    delete (window as TauriWindow).__TAURI__;
+  });
+
+  function click(wrapper: ReturnType<typeof mountPopover>): MouseEvent {
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    wrapper.get('[data-testid="user-menu-report"]').element.dispatchEvent(event);
+    return event;
+  }
+
+  it('in a browser is a link to that address in a new tab, never a route of this app', async () => {
+    const wrapper = mountPopover(OUT);
+    // Vue hands them to ion-item as properties (it paints its own <a> from them), not as attributes.
+    const row = wrapper.get('[data-testid="user-menu-report"]').element as HTMLElement & { href?: string; target?: string; rel?: string };
+    expect([row.href, row.target, row.rel]).toEqual([REPORT, '_blank', 'noopener']);
+    const event = click(wrapper);
+    await flushPromises();
+    expect(event.defaultPrevented).toBe(false);
+    expect(router.currentRoute.value.path).toBe('/');
+    expect(wrapper.emitted('dismiss')).toHaveLength(1);
+  });
+
+  it('in the installed app hands the address to the system browser instead', async () => {
+    const invoke = vi.fn().mockResolvedValue(undefined);
+    (window as TauriWindow).__TAURI__ = { core: { invoke } };
+    const wrapper = mountPopover(OUT);
+    const event = click(wrapper);
+    await flushPromises();
+    expect(event.defaultPrevented).toBe(true);
+    expect(invoke).toHaveBeenCalledWith('open_external_url', { url: REPORT });
+    expect(router.currentRoute.value.path).toBe('/');
+    expect(wrapper.emitted('dismiss')).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it('when the app cannot open it, says so', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    (window as TauriWindow).__TAURI__ = { core: { invoke: vi.fn().mockRejectedValue('external_url_refused') } };
+    click(mountPopover(OUT));
+    await flushPromises();
+    expect(toastError).toHaveBeenCalledWith('Could not open that page. Try again.');
+  });
+});
+
 // happy-dom lays nothing out, so this reads the stylesheet; the boxes are measured by the panel's e2e
 // (saas tests/e2e/panel/accounts-flows.spec.ts, «the user menu reads whole»), at 390, 834 and 1440.
 describe('polish.css: the user menu and its card read whole', () => {

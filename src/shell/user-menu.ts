@@ -5,18 +5,22 @@
 // is simply not offered.
 import { type App, inject, type InjectionKey } from 'vue';
 
-export interface ShellUserMenuItem {
+interface ShellUserMenuEntry {
   /** Stable id (`data-testid="user-menu-<id>"`). */
   id: string;
   /** i18n key of its label, in the catalogues merged by `createShell({ messages })`. */
   labelKey: string;
   /** `set:name`, painted with HubIcon. */
   icon: string;
-  /** Route it opens. */
-  to: string;
   /** Sells something: not offered on the app surfaces (`surface.ts`). */
   webOnly?: boolean;
 }
+
+/**
+ * An entry opens a route of this app (`to`) or an address outside it (`href`: another project's page, as the
+ * hub's «My account» on erplora.com): a new tab in a browser, the system browser in the installed app.
+ */
+export type ShellUserMenuItem = ShellUserMenuEntry & ({ to: string; href?: never } | { href: string; to?: never });
 
 export interface ShellUserMenu {
   /** The project's entries, first (the SaaS: «Account»). */

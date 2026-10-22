@@ -13,7 +13,10 @@ import HubIcon from './HubIcon.vue';
 import { useSurface } from './surface';
 import { chooseThemeMode, type ThemeMode, themeMode } from './theme';
 import { toastError } from './toast';
-import { useUserMenu } from './user-menu';
+import { type ShellUserMenuItem, useUserMenu } from './user-menu';
+
+/** The installed app's bridge (Tauri), absent in a browser. */
+type NativeWindow = { __TAURI__?: { core?: { invoke?: (command: string, args?: Record<string, unknown>) => Promise<unknown> } } };
 
 withDefaults(
   defineProps<{
@@ -43,6 +46,26 @@ const THEME_CHOICES: Array<{ mode: ThemeMode; icon: string; labelKey: string }> 
 function go(path: string): void {
   emit('dismiss');
   void router.push(path);
+}
+
+/**
+ * An entry of this app opens its route; one outside it is a link the browser opens in a new tab. The installed
+ * app opens nothing on `target=_blank`: there the address goes to the system browser (`open_external_url`, which
+ * only takes our own addresses), and a refusal is said.
+ */
+function pick(item: ShellUserMenuItem, event: Event): void {
+  if (item.to !== undefined) {
+    go(item.to);
+    return;
+  }
+  emit('dismiss');
+  const invoke = (window as NativeWindow).__TAURI__?.core?.invoke;
+  if (typeof invoke !== 'function') return;
+  event.preventDefault();
+  invoke('open_external_url', { url: item.href }).catch((error: unknown) => {
+    console.error('shell: open_external_url failed', error);
+    void toastError(t('userMenu.openFailed'));
+  });
 }
 
 function onThemeChange(event: CustomEvent<{ value?: string | number }>): void {
@@ -77,7 +100,10 @@ async function signOut(): Promise<void> {
           button
           :detail="false"
           :data-testid="`user-menu-${item.id}`"
-          @click="go(item.to)"
+          :href="item.href"
+          :target="item.href ? '_blank' : undefined"
+          :rel="item.href ? 'noopener' : undefined"
+          @click="pick(item, $event)"
         >
           <HubIcon
             slot="start"
