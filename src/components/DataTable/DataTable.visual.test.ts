@@ -194,17 +194,12 @@ describe('the list/cards switch is an ion-segment', () => {
     expect(rule('.data-table__view-segment ion-segment-button', touch)).toContain('min-height: 44px');
     expect(STYLE).not.toMatch(/\.data-table__view-switch|\.data-table__tool-button/);
   });
-
-  // APP-BASE-1: Ionic's iOS side padding (13px) made each button 50px and the switch 112px; at 834px the
-  // row search · columns · rows per page · switch · funnel came 2px short and the funnel fell alone to a
-  // second line, where the old hub's (two 44px buttons) kept it on one (measured in the Hub's e2e).
-  it('each button is as wide as its 44px target, with no side padding, so the toolbar keeps one line', () => {
-    expect(rule('.data-table__view-segment ion-segment-button')).toMatch(/--padding-start: 0; --padding-end: 0/);
-  });
 });
 
 // APP-BASE-1: a wrapping row breaks its lines with each item's flex basis, not its minimum, so the search's 22rem
-// sent the funnel to a second line at 820px (the fleet's tablet) before the search shrank a pixel. Where the
+// sent the funnel alone to a second line at 834px (the old hub's kept it on one) and at 820px (the fleet's
+// tablet) before the search shrank a pixel: search 352 + columns 144 + rows 88 + switch 112 + funnel 44 + gaps
+// = 772px in a 770px row (measured in the Hub's e2e). Where the
 // spacer is gone (≤1024px) the search breaks the line at its 12rem minimum and grows back up to 22rem: the same
 // width wherever the row fits, and the row stays one line down to about 660px of toolbar.
 describe('the toolbar keeps one line on a tablet', () => {

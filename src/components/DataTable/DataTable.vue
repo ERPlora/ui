@@ -2124,16 +2124,15 @@ onUpdated(nameSearchBox);
 .data-table__search { flex: 0 1 22rem; min-width: 12rem; max-width: 24rem; }
 /* A tablet, without the spacer: the line breaks at the search's 12rem minimum (a wrapping row breaks at each
    item's basis) and the search grows back to its 22rem, so the funnel no longer drops alone to a second line
-   at 820px. After the rule above, which it overrides; from 641px, so a phone keeps the search on its own line. */
+   at 834px or 820px. After the rule above, which it overrides; from 641px, so a phone keeps the search on its own line. */
 @media (min-width: 641px) and (max-width: 1024px) { .data-table__search { flex: 1 1 12rem; max-width: 22rem; } }
 /* #237 - One clear cross: Chromium's native cancel button of `type=search` hidden. Alone in its rule. */
 .data-table__search :deep(input::-webkit-search-cancel-button) { -webkit-appearance: none; appearance: none; display: none; }
 
 /* List/cards switch: Ionic's segment (Ioan, 2026-10-13). An ion-segment is 100% wide by default:
-   here it takes only its buttons; icon-only buttons as tall as the toolbar controls and as wide as their
-   44px target (iOS's side padding made them 50px, and at 834px the funnel fell to a second line). */
+   here it takes only its buttons; icon-only buttons as tall as the toolbar controls. */
 .data-table__view-segment { flex: 0 0 auto; width: auto; }
-.data-table__view-segment ion-segment-button { min-width: 44px; min-height: 36px; --padding-start: 0; --padding-end: 0; }
+.data-table__view-segment ion-segment-button { min-width: 44px; min-height: 36px; }
 
 /* Primary button. #113 - the create action is labelled and filled, 36px to line up with the bar
    (44px back on coarse pointers, below). */
