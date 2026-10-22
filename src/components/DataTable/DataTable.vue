@@ -2122,6 +2122,10 @@ onUpdated(nameSearchBox);
 /* Search box: does not grow (the spacer takes the gap); shrinks to its minimum, then wraps. Its
    ion-searchbar rules live in the unscoped block below. */
 .data-table__search { flex: 0 1 22rem; min-width: 12rem; max-width: 24rem; }
+/* A tablet, without the spacer: the line breaks at the search's 12rem minimum (a wrapping row breaks at each
+   item's basis) and the search grows back to its 22rem, so the funnel no longer drops alone to a second line
+   at 834px or 820px. After the rule above, which it overrides; from 641px, so a phone keeps the search on its own line. */
+@media (min-width: 641px) and (max-width: 1024px) { .data-table__search { flex: 1 1 12rem; max-width: 22rem; } }
 /* #237 - One clear cross: Chromium's native cancel button of `type=search` hidden. Alone in its rule. */
 .data-table__search :deep(input::-webkit-search-cancel-button) { -webkit-appearance: none; appearance: none; display: none; }
 

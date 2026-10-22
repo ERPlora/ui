@@ -196,6 +196,24 @@ describe('the list/cards switch is an ion-segment', () => {
   });
 });
 
+// APP-BASE-1: a wrapping row breaks its lines with each item's flex basis, not its minimum, so the search's 22rem
+// sent the funnel alone to a second line at 834px (the old hub's kept it on one) and at 820px (the fleet's
+// tablet) before the search shrank a pixel: search 352 + columns 144 + rows 88 + switch 112 + funnel 44 + gaps
+// = 772px in a 770px row (measured in the Hub's e2e). Where the
+// spacer is gone (≤1024px) the search breaks the line at its 12rem minimum and grows back up to 22rem: the same
+// width wherever the row fits, and the row stays one line down to about 660px of toolbar.
+describe('the toolbar keeps one line on a tablet', () => {
+  it('without the spacer, the search shrinks before anything wraps and grows back to its 22rem', () => {
+    expect(rule('.data-table__spacer', media('(max-width: 1024px)'))).toContain('display: none');
+    const tablet = '@media (min-width: 641px) and (max-width: 1024px)';
+    expect(rule('.data-table__search', media('(min-width: 641px) and (max-width: 1024px)'))).toMatch(/flex: 1 1 12rem; max-width: 22rem/);
+    // Same weight as the search's own rule (`flex: 0 1 22rem`): it only wins written after it.
+    expect(STYLE.indexOf(tablet)).toBeGreaterThan(STYLE.indexOf('.data-table__search { flex: 0 1 22rem;'));
+    // A phone keeps the search on a line of its own: the tablet rule stops at 641px.
+    expect(STYLE).toContain('@media (max-width: 640px) { .data-table__search { flex-basis: 100%;');
+  });
+});
+
 describe('icons', () => {
   it('every icon the chrome paints is baked into the shell (offline, under CSP), and the template names no other', () => {
     for (const name of Object.values(DATA_TABLE_ICONS)) expect(ION_ICONS, name).toHaveProperty(name);
