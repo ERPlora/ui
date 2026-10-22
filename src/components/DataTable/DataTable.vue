@@ -2126,9 +2126,10 @@ onUpdated(nameSearchBox);
 .data-table__search :deep(input::-webkit-search-cancel-button) { -webkit-appearance: none; appearance: none; display: none; }
 
 /* List/cards switch: Ionic's segment (Ioan, 2026-10-13). An ion-segment is 100% wide by default:
-   here it takes only its buttons; icon-only buttons as tall as the toolbar controls. */
+   here it takes only its buttons; icon-only buttons as tall as the toolbar controls and as wide as their
+   44px target (iOS's side padding made them 50px, and at 834px the funnel fell to a second line). */
 .data-table__view-segment { flex: 0 0 auto; width: auto; }
-.data-table__view-segment ion-segment-button { min-width: 44px; min-height: 36px; }
+.data-table__view-segment ion-segment-button { min-width: 44px; min-height: 36px; --padding-start: 0; --padding-end: 0; }
 
 /* Primary button. #113 - the create action is labelled and filled, 36px to line up with the bar
    (44px back on coarse pointers, below). */

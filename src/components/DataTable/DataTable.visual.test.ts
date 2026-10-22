@@ -194,6 +194,13 @@ describe('the list/cards switch is an ion-segment', () => {
     expect(rule('.data-table__view-segment ion-segment-button', touch)).toContain('min-height: 44px');
     expect(STYLE).not.toMatch(/\.data-table__view-switch|\.data-table__tool-button/);
   });
+
+  // APP-BASE-1: Ionic's iOS side padding (13px) made each button 50px and the switch 112px; at 834px the
+  // row search · columns · rows per page · switch · funnel came 2px short and the funnel fell alone to a
+  // second line, where the old hub's (two 44px buttons) kept it on one (measured in the Hub's e2e).
+  it('each button is as wide as its 44px target, with no side padding, so the toolbar keeps one line', () => {
+    expect(rule('.data-table__view-segment ion-segment-button')).toMatch(/--padding-start: 0; --padding-end: 0/);
+  });
 });
 
 describe('icons', () => {
