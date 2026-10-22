@@ -51,6 +51,7 @@ describe('shell catalogues', () => {
       'userMenu.logout',
       'userMenu.logoutFailed',
       'userMenu.open',
+      'userMenu.openFailed',
       'userMenu.theme',
       'userMenu.themeDark',
       'userMenu.themeLight',

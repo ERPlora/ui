@@ -49,7 +49,8 @@
     "themeDark": "Dark",
     "themeSystem": "System",
     "logout": "Sign out",
-    "logoutFailed": "Could not sign out. Try again."
+    "logoutFailed": "Could not sign out. Try again.",
+    "openFailed": "Could not open that page. Try again."
   },
   "notFound": {
     "title": "This page does not exist",

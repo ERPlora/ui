@@ -49,7 +49,8 @@
     "themeDark": "Oscuro",
     "themeSystem": "Sistema",
     "logout": "Cerrar sesión",
-    "logoutFailed": "No se ha podido cerrar la sesión. Inténtalo de nuevo."
+    "logoutFailed": "No se ha podido cerrar la sesión. Inténtalo de nuevo.",
+    "openFailed": "No se ha podido abrir esa página. Inténtalo de nuevo."
   },
   "notFound": {
     "title": "Esta página no existe",
