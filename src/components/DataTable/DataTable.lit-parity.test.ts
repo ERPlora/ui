@@ -260,6 +260,8 @@ const ADDED: Record<string, string> = {
   '.data-table__view-segment ion-segment-button': 'Ioan, 2026-10-13: icon-only segment buttons, as tall as the toolbar controls',
   '@media (pointer: coarse), (max-width: 834px) || .data-table__view-segment ion-segment-button':
     'Ioan, 2026-10-13: the segment buttons reach 44px on touch, like every other table control',
+  '@media (max-width: 1024px) || .data-table__search':
+    'APP-BASE-1: without the spacer the line breaks at the search minimum, so at 820px the funnel no longer drops alone to a second line (measured in the Hub)',
   '.data-table__bar-main > :slotted(ion-select)':
     'DEMO-F05: a filter select the page puts in the `filters` (or `toolbar`) slot is boxed like the table’s own selects',
   '.data-table__actions .data-table__action--labelled':

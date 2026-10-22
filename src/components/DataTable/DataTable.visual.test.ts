@@ -203,6 +203,20 @@ describe('the list/cards switch is an ion-segment', () => {
   });
 });
 
+// APP-BASE-1: a wrapping row breaks its lines with each item's flex basis, not its minimum, so the search's 22rem
+// sent the funnel to a second line at 820px (the fleet's tablet) before the search shrank a pixel. Where the
+// spacer is gone (≤1024px) the search breaks the line at its 12rem minimum and grows back up to 22rem: the same
+// width wherever the row fits, and the row stays one line down to about 660px of toolbar.
+describe('the toolbar keeps one line on a tablet', () => {
+  it('without the spacer, the search shrinks before anything wraps and grows back to its 22rem', () => {
+    const tablet = media('(max-width: 1024px)');
+    expect(rule('.data-table__spacer', tablet)).toContain('display: none');
+    expect(rule('.data-table__search', tablet)).toMatch(/flex: 1 1 12rem; max-width: 22rem/);
+    // The phone's own line still wins: its rule comes later.
+    expect(STYLE.indexOf('@media (max-width: 640px) { .data-table__search {')).toBeGreaterThan(STYLE.indexOf('@media (max-width: 1024px)'));
+  });
+});
+
 describe('icons', () => {
   it('every icon the chrome paints is baked into the shell (offline, under CSP), and the template names no other', () => {
     for (const name of Object.values(DATA_TABLE_ICONS)) expect(ION_ICONS, name).toHaveProperty(name);

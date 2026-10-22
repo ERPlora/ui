@@ -2112,7 +2112,9 @@ onUpdated(nameSearchBox);
 .data-table__bar-main { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .data-table__bar-main > ion-button { --padding-start: 0.5rem; --padding-end: 0.5rem; margin: 0; }
 .data-table__spacer { flex: 1 1 0; min-width: 0; align-self: stretch; }
-@media (max-width: 1024px) { .data-table__spacer { display: none; } }
+/* Without the spacer the line breaks at the search's 12rem minimum (a wrapping row breaks at each item's
+   basis), and the search grows back to its 22rem: on a tablet the funnel no longer drops alone to a line. */
+@media (max-width: 1024px) { .data-table__spacer { display: none; } .data-table__search { flex: 1 1 12rem; max-width: 22rem; } }
 /* The search box takes its own line on a phone. */
 @media (max-width: 640px) { .data-table__search { flex-basis: 100%; max-width: none; } }
 .data-table__title-wrap { display: flex; align-items: baseline; gap: 0.5rem; }
