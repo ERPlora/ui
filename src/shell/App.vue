@@ -7,9 +7,10 @@
 // - the hub (`createShell({ sidebar })`, PLAN-MIGRATIONS §16): the old hub's — Home and the platform's
 //   entries whose screen exists, in groups, and no module (they open from «My apps» and Home); the QR
 //   «Open on your phone» in the footer, and the rail the topbar folds it to (sidebar.ts).
-// Not ported (phase 1 has none of them, or they come later): switch user, app update and «Upgrade plan»
-// in the footer, the version, and the overlays mounted next to the pane (assistant, elevation, user
-// switch).
+// The project's piece of the footer (`createShell({ chrome: { sidebarFooter } })`, the hub's «Upgrade
+// plan») goes between the QR and the brand, as in the old hub.
+// Not ported (phase 1 has none of them, or they come later): switch user, app update, the version, and
+// the overlays mounted next to the pane (assistant, elevation, user switch).
 import {
   IonApp,
   IonContent,
@@ -42,7 +43,7 @@ const SHELL_MENU_ID = 'shell-navigation';
 
 const { user, menu } = useSession();
 const config = useShellConfig();
-const { homePath, home, sidebar } = config;
+const { homePath, home, sidebar, chrome } = config;
 const { isWeb } = useSurface();
 const { t } = useI18n();
 const route = useRoute();
@@ -285,6 +286,12 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
                camera, not pressed, and closing the drawer as somebody leans in to scan it is the one
                thing it must not do. -->
           <SidebarInstallQr v-if="sidebar" />
+          <div
+            v-if="chrome?.sidebarFooter"
+            class="sidebar-foot-chrome"
+          >
+            <component :is="chrome.sidebarFooter" />
+          </div>
           <div class="sidebar-foot-brand">
             <ion-menu-toggle :auto-hide="false">
               <a

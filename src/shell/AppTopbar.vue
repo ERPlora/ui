@@ -12,8 +12,9 @@
 // them in a popover: three text actions left the title as «Flo…» at 390 (hub#111). One action, or a
 // wider window, keeps them in the bar. Material's top app bar, Apple's navigation bars and Polaris'
 // page header roll them up the same way.
-// Not ported (phase 1 has none of them): management link, change hub, assistant, notification bell
-// and the progress bar.
+// The project's piece of the bar (`createShell({ chrome: { topbar } })`, the hub's bell) closes the end
+// group, after «My apps» as in the old hub, behind the same gate.
+// Not ported (phase 1 has none of them): management link, change hub, assistant and the progress bar.
 import { IonButton, IonButtons, IonHeader, IonMenuButton, IonPopover, IonTitle, IonToolbar } from '@ionic/vue';
 import { Comment, computed, Fragment, onBeforeUnmount, ref, Text, useSlots, type VNode } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -46,7 +47,7 @@ const props = withDefaults(
 
 const { t } = useI18n();
 const router = useRouter();
-const { sidebar } = useShellConfig();
+const { sidebar, chrome } = useShellConfig();
 const chromeVisible = useChromeVisible();
 
 /** The hub's chrome of the bar (rail toggle, «My apps»): with its sidebar, behind the gate. */
@@ -181,6 +182,10 @@ function goBack(): void {
           name="actions"
         />
         <AppsLauncher v-if="hubChrome" />
+        <component
+          :is="chrome.topbar"
+          v-if="chrome?.topbar && chromeVisible"
+        />
       </ion-buttons>
     </ion-toolbar>
   </ion-header>

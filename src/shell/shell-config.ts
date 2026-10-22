@@ -1,7 +1,8 @@
 // Static facts of the shell an app passes to `createShell`: where «Home» is (brand link of the
-// menu, «Go to Home» of the 404), whether the shell's own Home (HomePage) is on, and the hub's side
-// menu (`sidebar`). Plus the one gate of the authenticated chrome (`useChromeVisible`).
-import { type App, computed, type ComputedRef, inject, type InjectionKey } from 'vue';
+// menu, «Go to Home» of the 404), whether the shell's own Home (HomePage) is on, the hub's side
+// menu (`sidebar`) and the project's pieces of the chrome (`chrome`). Plus the one gate of the
+// authenticated chrome (`useChromeVisible`).
+import { type App, type Component, computed, type ComputedRef, inject, type InjectionKey } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { SESSION_KEY } from './session';
@@ -17,6 +18,22 @@ export interface ShellConfig {
    * its footer, the rail toggle and «My apps» in the topbar. Unset (the SaaS): the session's menu.
    */
   sidebar?: ShellSidebar;
+  /** The project's pieces of the authenticated chrome; unset (the SaaS): none. */
+  chrome?: ShellChrome;
+}
+
+/**
+ * Components of the project that the shell mounts where the old hub had them (APP-BASE-1), only
+ * behind the gate of the authenticated chrome (`useChromeVisible`). Each one reads its own data and
+ * decides itself when to paint nothing.
+ */
+export interface ShellChrome {
+  /** At the end of the topbar, after «My apps» (the hub's notification bell). */
+  topbar?: Component;
+  /** In the side menu's footer, between the QR and the brand (the hub's «Upgrade plan»). */
+  sidebarFooter?: Component;
+  /** Over the content of every screen, between the topbar and the scroller (the hub's blocking strip). */
+  notice?: Component;
 }
 
 const DEFAULTS: ShellConfig = { homePath: '/' };
