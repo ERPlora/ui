@@ -209,11 +209,13 @@ describe('the list/cards switch is an ion-segment', () => {
 // width wherever the row fits, and the row stays one line down to about 660px of toolbar.
 describe('the toolbar keeps one line on a tablet', () => {
   it('without the spacer, the search shrinks before anything wraps and grows back to its 22rem', () => {
-    const tablet = media('(max-width: 1024px)');
-    expect(rule('.data-table__spacer', tablet)).toContain('display: none');
-    expect(rule('.data-table__search', tablet)).toMatch(/flex: 1 1 12rem; max-width: 22rem/);
-    // The phone's own line still wins: its rule comes later.
-    expect(STYLE.indexOf('@media (max-width: 640px) { .data-table__search {')).toBeGreaterThan(STYLE.indexOf('@media (max-width: 1024px)'));
+    expect(rule('.data-table__spacer', media('(max-width: 1024px)'))).toContain('display: none');
+    const tablet = '@media (min-width: 641px) and (max-width: 1024px)';
+    expect(rule('.data-table__search', media('(min-width: 641px) and (max-width: 1024px)'))).toMatch(/flex: 1 1 12rem; max-width: 22rem/);
+    // Same weight as the search's own rule (`flex: 0 1 22rem`): it only wins written after it.
+    expect(STYLE.indexOf(tablet)).toBeGreaterThan(STYLE.indexOf('.data-table__search { flex: 0 1 22rem;'));
+    // A phone keeps the search on a line of its own: the tablet rule stops at 641px.
+    expect(STYLE).toContain('@media (max-width: 640px) { .data-table__search { flex-basis: 100%;');
   });
 });
 
