@@ -86,6 +86,14 @@ describe('ConfirmDialog', () => {
     expect(el.getAttribute('aria-describedby')).toBe(message.attributes('id'));
   });
 
+  // R-29 (UX audit 2, 2026-10-14): Material 3 and iOS confirm in a centred dialog; a sheet is for
+  // tasks. Two lines of text in a full-height sheet left ~600px of nothing at 390px.
+  it('is the centred card at every width, also on a phone: never a sheet (R-29)', async () => {
+    const wrapper = mountDialog();
+    await settle();
+    expect(modalEl(wrapper).getAttribute('data-phone-layout')).toBe('card');
+  });
+
   it('the action is in the tone of what it does: danger by default, warning or primary', async () => {
     const color = (w: VueWrapper) => (confirmButton(w) as HTMLElement & { color?: string }).color;
     const danger = mountDialog();

@@ -11,6 +11,8 @@
 //   - `requireText`: the action stays disabled until the person types that text (spaces around and
 //     case ignored, accents not); the input is focused on opening and starts empty every time.
 //   - Without it, Cancel has the focus: the safe choice on a destructive dialog.
+//   - A centred card at every width, also on a phone (R-29, UX audit 2; Material 3 and iOS confirm in
+//     a centred dialog and keep the sheet for tasks).
 import { IonInput } from '@ionic/vue';
 import { computed, shallowRef, useId, watch } from 'vue';
 import { Translation, useI18n } from 'vue-i18n';
@@ -103,6 +105,7 @@ function onTyped(event: CustomEvent<{ value?: string | null }>): void {
     v-model:open="open"
     class="ep-confirm-dialog"
     role="alertdialog"
+    phone-layout="card"
     :aria-describedby="messageId"
     :title="title"
     :submit-label="confirmLabel ?? t('confirmDialog.confirm')"

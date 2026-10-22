@@ -255,6 +255,11 @@ const ADDED: Record<string, string> = {
   '.data-table__filters-clear': 'column filters: «Clear filters», an ion-chip in the row, at its font size',
   '@media (max-width: 640px) || .data-table--fill:not(.data-table--content-after)':
     '#218 on a phone, with nothing after the table: it grows with its rows instead of clipping them (measured at 390px)',
+  '.data-table ion-checkbox': 'UX audit 2, R-13: a 24×24 selection box (Ionic ios paints 22)',
+  '@media (pointer: coarse), (max-width: 834px) || .data-table ion-checkbox':
+    'UX audit 2, R-13: a 44×44 target on touch, the row as tall as before',
+  ':where(.data-table__search) ion-searchbar:focus-within, :where(.data-table__search) ion-searchbar.searchbar-has-focus':
+    'UX audit 2, R-12: the focused search box shows it (the Lit box changed 0 pixels)',
 };
 
 /** Declarations a port carries on top of its Lit rule, with why. */

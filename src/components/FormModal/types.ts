@@ -3,6 +3,10 @@
 /** `md`: the mockups' 480px dialog; `sm`: 420px, for short confirmations. */
 export type FormModalSize = 'sm' | 'md';
 
+/** Below 640px: `sheet`, from the bottom as tall as its content (forms); `card`, the centred card
+ *  of every width (confirmations, ConfirmDialog). R-29, UX audit 2. */
+export type FormModalPhoneLayout = 'sheet' | 'card';
+
 /** `alertdialog` for consequential confirmations (ConfirmDialog). */
 export type FormModalRole = 'dialog' | 'alertdialog';
 

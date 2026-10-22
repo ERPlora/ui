@@ -19,6 +19,8 @@
     "showing": "Mostrando {from}–{to} de",
     "recordSingular": "registro",
     "recordPlural": "registros",
+    "previousPage": "Página anterior",
+    "nextPage": "Página siguiente",
     "loadMore": "Cargar más",
     "noMatches": "Ningún resultado coincide con la búsqueda o los filtros",
     "showAll": "Mostrar todo",

@@ -586,10 +586,15 @@ function resetSearch(): void {
 const isSortable = (column: DataTableColumn<T>): boolean => (props.serverSide ? !!column.sortable : column.sortable !== false);
 const isSorted = (column: DataTableColumn<T>): boolean =>
   isSortable(column) && (props.serverSide ? props.sort === column.key : clientSort.value === column.key);
+const sortDirNow = (): DataTableSortDir => (props.serverSide ? props.sortDir : clientSortDir.value);
 function caretIcon(column: DataTableColumn<T>): string {
   if (!isSorted(column)) return ICONS.sortNone;
-  const dir = props.serverSide ? props.sortDir : clientSortDir.value;
-  return dir === 'asc' ? ICONS.sortAsc : ICONS.sortDesc;
+  return sortDirNow() === 'asc' ? ICONS.sortAsc : ICONS.sortDesc;
+}
+/** R-03 - What the caret shows, said to assistive tech: only on the sorted column (ARIA). */
+function ariaSort(column: DataTableColumn<T>): 'ascending' | 'descending' | undefined {
+  if (!isSorted(column)) return undefined;
+  return sortDirNow() === 'asc' ? 'ascending' : 'descending';
 }
 function onHeaderClick(column: DataTableColumn<T>): void {
   if (!isSortable(column)) return;
@@ -899,6 +904,7 @@ onUpdated(nameSearchBox);
             <ion-icon
               slot="start"
               :icon="icon(ICONS.add)"
+              aria-hidden="true"
             />{{ label('add') }}
           </ion-button>
           <ion-button
@@ -911,6 +917,7 @@ onUpdated(nameSearchBox);
             <ion-icon
               slot="start"
               :icon="icon(primaryAction.icon ?? ICONS.add)"
+              aria-hidden="true"
             />{{ primaryAction.label }}
           </ion-button>
           <slot name="toolbar" />
@@ -1022,6 +1029,7 @@ onUpdated(nameSearchBox);
             <ion-icon
               :icon="icon(ICONS.clear)"
               style="font-size: 14px"
+              aria-hidden="true"
             />{{ ` ${label('clear')}` }}
           </button>
         </div>
@@ -1049,7 +1057,10 @@ onUpdated(nameSearchBox);
         role="alert"
         data-role="load-error"
       >
-        <span class="data-table__state-icon"><ion-icon :icon="icon(ICONS.error)" /></span>
+        <span class="data-table__state-icon"><ion-icon
+          :icon="icon(ICONS.error)"
+          aria-hidden="true"
+        /></span>
         <strong class="data-table__error-title">{{ label('loadError') }}</strong>
         <span class="data-table__error-reason">{{ error }}</span>
         <ion-button
@@ -1067,7 +1078,10 @@ onUpdated(nameSearchBox);
         class="data-table__empty"
       >
         <slot name="empty">
-          <span class="data-table__state-icon"><ion-icon :icon="icon(ICONS.empty)" /></span>
+          <span class="data-table__state-icon"><ion-icon
+            :icon="icon(ICONS.empty)"
+            aria-hidden="true"
+          /></span>
           <span>{{ noMatches ? (noMatchesMessage ?? label('noMatches')) : (emptyMessage ?? label('empty')) }}</span>
           <ion-button
             v-if="noMatches"
@@ -1111,7 +1125,10 @@ onUpdated(nameSearchBox);
             <span
               v-if="cardIcon?.(row)"
               class="data-table__card-icon"
-            ><ion-icon :icon="icon(cardIcon(row))" /></span>
+            ><ion-icon
+              :icon="icon(cardIcon(row))"
+              aria-hidden="true"
+            /></span>
             <span class="data-table__card-title">{{ cardTitleOf(row) }}</span>
             <ion-checkbox
               v-if="selectable"
@@ -1181,11 +1198,13 @@ onUpdated(nameSearchBox);
                   v-else-if="iconWithLabel(action)"
                   slot="start"
                   :icon="icon(action.icon)"
+                  aria-hidden="true"
                 />
                 <ion-icon
                   v-else-if="action.icon"
                   slot="icon-only"
                   :icon="icon(action.icon)"
+                  aria-hidden="true"
                 />
                 <template v-if="iconWithLabel(action) || (!action.icon && !isBusy(action, row))">
                   {{ actionLabel(action, row) }}
@@ -1210,6 +1229,7 @@ onUpdated(nameSearchBox);
                 <ion-icon
                   slot="icon-only"
                   :icon="icon(ICONS.more)"
+                  aria-hidden="true"
                 />
               </ion-button>
             </div>
@@ -1251,13 +1271,17 @@ onUpdated(nameSearchBox);
                   },
                 ]"
                 role="columnheader"
+                :aria-sort="ariaSort(column)"
                 @click="onHeaderClick(column)"
               >
                 <span :title="column.label || undefined">{{ column.label }}</span>
                 <span
                   v-if="isSortable(column)"
                   :class="['data-table__caret', { 'data-table__caret--active': isSorted(column) }]"
-                ><ion-icon :icon="icon(caretIcon(column))" /></span>
+                ><ion-icon
+                  :icon="icon(caretIcon(column))"
+                  aria-hidden="true"
+                /></span>
               </div>
               <div
                 v-if="hasActions"
@@ -1344,11 +1368,13 @@ onUpdated(nameSearchBox);
                         v-if="iconWithLabel(action)"
                         slot="start"
                         :icon="icon(action.icon)"
+                        aria-hidden="true"
                       />
                       <ion-icon
                         v-else-if="action.icon"
                         slot="icon-only"
                         :icon="icon(action.icon)"
+                        aria-hidden="true"
                       />
                       <template v-if="!action.icon || iconWithLabel(action)">
                         {{ gapLabels.get(action) }}
@@ -1381,11 +1407,13 @@ onUpdated(nameSearchBox);
                         v-else-if="iconWithLabel(action)"
                         slot="start"
                         :icon="icon(action.icon)"
+                        aria-hidden="true"
                       />
                       <ion-icon
                         v-else-if="action.icon"
                         slot="icon-only"
                         :icon="icon(action.icon)"
+                        aria-hidden="true"
                       />
                       <template v-if="iconWithLabel(action) || (!action.icon && !isBusy(action, row))">
                         {{ actionLabel(action, row) }}
@@ -1411,6 +1439,7 @@ onUpdated(nameSearchBox);
                     <ion-icon
                       slot="icon-only"
                       :icon="icon(ICONS.more)"
+                      aria-hidden="true"
                     />
                   </ion-button>
                   <!-- #240/W-19 - Another row has «⋮»: its place, invisible and inert. -->
@@ -1426,6 +1455,7 @@ onUpdated(nameSearchBox);
                     <ion-icon
                       slot="icon-only"
                       :icon="icon(ICONS.more)"
+                      aria-hidden="true"
                     />
                   </ion-button>
                 </div>
@@ -1461,6 +1491,7 @@ onUpdated(nameSearchBox);
                 slot="start"
                 :icon="icon(action.icon)"
                 :style="toneStyle(action.color, 'text')"
+                aria-hidden="true"
               />
               <ion-label :style="toneStyle(action.color, 'text')">
                 {{ actionLabel(action, menuRow) }}
@@ -1514,12 +1545,14 @@ onUpdated(nameSearchBox);
             size="small"
             fill="clear"
             :data-testid="tid('page-prev')"
+            :aria-label="label('previousPage')"
             :disabled="pager.current === 0"
             @click="goTo(pager.current - 1)"
           >
             <ion-icon
               slot="icon-only"
               :icon="icon(ICONS.previous)"
+              aria-hidden="true"
             />
           </ion-button>
           <template
@@ -1534,6 +1567,7 @@ onUpdated(nameSearchBox);
               v-else
               type="button"
               :class="['data-table__page', { 'data-table__page--current': entry === pager.current + 1 }]"
+              :aria-current="entry === pager.current + 1 ? 'page' : undefined"
               @click="goTo(entry - 1)"
             >
               {{ entry }}
@@ -1543,12 +1577,14 @@ onUpdated(nameSearchBox);
             size="small"
             fill="clear"
             :data-testid="tid('page-next')"
+            :aria-label="label('nextPage')"
             :disabled="pager.current >= pager.pages - 1"
             @click="goTo(pager.current + 1)"
           >
             <ion-icon
               slot="icon-only"
               :icon="icon(ICONS.next)"
+              aria-hidden="true"
             />
           </ion-button>
         </div>
@@ -1726,6 +1762,8 @@ onUpdated(nameSearchBox);
 .data-table__row--clickable { cursor: pointer; }
 .data-table__row--clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 .data-table__select-cell { display: flex; align-items: center; justify-content: center; }
+/* R-13 - A selection box of 24×24 (Ionic's ios one is 22), in the list and on the cards. */
+.data-table ion-checkbox { --size: 24px; }
 
 /* ── Cards ───────────────────────────────────────────────────────────────────────────────── */
 /* Each card is as tall as its content; rows pack at the top. */
@@ -1783,6 +1821,9 @@ ion-card.data-table__card { margin: 0; }
   .data-table__add-button { min-height: 44px; }
   .data-table__pager-nav ion-button { min-width: 44px; min-height: 44px; margin: 0; }
   .data-table__error ion-button { min-height: 44px; --padding-start: 1rem; --padding-end: 1rem; }
+  /* R-13 - The box keeps its 24px, its target grows to 44×44 (Ionic toggles on the whole host) and
+     the negative margin keeps the row as tall as before. */
+  .data-table ion-checkbox { width: 44px; height: 44px; margin: -10px; display: grid; place-items: center; }
 }
 /* Action in progress: spinner sized inside the small button. */
 .data-table__actions ion-spinner { width: 18px; height: 18px; }
@@ -1810,6 +1851,9 @@ ion-button { --box-shadow: none; }
    A scoped copy would carry Vue's attribute and win. `:where()` limits them to the table. */
 :where(.data-table__search) ion-searchbar { --background: var(--background); --border-radius: 10px; padding: 0; min-height: 36px; }
 :where(.data-table__search) ion-searchbar.ion-no-border { --box-shadow: none; }
+/* R-12 - Focused, the field shows it: the theme's accent ring and a soft halo of the same colour.
+   After the rule above, which has the same weight. Ionic's own `--box-shadow: none` is lighter. */
+:where(.data-table__search) ion-searchbar:focus-within, :where(.data-table__search) ion-searchbar.searchbar-has-focus { --box-shadow: var(--ep-ring-accent), 0 0 0 3px color-mix(in srgb, var(--ion-color-primary, #3880ff) 25%, transparent); }
 /* normalize.css and Tailwind's preflight never reached Ionic's inner input and clear button in the
    shadow root: they keep the browser's own line height, font and cursor. */
 :where(.data-table__search) .searchbar-input { line-height: normal; }
