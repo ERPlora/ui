@@ -93,6 +93,9 @@ describe('UserMenuPopover (the user menu, under the person at the top of the sid
 
   it('an entry opens its route and asks to be closed', async () => {
     const wrapper = mountPopover();
+    // A route of this app is a button, never a link: no address, no new tab (the href entries are below).
+    const row = wrapper.get('[data-testid="user-menu-account"]').element as HTMLElement & { href?: string; target?: string; rel?: string };
+    expect([row.href, row.target, row.rel]).toEqual([undefined, undefined, undefined]);
     await wrapper.get('[data-testid="user-menu-account"]').trigger('click');
     await flushPromises();
     expect(router.currentRoute.value.path).toBe('/account');
