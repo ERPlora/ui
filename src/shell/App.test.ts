@@ -321,6 +321,30 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(foot.findComponent(SidebarInstallQr).exists()).toBe(true);
   });
 
+  // APP-BASE-1: the project's piece of the footer (the hub's «Upgrade plan») goes under the QR and over
+  // the brand, as in the old hub; inside the menu, so only behind a session.
+  const Plan = { name: 'ProjectPlan', render: () => h('a', { class: 'upgrade-plan' }, 'Upgrade plan') };
+
+  it("the footer with the project's piece: QR, the piece, then the brand", () => {
+    const foot = mountApp(undefined, { config: { ...HUB, chrome: { sidebarFooter: Plan } } }).get(
+      'ion-menu ion-footer.sidebar-foot',
+    );
+    expect(foot.findAll(':scope > *').map((child) => child.classes()[0])).toEqual([
+      'sidebar-install-qr',
+      'sidebar-foot-chrome',
+      'sidebar-foot-brand',
+    ]);
+    expect(foot.get('.sidebar-foot-chrome').findComponent(Plan).exists()).toBe(true);
+  });
+
+  it("no piece of the project in the footer when it gives none, nor without a person signed in", () => {
+    expect(mountApp(undefined, { config: HUB }).find('.sidebar-foot-chrome').exists()).toBe(false);
+    session.value = me({ user: null });
+    expect(mountApp(undefined, { config: { ...HUB, chrome: { sidebarFooter: Plan } } }).findComponent(Plan).exists()).toBe(
+      false,
+    );
+  });
+
   it('folds to a rail while the topbar says so, and opens again', async () => {
     const wrapper = mountApp(undefined, { config: HUB });
     expect(wrapper.get('ion-split-pane').classes()).not.toContain('rail');

@@ -92,6 +92,12 @@ describe('shell barrel', () => {
     }
   });
 
+  it("exports the apps of «My apps», so a project's Home paints the same list as the launcher (APP-BASE-1)", () => {
+    expect(shell.useMyApps).toBeTypeOf('function');
+    expect(shell.iconName('people')).toBe('ion:people');
+    expect(shell.iconName('mdi:account')).toBe('mdi:account');
+  });
+
   it('exports the Home route and the Hub logout for the user menu', () => {
     for (const name of ['HOME_ROUTE', 'logout']) {
       expect(shell, name).toHaveProperty(name);

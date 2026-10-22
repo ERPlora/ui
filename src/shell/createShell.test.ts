@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { nextTick, ref } from 'vue';
+import { h, nextTick, ref } from 'vue';
 import { createMemoryHistory } from 'vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -172,6 +172,23 @@ describe('createShell: sidebar', () => {
   it('unset by default: the menu of the session, as the SaaS has it', async () => {
     const { app } = await boot();
     expect(provides(app)[SHELL_CONFIG_KEY as symbol]).toEqual({ homePath: '/demo/items' });
+  });
+});
+
+// APP-BASE-1: the project's pieces of the chrome (the hub's bell, «Upgrade plan» and blocking strip),
+// mounted by the shell where the old hub had them; none by default, so the SaaS does not change.
+describe('createShell: chrome', () => {
+  const Piece = { name: 'ProjectPiece', render: () => h('span') };
+
+  it('is provided app-wide, next to the rest of the config', async () => {
+    const chrome = { topbar: Piece, sidebarFooter: Piece, notice: Piece };
+    const { app } = await boot('es', { home: true, chrome });
+    expect(provides(app)[SHELL_CONFIG_KEY as symbol]).toEqual({ homePath: '/demo/items', home: true, chrome });
+  });
+
+  it('unset by default: no piece of the project anywhere', async () => {
+    const { app } = await boot();
+    expect((provides(app)[SHELL_CONFIG_KEY as symbol] as { chrome?: unknown }).chrome).toBeUndefined();
   });
 });
 
