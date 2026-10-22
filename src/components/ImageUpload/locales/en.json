@@ -1,0 +1,16 @@
+{
+  "imageUpload": {
+    "choose": "Choose image",
+    "replace": "Replace image",
+    "remove": "Remove",
+    "empty": "No image yet",
+    "broken": "The image could not be shown",
+    "uploading": "Uploading…",
+    "rules": "{types}, up to {size}",
+    "rulesAny": "Up to {size}",
+    "tooLarge": "The image is larger than {size}. Choose a smaller one.",
+    "wrongType": "That file type is not allowed. Choose a {types} file.",
+    "wrongTypeAny": "That file type is not allowed.",
+    "uploadFailed": "The image could not be uploaded. Try again."
+  }
+}
