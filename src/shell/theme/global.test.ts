@@ -31,6 +31,11 @@ describe('global.css: Ionic hosts Tailwind’s preflight must not reset', () => 
   it('ion-badge keeps its pill padding (PoC issue D: «Open»/«Done» measured 30.8 × 11.5 px, padding 0)', () => {
     expect(baseRule('ion-badge')).toBe('padding: revert-layer;');
   });
+
+  // Only the padding: preflight's `margin: 0` keeps Ionic's 4px chip margin off, as each row of chips sets its gap.
+  it('ion-chip keeps its padding, and only that (FIX-UI-SHELL-ION-CHIP-PADDING-WIPED-BY-PREFLIGHT: measured 0px, text against the edge)', () => {
+    expect(baseRule('ion-chip')).toBe('padding: revert-layer;');
+  });
 });
 
 /** Selectors of the `base` layer's rules that start with `prefix`, whitespace-normalised, in file order. */
