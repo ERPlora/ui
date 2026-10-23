@@ -249,3 +249,29 @@ describe('ION_ICONS: pricetags, swap-horizontal and arrow-undo (Hub tax and cust
     }
   });
 });
+
+// Ionicons the Hub's Services, Tasks and Price lists ask for (hub-next apps/{service,task,pricing}/
+// UI-REQUESTS.md), the ones of the old modules: Services (briefcase), Packages (gift), «Archive»
+// (archive), the «Main service» star (star / star-outline), Tasks (checkbox), «Details» and «Open»
+// (open), «Start» (play-circle), «Complete» (checkmark-done) and Price lists (pricetag).
+describe('ION_ICONS: briefcase, gift, archive, star, checkbox, open, play-circle, checkmark-done and pricetag (Hub service, task and pricing)', () => {
+  it('registers them by their kebab-case Ionicons name, as ion: names resolve', async () => {
+    const ionicons = await import('ionicons/icons');
+    for (const [name, src] of [
+      ['briefcase-outline', ionicons.briefcaseOutline],
+      ['gift-outline', ionicons.giftOutline],
+      ['archive-outline', ionicons.archiveOutline],
+      ['star', ionicons.star],
+      ['star-outline', ionicons.starOutline],
+      ['checkbox-outline', ionicons.checkboxOutline],
+      ['open-outline', ionicons.openOutline],
+      ['play-circle-outline', ionicons.playCircleOutline],
+      ['checkmark-done-outline', ionicons.checkmarkDoneOutline],
+      ['pricetag', ionicons.pricetag],
+    ]) {
+      expect(src, name).toMatch(SVG_URL);
+      expect(ION_ICONS[name], name).toBe(src);
+      expect(resolveIcon(`ion:${name}`), name).toBe(src);
+    }
+  });
+});
