@@ -11,11 +11,16 @@
 // - only through the installed app (`erplora_notify`): a browser has the bell, and asks for no permission
 //   (Fresha, Booksy, Square, Toast and Lightspeed warn on their app, not in the browser);
 // - on Android, with the permission refused nothing is sent (HUB_APP-F24): the call would open Android's bare
-//   dialog in the middle of the day; a computer and an Android below 13 have no such permission and send;
+//   dialog in the middle of the day; a computer and an Android below 13 have no such permission and send. The
+//   app asks for it only when the page does (HUB_APP-F07, hub#1732): where the person has something to be told,
+//   our sentence goes first («Let us keep you posted»), once per device — «Not now» is never asked again by
+//   itself —, then Android's dialog for notices only (hub#758);
 // - a tap opens the screen it is about (hub#2305): every notice goes out with a number of its own and its
 //   screen, and the tap the page was not there to hear is claimed from the app (hub#2360), retried while the
 //   app says the hub is still landing (hub#2658). Nothing here ever rejects: what it tells already happened.
+import { alertController } from '@ionic/vue';
 import { onBeforeUnmount, onMounted, type Ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 /** A row to tell, as the project hands it: its key, the id and instant of what happened, and its texts. */
@@ -42,6 +47,8 @@ export interface NativeBridge {
 
 /** Where the device remembers what it told. */
 export const TOLD_KEY = 'erplora.notices.told';
+/** Where the device remembers that the person answered our sentence (the old hub's key). */
+export const PRIMER_ANSWERED_KEY = 'erplora.notifications.primerAnswered';
 /** How many notices the device remembers: the last 24 hours of a busy salon, with room to spare. */
 export const REMEMBERED_TOLD = 200;
 /** How many numbers the page remembers for the taps: a tap is on a recent notice. */
@@ -189,6 +196,45 @@ async function whileTheHubLands<T>(attempt: () => Promise<T>, wait: (ms: number)
   return attempt();
 }
 
+export interface AskToNotifyDeps {
+  bridge: NativeBridge | null;
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null;
+  /** Shows our sentence; `true` for «Turn on notices», `false` for «Not now» (or dismissed). */
+  confirm: () => Promise<boolean>;
+  wait?: (ms: number) => Promise<void>;
+}
+
+/**
+ * Asks Android to let the app notify, once per device and with our sentence first: only on an Android that has
+ * the permission and has not given it, and never again by itself once the person answered. Never rejects.
+ */
+export async function askToNotify(deps: AskToNotifyDeps): Promise<void> {
+  const { bridge, storage } = deps;
+  if (!bridge || storage?.getItem(PRIMER_ANSWERED_KEY)) return;
+  let status: Record<string, unknown> | null;
+  try {
+    status = (await whileTheHubLands(
+      () => bridge.invoke('plugin:erplora-android|check_permissions'),
+      deps.wait ?? afterTheLoad,
+    )) as Record<string, unknown> | null;
+  } catch {
+    return; // a computer, or an app older than the plugin: nothing to ask for
+  }
+  if (status?.[ANDROID_NOTIFICATIONS] !== false) return;
+  const allowed = await deps.confirm().catch(() => false);
+  try {
+    storage?.setItem(PRIMER_ANSWERED_KEY, '1');
+  } catch (error) {
+    console.warn('[device-notices] the device cannot remember the answer', error);
+  }
+  if (!allowed) return;
+  try {
+    await bridge.invoke('plugin:erplora-android|request_permissions', { permissions: [ANDROID_NOTIFICATIONS] });
+  } catch (error) {
+    console.warn('[device-notices] Android could not be asked', error);
+  }
+}
+
 /**
  * Hands every tap to the door: the plugin's (`actionPerformed`), and the one the app kept for the page — claimed
  * now, for the tap that started the app, and again whenever the app says one waits. Returns what stops it.
@@ -231,16 +277,37 @@ export async function bootNoticeTaps(
   return () => stops.forEach((stop) => stop());
 }
 
+/** Our sentence in an alert of Ionic: «Not now» · «Turn on notices». */
+async function confirmInAlert(t: (key: string) => string): Promise<boolean> {
+  const alert = await alertController.create({
+    header: t('notices.primerHeader'),
+    message: t('notices.primerMessage'),
+    buttons: [
+      { text: t('notices.primerLater'), role: 'cancel' },
+      { text: t('notices.primerAllow'), role: 'confirm' },
+    ],
+  });
+  await alert.present();
+  const { role } = await alert.onDidDismiss();
+  return role === 'confirm';
+}
+
 /**
  * Tells on this device each new row of `notices` (the project's live rows) and opens the screen of a tapped one,
- * when this hub has it. For the component the project mounts as `chrome.background`.
+ * when this hub has it; while `ask` says the person has something to be told, asks Android once to let the app
+ * notify. For the component the project mounts as `chrome.background`.
  */
-export function useDeviceNotices(notices: Ref<readonly DeviceNotice[] | undefined>): void {
+export function useDeviceNotices(
+  notices: Ref<readonly DeviceNotice[] | undefined>,
+  options: { ask?: Ref<boolean> } = {},
+): void {
   const router = useRouter();
+  const { t } = useI18n();
   const bridge = nativeBridge();
+  const storage = globalThis.localStorage ?? null;
   const door = createNoticeDoor({
     bridge,
-    storage: globalThis.localStorage ?? null,
+    storage,
     navigate: (path) => router.push(path),
     isScreen: (path) =>
       path.startsWith('/') && !path.startsWith('//') && router.resolve(path).name !== 'not-found',
@@ -258,6 +325,16 @@ export function useDeviceNotices(notices: Ref<readonly DeviceNotice[] | undefine
     notices,
     (rows) => {
       if (rows) void door.tell(rows);
+    },
+    { immediate: true },
+  );
+  let asking = false;
+  watch(
+    () => options.ask?.value === true,
+    (ask) => {
+      if (!ask || asking) return;
+      asking = true;
+      void askToNotify({ bridge, storage, confirm: () => confirmInAlert(t) });
     },
     { immediate: true },
   );

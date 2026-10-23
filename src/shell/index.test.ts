@@ -96,6 +96,7 @@ describe('shell barrel', () => {
     expect(shell.useDeviceNotices).toBeTypeOf('function');
     expect(shell.createNoticeDoor).toBeTypeOf('function');
     expect(shell.TOLD_KEY).toBe('erplora.notices.told');
+    expect(shell.askToNotify).toBeTypeOf('function');
   });
 
   it("exports the apps of «My apps», so a project's Home paints the same list as the launcher (APP-BASE-1)", () => {

@@ -7,17 +7,31 @@ import { defineComponent, h, nextTick, ref } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const alerts = vi.hoisted(() => ({ role: 'confirm', created: [] as Array<Record<string, unknown>> }));
+vi.mock('@ionic/vue', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ionic/vue')>()),
+  alertController: {
+    create: async (options: Record<string, unknown>) => {
+      alerts.created.push(options);
+      return { present: async () => {}, onDidDismiss: async () => ({ role: alerts.role }) };
+    },
+  },
+}));
+
 import {
   ANDROID_NOTIFICATIONS,
+  askToNotify,
   bootNoticeTaps,
   createNoticeDoor,
   type DeviceNotice,
   NOT_THE_LINKED_HUB,
   type NativeBridge,
   nativeBridge,
+  PRIMER_ANSWERED_KEY,
   TOLD_KEY,
   useDeviceNotices,
 } from './device-notices';
+import { createShellI18n } from './i18n';
 
 const BOOKED: DeviceNotice = {
   key: 'appointment.booked',
@@ -322,6 +336,90 @@ describe('bootNoticeTaps — hearing the taps', () => {
   });
 });
 
+describe('askToNotify — asking Android once, with our sentence first (HUB_APP-F07, hub#1732, hub#2046)', () => {
+  const asked = (bridge: { invoke: ReturnType<typeof vi.fn> }) =>
+    bridge.invoke.mock.calls.filter(([command]) => command === 'plugin:erplora-android|request_permissions');
+
+  it('on an Android that has not let the app notify: our sentence, then the system dialog for notices only', async () => {
+    const bridge = app({ 'plugin:erplora-android|check_permissions': () => ({ [ANDROID_NOTIFICATIONS]: false }) });
+    const storage = memory([]);
+    const confirm = vi.fn(async () => true);
+
+    await askToNotify({ bridge, storage, confirm });
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(asked(bridge).map(([, args]) => args)).toEqual([{ permissions: [ANDROID_NOTIFICATIONS] }]);
+    expect(storage.getItem(PRIMER_ANSWERED_KEY)).toBe('1');
+  });
+
+  it('«Not now» asks Android nothing, and the sentence never comes back by itself', async () => {
+    const bridge = app({ 'plugin:erplora-android|check_permissions': () => ({ [ANDROID_NOTIFICATIONS]: false }) });
+    const storage = memory([]);
+    const confirm = vi.fn(async () => false);
+
+    await askToNotify({ bridge, storage, confirm });
+    await askToNotify({ bridge, storage, confirm });
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(asked(bridge)).toEqual([]);
+  });
+
+  it.each([
+    ['granted', () => ({ [ANDROID_NOTIFICATIONS]: true })],
+    ['without such a permission (below Android 13)', () => ({})],
+    [
+      'on a computer',
+      () => {
+        throw new Error('plugin erplora-android not found');
+      },
+    ],
+  ])('says nothing where the permission is %s', async (_case, answer) => {
+    const bridge = app({ 'plugin:erplora-android|check_permissions': answer });
+    const confirm = vi.fn(async () => true);
+
+    await askToNotify({ bridge, storage: memory([]), confirm, wait: async () => {} });
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(asked(bridge)).toEqual([]);
+  });
+
+  it('says nothing in a browser', async () => {
+    const confirm = vi.fn(async () => true);
+
+    await expect(askToNotify({ bridge: null, storage: memory([]), confirm })).resolves.toBeUndefined();
+
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('waits while the app says the hub is still landing (hub#2658), then asks', async () => {
+    let landing = 2;
+    const bridge = app({
+      'plugin:erplora-android|check_permissions': () => {
+        if (landing-- > 0) throw NOT_THE_LINKED_HUB;
+        return { [ANDROID_NOTIFICATIONS]: false };
+      },
+    });
+    const confirm = vi.fn(async () => true);
+
+    await askToNotify({ bridge, storage: memory([]), confirm, wait: async () => {} });
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+  });
+
+  it('a request Android answers with a failure breaks nothing', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const bridge = app({
+      'plugin:erplora-android|check_permissions': () => ({ [ANDROID_NOTIFICATIONS]: false }),
+      'plugin:erplora-android|request_permissions': () => {
+        throw new Error('activity gone');
+      },
+    });
+
+    await expect(askToNotify({ bridge, storage: memory([]), confirm: async () => true })).resolves.toBeUndefined();
+    warn.mockRestore();
+  });
+});
+
 describe('nativeBridge — the installed app, through the global Tauri leaves', () => {
   it('is the app’s invoke, plugin listener and event listener; null in a browser', () => {
     const invoke = vi.fn();
@@ -350,7 +448,7 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
     delete win.__TAURI__;
   });
 
-  async function host(rows: ReturnType<typeof ref<DeviceNotice[] | undefined>>) {
+  async function host(rows: ReturnType<typeof ref<DeviceNotice[] | undefined>>, ask = ref(false)) {
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [
@@ -362,11 +460,11 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
     await router.push('/');
     const Host = defineComponent({
       setup() {
-        useDeviceNotices(rows);
+        useDeviceNotices(rows, { ask });
         return () => h('div');
       },
     });
-    return { wrapper: mount(Host, { global: { plugins: [router] } }), router };
+    return { wrapper: mount(Host, { global: { plugins: [router, createShellI18n({ locale: 'es' })] } }), router };
   }
 
   it('tells each new row of the live result and opens its screen on a tap', async () => {
@@ -415,6 +513,39 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
     await nextTick();
 
     expect(router.currentRoute.value.fullPath).toBe('/');
+    wrapper.unmount();
+  });
+
+  it('asks Android once, with our sentence in the person\'s language, when there is something to tell them', async () => {
+    alerts.created.length = 0;
+    alerts.role = 'confirm';
+    const invoke = vi.fn(async (command: string) =>
+      command === 'plugin:erplora-android|check_permissions' ? { [ANDROID_NOTIFICATIONS]: false } : null,
+    );
+    win.__TAURI__ = { core: { invoke } };
+    const ask = ref(false);
+    const { wrapper } = await host(ref<DeviceNotice[] | undefined>([]), ask);
+    await nextTick();
+    expect(alerts.created).toEqual([]);
+
+    ask.value = true;
+    await vi.waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith('plugin:erplora-android|request_permissions', {
+        permissions: [ANDROID_NOTIFICATIONS],
+      }),
+    );
+
+    expect(alerts.created).toEqual([
+      {
+        header: 'Deja que te avisemos',
+        message:
+          'Cuando algo necesite tu atención podemos avisarte, aunque nadie esté mirando esta pantalla. Tu dispositivo te lo preguntará a continuación.',
+        buttons: [
+          { text: 'Ahora no', role: 'cancel' },
+          { text: 'Activar los avisos', role: 'confirm' },
+        ],
+      },
+    ]);
     wrapper.unmount();
   });
 });
