@@ -121,6 +121,45 @@ describe('installTrustedTypesPolicy', () => {
     }
   });
 
+  // reCAPTCHA Enterprise (the SaaS's public doors): its loader `https://www.google.com/recaptcha/enterprise.js` sets its
+  // release from `https://www.gstatic.com/recaptcha/releases/…` as a plain string. An entry with a path admits that
+  // path and below only, not the rest of the origin.
+  it('admits a script URL under an entry with a path, and nothing else of that origin', () => {
+    const { win, createPolicy } = fakeWindow();
+    installTrustedTypesPolicy(win, false, ['https://www.google.com/recaptcha/', 'https://www.gstatic.com/recaptcha/']);
+    const { createScriptURL } = rulesOf(createPolicy);
+    for (const url of [
+      'https://www.google.com/recaptcha/enterprise.js?render=6Le-site-key',
+      'https://www.gstatic.com/recaptcha/releases/NhfdZHzre16wrc2m6BxEdu7J/recaptcha__en.js',
+      'https://www.gstatic.com:443/recaptcha/releases/x/recaptcha__es.js',
+    ]) {
+      expect(createScriptURL(url), url).toBe(url);
+    }
+    for (const url of [
+      'https://www.google.com/maps/api/js',
+      'https://www.google.com/recaptcha',
+      'https://www.google.com/recaptchaevil/x.js',
+      'https://www.google.com/recaptcha/../evil.js',
+      'https://www.google.com/recaptcha/%2e%2e/evil.js',
+      'https://www.google.com/recaptcha%2F..%2Fevil.js',
+      'https://www.gstatic.com/firebasejs/x.js',
+      'https://user@www.google.com/recaptcha/enterprise.js',
+      'http://www.google.com/recaptcha/enterprise.js',
+      'https://www.google.com.evil.com/recaptcha/enterprise.js',
+    ]) {
+      expect(() => createScriptURL(url), url).toThrow(TypeError);
+    }
+  });
+
+  it('mixes bare origins and entries with a path', () => {
+    const { win, createPolicy } = fakeWindow();
+    installTrustedTypesPolicy(win, false, ['https://js.stripe.com', 'https://www.google.com/recaptcha/']);
+    const { createScriptURL } = rulesOf(createPolicy);
+    expect(createScriptURL('https://js.stripe.com/v3/')).toBe('https://js.stripe.com/v3/');
+    expect(createScriptURL('https://www.google.com/recaptcha/enterprise.js')).toBe('https://www.google.com/recaptcha/enterprise.js');
+    expect(() => createScriptURL('https://www.google.com/x.js')).toThrow(TypeError);
+  });
+
   it('with an allowlist still rejects scripts and any HTML that is not an icon', () => {
     const { win, createPolicy } = fakeWindow();
     installTrustedTypesPolicy(win, false, ['https://js.stripe.com']);
@@ -137,7 +176,7 @@ describe('installTrustedTypesPolicy', () => {
     expect(() => rulesOf(createPolicy).createScriptURL('https://evil.com/x.js')).toThrow(TypeError);
   });
 
-  it('refuses an allowlist entry that is not a bare https origin, before creating any policy', () => {
+  it('refuses an allowlist entry that is neither a bare https origin nor one with a path ending in /, before creating any policy', () => {
     for (const origin of [
       'http://js.stripe.com',
       'https://js.stripe.com/',
@@ -147,6 +186,13 @@ describe('installTrustedTypesPolicy', () => {
       'js.stripe.com',
       '*',
       '',
+      'http://www.google.com/recaptcha/',
+      'https://www.google.com/recaptcha/../',
+      'https://www.google.com/recaptcha/?x=1',
+      'https://www.google.com/recaptcha/#x',
+      'https://www.google.com/*/',
+      'https://user@www.google.com/recaptcha/',
+      'https://www.google.com/re%63aptcha/x/../',
     ]) {
       const { win, createPolicy } = fakeWindow();
       expect(() => installTrustedTypesPolicy(win, false, [origin]), origin).toThrow(TypeError);

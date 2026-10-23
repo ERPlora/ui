@@ -97,9 +97,11 @@ export interface CreateShellOptions {
   /** The user menu: the project's entries, Help and Sign out (the theme is always there). */
   userMenu?: ShellUserMenu;
   /**
-   * Origins whose script URLs the Trusted Types `default` policy admits, each a bare
-   * `https://host[:port]` (`boot/trusted-types.boot.ts`). Default none. The SaaS: `['https://js.stripe.com']`
-   * (Stripe.js sets its chunks' `src` without a policy of its own); its CSP `script-src` still gates them.
+   * Where the script URLs the Trusted Types `default` policy admits may be, each a bare `https://host[:port]` or
+   * one with a path ending in `/`, which admits that path and below only (`boot/trusted-types.boot.ts`). Default
+   * none. The SaaS: `https://js.stripe.com` and `https://www.google.com/recaptcha/` +
+   * `https://www.gstatic.com/recaptcha/` (Stripe.js and reCAPTCHA set their scripts' `src` without a policy of
+   * their own); its CSP `script-src` still gates them.
    */
   trustedScriptOrigins?: readonly string[];
 }
