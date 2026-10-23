@@ -67,5 +67,11 @@
   },
   "inlineFeedback": {
     "dismiss": "Dismiss"
+  },
+  "notices": {
+    "primerHeader": "Let us keep you posted",
+    "primerMessage": "When something needs your attention, we can warn you, even if nobody is looking at this screen. Your device will ask you next.",
+    "primerLater": "Not now",
+    "primerAllow": "Turn on notices"
   }
 }

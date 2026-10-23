@@ -67,5 +67,11 @@
   },
   "inlineFeedback": {
     "dismiss": "Cerrar"
+  },
+  "notices": {
+    "primerHeader": "Deja que te avisemos",
+    "primerMessage": "Cuando algo necesite tu atención podemos avisarte, aunque nadie esté mirando esta pantalla. Tu dispositivo te lo preguntará a continuación.",
+    "primerLater": "Ahora no",
+    "primerAllow": "Activar los avisos"
   }
 }

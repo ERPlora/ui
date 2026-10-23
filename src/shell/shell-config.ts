@@ -34,6 +34,11 @@ export interface ShellChrome {
   sidebarFooter?: Component;
   /** Over the content of every screen, between the topbar and the scroller (the hub's blocking strip). */
   notice?: Component;
+  /**
+   * Mounted once beside the pane while a person is signed in, on every screen (its own frame included), and
+   * again for the next person; it paints nothing of its own (the hub's device notices, APPOINTMENT-F28).
+   */
+  background?: Component;
 }
 
 const DEFAULTS: ShellConfig = { homePath: '/' };

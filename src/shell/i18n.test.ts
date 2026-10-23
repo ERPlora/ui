@@ -11,7 +11,7 @@ function keys(tree: Record<string, unknown>, prefix = ''): string[] {
 }
 
 describe('shell catalogues', () => {
-  it('carry only what the shell and its components say (topbar, tabbar, home, apps launcher, side menu and its QR, user menu, 404, not in the app, banner and toast close)', () => {
+  it('carry only what the shell and its components say (topbar, tabbar, home, apps launcher, side menu and its QR, user menu, 404, not in the app, banner and toast close, the ask for the device\'s notices)', () => {
     expect(keys(en).sort()).toEqual([
       'home.empty.body',
       'home.empty.title',
@@ -34,6 +34,10 @@ describe('shell catalogues', () => {
       'notInApp.action',
       'notInApp.body',
       'notInApp.title',
+      'notices.primerAllow',
+      'notices.primerHeader',
+      'notices.primerLater',
+      'notices.primerMessage',
       'sidebar.apps',
       'sidebar.billing',
       'sidebar.employees',
