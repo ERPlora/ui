@@ -111,6 +111,17 @@ export function columnNeed(natural: number, floor: number): number {
   return natural > floor ? Math.ceil(natural) + 1 : 0;
 }
 
+/** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - Are `next` the needs on screen (`before`)? A text its box cuts reads its
+ *  width rounded (`scrollWidth`) and held whole with its fraction: a pixel or two apart is the same column, or
+ *  every rung would start the ladder again. A column that starts or stops asking for more than its floor always
+ *  counts. PURE. */
+export function sameNeeds(next: Readonly<Record<string, number>>, before: Readonly<Record<string, number>>): boolean {
+  return Object.keys(next).every((key) => {
+    const was = before[key] ?? 0;
+    return next[key] > 0 === was > 0 && Math.abs(next[key] - was) <= 2;
+  });
+}
+
 /** Input of `decideCardsForFit`. */
 export interface CardsForFitInput {
   /** Cards are declared and nothing else owns the view (no choice by hand, no phone, no
@@ -355,8 +366,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
       for (const cells of rows) if (cells[index]) natural = Math.max(natural, naturalCellWidth(cells[index]));
       next[key] = columnNeed(natural, floor);
     });
-    const before = contentWidths.value;
-    if (Object.keys(next).every((key) => next[key] === before[key])) return;
+    if (sameNeeds(next, contentWidths.value)) return;
     fitDecidedAtWidth = -1;
     write(contentWidths, next);
   }
