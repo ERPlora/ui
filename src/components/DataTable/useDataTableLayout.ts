@@ -359,7 +359,6 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     if (Object.keys(next).every((key) => next[key] === before[key])) return false;
     fitDecidedAtWidth = -1;
     write(contentWidths, next);
-    write(fitLevel, 0);
     return true;
   }
 

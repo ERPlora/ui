@@ -431,6 +431,8 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
         const tracks = (head?.style.gridTemplateColumns ?? '').split(' ').filter(Boolean);
         return Math.max(PAD + tracks.reduce((sum, track) => sum + trackMin(track, this), 0), box);
       }
+      // #217 - An unfolded text wraps to its column: on one line it would be wider than it now says.
+      if (this.classList.contains('data-table__text--unfolded')) return FLOOR;
       // A text of a data cell or of a header: as wide as its characters, whatever its box.
       if (this.tagName === 'SPAN' && this.parentElement?.matches('.data-table__cell:not(.data-table__cell--actions)')) {
         return (this.textContent?.trim().length ?? 0) * CHAR;
@@ -474,6 +476,17 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     expect(template(t), 'wide again: whole, everything back').toBe('minmax(225px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
     expect(headers(t)).toEqual(['Email', 'Status', 'Total', 'Note']);
     expect(rowButtons(t)).toEqual(['pay', 'fail']);
+  });
+
+  it('a cut email unfolded by a tap (#217) leaves its column as it was: wrapped, it no longer tells its width', async () => {
+    const t = await mountAt(600, props834);
+    const cut = 'minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px';
+    expect(template(t)).toBe(cut);
+    const email = dataRows(t)[0].querySelector('.data-table__text') as HTMLElement;
+    email.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }));
+    await click(email);
+    expect(email.classList.contains('data-table__text--unfolded')).toBe(true);
+    expect(template(t)).toBe(cut);
   });
 
   it('a column with its own width keeps it, and no column cuts a text its floor already holds', async () => {
