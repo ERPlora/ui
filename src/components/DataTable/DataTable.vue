@@ -19,7 +19,8 @@
 // domain or a yes/no by equality, a day, a range of days, a numeric range with its bounds or an amount as
 // typed, and a lookup that asks the page's `load` for what is typed: DataTableLookup), and «Clear
 // filters» while any filters. It lives in the toolbar area, not under the column headers, so it is there
-// in the cards, in an empty result and on a phone. `filterErrors` (a 422's `fieldErrors`, by filter
+// in an empty result and in a list too wide for a phone; the cards fold it behind the funnel (below).
+// `filterErrors` (a 422's `fieldErrors`, by filter
 // name) paints each message under its control until that value changes, and turns the funnel red.
 // `filterFields` adds filters with no column of their own (a field the list does not paint), after the
 // columns' own: they count, are sent and take errors like them, and the column chooser never offers them.
@@ -33,6 +34,9 @@
 // app's header and its tab bar (outfitkit#75/#197, `useFilterSheet`), modal there (`aria-modal`, Tab kept
 // inside it). The panel edits a draft: «Apply»
 // applies it and closes, «Clear» lifts every filter at once, Close, Escape and the funnel drop it.
+// The cards always fold them so, `filterable` or not (picked, the default, the box's fit or a phone): an
+// open row took half a phone before the first card. Back to the list, the row opens again (the panel
+// closes) and the filters in use stay: switching never asks again.
 // `pageSizeChooser: false` drops «rows per page» (the footer still counts and pages);
 // `hideToolbarWhenEmpty` paints a list with no record as its empty state alone, without toolbar
 // nor footer (mockups/saas-panel §6.16): its `empty` slot then offers the create action.
@@ -171,7 +175,8 @@ const props = withDefaults(
     /** `v-model:filters` (the column filters by name). `undefined` = not controlled. */
     filters?: DataTableFilters;
     /** The column filters live behind the toolbar's funnel (with the count in use), in a panel inside
-     *  the table, instead of a row under the toolbar. Same `filters`, `filtersChange` and hooks. */
+     *  the table, instead of a row under the toolbar. Same `filters`, `filtersChange` and hooks. The
+     *  cards fold them so without it; this folds them in the list view too. */
     filterable?: boolean;
     /** Filters with no column of their own (a field the list does not paint): after the columns' own,
      *  in the panel and the filter row; never in the column chooser (`DataTableFilterField`). */
@@ -403,6 +408,8 @@ const {
 const listColumns = computed(() =>
   lowColumnsHidden.value ? visibleColumns.value.filter((c) => !yieldingColumns.value.includes(c)) : visibleColumns.value,
 );
+/** The table paints cards: picked, the default, the box's fit or a phone (`cardBreakpoint`). */
+const cardsOn = computed(() => viewMode.value === 'cards' && cardViewEnabled.value);
 
 // ── Column filters ────────────────────────────────────────────────────────────────────────────
 /** The active filters on screen (own state; `filters` from the parent overrides it, like `search`). */
@@ -440,10 +447,13 @@ function clearFilters(): void {
   setFilters({});
 }
 // ── Filters panel (`filterable`) ─────────────────────────────────────────────────────────────
+/** The column filters live behind the funnel: `filterable`, or the cards (an open row of controls took
+ *  half a phone before the first card; the old table folded them there too). */
+const filtersFolded = computed(() => props.filterable || cardsOn.value);
 const filterPanelOpen = ref(false);
 /** What the panel shows and edits; applied only by «Apply». */
 const filterDraft = ref<DataTableFilters>({});
-const showFunnel = computed(() => props.filterable && filterColumns.value.length > 0);
+const showFunnel = computed(() => filtersFolded.value && filterColumns.value.length > 0);
 const filterTitleId = useId();
 const funnelName = computed(() => {
   if (refused.value) return label('filtersInvalid');
@@ -509,7 +519,8 @@ function onFilterPanelEscape(ev: KeyboardEvent): void {
 watch(filterValues, (now) => {
   if (filterPanelOpen.value) filterDraft.value = declaredFilters(filterColumns.value, now);
 });
-// Its columns stopped declaring filters (or the page dropped `filterable`): nothing left to show.
+// Its columns stopped declaring filters, the page dropped `filterable` or the list came back from the
+// cards: nothing left to show (what was applied stays).
 watch(showFunnel, (shown) => {
   if (!shown) filterPanelOpen.value = false;
 });
@@ -646,7 +657,6 @@ const showPager = computed(
       ? !hasToolbar.value && pageSizeSelectable.value
       : pager.value.pages > 1 || props.pageSizeOptions.length > 0),
 );
-const cardsOn = computed(() => viewMode.value === 'cards' && cardViewEnabled.value);
 /** What the column chooser marks: what the current view paints (the cards keep the low columns). */
 const shownColumns = computed(() => (cardsOn.value ? visibleColumns.value : listColumns.value));
 /** #171 - Rows that exist but are all hidden by the search are not an empty list. */
@@ -1144,7 +1154,7 @@ onUpdated(nameSearchBox);
         </div>
         <!-- Column filters: one control per filtered column, in column order. -->
         <div
-          v-if="filterColumns.length && !filterable"
+          v-if="filterColumns.length && !filtersFolded"
           class="data-table__filters"
           role="group"
           :aria-label="label('filters')"
