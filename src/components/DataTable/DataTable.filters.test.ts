@@ -5,7 +5,7 @@
 // `filtersChange` with `{ name: value }`; both keep `v-model:filters`.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { byTestId, click, dataRows, mountTable, settle, text, type, viewport } from './__tests__/harness';
+import { byTestId, cards, click, crossBreakpoint, dataRows, ionChange, mountTable, settle, text, type, viewport } from './__tests__/harness';
 
 beforeEach(() => {
   viewport(false);
@@ -294,13 +294,127 @@ describe('server mode asks for the filtered rows', () => {
   });
 });
 
-describe('in the card view', () => {
-  it('the same filter row filters the cards', async () => {
-    const t = mountTable({ ...base, views: true, defaultView: 'cards' });
+// ── In the cards the column filters fold behind the funnel: an open row of controls under the toolbar took
+// half a phone before the first card, where the old table kept them behind its funnel
+// (docs/reference/old-hub/cart_checkout-carts-390.png). Whenever the table paints cards (picked, the default
+// or forced by `cardBreakpoint`) they behave as with `filterable`: the same funnel and count, the same panel
+// (the modal sheet below 834 px, outfitkit#75), the same `filters` and `filtersChange`. The table view keeps
+// its row as before, and a filter in use survives every switch.
+describe('in the card view the column filters fold behind the funnel', () => {
+  const funnel = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-toggle')[0] as HTMLElement | undefined;
+  const panel = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-panel')[0] as HTMLElement | undefined;
+  const count = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-count')[0] as HTMLElement | undefined;
+  const filterRow = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters');
+  const cardIds = (t: ReturnType<typeof mountTable>) => cards(t).map((c) => c.getAttribute('data-id'));
+  const pick = (t: ReturnType<typeof mountTable>, view: 'table' | 'cards') =>
+    ionChange(t.element.querySelector('.data-table__view-segment') as HTMLElement, { value: view });
+
+  it('cards by default, without `filterable`: no filter row, a funnel whose panel filters the cards and closes on «Apply» (outfitkit#207)', async () => {
+    const t = mountTable({ ...base, views: true, defaultView: 'cards' }, { attachTo: document.body });
     await settle();
-    expect(byTestId(t, 'rules-filters')).toHaveLength(1);
+    expect(cards(t)).toHaveLength(3);
+    expect(filterRow(t)).toHaveLength(0);
+    expect(funnel(t)).toBeDefined();
+    expect(count(t)).toBeUndefined();
+    await click(funnel(t));
+    expect(panel(t)).toBeDefined();
     await change(control(t, 'status'), 'inactive');
-    expect([...t.element.querySelectorAll('.data-table__card')].map((c) => c.getAttribute('data-id'))).toEqual(['2']);
+    expect(cardIds(t)).toEqual(['1', '2', '3']);
+    await click(byTestId(t, 'rules-filters-apply')[0]);
+    expect(cardIds(t)).toEqual(['2']);
+    expect(panel(t)).toBeUndefined();
+    expect(text(count(t))).toBe('1');
+    expect(t.emitted('update:filters')).toEqual([[{ status: 'inactive' }]]);
+  });
+
+  it('cards picked by hand fold the row; the list again opens it', async () => {
+    const t = mountTable({ ...base, views: true });
+    await settle();
+    expect(filterRow(t)).toHaveLength(1);
+    await pick(t, 'cards');
+    expect(cards(t)).toHaveLength(3);
+    expect(filterRow(t)).toHaveLength(0);
+    expect(funnel(t)).toBeDefined();
+    await pick(t, 'table');
+    expect(filterRow(t)).toHaveLength(1);
+    expect(funnel(t)).toBeUndefined();
+  });
+
+  it('on a phone (cards forced by `cardBreakpoint`) the funnel opens the modal sheet (outfitkit#75)', async () => {
+    viewport(true);
+    const t = mountTable({ ...base, views: true }, { attachTo: document.body });
+    await settle();
+    expect(cards(t)).toHaveLength(3);
+    expect(filterRow(t)).toHaveLength(0);
+    await click(funnel(t));
+    expect(panel(t)?.getAttribute('aria-modal')).toBe('true');
+  });
+
+  it('the table view, wide, without `filterable`: the filter row stays open and there is no funnel, as today', async () => {
+    const t = mountTable({ ...base, views: true, defaultView: 'table' });
+    await settle();
+    expect(dataRows(t)).toHaveLength(3);
+    expect(filterRow(t)).toHaveLength(1);
+    expect(funnel(t)).toBeUndefined();
+  });
+
+  it('a filter in use survives the switch: the funnel counts it in the cards, the row shows it in the list, and nothing is asked again', async () => {
+    const t = mountTable({ ...base, views: true, serverSide: true, total: 3, pageSizeOptions: [10] });
+    await settle();
+    await change(control(t, 'status'), 'inactive');
+    expect(t.emitted('filtersChange')).toEqual([[{ status: 'inactive' }]]);
+    await pick(t, 'cards');
+    expect(filterRow(t)).toHaveLength(0);
+    expect(text(count(t))).toBe('1');
+    await pick(t, 'table');
+    expect(control(t, 'status').value).toBe('inactive');
+    expect(funnel(t)).toBeUndefined();
+    expect(t.emitted('filtersChange')).toHaveLength(1);
+  });
+
+  it('crossing the phone breakpoint keeps the filter in use, folded in the cards and open again in the wide list', async () => {
+    const t = mountTable({ ...base, views: true, filters: { status: 'active' } });
+    await settle();
+    expect(filterRow(t)).toHaveLength(1);
+    crossBreakpoint(true);
+    await settle();
+    expect(cards(t)).toHaveLength(2);
+    expect(filterRow(t)).toHaveLength(0);
+    expect(text(count(t))).toBe('1');
+    crossBreakpoint(false);
+    await settle();
+    expect(control(t, 'status').value).toBe('active');
+    expect(dataRows(t).map((row) => row.getAttribute('data-id'))).toEqual(['1', '3']);
+    expect(t.emitted('update:filters')).toBeUndefined();
+  });
+
+  it('a panel open in the cards closes when the list comes back, and what it applied stays', async () => {
+    const t = mountTable({ ...base, views: true, defaultView: 'cards', filters: { status: 'inactive' } }, { attachTo: document.body });
+    await settle();
+    await click(funnel(t));
+    expect(panel(t)).toBeDefined();
+    await pick(t, 'table');
+    expect(panel(t)).toBeUndefined();
+    expect(filterRow(t)).toHaveLength(1);
+    expect(control(t, 'status').value).toBe('inactive');
+  });
+
+  it('`filterable` stays behind the funnel in both views, as before', async () => {
+    const t = mountTable({ ...base, views: true, filterable: true });
+    await settle();
+    expect(filterRow(t)).toHaveLength(0);
+    expect(funnel(t)).toBeDefined();
+    await pick(t, 'cards');
+    expect(filterRow(t)).toHaveLength(0);
+    expect(funnel(t)).toBeDefined();
+  });
+
+  it('a list without cards keeps its filter row on a phone (there is nothing to fold for)', async () => {
+    viewport(true);
+    const t = mountTable(base);
+    await settle();
+    expect(filterRow(t)).toHaveLength(1);
+    expect(funnel(t)).toBeUndefined();
   });
 });
 
