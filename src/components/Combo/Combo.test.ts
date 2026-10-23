@@ -66,6 +66,18 @@ async function key(w: Wrapper, k: string) {
   native(w).dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
   await settle();
 }
+/** Presses a key in the field and tells what the page around the combo saw of it: whether its
+ *  default was prevented, and whether it reached `document.body` (where a FormModal's Enter lands). */
+async function pressFromPage(w: Wrapper, k: string): Promise<{ prevented: boolean; reachedPage: boolean }> {
+  let reachedPage = false;
+  const listen = () => (reachedPage = true);
+  document.body.addEventListener('keydown', listen);
+  const press = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true });
+  native(w).dispatchEvent(press);
+  document.body.removeEventListener('keydown', listen);
+  await settle();
+  return { prevented: press.defaultPrevented, reachedPage };
+}
 
 afterEach(() => {
   vi.useRealTimers();
@@ -248,6 +260,30 @@ describe('Combo: the keyboard', () => {
     document.body.removeEventListener('keydown', outside);
   });
 
+  // FIX-UI-COMBO-ENTER-WHILE-SEARCHING-SUBMITS: an open list with nothing to choose let Enter through,
+  // and the FormModal around it saved. Open, Enter is always the combo's (WAI-ARIA APG, Headless UI,
+  // React Aria, Downshift, Tom Select…); with no option to take, it does nothing and the list stays.
+  it('Enter on an open list with nothing to choose (no matches) stays here: no submit, the list stays open', async () => {
+    const w = mountCombo({ modelValue: COUNTRIES[0] });
+    await settle();
+    await typeIn(w, 'zz');
+    expect(popover(w).find('[data-testid="country-empty"]').exists()).toBe(true);
+    expect(await pressFromPage(w, 'Enter')).toEqual({ prevented: true, reachedPage: false });
+    expect(popover(w).exists()).toBe(true);
+    expect((field(w).element as El).value).toBe('zz');
+    expect(w.emitted('update:modelValue')).toBeUndefined();
+    expect(w.emitted('create')).toBeUndefined();
+  });
+
+  it('Enter on a closed list is the form’s: it reaches the page around the combo, untouched', async () => {
+    const w = mountCombo({ modelValue: COUNTRIES[0] });
+    await settle();
+    expect(popover(w).exists()).toBe(false);
+    expect(await pressFromPage(w, 'Enter')).toEqual({ prevented: false, reachedPage: true });
+    expect(popover(w).exists()).toBe(false);
+    expect(w.emitted('update:modelValue')).toBeUndefined();
+  });
+
   it('Escape closes and puts back the chosen option’s label; it does not reach the dialog around it', async () => {
     const w = mountCombo({ modelValue: COUNTRIES[0] });
     await settle();
@@ -426,5 +462,47 @@ describe('Combo: asking the server (search)', () => {
     await settle();
     expect(search).toHaveBeenLastCalledWith('al');
     expect(optionLabels(w)).toEqual(['Alemania']);
+  });
+
+  // FIX-UI-COMBO-ENTER-WHILE-SEARCHING-SUBMITS (the reviewer's probe of CLOSE-STAFF, hub#179): a role
+  // typed and Enter before the server answered saved the staff member's sheet with the old role.
+  it('Enter while the search is loading stays here (never submits the form) and chooses nothing, not even when the answer comes', async () => {
+    let answerNow: (options: ComboOption[]) => void = () => {};
+    const search = vi.fn(() => new Promise<ComboOption[]>((resolve) => (answerNow = resolve)));
+    const w = mountCombo({ modelValue: COUNTRIES[3], options: undefined, search });
+    await settle();
+    await typeIn(w, 'sty');
+    // Within the 150 ms before asking, and then with the question in flight.
+    expect(await pressFromPage(w, 'Enter')).toEqual({ prevented: true, reachedPage: false });
+    vi.advanceTimersByTime(150);
+    await settle();
+    expect(search).toHaveBeenCalledWith('sty');
+    expect(popover(w).find('[data-testid="country-loading"]').exists()).toBe(true);
+    expect(await pressFromPage(w, 'Enter')).toEqual({ prevented: true, reachedPage: false });
+    expect(popover(w).exists()).toBe(true);
+    expect((field(w).element as El).value).toBe('sty');
+    // The answer is shown, its first option highlighted, but nothing is chosen behind the person's back.
+    answerNow([COUNTRIES[0], COUNTRIES[1]]);
+    await settle();
+    expect(optionLabels(w)).toEqual(['España', 'Francia']);
+    expect(w.emitted('update:modelValue')).toBeUndefined();
+    // Enter on what the person now sees takes the highlighted option, and still not the form.
+    expect(await pressFromPage(w, 'Enter')).toEqual({ prevented: true, reachedPage: false });
+    expect(w.emitted('update:modelValue')).toEqual([[COUNTRIES[0]]]);
+    expect(popover(w).exists()).toBe(false);
+  });
+
+  it('Enter on a failed search stays here too: no submit, the error and its Retry stay', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const search = vi.fn<(query: string) => Promise<ComboOption[]>>().mockRejectedValue(new Error('503'));
+    const w = mountCombo({ options: undefined, search });
+    await settle();
+    await typeIn(w, 'al');
+    vi.advanceTimersByTime(150);
+    await settle();
+    expect(popover(w).find('[data-testid="country-error"]').exists()).toBe(true);
+    expect(await pressFromPage(w, 'Enter')).toEqual({ prevented: true, reachedPage: false });
+    expect(popover(w).find('[data-testid="country-retry"]').exists()).toBe(true);
+    expect(w.emitted('update:modelValue')).toBeUndefined();
   });
 });

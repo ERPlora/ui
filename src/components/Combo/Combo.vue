@@ -16,6 +16,9 @@
 //   - Keyboard (ARIA combobox, list autocomplete): ArrowDown/ArrowUp move the highlight (wrapping,
 //     `aria-activedescendant`), Enter chooses it, Escape and Tab close and put the chosen label back.
 //     Enter and Escape on an open list stay here: they never submit or close the dialog around it.
+//     With nothing highlighted (the search still loading, no matches, a failed search) Enter does
+//     nothing and the list stays: the answer is never chosen behind the person's back. Closed, Enter
+//     is the form's (FormModal submits on it).
 //   - `allowCreate`: a last option «Create “…”» for a text that names no option; choosing it emits
 //     `create` with the text (trimmed) and leaves the typing in the field: the page creates the
 //     record and sets `v-model`.
@@ -238,11 +241,13 @@ function onKeydown(ev: KeyboardEvent): void {
       move(-1);
       break;
     case 'Enter': {
-      const entry = open.value ? entries.value[active.value] : undefined;
-      if (!entry) return;
+      // Open, Enter is always the combo's, even with nothing to take (the search still loading, no
+      // matches, a failed search): then it does nothing and the list stays, never the form's submit.
+      if (!open.value) return;
       ev.preventDefault();
       ev.stopPropagation();
-      pick(entry);
+      const entry = entries.value[active.value];
+      if (entry) pick(entry);
       break;
     }
     case 'Escape':
