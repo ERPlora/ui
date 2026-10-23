@@ -428,6 +428,16 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
     expect(rule('.data-table__drawer-range > ion-input')).toBe('flex: 1 1 0; min-width: 0;');
   });
 
+  it('FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER: in the filter row a date range’s end is as wide as a date field, a numeric end keeps its short box', () => {
+    // At 13px a free date field («dd/mm/yyyy» and its calendar icon) is 116px wide; the 7rem number box gave the
+    // native field 91px and the icon covered the last «y» (measured in Chromium, Hub: Payments › Date at 1440 and
+    // 834 px). 8.75rem minus its padding and border leaves the field 119px.
+    expect(rule('.data-table__filter-range--date .data-table__filter')).toBe('min-width: 8.75rem; max-width: 8.75rem;');
+    expect(rule('.data-table__filter-range .data-table__filter')).toBe('min-width: 5.5rem; max-width: 7rem;');
+    // After the short box, with the same weight: the later rule wins.
+    expect(STYLE.indexOf('.data-table__filter-range--date .data-table__filter {')).toBeGreaterThan(STYLE.indexOf('.data-table__filter-range .data-table__filter {'));
+  });
+
   it('FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP: a card value never runs past its card; a word too long for it ends in «…»', () => {
     // A flex item never shrinks below its longest word (`min-width: auto`): a 54-character email ran
     // past the card's right edge and ion-card cut it with no «…» (Hub: Staff › Members at 375 px). The
