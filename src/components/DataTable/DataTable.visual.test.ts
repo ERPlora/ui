@@ -438,6 +438,15 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
     expect(STYLE.indexOf('.data-table__filter-range--date .data-table__filter {')).toBeGreaterThan(STYLE.indexOf('.data-table__filter-range .data-table__filter {'));
   });
 
+  it('FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER (rv-ui-29): the search box’s example text ends in «…» where the box is short of it; its widths stay', () => {
+    // From 641 to 1024 px the box shrinks to leave room for the toolbar: at 820 px «Search reference or
+    // beneficiary…» (251px) had 206px and was cut with no sign, «…benefic» (measured in Chromium, Hub: Payments).
+    expect(rule('.data-table__search :deep(.searchbar-input)')).toBe('text-overflow: ellipsis;');
+    // The base rule by its text: `rule()` finds the phone's one first (its @media comes earlier in the file).
+    expect(STYLE).toContain('.data-table__search { flex: 0 1 22rem; min-width: 12rem; max-width: 24rem; }');
+    expect(rule('.data-table__search', media('(min-width: 641px) and (max-width: 1024px)'))).toBe('flex: 1 1 12rem; max-width: 22rem;');
+  });
+
   it('FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP: a card value never runs past its card; a word too long for it ends in «…»', () => {
     // A flex item never shrinks below its longest word (`min-width: auto`): a 54-character email ran
     // past the card's right edge and ion-card cut it with no «…» (Hub: Staff › Members at 375 px). The

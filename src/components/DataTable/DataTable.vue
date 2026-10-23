@@ -2139,6 +2139,9 @@ onUpdated(nameSearchBox);
 @media (min-width: 641px) and (max-width: 1024px) { .data-table__search { flex: 1 1 12rem; max-width: 22rem; } }
 /* #237 - One clear cross: Chromium's native cancel button of `type=search` hidden. Alone in its rule. */
 .data-table__search :deep(input::-webkit-search-cancel-button) { -webkit-appearance: none; appearance: none; display: none; }
+/* The example text ends in «…» where the box is short of it (at 820px it was cut with no sign, measured in
+   Chromium; FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER). */
+.data-table__search :deep(.searchbar-input) { text-overflow: ellipsis; }
 
 /* List/cards switch: Ionic's segment (Ioan, 2026-10-13). An ion-segment is 100% wide by default:
    here it takes only its buttons; icon-only buttons as tall as the toolbar controls. */
