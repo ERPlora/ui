@@ -108,6 +108,16 @@ import {
   pricetagsOutline,
   swapHorizontalOutline,
   arrowUndoOutline,
+  briefcaseOutline,
+  giftOutline,
+  archiveOutline,
+  star,
+  starOutline,
+  checkboxOutline,
+  openOutline,
+  playCircleOutline,
+  checkmarkDoneOutline,
+  pricetag,
 } from 'ionicons/icons';
 import lucideArrowLeft from '~icons/lucide/arrow-left';
 import lucideCamera from '~icons/lucide/camera';
@@ -244,6 +254,16 @@ export const ION_ICONS: Readonly<Record<string, string>> = Object.freeze({
   'pricetags-outline': pricetagsOutline,
   'swap-horizontal-outline': swapHorizontalOutline,
   'arrow-undo-outline': arrowUndoOutline,
+  'briefcase-outline': briefcaseOutline,
+  'gift-outline': giftOutline,
+  'archive-outline': archiveOutline,
+  star,
+  'star-outline': starOutline,
+  'checkbox-outline': checkboxOutline,
+  'open-outline': openOutline,
+  'play-circle-outline': playCircleOutline,
+  'checkmark-done-outline': checkmarkDoneOutline,
+  pricetag,
 });
 
 /** `<svg …>` → the data URL format of ionicons' own icons, which `ion-icon` parses inline. */
