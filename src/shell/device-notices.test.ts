@@ -7,13 +7,22 @@ import { defineComponent, h, nextTick, ref } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const alerts = vi.hoisted(() => ({ role: 'confirm', created: [] as Array<Record<string, unknown>> }));
+const alerts = vi.hoisted(() => ({
+  role: 'confirm',
+  created: [] as Array<Record<string, unknown>>,
+  /** When set, our sentence stays on screen until the test dismisses it. */
+  dismiss: undefined as (() => void) | undefined,
+  held: false,
+}));
 vi.mock('@ionic/vue', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@ionic/vue')>()),
   alertController: {
     create: async (options: Record<string, unknown>) => {
       alerts.created.push(options);
-      return { present: async () => {}, onDidDismiss: async () => ({ role: alerts.role }) };
+      const dismissed = alerts.held
+        ? new Promise<{ role: string }>((resolve) => (alerts.dismiss = () => resolve({ role: alerts.role })))
+        : Promise.resolve({ role: alerts.role });
+      return { present: async () => {}, onDidDismiss: () => dismissed };
     },
   },
 }));
@@ -208,7 +217,7 @@ describe('createNoticeDoor — telling the device', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const bridge = app({
       erplora_notify: () => {
-        throw new Error(NOT_THE_LINKED_HUB);
+        throw new Error('the platform could not show it');
       },
     });
     const door = createNoticeDoor({ bridge, storage: memory([]), navigate: vi.fn(), isScreen: screen });
@@ -218,6 +227,34 @@ describe('createNoticeDoor — telling the device', () => {
 
     expect(notified(bridge)).toHaveLength(1);
     expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  // hub#2658: the first live result of a reopened page often lands before the app has let it drive (page `load` and
+  // some seconds after): the bookings of the night must still ring, not be marked told and lost.
+  it('a notice that arrives while the hub is still landing waits for it, then goes out once (hub#2658)', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const landing = { check: 2, notify: 2 };
+    const shown: unknown[] = [];
+    const stillLanding = (step: keyof typeof landing) => (args?: Record<string, unknown>) => {
+      if (landing[step] > 0) {
+        landing[step] -= 1;
+        throw NOT_THE_LINKED_HUB;
+      }
+      if (step === 'notify') shown.push(args);
+      return null;
+    };
+    const bridge = app({
+      'plugin:erplora-android|check_permissions': stillLanding('check'),
+      erplora_notify: stillLanding('notify'),
+    });
+    const door = createNoticeDoor({ bridge, storage: memory([]), navigate: vi.fn(), isScreen: screen, wait: async () => {} });
+
+    await door.tell([BOOKED]);
+    await door.tell([BOOKED]);
+
+    expect(shown.map((args) => (args as { title: string }).title)).toEqual([BOOKED.title]);
+    expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 
@@ -546,6 +583,30 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
         ],
       },
     ]);
+    wrapper.unmount();
+  });
+
+  it('while our sentence is on screen, the live results that keep coming never stack a second one', async () => {
+    alerts.created.length = 0;
+    alerts.role = 'cancel';
+    alerts.held = true;
+    const invoke = vi.fn(async (command: string) =>
+      command === 'plugin:erplora-android|check_permissions' ? { [ANDROID_NOTIFICATIONS]: false } : null,
+    );
+    win.__TAURI__ = { core: { invoke } };
+    const ask = ref(true);
+    const { wrapper } = await host(ref<DeviceNotice[] | undefined>([]), ask);
+    await vi.waitFor(() => expect(alerts.created).toHaveLength(1));
+
+    ask.value = false;
+    await nextTick();
+    ask.value = true;
+    await nextTick();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(alerts.created).toHaveLength(1);
+    alerts.dismiss?.();
+    alerts.held = false;
     wrapper.unmount();
   });
 });

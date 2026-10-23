@@ -85,6 +85,8 @@ export interface NoticeDoorDeps {
   isScreen: (path: string) => boolean;
   /** The first number handed out; from the clock, so a new page never reuses one still in the tray. */
   firstId?: number;
+  /** How long to wait between the attempts while the app says the hub is still landing (tests). */
+  wait?: (ms: number) => Promise<void>;
 }
 
 export interface NoticeDoor {
@@ -114,10 +116,16 @@ function remember(storage: NoticeDoorDeps['storage'], told: string[]): void {
   }
 }
 
-/** Android refused the permission; anything else (granted, not asked for here, no plugin) lets it go out. */
-async function refused(bridge: NativeBridge): Promise<boolean> {
+/**
+ * Android refused the permission; anything else (granted, not asked for here, no plugin) lets it go out. Asked
+ * again while the app says the hub is still landing (hub#2658), so the answer is the linked hub's.
+ */
+async function refused(bridge: NativeBridge, wait: (ms: number) => Promise<void>): Promise<boolean> {
   try {
-    const status = (await bridge.invoke('plugin:erplora-android|check_permissions')) as Record<string, unknown> | null;
+    const status = (await whileTheHubLands(
+      () => bridge.invoke('plugin:erplora-android|check_permissions'),
+      wait,
+    )) as Record<string, unknown> | null;
     return status?.[ANDROID_NOTIFICATIONS] === false;
   } catch {
     return false;
@@ -137,13 +145,19 @@ export function createNoticeDoor(deps: NoticeDoorDeps): NoticeDoor {
       const fresh = notices.filter((notice) => !told?.includes(token(notice)));
       remember(storage, [...(told ?? []), ...fresh.map(token)]);
       if (told === null || fresh.length === 0) return;
-      if (await refused(bridge)) return;
+      // The first result of a reopened page often lands before the app lets it drive (hub#2658): the night's
+      // bookings wait for the hub to land, they are not lost.
+      const wait = deps.wait ?? afterTheLoad;
+      if (await refused(bridge, wait)) return;
       for (const notice of [...fresh].reverse()) {
         const id = next;
         next += 1;
         const path = deps.isScreen(notice.route) ? notice.route : null;
         try {
-          await bridge.invoke('erplora_notify', { title: notice.title, body: notice.body, id, path });
+          await whileTheHubLands(
+            () => bridge.invoke('erplora_notify', { title: notice.title, body: notice.body, id, path }),
+            wait,
+          );
         } catch (error) {
           console.warn('[device-notices] the app could not show a notice', error);
           continue;
