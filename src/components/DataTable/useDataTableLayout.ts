@@ -336,16 +336,16 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
 
   /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - What each column sized by its content asks for: its header and every
    *  row shown, on one line. Written only when it changes, and then the ladder is judged again from the start
-   *  (the rung on screen was decided for other columns). `true` when it wrote. */
-  function measureContentWidths(): boolean {
+   *  (the rung on screen was decided for other columns: shorter rows may fit whole again). */
+  function measureContentWidths(): void {
     const scroll = scrollEl();
     const keys = source.columnKeys?.() ?? [];
-    if (!scroll || !(scroll.clientWidth > 0) || !keys.some((key) => key !== null)) return false;
+    if (!scroll || !(scroll.clientWidth > 0) || !keys.some((key) => key !== null)) return;
     // #217 - An unfolded cell wraps to its column: what it needs on one line was measured before the tap.
-    if (scroll.querySelector('.data-table__text--unfolded')) return false;
+    if (scroll.querySelector('.data-table__text--unfolded')) return;
     const headers = [...scroll.querySelectorAll<HTMLElement>(HEAD_CELLS)];
     // Painted from other columns (a render on its way): measured once it lands.
-    if (headers.length !== keys.length) return false;
+    if (headers.length !== keys.length) return;
     const rows = [...scroll.querySelectorAll<HTMLElement>(DATA_ROWS)].map((row) => [...row.querySelectorAll<HTMLElement>(DATA_CELLS)]);
     const floor = 5.5 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
     const next: Record<string, number> = { ...contentWidths.value };
@@ -356,10 +356,9 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
       next[key] = columnNeed(natural, floor);
     });
     const before = contentWidths.value;
-    if (Object.keys(next).every((key) => next[key] === before[key])) return false;
+    if (Object.keys(next).every((key) => next[key] === before[key])) return;
     fitDecidedAtWidth = -1;
     write(contentWidths, next);
-    return true;
   }
 
   /** #121 - Natural width of the widest row's buttons (they never shrink: `flex: 0 0 auto`). */
@@ -504,8 +503,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     measureXOverflow();
     measureActionsTrack();
     measureActionsLabel();
-    // FIX-UI-DATATABLE-EMAIL-COLUMN-834 - New widths repaint the columns: the ladder measures what they paint.
-    if (measureContentWidths()) return;
+    measureContentWidths();
     measureRowActionsFit();
   }
 

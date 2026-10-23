@@ -489,6 +489,15 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     expect(template(t)).toBe(cut);
   });
 
+  it('new rows are judged again from the start: shorter ones that fit whole are not left cut', async () => {
+    const t = await mountAt(610, props834);
+    expect(template(t), 'the long email does not fit whole: cut').toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+    // A live update leaves only «bea@example.com» (120px): whole, the list takes 601px of the 610.
+    await t.setProps({ rows: [ROWS_834[1]] });
+    await settle();
+    expect(template(t)).toBe('minmax(121px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+  });
+
   it('a column with its own width keeps it, and no column cuts a text its floor already holds', async () => {
     const t = await mountAt(720, { ...props834, rows: [ROWS_834[1]] });
     // «bea@example.com» is 120px: more than the floor, so it is held whole too; «Failed» and «€8.00» fit the floor.
