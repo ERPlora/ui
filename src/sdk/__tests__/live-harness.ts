@@ -70,17 +70,24 @@ export function createFakeNetwork(liveUrl = "/api/live") {
   const enc = new TextEncoder();
   const streams: StreamCall[] = [];
   const api: ApiCall[] = [];
-  const state: { handler: ApiHandler } = { handler: () => Response.json({}) };
+  /** Every open of the live stream, the refused ones too (`refuseLive`). */
+  const opened: string[] = [];
+  const state: { handler: ApiHandler; refuseLive?: () => Response } = { handler: () => Response.json({}) };
   const fetchImpl = (url: string, init: RequestInit): Promise<Response> => {
     if (!url.startsWith(`${liveUrl}?`)) {
       const call = { url, init };
       api.push(call);
       return Promise.resolve(state.handler(call));
     }
+    if (state.refuseLive) {
+      opened.push(url);
+      return Promise.resolve(state.refuseLive());
+    }
     let controller!: ReadableStreamDefaultController<Uint8Array>;
     const body = new ReadableStream<Uint8Array>({ start: (c) => void (controller = c) });
     const signal = init.signal as AbortSignal;
     signal.addEventListener("abort", () => controller.error(new DOMException("aborted", "AbortError")));
+    opened.push(url);
     streams.push({
       url,
       init,
@@ -97,6 +104,11 @@ export function createFakeNetwork(liveUrl = "/api/live") {
     lastStream: (): StreamCall => streams.at(-1) as StreamCall,
     onApi(handler: ApiHandler): void {
       state.handler = handler;
+    },
+    opened,
+    /** From now on the live stream does not open: each open is answered `respond()` (an HTTP error). */
+    refuseLive(respond: () => Response): void {
+      state.refuseLive = respond;
     },
   };
 }

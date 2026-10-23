@@ -5,6 +5,12 @@
  * show loose errors, so the SDK reloads the page once and the browser gets the gate's own page (the way back to
  * ERPlora), as an app shows the store's pause page.
  *
+ * A session that ended while the page was open (the Hub's `/internal/sessions/revoke` after a role change or a removal,
+ * a sign-out elsewhere) leaves the same way: once the page had a session, a 401 of the host (`unauthorized`, the
+ * stream's reopening or a call) reloads it, and the reload without a session ends at the way in: the Hub sends it to
+ * the SaaS's sign-in (which comes back with the new role, or says the person has no access any more), the SaaS's
+ * router to its own sign-in. A page that never had one keeps its 401s: they are the page's to show.
+ *
  * Once per page and, across the reloads of a tab (`sessionStorage`), not again within `RELOAD_GUARD_MS`: a page
  * the browser serves without asking the host (a cached shell) would reload forever. The SDK only calls its own
  * origin, so the envelope is the host's.
@@ -26,6 +32,11 @@ export function isHostClosed(error: ApiError): boolean {
   return HOST_CLOSED_CODES.has(error.code);
 }
 
+/** Whether `error` says the page's session is gone: the host's 401, whatever its code. */
+export function isSignedOut(error: ApiError): boolean {
+  return error.status === 401;
+}
+
 export interface HostClosedGuardDeps {
   reload: () => void;
   /** The tab's storage: it outlives the reload. */
@@ -38,6 +49,8 @@ export interface HostClosedGuardDeps {
 export interface HostClosedGuard {
   /** Whether the page is leaving because of `error`: the host no longer serves the app and the page reloads. */
   notice(error: ApiError): boolean;
+  /** Whether the page is leaving because `error` says its session ended (`isSignedOut`): it reloads the same way. */
+  noticeSignedOut(error: ApiError): boolean;
 }
 
 export function createHostClosedGuard(deps: HostClosedGuardDeps): HostClosedGuard {
@@ -61,22 +74,24 @@ export function createHostClosedGuard(deps: HostClosedGuardDeps): HostClosedGuar
     }
   }
 
+  function leave(error: ApiError): boolean {
+    if (reloading) return true;
+    if (refused) return false;
+    const now = deps.wallClock();
+    const last = lastReload();
+    if (last !== undefined && now - last < RELOAD_GUARD_MS) {
+      refused = true;
+      deps.logger.error(`live: the host still answers ${error.code} right after reloading; not reloading again`);
+      return false;
+    }
+    reloading = true;
+    remember(now);
+    deps.reload();
+    return true;
+  }
+
   return {
-    notice(error) {
-      if (!isHostClosed(error)) return false;
-      if (reloading) return true;
-      if (refused) return false;
-      const now = deps.wallClock();
-      const last = lastReload();
-      if (last !== undefined && now - last < RELOAD_GUARD_MS) {
-        refused = true;
-        deps.logger.error(`live: the host still answers ${error.code} right after reloading; not reloading again`);
-        return false;
-      }
-      reloading = true;
-      remember(now);
-      deps.reload();
-      return true;
-    },
+    notice: (error) => isHostClosed(error) && leave(error),
+    noticeSignedOut: (error) => isSignedOut(error) && leave(error),
   };
 }
