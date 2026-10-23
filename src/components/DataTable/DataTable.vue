@@ -1192,6 +1192,7 @@ onUpdated(nameSearchBox);
             <span
               v-else-if="column.filter?.type === 'range' || column.filter?.type === 'daterange'"
               class="data-table__filter-range"
+              :class="{ 'data-table__filter-range--date': column.filter?.type === 'daterange' }"
               role="group"
               :aria-label="column.label"
             >
@@ -2138,6 +2139,9 @@ onUpdated(nameSearchBox);
 @media (min-width: 641px) and (max-width: 1024px) { .data-table__search { flex: 1 1 12rem; max-width: 22rem; } }
 /* #237 - One clear cross: Chromium's native cancel button of `type=search` hidden. Alone in its rule. */
 .data-table__search :deep(input::-webkit-search-cancel-button) { -webkit-appearance: none; appearance: none; display: none; }
+/* The example text ends in «…» where the box is short of it (at 820px it was cut with no sign, measured in
+   Chromium; FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER). */
+.data-table__search :deep(.searchbar-input) { text-overflow: ellipsis; }
 
 /* List/cards switch: Ionic's segment (Ioan, 2026-10-13). An ion-segment is 100% wide by default:
    here it takes only its buttons; icon-only buttons as tall as the toolbar controls. */
@@ -2162,6 +2166,9 @@ onUpdated(nameSearchBox);
 .data-table__filter { min-width: 8.5rem; max-width: 13rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.7rem; --padding-end: 0.5rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem; }
 .data-table__filter-range { display: inline-flex; align-items: center; gap: 0.35rem; }
 .data-table__filter-range .data-table__filter { min-width: 5.5rem; max-width: 7rem; }
+/* A date range's end is as wide as a date field: in a number box the calendar icon covered the last
+   character of «dd/mm/yyyy» (FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER, measured in Chromium). */
+.data-table__filter-range--date .data-table__filter { min-width: 8.75rem; max-width: 8.75rem; }
 .data-table__filters-clear { margin: 0; font-size: 13px; }
 
 /* ── Filters panel (`filterable`) ────────────────────────────────────────────────────────────

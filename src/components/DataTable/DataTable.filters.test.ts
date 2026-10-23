@@ -135,6 +135,25 @@ describe('the filter row', () => {
     expect(to.closest('.data-table__filter-range')).toBe(group);
   });
 
+  it('FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER: a date range’s ends are date boxes, a numeric range’s stay short boxes, their hooks unchanged', async () => {
+    // In the row each end of a date range was as narrow as a number box: the calendar icon covered the last
+    // character of «dd/mm/yyyy» (Hub: Payments › Date at 1440 px). Its group is marked for the date width.
+    const columns = [
+      { key: 'issued', label: 'Issued', filter: { type: 'daterange' } },
+      { key: 'rate', label: 'Rate', filter: { type: 'range' } },
+    ];
+    const t = mountTable({ ...base, columns });
+    await settle();
+    const dates = control(t, 'issued_from').closest('.data-table__filter-range');
+    expect(dates?.classList.contains('data-table__filter-range--date')).toBe(true);
+    expect(control(t, 'issued_to').closest('.data-table__filter-range')).toBe(dates);
+    for (const name of ['issued_from', 'issued_to']) expect((control(t, name) as HTMLElement & { type?: string }).type).toBe('date');
+    const numbers = control(t, 'rate_from').closest('.data-table__filter-range');
+    expect(numbers?.className).toBe('data-table__filter-range');
+    expect(control(t, 'rate_to').closest('.data-table__filter-range')).toBe(numbers);
+    for (const name of ['issued_from', 'issued_to', 'rate_from', 'rate_to']) expect(control(t, name).classList.contains('data-table__filter')).toBe(true);
+  });
+
   it('a day is a date input', async () => {
     const t = mountTable(base);
     await settle();

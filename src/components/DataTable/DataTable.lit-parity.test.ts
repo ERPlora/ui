@@ -270,6 +270,10 @@ const ADDED: Record<string, string> = {
   '.data-table__filters': 'column filters: the row of controls under the toolbar, wrapping (hub-next apps/tax/UI-REQUESTS.md)',
   '.data-table__filter-range': 'column filters: the From and To of a range, side by side',
   '.data-table__filter-range .data-table__filter': 'column filters: each end of a range is a short number box',
+  '.data-table__search :deep(.searchbar-input)':
+    'FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER (rv-ui-29): the search box’s example text ends in «…» where the box is short of it (cut with no sign at 820px, measured in Chromium)',
+  '.data-table__filter-range--date .data-table__filter':
+    'FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER: each end of a date range is as wide as a date field (the calendar icon covered the last character, measured in Chromium)',
   '.data-table__filters-clear': 'column filters: «Clear filters», an ion-chip in the row, at its font size',
   '.data-table__drawer-range > ion-input':
     'FIX-UI-DATATABLE-CLIP: the two ends of a range share the 360px panel (two date fields reached 21px past it, measured in Chromium)',
