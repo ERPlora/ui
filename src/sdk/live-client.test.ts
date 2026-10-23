@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, defineComponent, h } from "vue";
 import {
+  BYE,
   createTestClient,
   errorFrame,
   flush,
@@ -158,6 +159,75 @@ describe("createLiveClient: a host that no longer serves the app", () => {
     const { client, net } = createTestClient({ reload, session: memoryStorage(), wallClock: () => 1 });
     net.onApi(() => Response.json({ error: { code: "app_inactive", message: "Off" } }, { status: 404 }));
     await expect(client.api.call("test.session.me")).rejects.toThrow("Off");
+    expect(reload).not.toHaveBeenCalled();
+    client.close();
+  });
+});
+
+describe("createLiveClient: a session that ended", () => {
+  const signedOut = () => Response.json({ error: { code: "unauthorized", message: "Sign in" } }, { status: 401 });
+
+  it("reloads the page once when the stream of a page with a session reopens without it, and stops", async () => {
+    const reload = vi.fn();
+    const { client, net, goLive, clock } = createTestClient({ reload, session: memoryStorage(), wallClock: () => 1 });
+    client.stream.subscribe("test.item.list", {}, () => {});
+    const call = await goLive();
+    net.refuseLive(signedOut);
+
+    call.push(BYE); // the Hub ended the stream: its session was revoked
+    await flush();
+    await clock.advance(30000);
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(client.stream.status()).toBe("closed");
+    const opens = net.opened.length;
+    await clock.advance(120000);
+    expect(net.opened).toHaveLength(opens);
+    client.close();
+  });
+
+  it("reloads when a command of a page with a session hears it", async () => {
+    const reload = vi.fn();
+    const { client, net, goLive } = createTestClient({ reload, session: memoryStorage(), wallClock: () => 1 });
+    client.stream.subscribe("test.item.list", {}, () => {});
+    await goLive();
+    net.onApi(signedOut);
+
+    await expect(client.api.call("test.item.add_line", { id: "i1", text: "x", client_line_id: "c1" })).rejects.toThrow(
+      "Sign in",
+    );
+    expect(reload).toHaveBeenCalledTimes(1);
+    client.close();
+  });
+
+  it("keeps a page that never had a session as it is: no reload, the stream keeps trying", async () => {
+    const reload = vi.fn();
+    const { client, net, clock } = createTestClient({ reload, session: memoryStorage(), wallClock: () => 1 });
+    net.refuseLive(signedOut);
+    net.onApi(signedOut);
+    client.stream.subscribe("test.item.list", {}, () => {});
+
+    await clock.advance(30000);
+    await expect(client.api.call("test.session.me")).rejects.toThrow("Sign in");
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(net.opened.length).toBeGreaterThan(1);
+    client.close();
+  });
+
+  it("does not reload again right after a reload for it", async () => {
+    const reload = vi.fn();
+    const session = memoryStorage();
+    session.setItem("erplora.live.host-closed-reload", "1");
+    const { client, net, goLive, clock } = createTestClient({ reload, session, wallClock: () => 2 });
+    client.stream.subscribe("test.item.list", {}, () => {});
+    const call = await goLive();
+    net.refuseLive(signedOut);
+
+    call.push(BYE);
+    await flush();
+    await clock.advance(30000);
+
     expect(reload).not.toHaveBeenCalled();
     client.close();
   });

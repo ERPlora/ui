@@ -8,11 +8,13 @@
  * Results feed the optimistic store once per frame, and a new stream (`hello` → `live`) restarts
  * its revisions, so overlays are released by the first fresh result after their command settles.
  * An answer of a host that no longer serves the app, to a call or on the stream, reloads the page once
- * (`host-closed.ts`) and stops the stream.
+ * (`host-closed.ts`) and stops the stream; so does a 401 once the stream has been live (the page had a session and
+ * it ended).
  */
 import { type App, getCurrentInstance, hasInjectionContext, inject, type InjectionKey, provide } from "vue";
 import { type ApiClient, createApiClient } from "./api-client";
 import type { SpaConfig } from "./config";
+import type { ApiError } from "./errors";
 import { createHeaderProvider } from "./headers";
 import { createHostClosedGuard } from "./host-closed";
 import type { OperationRoutes } from "./operations";
@@ -104,6 +106,10 @@ export function createLiveClient(cfg: SpaConfig, overrides: Partial<BrowserDeps>
     wallClock: deps.wallClock,
     logger: deps.logger,
   });
+  // The stream only says hello to a page with a session: from then on a 401 means it ended.
+  let hadSession = false;
+  const leaving = (error: ApiError): boolean =>
+    hostClosed.notice(error) || (hadSession && hostClosed.noticeSignedOut(error));
   const optimistic = createOptimisticStore({
     setTimeout: deps.setTimeout,
     clearTimeout: deps.clearTimeout,
@@ -121,17 +127,19 @@ export function createLiveClient(cfg: SpaConfig, overrides: Partial<BrowserDeps>
     logger: deps.logger,
     random: deps.random,
     onResult: (id, rev) => optimistic.onResult(id, rev),
-    onError: (error) => hostClosed.notice(error),
+    onError: leaving,
   });
   const stopStatus = stream.onStatus((status) => {
-    if (status === "live") optimistic.resetRevisions();
+    if (status !== "live") return;
+    hadSession = true;
+    optimistic.resetRevisions();
   });
   const api = createApiClient({
     fetchImpl: deps.fetchImpl,
     headers,
     apiBase: cfg.apiBase,
     routes,
-    onError: (error) => void hostClosed.notice(error),
+    onError: (error) => void leaving(error),
   });
 
   return {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { memoryStorage } from "./__tests__/live-harness";
 import { ApiError } from "./errors";
-import { createHostClosedGuard, isHostClosed, RELOAD_GUARD_KEY, RELOAD_GUARD_MS } from "./host-closed";
+import { createHostClosedGuard, isHostClosed, isSignedOut, RELOAD_GUARD_KEY, RELOAD_GUARD_MS } from "./host-closed";
 
 const closed = (code: string, status = 402) => new ApiError(status, code, `msg ${code}`);
 
@@ -35,7 +35,40 @@ describe("isHostClosed", () => {
   });
 });
 
+describe("isSignedOut", () => {
+  it("is the host's 401, whatever its code (no session, or the one the page had ended)", () => {
+    expect(isSignedOut(closed("unauthorized", 401))).toBe(true);
+    expect(isSignedOut(closed("base.session_ended", 401))).toBe(true);
+  });
+
+  it.each([
+    ["permission_denied", 403],
+    ["base.hub_suspended", 402],
+    ["unauthorized", 0],
+    ["network_error", 0],
+  ])("is not any other answer (%s, %i)", (code, status) => {
+    expect(isSignedOut(closed(code, status))).toBe(false);
+  });
+});
+
 describe("createHostClosedGuard", () => {
+  it("reloads once for a session that ended, with the same guard as a closed host", () => {
+    const h = setup();
+    expect(h.guard.noticeSignedOut(closed("unauthorized", 401))).toBe(true);
+    expect(h.guard.noticeSignedOut(closed("unauthorized", 401))).toBe(true);
+    expect(h.guard.notice(closed("base.hub_gone", 410))).toBe(true);
+    expect(h.reload).toHaveBeenCalledTimes(1);
+    expect(h.guard.noticeSignedOut(closed("permission_denied", 403))).toBe(false);
+  });
+
+  it("does not reload for a session that ended right after a reload", () => {
+    const session = memoryStorage();
+    session.setItem(RELOAD_GUARD_KEY, String(1_000_000 - 1000));
+    const h = setup(session);
+    expect(h.guard.noticeSignedOut(closed("unauthorized", 401))).toBe(false);
+    expect(h.reload).not.toHaveBeenCalled();
+  });
+
   it("reloads the page once when the host no longer serves the app, so the browser gets the host's page", () => {
     const h = setup();
     expect(h.guard.notice(closed("base.hub_suspended"))).toBe(true);
