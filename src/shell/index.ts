@@ -62,6 +62,16 @@ export type {
   SessionUser,
   ShellSession,
 } from './session';
+export {
+  ANDROID_NOTIFICATIONS,
+  bootNoticeTaps,
+  createNoticeDoor,
+  nativeBridge,
+  NOT_THE_LINKED_HUB,
+  TOLD_KEY,
+  useDeviceNotices,
+} from './device-notices';
+export type { DeviceNotice, NativeBridge, NoticeDoor, NoticeDoorDeps } from './device-notices';
 export { iconName, useMyApps } from './my-apps';
 export type { MyApp } from './my-apps';
 export { provideShellConfig, SHELL_CONFIG_KEY, useShellConfig } from './shell-config';

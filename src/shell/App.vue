@@ -8,7 +8,8 @@
 //   entries whose screen exists, in groups, and no module (they open from «My apps» and Home); the QR
 //   «Open on your phone» in the footer, and the rail the topbar folds it to (sidebar.ts).
 // The project's piece of the footer (`createShell({ chrome: { sidebarFooter } })`, the hub's «Upgrade
-// plan») goes between the QR and the brand, as in the old hub.
+// plan») goes between the QR and the brand, as in the old hub. Its background piece (`chrome.background`,
+// the hub's device notices) is mounted once beside the pane while a person is signed in, keyed on them.
 // Not ported (phase 1 has none of them, or they come later): switch user, app update, the version, and
 // the overlays mounted next to the pane (assistant, elevation, user switch).
 import {
@@ -315,5 +316,10 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
 
       <ion-router-outlet id="main" />
     </ion-split-pane>
+    <component
+      :is="chrome.background"
+      v-if="chrome?.background && user"
+      :key="screenKey"
+    />
   </ion-app>
 </template>

@@ -92,6 +92,12 @@ describe('shell barrel', () => {
     }
   });
 
+  it("exports the device's notices, so a project tells its live rows on the installed app (APPOINTMENT-F28)", () => {
+    expect(shell.useDeviceNotices).toBeTypeOf('function');
+    expect(shell.createNoticeDoor).toBeTypeOf('function');
+    expect(shell.TOLD_KEY).toBe('erplora.notices.told');
+  });
+
   it("exports the apps of «My apps», so a project's Home paints the same list as the launcher (APP-BASE-1)", () => {
     expect(shell.useMyApps).toBeTypeOf('function');
     expect(shell.iconName('people')).toBe('ion:people');

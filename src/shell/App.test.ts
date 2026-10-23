@@ -345,6 +345,37 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     );
   });
 
+  // APPOINTMENT-F28: the project's piece that paints nothing (the hub's device notices) is mounted once, next to
+  // the pane, while a person is signed in — on every screen, its own frame included — and again for the next one.
+  const Listener = { name: 'ProjectListener', render: () => h('i', { class: 'project-listener' }) };
+
+  it("mounts the project's background piece once, beside the pane, on every screen of a signed-in person", async () => {
+    const wrapper = mountApp(undefined, { config: { ...HUB, chrome: { background: Listener } } });
+    expect(wrapper.findAllComponents(Listener)).toHaveLength(1);
+    expect(wrapper.find('ion-split-pane .project-listener').exists()).toBe(false);
+
+    await router.push('/launch');
+    await flushPromises();
+
+    expect(wrapper.findAllComponents(Listener)).toHaveLength(1);
+  });
+
+  it('no background piece without a person signed in, and a new one for the next person', async () => {
+    session.value = me({ user: null });
+    const wrapper = mountApp(undefined, { config: { ...HUB, chrome: { background: Listener } } });
+    expect(wrapper.findComponent(Listener).exists()).toBe(false);
+
+    session.value = me({ user: { id: 'u2', label: 'Luis Gil' } });
+    await flushPromises();
+    const first = wrapper.findComponent(Listener);
+    expect(first.exists()).toBe(true);
+    session.value = me({ user: { id: 'u3', label: 'Marta Ruiz' } });
+    await flushPromises();
+
+    expect(first.exists()).toBe(false);
+    expect(wrapper.findAllComponents(Listener)).toHaveLength(1);
+  });
+
   it('folds to a rail while the topbar says so, and opens again', async () => {
     const wrapper = mountApp(undefined, { config: HUB });
     expect(wrapper.get('ion-split-pane').classes()).not.toContain('rail');
