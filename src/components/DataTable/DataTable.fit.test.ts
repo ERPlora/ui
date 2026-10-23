@@ -376,3 +376,131 @@ describe('no regression: server mode and selection while folded', () => {
     expect(t.emitted('pageChange')).toBeUndefined();
   });
 });
+
+// FIX-UI-DATATABLE-EMAIL-COLUMN-834 (Cart & Checkout › Orders at 834px): every column without its own width took the
+// same share of the row, so a long email was cut («ana@example.c…») beside a half-empty Payment. Each rung of the
+// ladder is now first tried with every column holding its content whole (and sharing what is left, as before); only
+// when that does not fit is the widest text cut, down to the floor, before the ladder gives anything else up. This
+// fake engine sizes the grid from the TEMPLATE the head paints (each track's minimum) and a text from its length.
+describe('a column holds its content whole while the row has room (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+  const CHAR = 8; // px per character of a text
+  const FLOOR = 88; // 5.5rem
+  const EMAIL = 'ana.garcia.lopez@example.com'; // 28 characters: 224px of text, a 225px column
+  const COLUMNS_834 = [
+    { key: 'email', label: 'Email' },
+    { key: 'status', label: 'Status' },
+    { key: 'total', label: 'Total' },
+    { key: 'note', label: 'Note', priority: 'low', width: '12rem' },
+  ];
+  const ROWS_834 = [
+    { id: 'o1', email: EMAIL, status: 'Paid', total: '€25.00', note: 'Gift' },
+    { id: 'o2', email: 'bea@example.com', status: 'Failed', total: '€8.00', note: '' },
+  ];
+  const ACTIONS_834 = [
+    { id: 'pay', label: 'Pay', icon: 'card-outline' },
+    { id: 'fail', label: 'Fail', icon: 'close-outline' },
+  ];
+  // Widths of this table: whole 705 · cut 568 · without Note whole 513, cut 376 · folded whole 473, cut 336.
+  const props834 = { columns: COLUMNS_834, rows: ROWS_834, actions: ACTIONS_834, views: false };
+  const template = (t: Table) => (t.element.querySelector('.data-table__row--head') as HTMLElement).style.gridTemplateColumns;
+
+  /** The minimum a track of the head's template takes, in px. */
+  function trackMin(track: string, scroll: Element): number {
+    const own = track.match(/^minmax\((\d+)px,1fr\)$/);
+    if (own) return Number(own[1]);
+    if (track.startsWith('minmax(5.5rem,')) return FLOOR;
+    const px = track.match(/^(\d+)px$/);
+    if (px) return Number(px[1]);
+    const rem = track.match(/^([\d.]+)rem$/);
+    if (rem) return Number(rem[1]) * 16;
+    if (track === 'max-content') {
+      let buttons = 0;
+      for (const cell of scroll.querySelectorAll('.data-table__row--data .data-table__actions')) {
+        buttons = Math.max(buttons, [...cell.children].filter((el) => el.tagName === 'ION-BUTTON').length);
+      }
+      return buttons * BUTTON;
+    }
+    throw new Error(`the fake engine does not size «${track}»`);
+  }
+
+  beforeEach(() => {
+    const scrollWidth = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollWidth')!.get!;
+    vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
+      if (this.classList.contains('data-table__scroll')) {
+        const head = this.querySelector<HTMLElement>('.data-table__row--head');
+        const tracks = (head?.style.gridTemplateColumns ?? '').split(' ').filter(Boolean);
+        return Math.max(PAD + tracks.reduce((sum, track) => sum + trackMin(track, this), 0), box);
+      }
+      // #217 - An unfolded text wraps to its column: on one line it would be wider than it now says.
+      if (this.classList.contains('data-table__text--unfolded')) return FLOOR;
+      // A text of a data cell or of a header: as wide as its characters, whatever its box.
+      if (this.tagName === 'SPAN' && this.parentElement?.matches('.data-table__cell:not(.data-table__cell--actions)')) {
+        return (this.textContent?.trim().length ?? 0) * CHAR;
+      }
+      return scrollWidth.call(this);
+    });
+  });
+
+  it('with room, the long email keeps its 225px and the rest share what is left, as before', async () => {
+    const t = await mountAt(720, props834);
+    expect(template(t)).toBe('minmax(225px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+    expect(headers(t)).toEqual(['Email', 'Status', 'Total', 'Note']);
+    expect(rowButtons(t)).toEqual(['pay', 'fail']);
+    expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
+  });
+
+  it('out of room, the email gives its width up first; the ladder of before follows, each rung tried whole first', async () => {
+    const t = await mountAt(720, props834);
+
+    await resize(600);
+    expect(template(t), '600: cut, down to the floor; nothing else given up').toBe(
+      'minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px',
+    );
+    expect(headers(t)).toContain('Note');
+    expect(rowButtons(t)).toEqual(['pay', 'fail']);
+
+    await resize(540);
+    expect(headers(t), '540: not even cut: the low column goes').toEqual(['Email', 'Status', 'Total']);
+    expect(template(t), 'and without it the email is whole again').toBe('minmax(225px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 80px');
+
+    await resize(480);
+    expect(template(t), '480: cut again before the actions fold').toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 80px');
+    expect(rowButtons(t)).toEqual(['pay', 'fail']);
+
+    await resize(340);
+    expect(rowButtons(t), '340: folded into «⋮», and cut').toEqual(['menu']);
+    expect(template(t)).toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 40px');
+    expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
+
+    await resize(720);
+    expect(template(t), 'wide again: whole, everything back').toBe('minmax(225px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+    expect(headers(t)).toEqual(['Email', 'Status', 'Total', 'Note']);
+    expect(rowButtons(t)).toEqual(['pay', 'fail']);
+  });
+
+  it('a cut email unfolded by a tap (#217) leaves its column as it was: wrapped, it no longer tells its width', async () => {
+    const t = await mountAt(600, props834);
+    const cut = 'minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px';
+    expect(template(t)).toBe(cut);
+    const email = dataRows(t)[0].querySelector('.data-table__text') as HTMLElement;
+    email.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }));
+    await click(email);
+    expect(email.classList.contains('data-table__text--unfolded')).toBe(true);
+    expect(template(t)).toBe(cut);
+  });
+
+  it('new rows are judged again from the start: shorter ones that fit whole are not left cut', async () => {
+    const t = await mountAt(610, props834);
+    expect(template(t), 'the long email does not fit whole: cut').toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+    // A live update leaves only «bea@example.com» (120px): whole, the list takes 601px of the 610.
+    await t.setProps({ rows: [ROWS_834[1]] });
+    await settle();
+    expect(template(t)).toBe('minmax(121px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+  });
+
+  it('a column with its own width keeps it, and no column cuts a text its floor already holds', async () => {
+    const t = await mountAt(720, { ...props834, rows: [ROWS_834[1]] });
+    // «bea@example.com» is 120px: more than the floor, so it is held whole too; «Failed» and «€8.00» fit the floor.
+    expect(template(t)).toBe('minmax(121px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+  });
+});

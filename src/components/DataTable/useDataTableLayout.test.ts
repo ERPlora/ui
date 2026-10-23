@@ -8,7 +8,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, ref } from 'vue';
 
 import type { DataTableView } from './types';
-import { decideCardsForFit, decideFitLevel, decideRowActionsFit, useDataTableLayout } from './useDataTableLayout';
+import {
+  columnNeed,
+  decideCardsForFit,
+  decideFitLevel,
+  decideRowActionsFit,
+  ladderLength,
+  ladderRung,
+  nextNeeds,
+  sameNeeds,
+  useDataTableLayout,
+} from './useDataTableLayout';
 
 // ── decideRowActionsFit (#122) ────────────────────────────────────────────────────────────────
 
@@ -170,6 +180,74 @@ describe('decideFitLevel: the list gives up one step at a time, judged by its bo
 
 const FOLDED_MIN = 748;
 const idle = { fitCards: false, fitWidth: 0 };
+
+// ── ladderRung / columnNeed (FIX-UI-DATATABLE-EMAIL-COLUMN-834) ─────────────────────────────────
+// Cart & Checkout › Orders at 834px cut «ana@example.c…» beside a half-empty Payment: before giving anything up,
+// each step of the ladder is tried with every column whole, and only then with the widest text cut.
+describe('ladderRung: each step of the ladder is first tried with every column whole (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+  it('no column needs more than its floor: the ladder of before, nothing cut', () => {
+    expect([0, 1, 2, 3].map((level) => ladderRung(level, false))).toEqual([
+      { base: 0, clipped: false },
+      { base: 1, clipped: false },
+      { base: 2, clipped: false },
+      { base: 3, clipped: false },
+    ]);
+    expect(ladderLength(3, false)).toBe(3);
+  });
+  it('one does: whole, then cut, before each step gives anything else up; the top is the fold cut', () => {
+    expect([0, 1, 2, 3, 4, 5, 6].map((level) => ladderRung(level, true))).toEqual([
+      { base: 0, clipped: false },
+      { base: 0, clipped: true },
+      { base: 1, clipped: false },
+      { base: 1, clipped: true },
+      { base: 2, clipped: false },
+      { base: 2, clipped: true },
+      { base: 3, clipped: false },
+    ]);
+    expect(ladderLength(3, true)).toBe(7);
+    expect(ladderLength(0, true), 'a table with nothing to fold can still cut').toBe(1);
+  });
+});
+
+describe('columnNeed: what a column asks beyond its floor (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+  it('content within the floor asks nothing; wider, its width rounded up plus a pixel of slack', () => {
+    expect(columnNeed(0, 88)).toBe(0);
+    expect(columnNeed(80, 88)).toBe(0);
+    expect(columnNeed(88, 88)).toBe(0);
+    expect(columnNeed(203.2, 88)).toBe(205);
+    expect(columnNeed(Number.NaN, 88), 'nothing measured').toBe(0);
+  });
+});
+
+// Measured in Chrome (Cart & Checkout › Orders at 834px): a text its box cuts reads its whole width rounded
+// (`scrollWidth`, 448) and the same text held whole reads it with its fraction (448.4): 449 one rung, 450 the
+// next. Taken as a change, each rung started the ladder again and the list never settled.
+describe('sameNeeds: a pixel of subpixel text is the same column (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+  it('needs within 2px of the ones on screen change nothing', () => {
+    expect(sameNeeds({ email: 450, name: 0 }, { email: 449, name: 0 })).toBe(true);
+    expect(sameNeeds({ email: 447 }, { email: 449 })).toBe(true);
+  });
+  it('a column that starts or stops needing more than its floor, or grows by more, is a change', () => {
+    expect(sameNeeds({ email: 89 }, { email: 0 })).toBe(false);
+    expect(sameNeeds({ email: 0 }, { email: 89 })).toBe(false);
+    expect(sameNeeds({ email: 205 }, {})).toBe(false);
+    expect(sameNeeds({ email: 453 }, { email: 449 })).toBe(false);
+  });
+});
+
+// Measured in Chrome (Time clock › Records at 834px): «Worked» paints its time in a box that wraps when the
+// column is cut, so cut it read 88px (asks nothing) and whole 94px: each reading started the ladder again, Vue
+// stopped the loop («Maximum recursive updates») and the list stayed scrolled sideways under its actions.
+describe('nextNeeds: with the same rows a need only grows (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+  it('the same rows: what a cut column reads is never taken over what it read whole', () => {
+    expect(nextNeeds({ worked: 94, email: 205 }, { worked: 0, email: 205 }, true)).toEqual({ worked: 94, email: 205 });
+    expect(nextNeeds({ worked: 94 }, { worked: 120 }, true)).toEqual({ worked: 120 });
+  });
+  it('other rows are measured afresh; a column the rung hides keeps what it asked', () => {
+    expect(nextNeeds({ worked: 94, email: 205 }, { email: 121 }, false)).toEqual({ worked: 94, email: 121 });
+    expect(nextNeeds({}, { email: 121 }, false)).toEqual({ email: 121 });
+  });
+});
 
 describe('decideCardsForFit: the list hands over to cards only when it cannot fit (#267)', () => {
   it('folded and still overflowing -> cards, remembering the width the list needs (host extras included)', () => {
