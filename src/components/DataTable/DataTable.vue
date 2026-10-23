@@ -1196,6 +1196,8 @@ onUpdated(nameSearchBox);
                 {{ option.label }}
               </ion-select-option>
             </ion-select>
+            <!-- A range is headed by its column, «Total  From  To»: its ends alone said only «From» / «To», and a
+                 date box paints «dd/mm/yyyy», never a placeholder. The group already names it for assistive tech. -->
             <span
               v-else-if="column.filter?.type === 'range' || column.filter?.type === 'daterange'"
               class="data-table__filter-range"
@@ -1203,6 +1205,10 @@ onUpdated(nameSearchBox);
               role="group"
               :aria-label="column.label"
             >
+              <span
+                class="data-table__filter-range-label"
+                aria-hidden="true"
+              >{{ column.label }}</span>
               <ion-input
                 v-for="{ name, hint, named } in rangeEnds(column)"
                 :key="name"
@@ -2176,6 +2182,9 @@ onUpdated(nameSearchBox);
 /* A date range's end is as wide as a date field: in a number box the calendar icon covered the last
    character of «dd/mm/yyyy» (FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER, measured in Chromium). */
 .data-table__filter-range--date .data-table__filter { min-width: 8.75rem; max-width: 8.75rem; }
+/* The column heading a range in the row, on one line: a long one ends in «…», never cut with no sign
+   (FIX-UI-DATATABLE-RANGE-FILTER-LABELS). */
+.data-table__filter-range-label { flex: 0 1 auto; min-width: 0; max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--color-muted); }
 .data-table__filters-clear { margin: 0; font-size: 13px; }
 
 /* ── Filters panel (`filterable`) ────────────────────────────────────────────────────────────

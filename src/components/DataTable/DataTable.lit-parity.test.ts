@@ -274,6 +274,8 @@ const ADDED: Record<string, string> = {
     'FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER (rv-ui-29): the search box’s example text ends in «…» where the box is short of it (cut with no sign at 820px, measured in Chromium)',
   '.data-table__filter-range--date .data-table__filter':
     'FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER: each end of a date range is as wide as a date field (the calendar icon covered the last character, measured in Chromium)',
+  '.data-table__filter-range-label':
+    'FIX-UI-DATATABLE-RANGE-FILTER-LABELS: the column heading a range in the row (its ends alone said only «From» / «To»; the Lit inline date range had no name on screen either)',
   '.data-table__filters-clear': 'column filters: «Clear filters», an ion-chip in the row, at its font size',
   '.data-table__drawer-range > ion-input':
     'FIX-UI-DATATABLE-CLIP: the two ends of a range share the 360px panel (two date fields reached 21px past it, measured in Chromium)',

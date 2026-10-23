@@ -922,3 +922,84 @@ describe('`filterFields`: filters with no column', () => {
     expect(byTestId(row, 'rules-filters')).toHaveLength(1);
   });
 });
+
+// ── FIX-UI-DATATABLE-RANGE-FILTER-LABELS: in the filter row the other filters read as their column («Order»,
+// «Status»), but a range's two ends only said «From» / «To»: nobody could tell what they filter, and two ranges in
+// one list (an invoice's Total and Date) looked the same. The column now heads its pair on screen, in a range and in
+// a date range (whose date boxes paint «dd/mm/yyyy», never a placeholder), as Shopify and Odoo name a range filter
+// by its field. The panel already titles each range with its column: «From» / «To» stay there, said once.
+describe('FIX-UI-DATATABLE-RANGE-FILTER-LABELS: a range says its column on screen', () => {
+  const RANGES = [
+    { key: 'order', label: 'Order', filter: { type: 'text' } },
+    { key: 'total', label: 'Total', filter: { type: 'range', amount: true } },
+    { key: 'issued', label: 'Issued', filter: { type: 'daterange' } },
+  ];
+  const ranges = { rows: [], columns: RANGES, testid: 'rules', pageSizeOptions: [] };
+  const group = (t: ReturnType<typeof mountTable>, end: string) => control(t, end).closest('[role="group"]') as HTMLElement;
+  const hint = (t: ReturnType<typeof mountTable>, end: string) => (control(t, end) as HTMLElement & { placeholder?: string }).placeholder;
+  /** The visible text of a range's group (its ends are boxes with no text of their own). */
+  const heading = (t: ReturnType<typeof mountTable>, end: string) => [...group(t, end).children].filter((child) => child.localName !== 'ion-input');
+
+  it('(a) in the row each pair is headed by its column, before its ends, which keep «From» / «To»', async () => {
+    const t = mountTable(ranges);
+    await settle();
+    for (const [column, from, to] of [['Total', 'total_from', 'total_to'], ['Issued', 'issued_from', 'issued_to']]) {
+      expect(text(group(t, from))).toBe(column);
+      const [label] = heading(t, from);
+      expect(text(label)).toBe(column);
+      // Read before the ends: «Total  From  To».
+      expect(group(t, from).firstElementChild).toBe(label);
+      expect(group(t, to)).toBe(group(t, from));
+      expect(hint(t, from)).toBe('From');
+      expect(hint(t, to)).toBe('To');
+    }
+    // Two ranges in one list no longer read the same.
+    expect(text(group(t, 'total_from'))).not.toBe(text(group(t, 'issued_from')));
+  });
+
+  it('(a) in Spanish: the column the page gives, then «Desde» / «Hasta»', async () => {
+    const columns = RANGES.map((column) => ({ ...column, label: { order: 'Pedido', total: 'Total', issued: 'Fecha' }[column.key] }));
+    const t = mountTable({ ...ranges, columns }, { locale: 'es' });
+    await settle();
+    expect(text(group(t, 'total_from'))).toBe('Total');
+    expect(text(group(t, 'issued_from'))).toBe('Fecha');
+    expect([hint(t, 'issued_from'), hint(t, 'issued_to')]).toEqual(['Desde', 'Hasta']);
+  });
+
+  it('(b) a date range shows its column although its ends are date boxes (no placeholder painted)', async () => {
+    const t = mountTable(ranges);
+    await settle();
+    for (const end of ['issued_from', 'issued_to']) expect((control(t, end) as HTMLElement & { type?: string }).type).toBe('date');
+    const [label] = heading(t, 'issued_from');
+    expect(label?.localName).not.toBe('ion-input');
+    expect(text(label)).toBe('Issued');
+    // The date width of ui#29 and the hooks stay.
+    expect(group(t, 'issued_from').classList.contains('data-table__filter-range--date')).toBe(true);
+    expect(byTestId(t, 'rules-filter-issued_from')).toHaveLength(1);
+    expect(byTestId(t, 'rules-filter-issued_to')).toHaveLength(1);
+  });
+
+  it('(c) the panel keeps its column title once, and «From» / «To» in its ends', async () => {
+    const t = mountTable({ ...ranges, filterable: true }, { attachTo: document.body });
+    await settle();
+    expect(byTestId(t, 'rules-filters')).toHaveLength(0);
+    await click(byTestId(t, 'rules-filters-toggle')[0]);
+    for (const [column, from, to] of [['Total', 'total_from', 'total_to'], ['Issued', 'issued_from', 'issued_to']]) {
+      expect(text(group(t, from))).toBe(column);
+      expect(heading(t, from).filter((child) => text(child).includes(column))).toHaveLength(1);
+      expect([hint(t, from), hint(t, to)]).toEqual(['From', 'To']);
+    }
+  });
+
+  it('(d) the accessible names stay: the group is its column, each end «<column>: from|to», the heading is read once', async () => {
+    const t = mountTable(ranges);
+    await settle();
+    for (const [column, from, to] of [['Total', 'total_from', 'total_to'], ['Issued', 'issued_from', 'issued_to']]) {
+      expect(group(t, from).getAttribute('aria-label')).toBe(column);
+      expect(control(t, from).getAttribute('aria-label')).toBe(`${column}: from`);
+      expect(control(t, to).getAttribute('aria-label')).toBe(`${column}: to`);
+      // The group already says its column: its visible heading is hidden from assistive tech.
+      for (const label of heading(t, from)) expect(label.getAttribute('aria-hidden')).toBe('true');
+    }
+  });
+});

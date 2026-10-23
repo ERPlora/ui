@@ -438,6 +438,16 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
     expect(STYLE.indexOf('.data-table__filter-range--date .data-table__filter {')).toBeGreaterThan(STYLE.indexOf('.data-table__filter-range .data-table__filter {'));
   });
 
+  it('FIX-UI-DATATABLE-RANGE-FILTER-LABELS: the column that heads a range in the filter row stays on one line, ends in «…» if it must, and leaves its ends as they were', () => {
+    // A longer column name may push the pair to a line of its own (the row wraps), never split it nor cut it with no
+    // sign; the widths of the ends (ui#29) do not move.
+    expect(rule('.data-table__filter-range-label')).toBe(
+      'flex: 0 1 auto; min-width: 0; max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--color-muted);',
+    );
+    expect(rule('.data-table__filter-range--date .data-table__filter')).toBe('min-width: 8.75rem; max-width: 8.75rem;');
+    expect(rule('.data-table__filter-range .data-table__filter')).toBe('min-width: 5.5rem; max-width: 7rem;');
+  });
+
   it('FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER (rv-ui-29): the search box’s example text ends in «…» where the box is short of it; its widths stay', () => {
     // From 641 to 1024 px the box shrinks to leave room for the toolbar: at 820 px «Search reference or
     // beneficiary…» (251px) had 206px and was cut with no sign, «…benefic» (measured in Chromium, Hub: Payments).
