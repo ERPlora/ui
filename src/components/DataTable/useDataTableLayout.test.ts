@@ -15,6 +15,7 @@ import {
   decideRowActionsFit,
   ladderLength,
   ladderRung,
+  nextNeeds,
   sameNeeds,
   useDataTableLayout,
 } from './useDataTableLayout';
@@ -231,6 +232,20 @@ describe('sameNeeds: a pixel of subpixel text is the same column (FIX-UI-DATATAB
     expect(sameNeeds({ email: 0 }, { email: 89 })).toBe(false);
     expect(sameNeeds({ email: 205 }, {})).toBe(false);
     expect(sameNeeds({ email: 453 }, { email: 449 })).toBe(false);
+  });
+});
+
+// Measured in Chrome (Time clock › Records at 834px): «Worked» paints its time in a box that wraps when the
+// column is cut, so cut it read 88px (asks nothing) and whole 94px: each reading started the ladder again, Vue
+// stopped the loop («Maximum recursive updates») and the list stayed scrolled sideways under its actions.
+describe('nextNeeds: with the same rows a need only grows (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+  it('the same rows: what a cut column reads is never taken over what it read whole', () => {
+    expect(nextNeeds({ worked: 94, email: 205 }, { worked: 0, email: 205 }, true)).toEqual({ worked: 94, email: 205 });
+    expect(nextNeeds({ worked: 94 }, { worked: 120 }, true)).toEqual({ worked: 120 });
+  });
+  it('other rows are measured afresh; a column the rung hides keeps what it asked', () => {
+    expect(nextNeeds({ worked: 94, email: 205 }, { email: 121 }, false)).toEqual({ worked: 94, email: 121 });
+    expect(nextNeeds({}, { email: 121 }, false)).toEqual({ email: 121 });
   });
 });
 

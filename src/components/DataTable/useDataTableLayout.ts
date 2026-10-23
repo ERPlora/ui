@@ -122,6 +122,20 @@ export function sameNeeds(next: Readonly<Record<string, number>>, before: Readon
   });
 }
 
+/** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The needs after a measurement (`measured`, the columns on screen). With
+ *  the same rows a need only grows: a text that wraps when its column is cut reads narrower then, and taken as
+ *  true the column would flip between whole and cut forever. Other rows are measured afresh. A column the rung
+ *  hides keeps what it asked. PURE. */
+export function nextNeeds(
+  before: Readonly<Record<string, number>>,
+  measured: Readonly<Record<string, number>>,
+  sameRows: boolean,
+): Record<string, number> {
+  const next: Record<string, number> = { ...before };
+  for (const [key, need] of Object.entries(measured)) next[key] = sameRows ? Math.max(before[key] ?? 0, need) : need;
+  return next;
+}
+
 /** Input of `decideCardsForFit`. */
 export interface CardsForFitInput {
   /** Cards are declared and nothing else owns the view (no choice by hand, no phone, no
@@ -177,6 +191,9 @@ export interface DataTableLayoutSource {
   /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The list's columns in the order they are painted: the key of one sized
    *  by its content, `null` for one with its own width (never measured). */
   columnKeys?: () => readonly (string | null)[];
+  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The rows shown, by identity: the same ones refreshed keep what their
+   *  columns asked (`nextNeeds`). */
+  rowsKey?: () => string;
   /** Identities whose change invalidates the fold decision (columns, actions, choice, selection). */
   deps: () => unknown[];
   /** What the list's width depends on, by content (#267): equal shapes keep the cards. */
@@ -220,6 +237,8 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   let fitDecidedAtWidth = -1;
   let fitCardsWidth = 0;
   let fitShape = source.shape();
+  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The rows `contentWidths` was last measured on. */
+  let measuredRows: string | undefined;
   /** A state was written that the DOM does not show yet (Lit's `isUpdatePending`). */
   let renderPending = false;
   let settleQueued = false;
@@ -352,20 +371,21 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     const scroll = scrollEl();
     const keys = source.columnKeys?.() ?? [];
     if (!scroll || !(scroll.clientWidth > 0) || !keys.some((key) => key !== null)) return;
-    // #217 - An unfolded cell wraps to its column: what it needs on one line was measured before the tap.
-    if (scroll.querySelector('.data-table__text--unfolded')) return;
     const headers = [...scroll.querySelectorAll<HTMLElement>(HEAD_CELLS)];
     // Painted from other columns (a render on its way): measured once it lands.
     if (headers.length !== keys.length) return;
     const rows = [...scroll.querySelectorAll<HTMLElement>(DATA_ROWS)].map((row) => [...row.querySelectorAll<HTMLElement>(DATA_CELLS)]);
     const floor = 5.5 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
-    const next: Record<string, number> = { ...contentWidths.value };
+    const measured: Record<string, number> = {};
     keys.forEach((key, index) => {
       if (key === null) return;
       let natural = naturalCellWidth(headers[index]);
       for (const cells of rows) if (cells[index]) natural = Math.max(natural, naturalCellWidth(cells[index]));
-      next[key] = columnNeed(natural, floor);
+      measured[key] = columnNeed(natural, floor);
     });
+    const rowsKey = source.rowsKey?.() ?? '';
+    const next = nextNeeds(contentWidths.value, measured, rowsKey === measuredRows);
+    measuredRows = rowsKey;
     if (sameNeeds(next, contentWidths.value)) return;
     fitDecidedAtWidth = -1;
     write(contentWidths, next);

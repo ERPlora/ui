@@ -385,6 +385,7 @@ const layout = useDataTableLayout({
   fitSteps: () => fitSteps.value,
   clipKeys: () => visibleColumns.value.filter((c) => c.width == null).map((c) => c.key),
   columnKeys: () => listColumns.value.map((c) => (c.width == null ? c.key : null)),
+  rowsKey: () => pager.value.visible.map((row) => keyOf(row)).join('\u241f'),
   deps: () => [props.columns, props.actions, columnChoice.value, props.selectable, props.maxInlineActions, fitStepsKey.value],
   shape: () =>
     JSON.stringify([
