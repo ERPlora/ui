@@ -219,6 +219,32 @@ describe('gridTemplate (#120, #121)', () => {
   });
 });
 
+// FIX-UI-DATATABLE-EMAIL-COLUMN-834 (Cart & Checkout › Orders at 834px): every column without its own width
+// took the same share of the row, so «ana@example.c…» was cut beside a half-empty Payment. A column whose
+// content needs more than the floor gets it while the row has room; out of room, it gives its width up first.
+describe('gridTemplate fits a column to what its content needs (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+  const cols = [col({ key: 'email' }), col({ key: 'n', width: '8rem' }), col({ key: 'total' })];
+  const needs = { email: 204, n: 300 };
+  it('with room: the column holds its content whole and still shares what is left, as before', () => {
+    expect(gridTemplate({ selectable: false, columns: cols, hasActions: true, actionsTrackPx: 80, contentWidths: needs })).toBe(
+      'minmax(204px,1fr) 8rem minmax(5.5rem,1fr) 80px',
+    );
+  });
+  it('out of room (`clipped`): it may shrink to the floor, and grows no further than its content', () => {
+    expect(
+      gridTemplate({ selectable: true, columns: cols, hasActions: true, actionsTrackPx: 80, contentWidths: needs, clipped: true }),
+    ).toBe('2.75rem minmax(5.5rem,204px) 8rem minmax(5.5rem,1fr) 80px');
+  });
+  it('a column with its own width, one that fits its floor and one not measured yet keep the share of before', () => {
+    expect(gridTemplate({ selectable: false, columns: cols, hasActions: false, actionsTrackPx: 0, contentWidths: { email: 0 } })).toBe(
+      'minmax(5.5rem,1fr) 8rem minmax(5.5rem,1fr)',
+    );
+    expect(gridTemplate({ selectable: false, columns: cols, hasActions: false, actionsTrackPx: 0, clipped: true })).toBe(
+      'minmax(5.5rem,1fr) 8rem minmax(5.5rem,1fr)',
+    );
+  });
+});
+
 describe('cardTitleColumn (outfitkit#205)', () => {
   const cols = [col({ key: 'code' }), col({ key: 'name' }), col({ key: 'currency' })];
   const row = { code: 'L1', name: 'Tarifa mayorista 1', currency: 'EUR' };

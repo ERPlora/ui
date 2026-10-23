@@ -8,6 +8,8 @@
 //   - W-19 (ERPlora UX-AUDIT-3) the same, as a LADDER judged by the table's own box: the `low`
 //     columns go first, then the actions beyond `maxInlineActions`, then all but the pinned ones;
 //   - #267 the list handed over to cards when it does not fit even folded;
+//   - FIX-UI-DATATABLE-EMAIL-COLUMN-834 (erplora-next) each rung of that ladder tried first with every column
+//     holding its content whole, and only then with the widest text cut;
 //   - #218 `fill`: is there content in flow after the table?
 // Everything measured runs after each render and on resize, and only writes a state when it
 // CHANGES, so a measurement never schedules a render loop.
@@ -90,6 +92,25 @@ export function decideRowActionsFit(input: RowActionsFitInput): RowActionsFitDec
   return { collapsed: next.level > 0, decidedAtWidth: next.decidedAtWidth };
 }
 
+/** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - A rung of the ladder: how many of its steps are given up (`base`) and
+ *  whether the columns may cut their text to fit (`clipped`). With `clip` (a column needs more than its floor)
+ *  every step is first tried with each column whole, then cut: whole, cut, step 1 whole, step 1 cut… Without
+ *  it the ladder is the one of before and nothing is held whole. PURE. */
+export function ladderRung(level: number, clip: boolean): { base: number; clipped: boolean } {
+  return clip ? { base: Math.floor(level / 2), clipped: level % 2 === 1 } : { base: level, clipped: false };
+}
+
+/** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The top rung of a ladder of `steps` steps (see `ladderRung`). */
+export function ladderLength(steps: number, clip: boolean): number {
+  return clip ? 2 * steps + 1 : steps;
+}
+
+/** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The px a column asks for to hold its content whole: nothing while its
+ *  floor holds it; beyond, its measured width rounded up, plus a pixel of slack for subpixel text. PURE. */
+export function columnNeed(natural: number, floor: number): number {
+  return natural > floor ? Math.ceil(natural) + 1 : 0;
+}
+
 /** Input of `decideCardsForFit`. */
 export interface CardsForFitInput {
   /** Cards are declared and nothing else owns the view (no choice by hand, no phone, no
@@ -139,6 +160,12 @@ export interface DataTableLayoutSource {
   hasActions: () => boolean;
   /** W-19 - The table's ladder, in order. Default: `['foldAll']` (the #122 fold alone). */
   fitSteps?: () => readonly DataTableFitStep[];
+  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The visible columns sized by their content, those a rung hides too: one
+   *  that asks for more than its floor (`contentWidths`) makes every rung be tried whole first (`ladderRung`). */
+  clipKeys?: () => readonly string[];
+  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The list's columns in the order they are painted: the key of one sized
+   *  by its content, `null` for one with its own width (never measured). */
+  columnKeys?: () => readonly (string | null)[];
   /** Identities whose change invalidates the fold decision (columns, actions, choice, selection). */
   deps: () => unknown[];
   /** What the list's width depends on, by content (#267): equal shapes keep the cards. */
@@ -147,6 +174,9 @@ export interface DataTableLayoutSource {
 }
 
 const SCROLL = ':scope > .data-table__surface > .data-table__scroll';
+const HEAD_CELLS = ':scope > .data-table__grid > .data-table__row--head > [role=columnheader]:not(.data-table__cell--actions)';
+const DATA_ROWS = ':scope > .data-table__grid > .data-table__row--data';
+const DATA_CELLS = ':scope > [role=cell]:not(.data-table__cell--actions)';
 const ACTION_BOXES = '.data-table__row--data > .data-table__cell--actions > .data-table__actions';
 const HEAD_ACTIONS = '.data-table__row--head > .data-table__cell--actions';
 
@@ -156,11 +186,18 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   const xOverflow = ref(false);
   const actionsTrackPx = ref(0);
   const actionsLabelFits = ref(true);
-  /** W-19 - Steps of the ladder applied (0 = the whole list). */
+  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - px each column sized by its content asks for, by key (`columnNeed`;
+   *  0 = its floor holds it). Kept for a column the rung hides: its text did not change. */
+  const contentWidths = ref<Readonly<Record<string, number>>>({});
+  /** W-19 - Rung of the ladder on screen (0 = the whole list; `ladderRung` reads it). */
   const fitLevel = ref(0);
   const fitSteps = (): readonly DataTableFitStep[] => source.fitSteps?.() ?? ['foldAll'];
+  const clip = computed(() => (source.clipKeys?.() ?? []).some((key) => (contentWidths.value[key] ?? 0) > 0));
+  const rung = computed(() => ladderRung(fitLevel.value, clip.value));
   /** Is `step` given up right now? */
-  const fitApplied = (step: DataTableFitStep): boolean => fitSteps().slice(0, fitLevel.value).includes(step);
+  const fitApplied = (step: DataTableFitStep): boolean => fitSteps().slice(0, rung.value.base).includes(step);
+  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The columns may cut their text: the rung whole did not fit. */
+  const columnsClipped = computed(() => rung.value.clipped);
   const lowColumnsHidden = computed(() => fitApplied('hideLow'));
   const extraActionsFolded = computed(() => fitApplied('foldExtra'));
   const rowActionsCollapsed = computed(() => fitApplied('foldAll'));
@@ -273,11 +310,16 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
    *  `scrollWidth` never counts — the track stayed at the box's width and labelled buttons covered
    *  the column before them (SaaS Billing at 1440px). */
   function naturalActionsWidth(box: HTMLElement): number {
+    return sideBySide(box, outerWidth);
+  }
+
+  /** The children of a box side by side: `widthOf` each, the gaps between them and the box's inline padding. */
+  function sideBySide(box: HTMLElement, widthOf: (child: Element) => number): number {
     const style = getComputedStyle(box);
     let sum = 0;
     let laidOut = 0;
     for (const child of Array.from(box.children)) {
-      const width = outerWidth(child);
+      const width = widthOf(child);
       if (width <= 0) continue;
       sum += width;
       laidOut += 1;
@@ -285,6 +327,40 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     if (laidOut === 0) return 0;
     const gap = parseFloat(style.columnGap) || 0;
     return sum + gap * (laidOut - 1) + (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+  }
+
+  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - Width a cell's content takes on one line: a text its box cuts counts
+   *  whole (`scrollWidth`), whatever the column is given right now. */
+  const naturalCellWidth = (cell: HTMLElement): number =>
+    sideBySide(cell, (child) => outerWidth(child) + Math.max(0, child.scrollWidth - child.getBoundingClientRect().width));
+
+  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - What each column sized by its content asks for: its header and every
+   *  row shown, on one line. Written only when it changes, and then the ladder is judged again from the start
+   *  (the rung on screen was decided for other columns). `true` when it wrote. */
+  function measureContentWidths(): boolean {
+    const scroll = scrollEl();
+    const keys = source.columnKeys?.() ?? [];
+    if (!scroll || !(scroll.clientWidth > 0) || !keys.some((key) => key !== null)) return false;
+    // #217 - An unfolded cell wraps to its column: what it needs on one line was measured before the tap.
+    if (scroll.querySelector('.data-table__text--unfolded')) return false;
+    const headers = [...scroll.querySelectorAll<HTMLElement>(HEAD_CELLS)];
+    // Painted from other columns (a render on its way): measured once it lands.
+    if (headers.length !== keys.length) return false;
+    const rows = [...scroll.querySelectorAll<HTMLElement>(DATA_ROWS)].map((row) => [...row.querySelectorAll<HTMLElement>(DATA_CELLS)]);
+    const floor = 5.5 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
+    const next: Record<string, number> = { ...contentWidths.value };
+    keys.forEach((key, index) => {
+      if (key === null) return;
+      let natural = naturalCellWidth(headers[index]);
+      for (const cells of rows) if (cells[index]) natural = Math.max(natural, naturalCellWidth(cells[index]));
+      next[key] = columnNeed(natural, floor);
+    });
+    const before = contentWidths.value;
+    if (Object.keys(next).every((key) => next[key] === before[key])) return false;
+    fitDecidedAtWidth = -1;
+    write(contentWidths, next);
+    write(fitLevel, 0);
+    return true;
   }
 
   /** #121 - Natural width of the widest row's buttons (they never shrink: `flex: 0 0 auto`). */
@@ -332,7 +408,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     }
     const containerWidth = scroll.clientWidth;
     const contentWidth = scroll.scrollWidth;
-    const steps = fitSteps().length;
+    const steps = ladderLength(fitSteps().length, clip.value);
     const atTop = fitLevel.value >= steps;
     const foldedOnScreen = atTop && fitDecidedAtWidth === containerWidth && !renderPending && pinnedTrackIsHonest();
     const next = decideFitLevel({
@@ -429,6 +505,8 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     measureXOverflow();
     measureActionsTrack();
     measureActionsLabel();
+    // FIX-UI-DATATABLE-EMAIL-COLUMN-834 - New widths repaint the columns: the ladder measures what they paint.
+    if (measureContentWidths()) return;
     measureRowActionsFit();
   }
 
@@ -467,6 +545,8 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     rowActionsCollapsed,
     lowColumnsHidden,
     extraActionsFolded,
+    columnsClipped,
+    contentWidths,
     fitCards,
     contentAfter,
   };

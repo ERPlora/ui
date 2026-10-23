@@ -306,11 +306,24 @@ export function gridTemplate<T>(input: {
   columns: readonly DataTableColumn<T>[];
   hasActions: boolean;
   actionsTrackPx: number;
+  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - px a column without its own width asks for to hold its content whole,
+   *  by key (0 or missing = its floor holds it, or not measured yet). */
+  contentWidths?: Readonly<Record<string, number>>;
+  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The row has no room for every column whole: they may cut their text. */
+  clipped?: boolean;
 }): string {
+  const track = (c: DataTableColumn<T>): string => {
+    if (c.width != null) return c.width;
+    const need = input.contentWidths?.[c.key] ?? 0;
+    // #120 - 5.5rem (88px) is the narrowest a data column stays readable.
+    if (!(need > 0)) return 'minmax(5.5rem,1fr)';
+    // FIX-UI-DATATABLE-EMAIL-COLUMN-834 - Whole while the row has room, sharing what is left as before; cut,
+    // down to the floor and never past its content (the widest text gives its width up first).
+    return input.clipped ? `minmax(5.5rem,${need}px)` : `minmax(${need}px,1fr)`;
+  };
   return [
     input.selectable ? '2.75rem' : null,
-    // #120 - 5.5rem (88px) is the narrowest a data column stays readable.
-    ...input.columns.map((c) => c.width ?? 'minmax(5.5rem,1fr)'),
+    ...input.columns.map(track),
     // #121 - A LENGTH, not `max-content`: header and rows are separate grids sharing this string, and
     // a content-sized track resolves against each one's content (the header slid off its columns).
     // `max-content` only until the first measurement of the buttons lands.

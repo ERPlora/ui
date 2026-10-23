@@ -383,6 +383,8 @@ const layout = useDataTableLayout({
   defaultView: () => props.defaultView,
   hasActions: () => hasActions.value,
   fitSteps: () => fitSteps.value,
+  clipKeys: () => visibleColumns.value.filter((c) => c.width == null).map((c) => c.key),
+  columnKeys: () => listColumns.value.map((c) => (c.width == null ? c.key : null)),
   deps: () => [props.columns, props.actions, columnChoice.value, props.selectable, props.maxInlineActions, fitStepsKey.value],
   shape: () =>
     JSON.stringify([
@@ -402,6 +404,8 @@ const {
   rowActionsCollapsed,
   lowColumnsHidden,
   extraActionsFolded,
+  columnsClipped,
+  contentWidths,
   contentAfter,
 } = layout;
 /** W-19 - The list's columns: the visible ones, minus the yielding ones while the box hides them. */
@@ -668,6 +672,8 @@ const template = computed(() =>
     columns: listColumns.value,
     hasActions: hasActions.value,
     actionsTrackPx: actionsTrackPx.value,
+    contentWidths: contentWidths.value,
+    clipped: columnsClipped.value,
   }),
 );
 
