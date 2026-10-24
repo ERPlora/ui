@@ -32,9 +32,11 @@ describe('global.css: Ionic hosts Tailwind’s preflight must not reset', () => 
     expect(baseRule('ion-badge')).toBe('padding: revert-layer;');
   });
 
-  // Only the padding: preflight's `margin: 0` keeps Ionic's 4px chip margin off, as each row of chips sets its gap.
-  it('ion-chip keeps its padding, and only that (FIX-UI-SHELL-ION-CHIP-PADDING-WIPED-BY-PREFLIGHT: measured 0px, text against the edge)', () => {
-    expect(baseRule('ion-chip')).toBe('padding: revert-layer;');
+  // Only the sides: Ionic's 6px on top and below made a chip with its 40px remove button 52px tall (40px on main),
+  // while a chip of text is Ionic's 32px `min-height` either way. Preflight's `margin: 0` keeps Ionic's 4px chip
+  // margin off, as each row of chips sets its gap.
+  it('ion-chip keeps its side padding, and only that (FIX-UI-SHELL-ION-CHIP-PADDING-WIPED-BY-PREFLIGHT: measured 0px, text against the edge)', () => {
+    expect(baseRule('ion-chip')).toBe('padding-inline: revert-layer;');
   });
 });
 
