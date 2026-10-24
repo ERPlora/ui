@@ -31,6 +31,7 @@
     "billing": "Mi plan",
     "apps": "Apps",
     "system": "Sistema",
+    "api": "API",
     "settings": "Ajustes"
   },
   "installQr": {
