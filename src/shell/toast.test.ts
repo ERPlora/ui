@@ -2,7 +2,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { present, create, dismiss } = vi.hoisted(() => {
   const present = vi.fn();
-  return { present, create: vi.fn(async () => ({ present })), dismiss: vi.fn() };
+  // Each toast its own element: `present`, `dismiss` (it resolves its `onDidDismiss`) and `onDidDismiss`.
+  const create = vi.fn(async (options: { message: string }) => {
+    let closed: (value: unknown) => void = () => {};
+    const gone = new Promise((resolve) => (closed = resolve));
+    return {
+      message: options.message,
+      present,
+      dismiss: vi.fn(async () => {
+        closed({});
+        return true;
+      }),
+      onDidDismiss: () => gone,
+    };
+  });
+  return { present, create, dismiss: vi.fn() };
 });
 vi.mock('@ionic/vue', () => ({ toastController: { create, dismiss } }));
 
@@ -66,6 +80,47 @@ describe('toast', () => {
     document.documentElement.lang = 'fr';
     await toastInfo('Info');
     expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ buttons: [{ text: 'OK', role: 'cancel' }] }));
+  });
+
+  // Two notices in a row never cover each other (Material's snackbar, Ionic's toasts at one position): the new one
+  // closes the one on screen first, so only the last is seen, whole.
+  it('a new toast closes the one on screen before it shows', async () => {
+    await toastError('Could not upload “setup.exe”');
+    const first = await create.mock.results.at(-1)!.value;
+    await toastSuccess('Files uploaded.');
+    const second = await create.mock.results.at(-1)!.value;
+    expect(first.dismiss).toHaveBeenCalledTimes(1);
+    expect(second.dismiss).not.toHaveBeenCalled();
+    expect(first.dismiss.mock.invocationCallOrder[0]).toBeLessThan(present.mock.invocationCallOrder.at(-1)!);
+  });
+
+  it('a toast closed by its button or its time is not closed again by the next', async () => {
+    await toastSuccess('Saved');
+    const first = await create.mock.results.at(-1)!.value;
+    await first.dismiss();
+    first.dismiss.mockClear();
+    await toastSuccess('Saved again');
+    expect(first.dismiss).not.toHaveBeenCalled();
+  });
+
+  it('a toast whose creation answers after a newer one never covers it', async () => {
+    const impl = create.getMockImplementation()!;
+    let release: () => void = () => {};
+    const late = new Promise<void>((resolve) => (release = resolve));
+    create.mockImplementationOnce(async (options) => {
+      await late;
+      return impl(options);
+    });
+    const first = toastError('Older');
+    await toastSuccess('Newer');
+    present.mockClear();
+    release();
+    await first;
+    // The older one is never shown, and the newer one stays on screen.
+    expect(present).not.toHaveBeenCalled();
+    const [older, newer] = await Promise.all(create.mock.results.slice(-2).map((result) => result.value));
+    expect([older.message, newer.message]).toEqual(['Older', 'Newer']);
+    expect(newer.dismiss).not.toHaveBeenCalled();
   });
 
   it('dismissToast returns false instead of throwing when the toast is gone', async () => {

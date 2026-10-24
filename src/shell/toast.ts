@@ -2,8 +2,9 @@
 // listened on `window` for the CSV events of OutfitKit's Web Components table, which is gone
 // (PLAN §16.11).
 // Global action feedback (success / error / info). Centralises what every page used to reinvent
-// with its own `<ion-toast>` (Apps/Files/System). It uses Ionic's imperative `toastController`:
-// it queues and stacks on its own, no `<ion-toast>` in any template.
+// with its own `<ion-toast>` (Apps/Files/System). It uses Ionic's imperative `toastController`, no
+// `<ion-toast>` in any template. One notice at a time, like Material's snackbar: Ionic paints every toast
+// at the same place, so a new one closes the one on screen first and two never cover each other.
 import { toastController } from '@ionic/vue';
 
 import { shellText } from './i18n';
@@ -37,12 +38,16 @@ function painted(el: HTMLElement): boolean {
   return typeof el.checkVisibility === 'function' ? el.checkVisibility() : el.getClientRects().length > 0;
 }
 
+/** The toast on screen, and which call asked for it: a call answered late never covers a newer notice. */
+let onScreen: { toast: HTMLIonToastElement; order: number } | undefined;
+let asked = 0;
+
 /**
  * Shows a global toast, above the bottom bar of the screen when it has one ({@link toastAnchor}).
  * `duration` in ms (0 = sticky, closed by its button, labelled in the language of the page:
  * `toast.close` of the shell catalogue). `id` names it so
  * {@link dismissToast} can withdraw it once what it says stops being true. `action` adds a button
- * that runs its handler (and closes the toast).
+ * that runs its handler (and closes the toast). The toast on screen, if any, is closed first (one at a time).
  */
 export async function toast(
   message: string,
@@ -51,6 +56,7 @@ export async function toast(
   id?: string,
   action?: ToastAction,
 ): Promise<void> {
+  const order = ++asked;
   const anchor = toastAnchor();
   const t = await toastController.create({
     message,
@@ -64,6 +70,13 @@ export async function toast(
     ],
     ...(id ? { id } : {}),
   });
+  if (onScreen && onScreen.order > order) return;
+  const previous = onScreen?.toast;
+  onScreen = { toast: t, order };
+  void t.onDidDismiss().then(() => {
+    if (onScreen?.toast === t) onScreen = undefined;
+  });
+  if (previous) await previous.dismiss().catch(() => false);
   await t.present();
 }
 
