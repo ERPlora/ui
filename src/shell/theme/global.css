@@ -20,7 +20,14 @@
    measured 30.8 × 11.5 px with padding 0, text against the pill's edge; its `:host` padding (the
    `--padding-*` that polish.css sets) comes back. Here and not in polish.css: that sheet loads
    BEFORE this one, and a `base` block there would declare `base` ahead of Tailwind's
-   `theme, base, components, utilities` order. */
+   `theme, base, components, utilities` order.
+   Same reset, same cure for the sides of `ion-chip` (FIX-UI-SHELL-ION-CHIP-PADDING-WIPED-BY-PREFLIGHT):
+   a service of «New appointment» and the table's «Clear filters» measured padding 0, the text against
+   the pill's edge, and Inventory's categories carried a padding of their own; Ionic's 12px (both
+   modes) comes back on each side. Not its 6px on top and below: a chip of text is Ionic's 32px
+   `min-height` either way, and a chip with its 40px remove button grew from 40 to 52px, nearly the
+   56px of its field. Preflight's `margin: 0` keeps Ionic's 4px margin off, as each row of chips sets
+   its own gap. A component's own rule still wins: it is not layered. */
 @layer base {
   ion-title.md {
     padding: revert-layer;
@@ -28,6 +35,10 @@
 
   ion-badge {
     padding: revert-layer;
+  }
+
+  ion-chip {
+    padding-inline: revert-layer;
   }
 
   /* Same reset, same cure for the icon of a button: preflight's `margin: 0` beat ion-button's
