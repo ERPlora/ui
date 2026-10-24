@@ -126,6 +126,7 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
         content-id="main"
         type="overlay"
         class="dash-menu"
+        :aria-label="t('menu.label')"
       >
         <ion-header class="ion-no-border">
           <ion-toolbar class="brand-toolbar">
