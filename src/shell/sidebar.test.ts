@@ -59,6 +59,18 @@ describe('sidebarGroups', () => {
   it('is empty when no entry has a screen', () => {
     expect(sidebarGroups(router, { groups: [[item('files', '/files')], [item('system', '/system')]] })).toEqual([]);
   });
+
+  // APP-BASE-5: an entry may say when it shows (`visible`): the person may open its screen, or a setting
+  // is on. What does not show goes like a missing screen, and so does a group left empty.
+  it('drops an entry its predicate hides, and a group left without entries', () => {
+    const hidden = new Set(['employees', 'settings']);
+    const groups = sidebarGroups(
+      router,
+      { groups: [[item('home', '/'), item('employees', '/employees')], [item('settings', '/settings')]] },
+      (entry) => !hidden.has(entry.id),
+    );
+    expect(groups).toEqual([[item('home', '/')]]);
+  });
 });
 
 describe('railCollapsed', () => {

@@ -42,6 +42,9 @@ describe('ION_ICONS (registered with addIcons by createShell)', () => {
       'hardware-chip-outline',
       'settings-outline',
       'qr-code-outline',
+      // Employees' tabs (APP-BASE-5, the old hub's): «Roles» and «Approvals».
+      'shield-checkmark-outline',
+      'finger-print-outline',
     ]) {
       expect(ION_ICONS, name).toHaveProperty(name);
     }

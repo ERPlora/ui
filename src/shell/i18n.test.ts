@@ -38,6 +38,7 @@ describe('shell catalogues', () => {
       'notices.primerHeader',
       'notices.primerLater',
       'notices.primerMessage',
+      'sidebar.api',
       'sidebar.apps',
       'sidebar.billing',
       'sidebar.employees',

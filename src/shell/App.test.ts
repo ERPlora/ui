@@ -10,7 +10,7 @@ import App from './App.vue';
 import HubIcon from './HubIcon.vue';
 import { createShellI18n } from './i18n';
 import { resolveIcon } from './icons';
-import { SESSION_KEY, createShellSession, type SessionMe, type SessionStatus } from './session';
+import { SESSION_KEY, createShellSession, type SessionMe, type SessionStatus, useSession } from './session';
 import { type ShellConfig, SHELL_CONFIG_KEY } from './shell-config';
 import { railCollapsed, type ShellSidebar, type ShellSidebarItem } from './sidebar';
 import SidebarInstallQr from './SidebarInstallQr.vue';
@@ -285,6 +285,48 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
       ['separator'],
     ]);
     expect(groups.map((list) => list.element.firstElementChild?.tagName.toLowerCase())).toEqual(['ion-list-header', 'ion-list-header']);
+  });
+
+  // APP-BASE-5: `visible` is a composable the shell runs once in its setup (so it may read the session or a live
+  // query); the entry shows and goes with its value, live, and a group it leaves empty goes too.
+  it('an entry with `visible` shows and goes with it, live; its composable runs once and reads the session', async () => {
+    const shown = ref(false);
+    let runs = 0;
+    const sidebar: ShellSidebar = {
+      groups: [
+        [
+          entry('employees', '/employees', 'ion:people-outline'),
+          {
+            ...entry('docs', '/settings', 'ion:code-slash-outline'),
+            visible: () => {
+              runs += 1;
+              return shown;
+            },
+          },
+        ],
+        [
+          {
+            ...entry('settings', '/settings', 'ion:settings-outline'),
+            visible: () => {
+              const people = useSession();
+              return () => people.can('base.administer_hub');
+            },
+          },
+        ],
+      ],
+    };
+    const wrapper = mountApp(undefined, { config: { ...HUB, sidebar } });
+    const ids = () => wrapper.findAll('ion-item.nav-item').map((i) => i.attributes('data-testid'));
+    expect(ids()).toEqual(['nav-home', 'nav-employees']);
+    expect(wrapper.findAll('.nav-section-label')).toHaveLength(1);
+    shown.value = true;
+    session.value = me({ permissions: ['base.administer_hub'] });
+    await flushPromises();
+    expect(ids()).toEqual(['nav-home', 'nav-employees', 'nav-docs', 'nav-settings']);
+    shown.value = false;
+    await flushPromises();
+    expect(ids()).toEqual(['nav-home', 'nav-employees', 'nav-settings']);
+    expect(runs).toBe(1);
   });
 
   it('Home without a group to share: alone, under its divider, and no divider left hanging', () => {

@@ -31,6 +31,7 @@
     "billing": "My plan",
     "apps": "Apps",
     "system": "System",
+    "api": "API",
     "settings": "Settings"
   },
   "installQr": {

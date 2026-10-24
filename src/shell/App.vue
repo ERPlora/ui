@@ -34,7 +34,7 @@ import { useRoute, useRouter } from 'vue-router';
 import HubIcon from './HubIcon.vue';
 import { useSession } from './session';
 import { useChromeVisible, useShellConfig } from './shell-config';
-import { railCollapsed, type ShellSidebarItem, sidebarGroups } from './sidebar';
+import { railCollapsed, type ShellSidebarItem, useSidebarGroups } from './sidebar';
 import SidebarInstallQr from './SidebarInstallQr.vue';
 import { useSurface } from './surface';
 import UserMenuPopover from './UserMenuPopover.vue';
@@ -77,13 +77,14 @@ const HOME_ITEM: ShellSidebarItem = { id: 'home', labelKey: 'home.title', icon: 
 
 /**
  * The hub's sidebar, as it can be painted: Home first (with the shell's Home on) and only the entries
- * whose screen exists. The routes are fixed from boot, so this is read once.
+ * whose screen exists and whose `visible` lets them through, followed live (a setting turned on, the
+ * person's permissions).
  */
 const platformGroups = sidebar
-  ? sidebarGroups(router, {
+  ? useSidebarGroups(router, {
       groups: home ? [[HOME_ITEM, ...(sidebar.groups[0] ?? [])], ...sidebar.groups.slice(1)] : sidebar.groups,
     })
-  : [];
+  : computed((): ShellSidebarItem[][] => []);
 
 /** The menu sends `set:name` of any registered set (HubIcon paints them all); a bare name is Ionicons. */
 const iconName = (icon: string): string => (icon.includes(':') ? icon : `ion:${icon}`);

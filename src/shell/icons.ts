@@ -118,6 +118,9 @@ import {
   playCircleOutline,
   checkmarkDoneOutline,
   pricetag,
+  // Employees' tabs (APP-BASE-5, the old hub's): «Roles» and «Approvals».
+  shieldCheckmarkOutline,
+  fingerPrintOutline,
 } from 'ionicons/icons';
 import lucideArrowLeft from '~icons/lucide/arrow-left';
 import lucideCamera from '~icons/lucide/camera';
@@ -264,6 +267,8 @@ export const ION_ICONS: Readonly<Record<string, string>> = Object.freeze({
   'play-circle-outline': playCircleOutline,
   'checkmark-done-outline': checkmarkDoneOutline,
   pricetag,
+  'shield-checkmark-outline': shieldCheckmarkOutline,
+  'finger-print-outline': fingerPrintOutline,
 });
 
 /** `<svg …>` → the data URL format of ionicons' own icons, which `ion-icon` parses inline. */
