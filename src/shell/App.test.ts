@@ -276,6 +276,14 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(labels('es')).toEqual(['Inicio', 'Empleados', 'Ajustes']);
   });
 
+  // Without a name of its own, Ionic 8 names the menu's navigation landmark «menu» in every language:
+  // a screen reader announced it in English to a person who reads Spanish.
+  it('names the side menu in the language of the person, not with the «menu» Ionic puts', () => {
+    const name = (locale: string) => mountApp(undefined, { config: HUB, locale }).get('ion-menu').attributes('aria-label');
+    expect(name('en')).toBe('Main menu');
+    expect(name('es')).toBe('Menú principal');
+  });
+
   // The old hub (menu-toggle-*.png): a line under the person and one between the two groups, the
   // headers of its «General» and «Account» without their words.
   it('a divider opens each group: under the person, and between the two', () => {

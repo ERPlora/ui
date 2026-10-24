@@ -25,6 +25,9 @@
     "openFailed": "No se ha podido abrir {app}. Comprueba la conexión e inténtalo de nuevo.",
     "retry": "Reintentar"
   },
+  "menu": {
+    "label": "Menú principal"
+  },
   "sidebar": {
     "employees": "Empleados",
     "files": "Archivos",

@@ -28,6 +28,7 @@ describe('shell catalogues', () => {
       'launcher.openFailed',
       'launcher.retry',
       'launcher.title',
+      'menu.label',
       'notFound.action',
       'notFound.body',
       'notFound.title',

@@ -25,6 +25,9 @@
     "openFailed": "Could not open {app}. Check the connection and try again.",
     "retry": "Retry"
   },
+  "menu": {
+    "label": "Main menu"
+  },
   "sidebar": {
     "employees": "Employees",
     "files": "Files",
