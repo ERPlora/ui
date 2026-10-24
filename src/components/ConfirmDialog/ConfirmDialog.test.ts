@@ -261,6 +261,20 @@ describe('ConfirmDialog: type the name to confirm (`requireText`)', () => {
     expect(disabled(confirmButton(wrapper))).toBe(true);
   });
 
+  it('hands the page what was typed, as typed (`v-model:typed`), for a server that checks it again', async () => {
+    const seen: string[] = [];
+    const wrapper = mountDialog({ ...props, 'onUpdate:typed': (value: string) => seen.push(value) } as Partial<Props>);
+    await settle();
+    await type(input(), '  panadería  LÓPEZ ');
+    await click(confirmButton(wrapper));
+    expect(wrapper.emitted('confirm')).toHaveLength(1);
+    expect(seen.at(-1)).toBe('  panadería  LÓPEZ ');
+    await wrapper.setProps({ open: false });
+    await wrapper.setProps({ open: true });
+    await settle();
+    expect(seen.at(-1)).toBe('');
+  });
+
   it('the input is labelled («Confirmation» by default, or the page\'s «Business name»)', async () => {
     const byDefault = mountDialog(props, {}, 'es');
     await settle();
