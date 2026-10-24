@@ -6,7 +6,9 @@
 //
 // An entry shows only when its screen exists — a route registered in the router — so the menu never
 // links to the 404 nor promises a «coming soon»: an entry appears by itself once its screen arrives.
-import { shallowRef } from 'vue';
+// And only when its `visible` says so (APP-BASE-5): the person may open its screen, or a setting is on —
+// the conventional menu (Square, Toast) never offers what the person cannot open.
+import { computed, type ComputedRef, type MaybeRefOrGetter, shallowRef, toValue } from 'vue';
 import type { Router } from 'vue-router';
 
 import { NOT_FOUND_ROUTE } from './router';
@@ -20,6 +22,11 @@ export interface ShellSidebarItem {
   icon: string;
   /** Route it opens. */
   to: string;
+  /**
+   * When it shows, besides its screen existing: a composable the shell calls once, in its setup (so it may use
+   * `useSession()` or `useLive()`), whose value, read live, says whether it does. Without it, it shows.
+   */
+  visible?: () => MaybeRefOrGetter<boolean>;
 }
 
 export interface ShellSidebar {
@@ -39,9 +46,25 @@ function hasScreen(router: Router, path: string): boolean {
   return target.matched.length > 0 && target.name !== NOT_FOUND_ROUTE.name;
 }
 
-/** The groups with only the entries whose screen exists; a group left empty goes too. */
-export function sidebarGroups(router: Router, sidebar: ShellSidebar): ShellSidebarItem[][] {
+/** The groups with only the entries whose screen exists and that `shown` lets through; a group left empty goes too. */
+export function sidebarGroups(
+  router: Router,
+  sidebar: ShellSidebar,
+  shown: (item: ShellSidebarItem) => boolean = () => true,
+): ShellSidebarItem[][] {
   return sidebar.groups
-    .map((group) => group.filter((item) => hasScreen(router, item.to)))
+    .map((group) => group.filter((item) => hasScreen(router, item.to) && shown(item)))
     .filter((group) => group.length > 0);
+}
+
+/** From a setup: runs each entry's `visible` once, and gives the groups as they can be painted, live. */
+export function useSidebarGroups(router: Router, sidebar: ShellSidebar): ComputedRef<ShellSidebarItem[][]> {
+  const visibility = new Map<ShellSidebarItem, MaybeRefOrGetter<boolean>>();
+  for (const item of sidebar.groups.flat()) if (item.visible) visibility.set(item, item.visible());
+  return computed(() =>
+    sidebarGroups(router, sidebar, (item) => {
+      const visible = visibility.get(item);
+      return visible === undefined || toValue(visible);
+    }),
+  );
 }
