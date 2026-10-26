@@ -13,6 +13,7 @@ import {
   TEST_CONFIG,
   TEST_ROUTES,
 } from "./__tests__/live-harness";
+import { ApiError } from "./errors";
 import { createLiveClient, LIVE_CLIENT_KEY, provideLiveClient, useLiveClient, type LiveClient } from "./live-client";
 
 // Node ≥ 25 defines its own `localStorage` (undefined without --localstorage-file), which hides
@@ -197,6 +198,28 @@ describe("createLiveClient: a session that ended", () => {
       "Sign in",
     );
     expect(reload).toHaveBeenCalledTimes(1);
+    client.close();
+  });
+
+  it.each([
+    ["reauthentication_required", "Confirm it's you: enter your password again.", { flows: ["reauthenticate"], providers: [] }],
+    ["base.approval_refused", "Those details do not approve this.", {}],
+  ])("keeps a page with a session when a command is asked for more (%s): the caller gets it", async (code, message, more) => {
+    const reload = vi.fn();
+    const { client, net, goLive } = createTestClient({ reload, session: memoryStorage(), wallClock: () => 1 });
+    client.stream.subscribe("test.item.list", {}, () => {});
+    await goLive();
+    net.onApi(() => Response.json({ error: { code, message, ...more } }, { status: 401 }));
+
+    const refused = await client.api
+      .call("test.item.add_line", { id: "i1", text: "x", client_line_id: "c1" })
+      .catch((error: unknown) => error);
+
+    expect(refused).toBeInstanceOf(ApiError);
+    const { status, code: got, details } = refused as ApiError;
+    expect({ status, code: got, details }).toEqual({ status: 401, code, details: more });
+    expect(reload).not.toHaveBeenCalled();
+    expect(client.stream.status()).toBe("live");
     client.close();
   });
 
