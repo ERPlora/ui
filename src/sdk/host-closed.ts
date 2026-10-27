@@ -35,6 +35,8 @@ export const SESSION_CHALLENGE_CODES: ReadonlySet<string> = new Set([
   "base.approval_refused",
   // The Hub: a wrong PIN at its PIN pad.
   "base.pin_incorrect",
+  // The Hub: a badge that opens nothing at its PIN pad.
+  "base.badge_unknown",
 ]);
 /** A tab reloaded for it less than this long ago does not reload again. */
 export const RELOAD_GUARD_MS = 30000;

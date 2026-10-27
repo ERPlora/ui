@@ -57,6 +57,8 @@ describe("isSignedOut", () => {
     "base.approval_refused",
     // The Hub: a wrong PIN at its PIN pad.
     "base.pin_incorrect",
+    // The Hub: a badge that opens nothing at its PIN pad.
+    "base.badge_unknown",
   ])("is not a 401 that asks the live session for something (%s): the caller shows it", (code) => {
     expect(isSignedOut(closed(code, 401))).toBe(false);
   });
