@@ -2,6 +2,8 @@
 // AppsLauncher — the topbar's door to the apps (with the hub's sidebar, the old hub's ⠿): a button that
 // opens the «My apps» sheet, one tile per app of `useMyApps` (the same list as the Home grid). A
 // tile opens its app and closes the sheet; an app that is not on yet says so and opens nothing.
+// With the shell's Home on (the hub) «Home» goes first, whatever state the list is in: a screen of an app has no
+// Back (PLAN-MIGRATIONS §16), so this sheet is the way out of an app and that way is never missing.
 // The app's page is a lazy chunk: when it fails to load (a flaky network, hub#2489 / hub#2325) the
 // launcher says which app, with a Retry that loads its page afresh; never silent.
 import {
@@ -15,17 +17,20 @@ import {
 } from '@ionic/vue';
 import { computed, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import EmptyState from '../components/EmptyState/EmptyState.vue';
 import HubIcon from './HubIcon.vue';
 import { type MyApp, useMyApps } from './my-apps';
 import { useSession } from './session';
+import { useShellConfig } from './shell-config';
 import { toast } from './toast';
 
 const { t } = useI18n();
 const router = useRouter();
+const route = useRoute();
 const { me, status } = useSession();
+const { home, homePath } = useShellConfig();
 const apps = useMyApps();
 
 const isOpen = shallowRef(false);
@@ -37,6 +42,11 @@ const view = computed<'apps' | 'empty' | 'loading' | 'error'>(() => {
 const stateText = (app: MyApp): string | undefined =>
   app.state === 'on' ? undefined : t(`home.state.${app.state}`);
 const tileLabel = (app: MyApp): string => [app.name, stateText(app)].filter(Boolean).join(', ');
+
+function goHome(): void {
+  isOpen.value = false;
+  void router.push(homePath);
+}
 
 async function open(app: MyApp): Promise<void> {
   const path = app.path;
@@ -98,38 +108,59 @@ async function open(app: MyApp): Promise<void> {
     </ion-header>
     <div class="apps-launcher-body">
       <ul
-        v-if="view === 'apps'"
+        v-if="home || view === 'apps'"
         class="apps-launcher-grid"
       >
-        <li
-          v-for="app in apps"
-          :key="app.id"
-        >
+        <li v-if="home">
           <button
             type="button"
             class="apps-launcher-app"
-            data-testid="apps-launcher-app"
-            :title="app.name"
-            :aria-label="tileLabel(app)"
-            :disabled="!app.path"
-            @click="open(app)"
+            data-testid="apps-launcher-home"
+            :title="t('home.title')"
+            :aria-label="t('home.title')"
+            :aria-current="route.path === homePath ? 'page' : undefined"
+            @click="goHome"
           >
             <span class="apps-launcher-tile">
               <HubIcon
-                :name="app.icon"
+                name="ion:home-outline"
                 aria-hidden="true"
               />
             </span>
-            <span class="apps-launcher-name">{{ app.name }}</span>
-            <span
-              v-if="stateText(app)"
-              class="apps-launcher-state"
-            >{{ stateText(app) }}</span>
+            <span class="apps-launcher-name">{{ t('home.title') }}</span>
           </button>
         </li>
+        <template v-if="view === 'apps'">
+          <li
+            v-for="app in apps"
+            :key="app.id"
+          >
+            <button
+              type="button"
+              class="apps-launcher-app"
+              data-testid="apps-launcher-app"
+              :title="app.name"
+              :aria-label="tileLabel(app)"
+              :disabled="!app.path"
+              @click="open(app)"
+            >
+              <span class="apps-launcher-tile">
+                <HubIcon
+                  :name="app.icon"
+                  aria-hidden="true"
+                />
+              </span>
+              <span class="apps-launcher-name">{{ app.name }}</span>
+              <span
+                v-if="stateText(app)"
+                class="apps-launcher-state"
+              >{{ stateText(app) }}</span>
+            </button>
+          </li>
+        </template>
       </ul>
       <EmptyState
-        v-else-if="view === 'empty'"
+        v-if="view === 'empty'"
         icon="apps-outline"
         :heading="t('home.empty.title')"
         :message="t('home.empty.body')"
@@ -144,7 +175,7 @@ async function open(app: MyApp): Promise<void> {
         {{ t('launcher.error') }}
       </p>
       <p
-        v-else
+        v-else-if="view === 'loading'"
         class="apps-launcher-message"
         role="status"
         data-testid="apps-launcher-loading"

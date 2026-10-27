@@ -12,6 +12,7 @@ import AppsLauncher from './AppsLauncher.vue';
 import HubIcon from './HubIcon.vue';
 import { createShellI18n } from './i18n';
 import { createShellSession, SESSION_KEY, type SessionMe, type SessionStatus } from './session';
+import { SHELL_CONFIG_KEY, type ShellConfig } from './shell-config';
 
 function me(overrides: Partial<SessionMe> = {}): SessionMe {
   return {
@@ -55,12 +56,17 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function mountLauncher(data: SessionMe | null = me(), status: SessionStatus = 'live', locale = 'en') {
+function mountLauncher(
+  data: SessionMe | null = me(),
+  status: SessionStatus = 'live',
+  locale = 'en',
+  config: ShellConfig = { homePath: '/' },
+) {
   const session = ref<SessionMe | undefined>(data ?? undefined);
   const wrapper = mount(AppsLauncher, {
     global: {
       plugins: [router, createShellI18n({ locale })],
-      provide: { [SESSION_KEY as symbol]: createShellSession(session, ref(status)) },
+      provide: { [SESSION_KEY as symbol]: createShellSession(session, ref(status)), [SHELL_CONFIG_KEY as symbol]: config },
       stubs: { IonModal: IonModalStub },
     },
   });
@@ -240,6 +246,74 @@ describe('AppsLauncher: an app whose page fails to load (hub#2489)', () => {
     await flushPromises();
     expect(assign).toHaveBeenCalledWith('/sale/tickets');
     vi.unstubAllGlobals();
+    wrapper.unmount();
+  });
+});
+
+// FIX-HUB-BASE-APPS-BUTTON-AND-ANDROID-BACK-FROM-APP-ROOT (BASE-F05): a screen of an app has no Back (PLAN-MIGRATIONS
+// §16), so the way out of an app is this sheet; with the shell's Home on (the hub) its first entry is «Home», before
+// the apps and whatever state the list is in, so the way out is never missing.
+describe('AppsLauncher: «Home» first, the way out of an app (the hub)', () => {
+  const HUB: ShellConfig = { homePath: '/', home: true };
+  const home = (wrapper: Wrapper) => sheet(wrapper).find('[data-testid="apps-launcher-home"]');
+
+  it('the first entry of the sheet is «Home», with the menu\'s icon, then the apps', async () => {
+    const { wrapper } = mountLauncher(me(), 'live', 'en', HUB);
+    await open(wrapper);
+    const entries = sheet(wrapper).findAll('.apps-launcher-app');
+    expect(entries[0].attributes('data-testid')).toBe('apps-launcher-home');
+    expect(entries.slice(1).map((entry) => entry.attributes('data-testid'))).toEqual(Array(3).fill('apps-launcher-app'));
+    expect(home(wrapper).get('.apps-launcher-name').text()).toBe('Home');
+    expect(home(wrapper).attributes('aria-label')).toBe('Home');
+    expect(home(wrapper).getComponent(HubIcon).props('name')).toBe('ion:home-outline');
+    expect(unnamedButtons(wrapper.element)).toEqual([]);
+    wrapper.unmount();
+  });
+
+  it('says «Inicio» in Spanish', async () => {
+    const { wrapper } = mountLauncher(me(), 'live', 'es', HUB);
+    await open(wrapper);
+    expect(home(wrapper).get('.apps-launcher-name').text()).toBe('Inicio');
+    wrapper.unmount();
+  });
+
+  it('«Home» goes Home and closes the sheet', async () => {
+    const { wrapper } = mountLauncher(me(), 'live', 'en', HUB);
+    await open(wrapper);
+    await home(wrapper).trigger('click');
+    await flushPromises();
+    expect(router.currentRoute.value.path).toBe('/');
+    expect(tiles(wrapper)).toHaveLength(0);
+    expect(trigger(wrapper).attributes('aria-expanded')).toBe('false');
+    wrapper.unmount();
+  });
+
+  it('on Home itself it says so (the current page)', async () => {
+    await router.push('/');
+    const { wrapper } = mountLauncher(me(), 'live', 'en', HUB);
+    await open(wrapper);
+    expect(home(wrapper).attributes('aria-current')).toBe('page');
+    wrapper.unmount();
+  });
+
+  it('«Home» is there with no apps, while they load and when they could not be read', async () => {
+    for (const [data, status, state] of [
+      [me({ apps: [] }), 'live', 'apps-launcher-empty'],
+      [null, 'loading', 'apps-launcher-loading'],
+      [null, 'error', 'apps-launcher-error'],
+    ] as const) {
+      const { wrapper } = mountLauncher(data, status, 'en', HUB);
+      await open(wrapper);
+      expect(home(wrapper).exists(), status).toBe(true);
+      expect(sheet(wrapper).find(`[data-testid="${state}"]`).exists(), status).toBe(true);
+      wrapper.unmount();
+    }
+  });
+
+  it('without the shell\'s Home (the SaaS) there is no «Home» entry', async () => {
+    const { wrapper } = mountLauncher();
+    await open(wrapper);
+    expect(home(wrapper).exists()).toBe(false);
     wrapper.unmount();
   });
 });
