@@ -49,6 +49,19 @@ describe("isSignedOut", () => {
   ])("is not any other answer (%s, %i)", (code, status) => {
     expect(isSignedOut(closed(code, status))).toBe(false);
   });
+
+  it.each([
+    // The SaaS: a sensitive command wants a recent sign-in (allauth's reauthentication); the panel asks for it.
+    "reauthentication_required",
+    // The Hub: the manager's name and PIN that were to approve an action do not approve it.
+    "base.approval_refused",
+    // The Hub: a wrong PIN at its PIN pad.
+    "base.pin_incorrect",
+    // The Hub: a badge that opens nothing at its PIN pad.
+    "base.badge_unknown",
+  ])("is not a 401 that asks the live session for something (%s): the caller shows it", (code) => {
+    expect(isSignedOut(closed(code, 401))).toBe(false);
+  });
 });
 
 describe("createHostClosedGuard", () => {
@@ -59,6 +72,13 @@ describe("createHostClosedGuard", () => {
     expect(h.guard.notice(closed("base.hub_gone", 410))).toBe(true);
     expect(h.reload).toHaveBeenCalledTimes(1);
     expect(h.guard.noticeSignedOut(closed("permission_denied", 403))).toBe(false);
+  });
+
+  it("keeps the page for a 401 that asks the live session for something", () => {
+    const h = setup();
+    expect(h.guard.noticeSignedOut(closed("reauthentication_required", 401))).toBe(false);
+    expect(h.reload).not.toHaveBeenCalled();
+    expect(h.session.getItem(RELOAD_GUARD_KEY)).toBeNull();
   });
 
   it("does not reload for a session that ended right after a reload", () => {

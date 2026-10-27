@@ -9,7 +9,11 @@
  * a sign-out elsewhere) leaves the same way: once the page had a session, a 401 of the host (`unauthorized`, the
  * stream's reopening or a call) reloads it, and the reload without a session ends at the way in: the Hub sends it to
  * the SaaS's sign-in (which comes back with the new role, or says the person has no access any more), the SaaS's
- * router to its own sign-in. A page that never had one keeps its 401s: they are the page's to show.
+ * router to its own sign-in. A page that never had one keeps its 401s: they are the page's to show. Neither does a
+ * 401 with which the host asks the live session for something (`SESSION_CHALLENGE_CODES`: a recent sign-in, the
+ * manager's approval, the PIN): the session is still there, and the error goes back to whoever called, which asks
+ * for it in a dialog without leaving the page (the panel's «Confirm it's you», as GitHub's sudo mode or Google's and
+ * Stripe's reauthentication do).
  *
  * Once per page and, across the reloads of a tab (`sessionStorage`), not again within `RELOAD_GUARD_MS`: a page
  * the browser serves without asking the host (a cached shell) would reload forever. The SDK only calls its own
@@ -23,6 +27,17 @@ export const HOST_CLOSED_CODES: ReadonlySet<string> = new Set([
   "base.hub_gone",
   "base.hub_preparing",
 ]);
+/** The codes of a 401 that asks the live session for something instead of saying it ended. */
+export const SESSION_CHALLENGE_CODES: ReadonlySet<string> = new Set([
+  // The SaaS: a sensitive command wants a recent sign-in (allauth's reauthentication, with its `flows`).
+  "reauthentication_required",
+  // The Hub: the manager's name and PIN that were to approve an action do not approve it.
+  "base.approval_refused",
+  // The Hub: a wrong PIN at its PIN pad.
+  "base.pin_incorrect",
+  // The Hub: a badge that opens nothing at its PIN pad.
+  "base.badge_unknown",
+]);
 /** A tab reloaded for it less than this long ago does not reload again. */
 export const RELOAD_GUARD_MS = 30000;
 /** Where the tab keeps when it last reloaded for it (epoch ms). */
@@ -32,9 +47,10 @@ export function isHostClosed(error: ApiError): boolean {
   return HOST_CLOSED_CODES.has(error.code);
 }
 
-/** Whether `error` says the page's session is gone: the host's 401, whatever its code. */
+/** Whether `error` says the page's session is gone: the host's 401, whatever its code, but one that asks the live
+ *  session for something (`SESSION_CHALLENGE_CODES`). */
 export function isSignedOut(error: ApiError): boolean {
-  return error.status === 401;
+  return error.status === 401 && !SESSION_CHALLENGE_CODES.has(error.code);
 }
 
 export interface HostClosedGuardDeps {
