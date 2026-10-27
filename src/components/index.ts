@@ -8,6 +8,7 @@ export * from './format';
 export * from './StatusPill';
 export * from './FormModal';
 export * from './ConfirmDialog';
+export * from './ReportProblemModal';
 export * from './UserAvatar';
 export * from './UsageMeter';
 export * from './Combo';

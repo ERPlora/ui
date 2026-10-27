@@ -1,0 +1,15 @@
+{
+  "reportProblem": {
+    "title": "Reportar un problema",
+    "intro": "Cuéntanos qué ha fallado. Te responderemos por correo electrónico.",
+    "subject": "Asunto",
+    "description": "¿Qué pasó?",
+    "descriptionPlaceholder": "Describe los pasos y lo que esperabas que pasara",
+    "context": "Con tu informe van tu cuenta, tus negocios, la página de la que vienes y tu navegador.",
+    "send": "Enviar informe",
+    "failed": "No pudimos enviar tu informe. Inténtalo de nuevo.",
+    "sentTitle": "Informe enviado",
+    "sentBody": "Gracias: hemos recibido tu informe y te responderemos a {email} lo antes posible.",
+    "close": "Cerrar"
+  }
+}

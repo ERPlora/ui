@@ -17,10 +17,16 @@ interface ShellUserMenuEntry {
 }
 
 /**
- * An entry opens a route of this app (`to`) or an address outside it (`href`: another project's page, as the
- * hub's «My account» on erplora.com): a new tab in a browser, the system browser in the installed app.
+ * An entry opens a route of this app (`to`), an address outside it (`href`: another project's page, as the
+ * hub's «My account» on erplora.com: a new tab in a browser, the system browser in the installed app) or does
+ * something here (`run`: the hub's «Report a problem» opens its dialog), once the menu has closed.
  */
-export type ShellUserMenuItem = ShellUserMenuEntry & ({ to: string; href?: never } | { href: string; to?: never });
+export type ShellUserMenuItem = ShellUserMenuEntry &
+  (
+    | { to: string; href?: never; run?: never }
+    | { href: string; to?: never; run?: never }
+    | { run: () => void; to?: never; href?: never }
+  );
 
 export interface ShellUserMenu {
   /** The project's entries, first (the SaaS: «Account»). */
