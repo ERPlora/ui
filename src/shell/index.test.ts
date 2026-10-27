@@ -111,6 +111,11 @@ describe('shell barrel', () => {
     }
   });
 
+  it("exports the way out of the app, so a project's own link to erplora.com opens like the user menu's", () => {
+    expect(shell.openExternalLink).toBeTypeOf('function');
+    expect(shell.OPEN_EXTERNAL_COMMAND).toBe('open_external_url');
+  });
+
   it('paints an icon of any registered set in ion-icon through ionIconSrc (the SaaS account pages use lucide)', () => {
     expect(shell.ionIconSrc('lucide:arrow-left')).toMatch(/^data:image\/svg\+xml;utf8,<svg /);
   });

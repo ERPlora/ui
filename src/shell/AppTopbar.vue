@@ -14,7 +14,8 @@
 // page header roll them up the same way.
 // The project's piece of the bar (`createShell({ chrome: { topbar } })`, the hub's bell) closes the end
 // group, after «My apps» as in the old hub, behind the same gate.
-// Not ported (phase 1 has none of them): management link, change hub, assistant and the progress bar.
+// The old hub's management link (erplora.com), assistant and bell are the hub's piece (`chrome.topbar`), which folds
+// them into its own «⋮» on a phone. Not ported (phase 1 has none of them): change hub and the progress bar.
 import { IonButton, IonButtons, IonHeader, IonMenuButton, IonPopover, IonTitle, IonToolbar } from '@ionic/vue';
 import { Comment, computed, Fragment, onBeforeUnmount, ref, Text, useSlots, type VNode } from 'vue';
 import { useI18n } from 'vue-i18n';

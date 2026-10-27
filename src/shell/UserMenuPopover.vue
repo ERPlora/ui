@@ -10,13 +10,11 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import HubIcon from './HubIcon.vue';
+import { openExternalLink } from './open-external';
 import { useSurface } from './surface';
 import { chooseThemeMode, type ThemeMode, themeMode } from './theme';
 import { toastError } from './toast';
 import { type ShellUserMenuItem, useUserMenu } from './user-menu';
-
-/** The installed app's bridge (Tauri), absent in a browser. */
-type NativeWindow = { __TAURI__?: { core?: { invoke?: (command: string, args?: Record<string, unknown>) => Promise<unknown> } } };
 
 withDefaults(
   defineProps<{
@@ -49,9 +47,8 @@ function go(path: string): void {
 }
 
 /**
- * An entry of this app opens its route; one outside it is a link the browser opens in a new tab. The installed
- * app opens nothing on `target=_blank`: there the address goes to the system browser (`open_external_url`, which
- * only takes our own addresses), and a refusal is said.
+ * An entry of this app opens its route; one outside it is a link the browser opens in a new tab, and the installed
+ * app in the system browser (`openExternalLink`).
  */
 function pick(item: ShellUserMenuItem, event: Event): void {
   if (item.to !== undefined) {
@@ -59,13 +56,7 @@ function pick(item: ShellUserMenuItem, event: Event): void {
     return;
   }
   emit('dismiss');
-  const invoke = (window as NativeWindow).__TAURI__?.core?.invoke;
-  if (typeof invoke !== 'function') return;
-  event.preventDefault();
-  invoke('open_external_url', { url: item.href }).catch((error: unknown) => {
-    console.error('shell: open_external_url failed', error);
-    void toastError(t('userMenu.openFailed'));
-  });
+  openExternalLink(item.href, event);
 }
 
 function onThemeChange(event: CustomEvent<{ value?: string | number }>): void {

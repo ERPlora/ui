@@ -75,6 +75,7 @@ export {
 } from './device-notices';
 export type { AskToNotifyDeps, DeviceNotice, NativeBridge, NoticeDoor, NoticeDoorDeps } from './device-notices';
 export { iconName, useMyApps } from './my-apps';
+export { OPEN_EXTERNAL_COMMAND, openExternalLink } from './open-external';
 export type { MyApp } from './my-apps';
 export { provideShellConfig, SHELL_CONFIG_KEY, useShellConfig } from './shell-config';
 export type { ShellChrome, ShellConfig } from './shell-config';
