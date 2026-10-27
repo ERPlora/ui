@@ -48,7 +48,8 @@ function go(path: string): void {
 
 /**
  * An entry of this app opens its route; one outside it is a link the browser opens in a new tab, and the installed
- * app in the system browser (`openExternalLink`).
+ * app in the system browser (`openExternalLink`); an action runs once the menu is asked to close, so what it opens
+ * (a dialog) never sits under the popover.
  */
 function pick(item: ShellUserMenuItem, event: Event): void {
   if (item.to !== undefined) {
@@ -56,6 +57,10 @@ function pick(item: ShellUserMenuItem, event: Event): void {
     return;
   }
   emit('dismiss');
+  if (item.run !== undefined) {
+    item.run();
+    return;
+  }
   openExternalLink(item.href, event);
 }
 

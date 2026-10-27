@@ -55,9 +55,9 @@ afterEach(() => {
   applySurface('web');
 });
 
-function mountPopover(menu: ShellUserMenu = MENU, isOpen = true) {
+function mountPopover(menu: ShellUserMenu = MENU, isOpen = true, onDismiss?: () => void) {
   return mount(UserMenuPopover, {
-    props: { isOpen },
+    props: { isOpen, onDismiss },
     attrs: { class: 'sidebar-user-popover' },
     global: {
       plugins: [router, createShellI18n({ locale: 'en' })],
@@ -179,6 +179,26 @@ describe('UserMenuPopover: an entry that leaves the app', () => {
     click(mountPopover(OUT));
     await flushPromises();
     expect(toastError).toHaveBeenCalledWith('Could not open that page. Try again.');
+  });
+});
+
+// An entry that does something here (`run`): the hub's «Report a problem» opens its dialog without leaving the hub
+// (FIX-HUB-BASE-REPORT-PROBLEM-MODAL). It is a button, never a link, and the menu closes before the action runs, so the
+// dialog never opens under the popover.
+describe('UserMenuPopover: an entry that runs an action', () => {
+  it('is a button that asks to close the menu, then runs its action once, without moving', async () => {
+    const order: string[] = [];
+    const run = vi.fn(() => order.push('run'));
+    const menu: ShellUserMenu = { items: [{ id: 'report', labelKey: 'userMenu.help', icon: 'ion:chatbubbles-outline', run }] };
+    const wrapper = mountPopover(menu, true, () => order.push('dismiss'));
+    const row = wrapper.get('[data-testid="user-menu-report"]').element as HTMLElement & { href?: string; target?: string; rel?: string };
+    expect([row.href, row.target, row.rel]).toEqual([undefined, undefined, undefined]);
+    await wrapper.get('[data-testid="user-menu-report"]').trigger('click');
+    await flushPromises();
+    expect(run).toHaveBeenCalledOnce();
+    expect(wrapper.emitted('dismiss')).toHaveLength(1);
+    expect(order).toEqual(['dismiss', 'run']);
+    expect(router.currentRoute.value.path).toBe('/');
   });
 });
 
