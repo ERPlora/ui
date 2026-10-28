@@ -23,6 +23,13 @@ export function fillLabel(template: string, params: LabelParams = {}): string {
   );
 }
 
+/** A text of the catalogue bundled here, in the language of the page (`<html lang>`, which createShell
+ *  keeps in step with the person's), read now: for code that runs outside a component's setup. */
+export function pageLabel(key: DataTableLabelKey, params?: LabelParams): string {
+  const language = typeof document === 'undefined' ? 'en' : document.documentElement.lang;
+  return fillLabel(CATALOGUES[shellLocale(language)][key], params);
+}
+
 /** The app's global composer, or `null` when vue-i18n is not installed in this app. Same check as
  *  `useI18n` makes before throwing `NOT_INSTALLED`, so it never has to be caught. */
 function optionalI18n() {

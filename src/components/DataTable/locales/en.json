@@ -1,6 +1,7 @@
 {
   "dataTable": {
     "search": "Search…",
+    "clearSearch": "Clear search",
     "empty": "No results",
     "clear": "Clear",
     "selected": "{n} selected",
