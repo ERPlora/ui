@@ -988,9 +988,13 @@ function cardFields(row: T): DataTableColumn<T>[] {
   return visibleColumns.value.filter((c) => c !== titleColumn);
 }
 
-// #182 - The search box is named after its hint, after every render.
+// #182 - The search box is named after its hint, and its clear button with its own text, after every render.
 function nameSearchBox(): void {
-  syncSearchbarInputName(root.value?.querySelector(':scope > .data-table__surface > .data-table__bar') ?? null, () => searchHint.value);
+  syncSearchbarInputName(
+    root.value?.querySelector(':scope > .data-table__surface > .data-table__bar') ?? null,
+    () => searchHint.value,
+    () => label('clearSearch'),
+  );
 }
 onMounted(nameSearchBox);
 onUpdated(nameSearchBox);

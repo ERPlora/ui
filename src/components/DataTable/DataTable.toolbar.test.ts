@@ -202,6 +202,20 @@ describe('the search box is named after its hint (#182)', () => {
     await settle();
     expect((sync.mock.calls.at(-1) as [Element, () => string])[1]()).toBe('Search…');
   });
+
+  it('names its clear button with its own text (en «Clear search», es «Borrar búsqueda»), which `labels.clearSearch` rewords', async () => {
+    const clearOf = () => (sync.mock.calls.at(-1) as [Element, () => string, (() => string)?])[2]?.();
+    const t = mountTable({ rows: ROWS, columns: NAME, searchable: true });
+    await settle();
+    expect(clearOf()).toBe('Clear search');
+    await t.setProps({ labels: { clearSearch: 'Wipe the search' } });
+    await settle();
+    expect(clearOf()).toBe('Wipe the search');
+    const es = mountTable({ rows: ROWS, columns: NAME, searchable: true }, { locale: 'es' });
+    await settle();
+    expect(clearOf()).toBe('Borrar búsqueda');
+    es.unmount();
+  });
 });
 
 describe('`hideToolbarWhenEmpty`: an empty list paints only its empty state (mockups/saas-panel §6.16)', () => {
