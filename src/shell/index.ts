@@ -74,6 +74,10 @@ export {
   useDeviceNotices,
 } from './device-notices';
 export type { AskToNotifyDeps, DeviceNotice, NativeBridge, NoticeDoor, NoticeDoorDeps } from './device-notices';
+export { createDevicePrinter } from './device-printer';
+export type { DevicePrinterDeps } from './device-printer';
+export { createPrintHost, printChannelUrl, usePrintHost } from './print-host';
+export type { PrintHost, PrintHostDeps, UsePrintHostOptions } from './print-host';
 export { iconName, useMyApps } from './my-apps';
 export { OPEN_EXTERNAL_COMMAND, openExternalLink } from './open-external';
 export type { MyApp } from './my-apps';

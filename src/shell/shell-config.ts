@@ -20,6 +20,11 @@ export interface ShellConfig {
   sidebar?: ShellSidebar;
   /** The project's pieces of the authenticated chrome; unset (the SaaS): none. */
   chrome?: ShellChrome;
+  /**
+   * Each app's piece that runs on every screen (a route marked `meta.background`, which is no screen: printing's print
+   * host), mounted beside the pane like `chrome.background`; unset: none.
+   */
+  backgrounds?: Component[];
 }
 
 /**

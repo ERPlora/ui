@@ -16,7 +16,7 @@ import './boot/ionic-select-interface.boot';
 
 import { IonicVue } from '@ionic/vue';
 import { addIcons } from 'ionicons';
-import { type App, createApp, type Ref, watch } from 'vue';
+import { type App, type Component, createApp, defineAsyncComponent, type Ref, watch } from 'vue';
 import type { Router, RouteRecordRaw, RouterHistory } from 'vue-router';
 
 // Ionic base CSS + utilities. Dark mode by class (`.ion-palette-dark`, set by `bootTheme`).
@@ -55,7 +55,10 @@ import { bootTheme, type ThemeContrast } from './theme';
 import { provideUserMenu, type ShellUserMenu } from './user-menu';
 
 export interface CreateShellOptions {
-  /** The app routes (each app's `routes.ts`); the 404 catch-all is appended by the shell. */
+  /**
+   * The app routes (each app's `routes.ts`); the 404 catch-all is appended by the shell. A route marked
+   * `meta.background` is no screen: its component is the app's piece that runs on every screen, mounted beside the pane.
+   */
   routes: RouteRecordRaw[];
   /** `base.session.me` (embedded JSON first, the live query from V7 on). */
   session: Ref<SessionMe | undefined>;
@@ -122,7 +125,9 @@ export async function createShell(options: CreateShellOptions): Promise<{ app: A
   });
   const app = createApp(AppRoot);
   const session = provideSession(options.session, options.status, { app });
-  const router = createShellRouter(options.routes, {
+  const screens = options.routes.filter((route) => route.meta?.background !== true);
+  const backgrounds = options.routes.filter((route) => route.meta?.background === true).map(backgroundPiece);
+  const router = createShellRouter(screens, {
     session,
     loginPath: options.loginPath,
     history: options.history,
@@ -130,7 +135,13 @@ export async function createShell(options: CreateShellOptions): Promise<{ app: A
   });
   app.use(IonicVue, { mode: 'ios', swipeBackEnabled: false }).use(router).use(i18n);
   provideShellConfig(
-    { homePath: options.homePath, home: options.home, sidebar: options.sidebar, chrome: options.chrome },
+    {
+      homePath: options.homePath,
+      home: options.home,
+      sidebar: options.sidebar,
+      chrome: options.chrome,
+      backgrounds: backgrounds.length > 0 ? backgrounds : undefined,
+    },
     app,
   );
   provideUserMenu(options.userMenu, app);
@@ -150,4 +161,13 @@ export async function createShell(options: CreateShellOptions): Promise<{ app: A
 
   bootTheme({ contrast: options.contrast });
   return { app, router };
+}
+
+/** The piece of a background route: its component, loaded on demand when it is a loader (`() => import(…)`). */
+function backgroundPiece(route: RouteRecordRaw): Component {
+  const component = (route as { component?: unknown }).component;
+  if (typeof component === 'function' && !('setup' in component) && !('render' in component)) {
+    return defineAsyncComponent(component as () => Promise<Component>);
+  }
+  return component as Component;
 }
