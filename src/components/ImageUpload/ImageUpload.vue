@@ -241,10 +241,14 @@ async function onFile(ev: Event): Promise<void> {
   --inner-padding-end: 0;
   align-items: flex-start;
 }
+/* Its gap to the text is ion-item's 16px for a `slot="start"` (md and ios), set here: Tailwind's
+   preflight (`margin: 0`, a document rule) beats that `::slotted` margin of the shadow, and the
+   thumbnail sat against the title. This rule is not layered, so it beats the preflight. */
 .image-upload__thumb {
   --size: 64px;
   --border-radius: var(--ep-radius-sm, 6px);
   margin-block: 0.75rem;
+  margin-inline-end: var(--ep-spacing, var(--ion-padding, 16px));
   background: var(--ep-surface-muted, var(--ion-color-step-50, #f2f2f2));
   border-radius: var(--ep-radius-sm, 6px);
   overflow: hidden;
