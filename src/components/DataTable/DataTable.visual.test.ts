@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ION_ICONS } from '../../shell/icons';
-import { ionChange, mountTable, settle, viewport } from './__tests__/harness';
+import { dataRows, ionChange, mountTable, settle, viewport } from './__tests__/harness';
 import source from './DataTable.vue?raw';
 import { DATA_TABLE_ICONS } from './model';
 
@@ -43,6 +43,13 @@ function media(query: string): string {
   }
   throw new Error('unbalanced @media');
 }
+
+/** FIX-UI-DATATABLE-CELL-NO-WRAP-SQUEEZES-CHIP-BESIDE-BADGE - The cells of a data row that wrap (the pinned actions cell keeps its line). */
+const DATA_CELL = '.data-table__row--data > .data-table__cell:not(.data-table__cell--actions)';
+/** The selectors of every rule that lets a table cell wrap its things (outside @media). */
+const WRAPPING_CELLS = [...STYLE.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+  .filter(([, selector, body]) => selector.includes('.data-table__cell') && body.includes('flex-wrap: wrap'))
+  .map(([, selector]) => selector.trim());
 
 beforeEach(() => {
   viewport(false);
@@ -467,6 +474,38 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
     expect(rule('.data-table__field-value')).toBe('font-weight: 500; text-align: right; color: var(--color); min-width: 0;');
     expect(rule('.data-table__field-text')).toBe('display: block; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal;');
     expect(rule('.data-table__field-text--unfolded')).toBe('overflow-wrap: anywhere;');
+  });
+
+  it('FIX-UI-DATATABLE-CELL-NO-WRAP-SQUEEZES-CHIP-BESIDE-BADGE: in a data row a cell that cannot hold its things side by side drops the next one under, never squeezing one', () => {
+    // The cell is a one-line flex box: a «Not configured» chip and a «Sold out» badge (which never shrinks) in one
+    // Status cell squeezed the chip to 29–36px, its icon cut and no text (Hub: Inventory › Products at 820 and 834 px,
+    // measured in Chromium). In a data row the cell wraps, 4px between its lines, as Shopify, Odoo and Square stack
+    // status badges; a lone text has its line to itself and still ends in «…».
+    expect(rule(DATA_CELL)).toBe('flex-wrap: wrap; row-gap: 0.25rem;');
+    // The base rule stays one line: the header (its name and the sort caret) never wraps.
+    expect(rule('.data-table__cell')).toBe('display: flex; align-items: center; min-width: 0;');
+    expect(rule('.data-table__cell > :deep(span)')).toBe('overflow: hidden; text-overflow: ellipsis; white-space: nowrap;');
+  });
+
+  it('FIX-UI-DATATABLE-CELL-NO-WRAP-SQUEEZES-CHIP-BESIDE-BADGE: that rule holds every data cell, a slot’s two things its direct children, and no header nor actions cell', async () => {
+    const t = mountTable(
+      {
+        rows: ROWS,
+        columns: [{ key: 'name', label: 'Name', sortable: true }, { key: 'total', label: 'Total', align: 'right', cell: 'total' }],
+        actions: [{ id: 'edit', label: 'Edit', icon: 'create-outline' }],
+      },
+      { slots: { total: `<template #total="{ value }"><b class="chip">{{ value }}</b><i class="badge">Sold out</i></template>` } },
+    );
+    await settle();
+    expect(WRAPPING_CELLS.length, 'a rule lets a cell wrap').toBeGreaterThan(0);
+    const wraps = (el: Element) => WRAPPING_CELLS.some((selector) => el.matches(selector));
+    const cells = dataRows(t).flatMap((row) => [...row.querySelectorAll('[role=cell]')]);
+    expect(cells.length).toBe(ROWS.length * 3);
+    expect(cells.filter(wraps).length, 'the name and total cells of every row').toBe(ROWS.length * 2);
+    expect(cells.filter((cell) => cell.matches('.data-table__cell--actions')).some(wraps), 'the actions cell keeps its line').toBe(false);
+    expect([...t.element.querySelectorAll('[role=columnheader]')].some(wraps), 'no header cell').toBe(false);
+    const total = cells.find((cell) => cell.querySelector('.chip'));
+    expect([...(total?.children ?? [])].map((child) => child.className), 'the chip and the badge are the cell’s own').toEqual(['chip', 'badge']);
   });
 
   it('a card title wraps (two lines at most, the whole text in the page), never «…» on one line', () => {

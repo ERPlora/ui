@@ -143,7 +143,8 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   align?: 'left' | 'right' | 'center';
   /** Client mode: sortable unless `false`. Server mode: only when `true` (emits `sortChange`). */
   sortable?: boolean;
-  /** Name of the scoped slot (`{ row, value, column }`) that paints the cell, list and cards. */
+  /** Name of the scoped slot (`{ row, value, column }`) that paints the cell, list and cards. In the list its
+   *  boxes sit side by side while the row has room and wrap under each other when it has not. */
   cell?: string;
   /** Not painted until the person picks it in the column chooser; it still sorts. */
   hidden?: boolean;
