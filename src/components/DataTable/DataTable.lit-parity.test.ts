@@ -285,6 +285,8 @@ const ADDED: Record<string, string> = {
   '.data-table__page-of': 'FIX-SAAS-SESSIONS-RESULT-TOO-BIG: «page / pages» between previous and next on that phone',
   '.data-table__card-title':
     'FIX-UI-DATATABLE-CLIP: the card title wraps, two lines at most (Polaris, Material), instead of the Lit one-line «…»',
+  '.data-table__row--data > .data-table__cell:not(.data-table__cell--actions)':
+    'FIX-UI-DATATABLE-CELL-NO-WRAP-SQUEEZES-CHIP-BESIDE-BADGE: a data cell drops what does not fit under, instead of squeezing a chip beside a badge to its icon (Hub: Inventory › Products at 820/834 px, measured in Chromium)',
   '.data-table__field-text':
     'FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP: a card value’s own box, which ends a word too long for the card in «…» (a 54-character email ran past it, measured in Chromium)',
   '.data-table__field-text--unfolded': 'FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP: a tapped clipped card value unfolds in place, as a cell does (#217)',
