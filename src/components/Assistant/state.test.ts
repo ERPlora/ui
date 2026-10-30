@@ -10,7 +10,7 @@ import { type AssistantApproval, configureAssistant } from './config';
 import { groundingNotices } from './grounding';
 import { HISTORY_KEY } from './history';
 import { parseMarkdown } from './markdown';
-import { createAssistant, installAssistant, OPEN_KEY, useAssistant } from './state';
+import { createAssistant, forgetAssistant, installAssistant, OPEN_KEY, useAssistant } from './state';
 import type { PendingCall, TurnBody, TurnFrame, TurnOptions } from './stream';
 
 const CREATE: PendingCall = { call_id: 'c1', name: 'demo__item__create', arguments: '{"name":"Mesa 4"}' };
@@ -490,5 +490,31 @@ describe("the tab's assistant (`useAssistant`), as the host configured it", () =
     expect(new Headers(init?.headers).get('X-Elevation-Token')).toBe('pass');
     expect(run).toHaveBeenCalledTimes(1);
     expect(assistant.state.thread.bubbles.at(-1)?.text).toBe('ok');
+  });
+});
+
+describe('signing out (`forgetAssistant`, BASE-G120)', () => {
+  afterEach(() => {
+    installAssistant(undefined);
+    sessionStorage.clear();
+  });
+
+  it("forgets the tab's conversation, even when the panel was never opened", () => {
+    sessionStorage.setItem(HISTORY_KEY, JSON.stringify({ user: 'u1', bubbles: [], conversation: [] }));
+    forgetAssistant();
+    expect(sessionStorage.getItem(HISTORY_KEY)).toBeNull();
+  });
+
+  it("empties the tab's assistant and its stored conversation", async () => {
+    const storage = memoryStorage();
+    const { post } = hub([{ type: 'text', text: 'Hola.' }, done({ append: [{ role: 'assistant', content: 'Hola.' }] })]);
+    const assistant = assistantWith(post, storage);
+    installAssistant(assistant);
+    await assistant.ask('Hola');
+    expect(storage.getItem(HISTORY_KEY)).not.toBeNull();
+    forgetAssistant();
+    expect(assistant.state.thread.bubbles).toEqual([]);
+    expect(assistant.state.thread.user).toBe('');
+    expect(storage.getItem(HISTORY_KEY)).toBeNull();
   });
 });
