@@ -14,3 +14,4 @@ export * from './UsageMeter';
 export * from './Combo';
 export * from './ColorInput';
 export * from './ImageUpload';
+export * from './Assistant';
