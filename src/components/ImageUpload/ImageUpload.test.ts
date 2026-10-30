@@ -11,6 +11,7 @@ import { nextTick } from 'vue';
 import { createShellI18n } from '../../shell/i18n';
 import { ION_ICONS } from '../../shell/icons';
 import ImageUpload from './ImageUpload.vue';
+import source from './ImageUpload.vue?raw';
 
 type El = HTMLElement & Record<string, unknown>;
 type Image = { id: string; url: string };
@@ -290,5 +291,35 @@ describe('ImageUpload: Spanish', () => {
     expect(text(full, 'remove')).toBe('Quitar');
     await choose(full, imageFile());
     expect(text(full, 'error')).toBe('No se ha podido subir la imagen. Inténtalo de nuevo.');
+  });
+});
+
+// happy-dom lays nothing out, so the gap is pinned on the stylesheet; the Hub's e2e
+// (fix-ui-imageupload-thumbnail-gap.spec.ts) measures it on screen.
+const STYLE = (source.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ');
+/** Body of the rule whose selector is exactly `selector`. */
+function rule(selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const found = STYLE.match(new RegExp(`(?:^|[}{;])\\s*${escaped}\\s*\\{([^}]*)\\}`));
+  if (!found) throw new Error(`no rule for «${selector}»`);
+  return found[1].trim();
+}
+
+describe('ImageUpload: its look', () => {
+  // FIX-UI-IMAGEUPLOAD-THUMBNAIL-TOUCHES-TEXT: Tailwind's preflight (`margin: 0`, a document rule)
+  // beats ion-item's `::slotted([slot=start])` margin, so the thumbnail sat against the title. The
+  // component gives it back Ionic's 16px (md and ios) as a token, in an unlayered rule that wins.
+  it('the thumbnail keeps a gap to the text, from a token with Ionic’s 16px as its fallback', () => {
+    expect(rule('.image-upload__thumb')).toContain('margin-inline-end: var(--ep-spacing, var(--ion-padding, 16px));');
+  });
+
+  it('the thumbnail stays 64px with its margin above and below', () => {
+    const thumb = rule('.image-upload__thumb');
+    expect(thumb).toContain('--size: 64px;');
+    expect(thumb).toContain('margin-block: 0.75rem;');
+  });
+
+  it('its rules are not in a layer, so they beat the preflight’s', () => {
+    expect(STYLE).not.toContain('@layer');
   });
 });
