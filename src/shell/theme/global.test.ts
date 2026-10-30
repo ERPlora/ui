@@ -38,6 +38,14 @@ describe('global.css: Ionic hosts Tailwind’s preflight must not reset', () => 
   it('ion-chip keeps its side padding, and only that (FIX-UI-SHELL-ION-CHIP-PADDING-WIPED-BY-PREFLIGHT: measured 0px, text against the edge)', () => {
     expect(baseRule('ion-chip')).toBe('padding-inline: revert-layer;');
   });
+
+  // Preflight's `* { margin: 0 }` beats ion-chip's `::slotted(ion-icon:first-child|last-child)` margins too: «⚠Not
+  // configured», the icon against the word (`margin-inline-end` measured 0px). The whole margin comes back to the chip's
+  // own icon, so Ionic's `:first-child`/`:last-child` picks the side of the 8px gap and the 4px pull toward the edge. Only a
+  // child: an icon inside the chip's remove button (an ion-button) is not the chip's.
+  it('an ion-icon child of an ion-chip keeps Ionic’s whole margin (FIX-UI-SHELL-ION-CHIP-ICON-MARGIN-WIPED-BY-PREFLIGHT: measured 0px, icon against the text)', () => {
+    expect(baseRule('ion-chip > ion-icon')).toBe('margin: revert-layer;');
+  });
 });
 
 /** Selectors of the `base` layer's rules that start with `prefix`, whitespace-normalised, in file order. */
