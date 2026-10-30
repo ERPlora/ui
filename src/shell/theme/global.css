@@ -41,6 +41,19 @@
     padding-inline: revert-layer;
   }
 
+  /* Same reset, same cure for the icon of a chip: preflight's `margin: 0` beat ion-chip's
+     `::slotted(ion-icon:first-child|last-child)` margins, so a chip's icon sat against its text
+     («⚠Not configured» of Inventory, `margin-inline-end` measured 0px and a gap of 0px,
+     FIX-UI-SHELL-ION-CHIP-ICON-MARGIN-WIPED-BY-PREFLIGHT). The whole margin comes back (Ionic's, both
+     modes): `:first-child`/`:last-child` picks the side of the 8px gap to the text, and the 4px pull
+     toward the edge leaves the icon 8px from it with the 12px padding above, as Ionic draws it. Its
+     4px into the padding on top and below keeps the chip at its 32px (measured: gap 8px, icon 8px
+     from the edge, chip 32px tall). Only a child of the chip: the icon of its remove button (an
+     ion-button inside it) is the button's. A component's own rule still wins: it is not layered. */
+  ion-chip > ion-icon {
+    margin: revert-layer;
+  }
+
   /* Same reset, same cure for the icon of a button: preflight's `margin: 0` beat ion-button's
      `::slotted(ion-icon[slot=start|end])` margins, so every `HubIcon slot="start"` sat against its
      label («⊘Deactivate» in a confirmation, FIX-UI-CONFIRMDIALOG-ICON-GAP). Only the side of the gap
