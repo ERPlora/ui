@@ -189,7 +189,8 @@ describe('print channel: one claim per function', () => {
     socket.receive({ type: 'error', code: 'internal_error', message: 'boom' });
     expect(socket.closed).toBe(false);
     socket.receive({ type: 'wake', role: 'receipt' });
-    expect(socket.sent.at(-1)).toEqual({ type: 'claim', role: 'receipt' });
+    // Counted, not «the last frame»: the ready's own claim of receipt was already the last one sent.
+    expect(socket.sent.filter((frame) => frame.type === 'claim' && frame.role === 'receipt')).toHaveLength(2);
     expect(events).toContainEqual({ kind: 'refused', code: 'internal_error', message: 'boom' });
   });
 });
