@@ -627,6 +627,11 @@ describe('Combo: where the list opens', () => {
     layout(w, { top: 60, bottom: 116 }, 800);
     await frame();
     expect(placed(w)).toEqual({ side: 'bottom', maxHeight: '308px', top: '124px', bottom: 'auto' });
+    // The keyboard goes away and the form scrolls back: the next frame follows again.
+    Reflect.deleteProperty(window, 'visualViewport');
+    layout(w, { top: 100, bottom: 156 }, 800);
+    await frame();
+    expect(placed(w)).toEqual({ side: 'bottom', maxHeight: '628px', top: '164px', bottom: 'auto' });
   });
 
   it('stops following once closed', async () => {
