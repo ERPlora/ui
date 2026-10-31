@@ -45,6 +45,18 @@ describe("createLiveClient: browser defaults", () => {
     client.close();
   });
 
+  it("tells the device id it sends, the one a device is set up with (the print channel says it at hello)", async () => {
+    const fetchMock = vi.fn<(url: string, init: RequestInit) => Promise<Response>>(() =>
+      Promise.resolve(Response.json({ id: "l1", text: "x" })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const client = createLiveClient({ ...TEST_CONFIG, routes: TEST_ROUTES });
+    await client.api.call("test.item.add_line", { id: "i1", text: "x", client_line_id: "c1" });
+    expect(client.deviceId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(client.deviceId).toBe((fetchMock.mock.calls[0][1].headers as Record<string, string>)["X-Device-Id"]);
+    client.close();
+  });
+
   it("opens the live stream with the browser timers and the same device id", async () => {
     vi.useFakeTimers();
     try {

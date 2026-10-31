@@ -22,6 +22,9 @@ declare module 'vue-router' {
     /** The screen sells (the SaaS's Store): on the app surfaces the shell mounts NotInAppPage instead,
      *  keeping the address (`surface.ts`). */
     webOnly?: boolean;
+    /** Not a screen: an app's piece that runs on every screen (printing's print host). The shell keeps the route out
+     *  of the router and mounts its component beside the pane while a person is signed in (`createShell`). */
+    background?: boolean;
   }
 }
 

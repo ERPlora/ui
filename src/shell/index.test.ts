@@ -99,6 +99,13 @@ describe('shell barrel', () => {
     expect(shell.askToNotify).toBeTypeOf('function');
   });
 
+  it('exports the print host, so an app keeps a device set up to print draining the queue (PRINTING-F18)', () => {
+    expect(shell.usePrintHost).toBeTypeOf('function');
+    expect(shell.createPrintHost).toBeTypeOf('function');
+    expect(shell.createDevicePrinter).toBeTypeOf('function');
+    expect(shell.printChannelUrl({ protocol: 'https:', host: 'a.erplora.com' })).toBe('wss://a.erplora.com/ws/print');
+  });
+
   it("exports the apps of «My apps», so a project's Home paints the same list as the launcher (APP-BASE-1)", () => {
     expect(shell.useMyApps).toBeTypeOf('function');
     expect(shell.iconName('people')).toBe('ion:people');

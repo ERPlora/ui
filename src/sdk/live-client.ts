@@ -47,6 +47,8 @@ export interface BrowserDeps {
 
 export interface LiveClient {
   readonly config: SpaConfig;
+  /** The device's id it sends as `X-Device-Id` on every call: the one a device that prints is set up with. */
+  readonly deviceId: string;
   readonly stream: StreamManager;
   readonly api: ApiClient;
   readonly optimistic: OptimisticStore;
@@ -144,6 +146,7 @@ export function createLiveClient(cfg: SpaConfig, overrides: Partial<BrowserDeps>
 
   return {
     config: cfg,
+    deviceId: headers.deviceId,
     stream,
     api,
     optimistic,

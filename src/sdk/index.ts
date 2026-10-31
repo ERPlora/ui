@@ -72,6 +72,16 @@ export {
   type OptimisticStoreOptions,
   type Overlay,
 } from "./optimistic";
+export {
+  createPrintChannel,
+  errorText,
+  MAX_ERROR_LENGTH,
+  type PrintChannel,
+  type PrintChannelEvent,
+  type PrintChannelOptions,
+  type PrintJob,
+  type PrintSocket,
+} from "./print-channel";
 export { createSseParser, type SseFrame, type SseParser } from "./sse-parser";
 export {
   createStreamManager,

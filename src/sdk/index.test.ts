@@ -23,6 +23,7 @@ describe("sdk entry point", () => {
       "encodeSubscriptions",
       "fetchFile",
       "attachmentName",
+      "createPrintChannel",
     ]) {
       expect(typeof (sdk as Record<string, unknown>)[name], name).toBe("function");
     }

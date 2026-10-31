@@ -26,6 +26,8 @@ export interface HeaderDeps {
 }
 
 export interface HeaderProvider {
+  /** The `X-Device-Id` it sends. */
+  readonly deviceId: string;
   liveHeaders(): Record<string, string>;
   apiHeaders(method: string): Record<string, string>;
 }
@@ -77,6 +79,7 @@ export function createHeaderProvider(cfg: HeaderConfig, deps: HeaderDeps): Heade
   }
 
   return {
+    deviceId,
     liveHeaders: () => base("text/event-stream"),
     apiHeaders(method) {
       const headers = base("application/json");

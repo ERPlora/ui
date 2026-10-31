@@ -426,6 +426,32 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(wrapper.findAllComponents(Listener)).toHaveLength(1);
   });
 
+  // PRINTING-F18: each app's background piece (printing's print host) is mounted the same way, next to the project's.
+  const AppPiece = { name: 'AppBackground', render: () => h('b', { class: 'app-background' }) };
+
+  it("mounts each app's background piece beside the pane, on every screen of a signed-in person, and anew for the next", async () => {
+    session.value = me({ user: null });
+    const wrapper = mountApp(undefined, {
+      config: { ...HUB, chrome: { background: Listener }, backgrounds: [AppPiece, Listener] },
+    });
+    expect(wrapper.findComponent(AppPiece).exists()).toBe(false);
+
+    session.value = me({ user: { id: 'u2', label: 'Luis Gil' } });
+    await flushPromises();
+    const first = wrapper.findComponent(AppPiece);
+    expect(first.exists()).toBe(true);
+    expect(wrapper.find('ion-split-pane .app-background').exists()).toBe(false);
+    expect(wrapper.findAllComponents(Listener)).toHaveLength(2);
+    await router.push('/launch');
+    await flushPromises();
+    expect(wrapper.findAllComponents(AppPiece)).toHaveLength(1);
+
+    session.value = me({ user: { id: 'u3', label: 'Marta Ruiz' } });
+    await flushPromises();
+    expect(first.exists()).toBe(false);
+    expect(wrapper.findAllComponents(AppPiece)).toHaveLength(1);
+  });
+
   it('folds to a rail while the topbar says so, and opens again', async () => {
     const wrapper = mountApp(undefined, { config: HUB });
     expect(wrapper.get('ion-split-pane').classes()).not.toContain('rail');

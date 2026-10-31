@@ -189,7 +189,7 @@ const notLinkedYet = (error: unknown) =>
   error === NOT_THE_LINKED_HUB || (error instanceof Error && error.message === NOT_THE_LINKED_HUB);
 
 /** Waits for the page's `load` (at once if it already happened), then `ms`. */
-function afterTheLoad(ms: number): Promise<void> {
+export function afterTheLoad(ms: number): Promise<void> {
   const loaded =
     document.readyState === 'complete'
       ? Promise.resolve()
@@ -198,7 +198,7 @@ function afterTheLoad(ms: number): Promise<void> {
 }
 
 /** Asks again while the app answers `not_the_linked_hub` (hub#2658); any other refusal comes back at once. */
-async function whileTheHubLands<T>(attempt: () => Promise<T>, wait: (ms: number) => Promise<void>): Promise<T> {
+export async function whileTheHubLands<T>(attempt: () => Promise<T>, wait: (ms: number) => Promise<void>): Promise<T> {
   for (const ms of LANDING_RETRIES_MS) {
     try {
       return await attempt();

@@ -192,6 +192,33 @@ describe('createShell: chrome', () => {
   });
 });
 
+// An app's piece that runs on every screen (printing's print host, PRINTING-F18): a route of its `routes.ts` marked
+// `background`, which is no screen. The shell keeps it out of the router and mounts its piece beside the pane.
+describe("createShell: the apps' background pieces", () => {
+  const Piece = { name: 'AppBackground', render: () => h('span') };
+
+  it('a route marked background is no screen: the router does not know it, and its piece goes to the config', async () => {
+    const { app, router } = await boot('es', {
+      routes: [
+        { path: '/demo/items', component: { template: '<div />' }, meta: { auth: true } },
+        // What `() => import('./Piece.vue')` resolves to: a module, whose `default` Vue unwraps.
+        { path: '/demo/host', component: () => Promise.resolve({ __esModule: true, default: Piece }), meta: { auth: true, background: true } },
+      ],
+    });
+    expect(router.resolve('/demo/host').name).toBe('not-found');
+    expect(router.resolve('/demo/items').meta.auth).toBe(true);
+    const { backgrounds } = provides(app)[SHELL_CONFIG_KEY as symbol] as { backgrounds?: unknown[] };
+    expect(backgrounds).toHaveLength(1);
+    const loaded = await (backgrounds![0] as { __asyncLoader: () => Promise<unknown> }).__asyncLoader();
+    expect(loaded).toEqual(Piece);
+  });
+
+  it('none by default: the config has no background pieces (the SaaS does not change)', async () => {
+    const { app } = await boot();
+    expect((provides(app)[SHELL_CONFIG_KEY as symbol] as { backgrounds?: unknown }).backgrounds).toBeUndefined();
+  });
+});
+
 describe('createShell.ts import order', () => {
   it('loads the theme in cascade order, every sheet our own or Ionic: nothing from OutfitKit (PLAN §16.11)', () => {
     const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'createShell.ts'), 'utf8');

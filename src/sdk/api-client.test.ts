@@ -14,6 +14,7 @@ const ROUTES: OperationRoutes = {
 };
 
 const headers: HeaderProvider = {
+  deviceId: "dev-1",
   liveHeaders: () => ({ Accept: "text/event-stream" }),
   apiHeaders: (method) => ({
     "X-Device-Id": "dev-1",

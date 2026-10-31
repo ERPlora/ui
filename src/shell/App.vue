@@ -9,7 +9,8 @@
 //   «Open on your phone» in the footer, and the rail the topbar folds it to (sidebar.ts).
 // The project's piece of the footer (`createShell({ chrome: { sidebarFooter } })`, the hub's «Upgrade
 // plan») goes between the QR and the brand, as in the old hub. Its background piece (`chrome.background`,
-// the hub's device notices) is mounted once beside the pane while a person is signed in, keyed on them.
+// the hub's device notices) is mounted once beside the pane while a person is signed in, keyed on them, and so is
+// each app's (`backgrounds`, a route marked `meta.background`: printing's print host).
 // Not ported (phase 1 has none of them, or they come later): switch user, app update, the version, and
 // the overlays mounted next to the pane (assistant, elevation, user switch).
 import {
@@ -44,7 +45,7 @@ const SHELL_MENU_ID = 'shell-navigation';
 
 const { user, menu } = useSession();
 const config = useShellConfig();
-const { homePath, home, sidebar, chrome } = config;
+const { homePath, home, sidebar, chrome, backgrounds } = config;
 const { isWeb } = useSurface();
 const { t } = useI18n();
 const route = useRoute();
@@ -323,5 +324,12 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
       v-if="chrome?.background && user"
       :key="screenKey"
     />
+    <template v-if="user">
+      <component
+        :is="piece"
+        v-for="(piece, index) in backgrounds ?? []"
+        :key="`${screenKey}:${index}`"
+      />
+    </template>
   </ion-app>
 </template>
