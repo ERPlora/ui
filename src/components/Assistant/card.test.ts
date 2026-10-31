@@ -100,8 +100,9 @@ describe('each datum', () => {
 describe('a datum that is a list', () => {
   // FIX-HUB-PRINTING-ASSISTANT-CARD-LEAVES-OUT-ITS-RECORDS: the server names each record of a list («Caja», «Cocina»),
   // and the card said «Impresoras: 2 elementos». As Odoo's tags, Salesforce's pills or Atlassian's avatars: what it can
-  // say in words, one after another; past four, the first three and how many more.
-  const list = (value: unknown[]) => ({ name: 'printers', label: 'Impresoras', kind: 'list' as const, value });
+  // say in words, one after another; past four, the first three and how many more. Only a list the server says it put
+  // in words (`named`): one of texts sent as they are — codes nobody names — still says how many.
+  const list = (value: unknown[], named = true) => ({ name: 'printers', label: 'Impresoras', kind: 'list' as const, value, named });
   /** The screen's words, with their values and the plural the catalogue picks (`a | b | c`: none, one, more). */
   const spoken = (catalogue: unknown) => ({
     ...opts,
@@ -138,17 +139,34 @@ describe('a datum that is a list', () => {
     expect(fieldText(list([10, 20]), opts)).toBe('10, 20');
     expect(fieldText(list([true, false]), opts)).toBe('assistant.card.yes, assistant.card.no');
     expect(fieldText(list([{ kind: 'money', value: 150 }, { kind: 'money', value: 1200, money: { currency: 'USD', decimals: 2 } }]), opts)).toBe(
-      '1,50\u00a0€, 12,00\u00a0$',
+      // A decimal comma inside each amount: a semicolon between them, as between moments.
+      '1,50\u00a0€; 12,00\u00a0$',
     );
   });
 
   it('lines (objects or lists) say how many: which datum names a line, only its app knows', () => {
     // A line whose record the server left out would read as a bare quantity or price («2 · 3,00 €»).
-    expect(fieldText(list([{ quantity: 2, unit_price: { kind: 'money', value: 300 } }]), spoken(es))).toBe('1 elemento');
-    expect(fieldText(list([{}]), spoken(es))).toBe('1 elemento');
-    expect(fieldText(list([['a'], ['b']]), spoken(en))).toBe('2 items');
-    // Lines and names together: the names, and the lines among the more.
+    expect(fieldText(list([{ quantity: 2, unit_price: { kind: 'money', value: 300 } }], false), spoken(es))).toBe('1 elemento');
+    expect(fieldText(list([{}], false), spoken(es))).toBe('1 elemento');
+    expect(fieldText(list([['a'], ['b']], false), spoken(en))).toBe('2 items');
+    // Even marked, a line is never said by its values: it counts among the more.
     expect(fieldText(list(['Caja', { quantity: 2 }]), spoken(es))).toBe('Caja y 1 más');
+  });
+
+  it('a list of texts the server did not name says how many, never its codes (flow.flow.grant’s operations)', () => {
+    // The two revisers of ui#48: «Permisos: sale.sale.create, invoice.invoice.issue…» on a dangerous write.
+    const operations = { name: 'operations', label: 'Permisos', kind: 'list' as const, value: ['sale.sale.create', 'invoice.invoice.issue'] };
+    expect(fieldText(operations, spoken(es))).toBe('2 elementos');
+    expect(fieldLines([operations], spoken(es))).toEqual(['Permisos: 2 elementos']);
+    expect(fieldText(list(['sale', 'invoice'], false), spoken(en))).toBe('2 items');
+  });
+
+  it('moments said with a comma are told apart: a semicolon between them (appointment.appointment.bulk_create’s starts)', () => {
+    const starts = list(['2 nov 2026, 10:00', '9 nov 2026, 10:00', '16 nov 2026, 10:00', '23 nov 2026, 10:00', '30 nov 2026, 10:00']);
+    expect(fieldText(starts, spoken(es))).toBe('2 nov 2026, 10:00; 9 nov 2026, 10:00; 16 nov 2026, 10:00 y 2 más');
+    expect(fieldText(list(['2 nov 2026, 10:00', '9 nov 2026, 10:00']), spoken(es))).toBe('2 nov 2026, 10:00; 9 nov 2026, 10:00');
+    // Names without a comma keep the comma between them.
+    expect(fieldText(list(['Caja', 'Cocina']), spoken(es))).toBe('Caja, Cocina');
   });
 
   it('an empty one says it carries none', () => {

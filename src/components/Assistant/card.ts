@@ -20,6 +20,9 @@ export interface AssistantField {
   /** The currency of an amount of a preview, as its read answers it (an invoice keeps the one it was issued in);
    *  none = the business's, the card's own. */
   money?: Money | null;
+  /** A list whose every item the server said in words (a record by its name, a moment, a value by its label, an
+   *  amount: `live.assistant.NAMED`): the card says its items. Without it, how many it carries (codes nobody names). */
+  named?: boolean;
 }
 
 export interface AssistantCard {
@@ -109,14 +112,17 @@ function listItem(item: unknown, format: CardFormat): string {
   return value ? compact(item, format) : '';
 }
 
-/** A list in words (FIX-HUB-PRINTING-ASSISTANT-CARD-LEAVES-OUT-ITS-RECORDS): its items one after another, the ones it
- *  cannot say among the more; none it can say, how many it carries. */
-function listText(items: readonly unknown[], format: CardFormat): string {
-  const named = items.map((item) => listItem(item, format)).filter(Boolean);
-  if (named.length === 0) return format.t('assistant.card.items', { count: items.length });
-  const shown = named.slice(0, items.length <= LIST_NAMES ? LIST_NAMES : LIST_NAMES - 1);
+/** A list in words (FIX-HUB-PRINTING-ASSISTANT-CARD-LEAVES-OUT-ITS-RECORDS), when the server said its items in words
+ *  (`named`): one after another, the ones it cannot say among the more; else, or none it can say, how many it carries.
+ *  Items that carry a comma themselves (a moment in Spanish, «2 nov 2026, 10:00») are told apart by a semicolon, as the
+ *  RAE and English style guides separate a series whose items have commas. */
+function listText(items: readonly unknown[], named: boolean, format: CardFormat): string {
+  const said = named ? items.map((item) => listItem(item, format)).filter(Boolean) : [];
+  if (said.length === 0) return format.t('assistant.card.items', { count: items.length });
+  const shown = said.slice(0, items.length <= LIST_NAMES ? LIST_NAMES : LIST_NAMES - 1);
   const more = items.length - shown.length;
-  return more === 0 ? shown.join(', ') : format.t('assistant.card.more', { items: shown.join(', '), count: more });
+  const text = shown.join(shown.some((item) => item.includes(',')) ? '; ' : ', ');
+  return more === 0 ? text : format.t('assistant.card.more', { items: text, count: more });
 }
 
 export function fieldText(field: AssistantField, format: CardFormat): string {
@@ -130,7 +136,7 @@ export function fieldText(field: AssistantField, format: CardFormat): string {
     case 'bool':
       return format.t(field.value ? 'assistant.card.yes' : 'assistant.card.no');
     case 'list':
-      return listText(Array.isArray(field.value) ? field.value : [], format);
+      return listText(Array.isArray(field.value) ? field.value : [], field.named === true, format);
     case 'object':
       return compact(field.value, format) || '—';
     default:
