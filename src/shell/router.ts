@@ -4,13 +4,17 @@
 // catch-all 404, the auth gate and the web-only gate (a route that sells is not in the apps,
 // PLAN-SAAS §3.6 point 5).
 //
+// A screen whose file is gone after a deploy opens in a fresh document (`view-load.ts`, gh:hub#438; the old hub's
+// hub#1518 for an open app).
+//
 // Not ported: courier scrubbing and the entitlement/activation gates (the SaaS ↔ Hub handoff is
-// phase 2), view-load recovery (hub#1518) and the Android back button (hub#1906).
+// phase 2), the old hub's reload of the document's FIRST screen (hub#1518) and the Android back button (hub#1906).
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import type { RouteLocationNormalized, RouteLocationRaw, Router, RouteRecordRaw, RouterHistory } from 'vue-router';
 
 import { type ShellSession, sessionReady } from './session';
 import { useSurface } from './surface';
+import { appNameOf, installViewLoadRecovery } from './view-load';
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -107,7 +111,7 @@ export function createAuthGate(
 
 /**
  * Ionic router with the app routes, then Home (with `home`), the 404 catch-all appended last, the
- * auth gate and the web-only gate.
+ * auth gate, the web-only gate and the recovery of a screen whose file is gone (`view-load.ts`).
  */
 export function createShellRouter(routes: RouteRecordRaw[], options: ShellRouterOptions): Router {
   const router = createRouter({
@@ -116,5 +120,8 @@ export function createShellRouter(routes: RouteRecordRaw[], options: ShellRouter
   });
   router.beforeEach(createAuthGate(options.session, options));
   router.beforeEach(webOnlyGate);
+  installViewLoadRecovery(router, options.redirect ?? ((url) => window.location.assign(url)), (path) =>
+    appNameOf(options.session.me.value, path),
+  );
   return router;
 }

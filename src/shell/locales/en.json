@@ -56,6 +56,10 @@
     "logoutFailed": "Could not sign out. Try again.",
     "openFailed": "Could not open that page. Try again."
   },
+  "viewLoad": {
+    "failed": "Could not open that page. Check the connection and try again.",
+    "retry": "Retry"
+  },
   "notFound": {
     "title": "This page does not exist",
     "body": "The address you opened is not part of this hub. It may be an old link, or a guess at the name of an app — your apps open from the menu or from Home.",

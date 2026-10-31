@@ -56,6 +56,10 @@
     "logoutFailed": "No se ha podido cerrar la sesión. Inténtalo de nuevo.",
     "openFailed": "No se ha podido abrir esa página. Inténtalo de nuevo."
   },
+  "viewLoad": {
+    "failed": "No se ha podido abrir esa página. Comprueba la conexión e inténtalo de nuevo.",
+    "retry": "Reintentar"
+  },
   "notFound": {
     "title": "Esta página no existe",
     "body": "La dirección que has abierto no forma parte de este hub. Puede ser un enlace antiguo, o el nombre de una app adivinado: tus apps se abren desde el menú o desde Inicio.",

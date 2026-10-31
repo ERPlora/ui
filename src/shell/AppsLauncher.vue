@@ -4,8 +4,9 @@
 // tile opens its app and closes the sheet; an app that is not on yet says so and opens nothing.
 // With the shell's Home on (the hub) «Home» goes first, whatever state the list is in: a screen of an app has no
 // Back (PLAN-MIGRATIONS §16), so this sheet is the way out of an app and that way is never missing.
-// The app's page is a lazy chunk: when it fails to load (a flaky network, hub#2489 / hub#2325) the
-// launcher says which app, with a Retry that loads its page afresh; never silent.
+// The app's page is a lazy chunk: one that did not arrive (a deploy, a flaky network: gh:hub#438, hub#2489) is
+// the shell router's (`view-load.ts`), for every way of opening a screen; a page that fails for any other reason
+// is said here, naming the app, with a Retry that loads its page afresh. Never silent.
 import {
   IonButton,
   IonButtons,
@@ -25,6 +26,7 @@ import { type MyApp, useMyApps } from './my-apps';
 import { useSession } from './session';
 import { useShellConfig } from './shell-config';
 import { toast } from './toast';
+import { isViewLoadError } from './view-load';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -55,6 +57,8 @@ async function open(app: MyApp): Promise<void> {
   try {
     await router.push(path);
   } catch (error) {
+    // The router already opened it in a fresh document, or said why it could not (`view-load.ts`).
+    if (isViewLoadError(error)) return;
     console.error(`shell: could not open the app ${app.id}`, error);
     void toast(t('launcher.openFailed', { app: app.name }), 'danger', 0, 'apps-launcher-open', {
       text: t('launcher.retry'),
