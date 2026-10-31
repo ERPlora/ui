@@ -1,8 +1,8 @@
 // The answer of the assistant with its format (BASE-G113): a small Markdown reader into a tree that a Vue component
 // paints — never HTML (`v-html`), so nothing the model writes is ever a tag. Bold, italics, inline code, headings,
-// lists and tables are read; a link only to a path of this app (`[label](/settings)` or a bare `/customer/customers`):
-// any other address stays as its label, as text (it never takes the person out of the app). What it does not read
-// (fenced code, images, quotes) stays as plain text.
+// lists, tables and quotes (`> …`, the model's warnings) are read; a link only to a path of this app
+// (`[label](/settings)` or a bare `/customer/customers`): any other address stays as its label, as text (it never takes
+// the person out of the app). What it does not read (fenced code, images) stays as plain text.
 
 export type Inline =
   | { kind: 'text'; text: string }
@@ -16,12 +16,16 @@ export type Block =
   | { kind: 'paragraph'; inlines: Inline[] }
   | { kind: 'heading'; level: number; inlines: Inline[] }
   | { kind: 'list'; ordered: boolean; items: Inline[][] }
-  | { kind: 'table'; head: Inline[][]; rows: Inline[][][] };
+  | { kind: 'table'; head: Inline[][]; rows: Inline[][][] }
+  /** Consecutive `>` lines, read again as an answer of their own (a quote may hold a list, or another quote). */
+  | { kind: 'quote'; blocks: Block[] };
 
 const HEADING = /^(#{1,6})\s+(.*)$/;
 const BULLET = /^\s*[-*+]\s+(.*)$/;
 const NUMBERED = /^\s*\d+[.)]\s+(.*)$/;
 const TABLE_ROW = /^\s*\|.*\|\s*$/;
+/** A quoted line: `>` at its start (up to three spaces before), and one space after it that is not part of the text. */
+const QUOTE = /^ {0,3}> ?(.*)$/;
 const TABLE_SEPARATOR = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
 /** A path of this app: `/` and words, never `//` (another host) nor inside a web address. */
 const HUB_PATH = /^\/(?!\/)[A-Za-z0-9_\-/]*(#[A-Za-z0-9_-]+)?$/;
@@ -141,6 +145,19 @@ export function parseMarkdown(text: string): Block[] {
       i += 1;
       continue;
     }
+    if (QUOTE.test(line)) {
+      endParagraph();
+      const quoted: string[] = [];
+      while (i < lines.length) {
+        const match = QUOTE.exec(lines[i]);
+        if (!match) break;
+        quoted.push(match[1]);
+        i += 1;
+      }
+      const inner = parseMarkdown(quoted.join('\n'));
+      if (inner.length) blocks.push({ kind: 'quote', blocks: inner });
+      continue;
+    }
     const heading = HEADING.exec(line);
     if (heading) {
       endParagraph();
@@ -193,17 +210,22 @@ function inlinePaths(inlines: Inline[], found: string[]): void {
   }
 }
 
-/** The paths of the app an answer links, once each, in the order they appear. */
-export function linkPaths(blocks: Block[]): string[] {
-  const found: string[] = [];
+function blockPaths(blocks: Block[], found: string[]): void {
   for (const block of blocks) {
     if (block.kind === 'paragraph' || block.kind === 'heading') inlinePaths(block.inlines, found);
     else if (block.kind === 'list') block.items.forEach((item) => inlinePaths(item, found));
+    else if (block.kind === 'quote') blockPaths(block.blocks, found);
     else {
       block.head.forEach((cell) => inlinePaths(cell, found));
       block.rows.forEach((row) => row.forEach((cell) => inlinePaths(cell, found)));
     }
   }
+}
+
+/** The paths of the app an answer links, once each, in the order they appear. */
+export function linkPaths(blocks: Block[]): string[] {
+  const found: string[] = [];
+  blockPaths(blocks, found);
   return found;
 }
 
@@ -220,13 +242,15 @@ function spokenInlines(inlines: Inline[], nameOf?: (path: string) => string | un
 /** What «Read aloud» says of an answer: its words, sentence by sentence — a screen by its name (`nameOf`), never a
  *  path or a mark; a table row by row, its cells with commas. */
 export function spokenText(blocks: Block[], nameOf?: (path: string) => string | undefined): string {
-  const lines = blocks.flatMap((block) => {
+  const spoken = (block: Block): string[] => {
     if (block.kind === 'paragraph' || block.kind === 'heading') return [spokenInlines(block.inlines, nameOf)];
     if (block.kind === 'list') return block.items.map((item) => spokenInlines(item, nameOf));
+    if (block.kind === 'quote') return block.blocks.flatMap(spoken);
     const row = (cells: Inline[][]) => cells.map((cell) => spokenInlines(cell, nameOf).trim()).join(', ');
     return [row(block.head), ...block.rows.map(row)];
-  });
-  return lines
+  };
+  return blocks
+    .flatMap(spoken)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => (/[.!?…:]$/.test(line) ? line : `${line}.`))
