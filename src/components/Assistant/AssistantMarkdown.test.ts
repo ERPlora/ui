@@ -92,6 +92,17 @@ describe('AssistantMarkdown', () => {
     wrapper.unmount();
   });
 
+  // QA battery 2026-10-31 (B25, ui#55): «---» between the steps and the settings showed as text, not a line.
+  it('paints a rule as a line between the parts of an answer, never a literal «---»', async () => {
+    const { wrapper } = await mountText('1. Abre la caja\n2. Ciérrala\n\n---\n\n**Ajustes** que afectan');
+    const rule = wrapper.find('hr.assistant-rule');
+    expect(rule.exists()).toBe(true);
+    expect(rule.element.previousElementSibling?.tagName).toBe('OL');
+    expect(rule.element.nextElementSibling?.tagName).toBe('P');
+    expect(wrapper.text()).not.toContain('---');
+    wrapper.unmount();
+  });
+
   it('a tag inside a quote is text, never HTML', async () => {
     const { wrapper } = await mountText('> <img src=x onerror=alert(1)>');
     expect(wrapper.find('img').exists()).toBe(false);
@@ -101,14 +112,14 @@ describe('AssistantMarkdown', () => {
 
   it('its own styles reach everything it paints, quotes, code and links included', async () => {
     const { wrapper } = await mountText(
-      '## Caja\n\nUsa `x` y [tus ajustes](/settings).\n\n- uno\n\n1. dos\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n> ⚠️ Aviso\n> - tres\n> - cuatro\n\nFin.',
+      '## Caja\n\nUsa `x` y [tus ajustes](/settings).\n\n- uno\n\n1. dos\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n> ⚠️ Aviso\n> - tres\n> - cuatro\n\n---\n\nFin.',
     );
     const id = (AssistantMarkdown as { __scopeId?: string }).__scopeId;
     expect(id).toMatch(/^data-v-/);
     const selectors = compiledSelectors(id ?? '');
     // Every element a rule of the stylesheet is written for (a list item takes its look from its list), none of them the
     // last of its parent: a rule for the last one alone does not count.
-    const painted = ['h4', 'p', 'code', 'a.assistant-link', 'ul', 'ol', '.assistant-table', 'th', 'td', 'blockquote', 'blockquote p', 'blockquote ul'];
+    const painted = ['h4', 'p', 'code', 'a.assistant-link', 'ul', 'ol', '.assistant-table', 'th', 'td', 'blockquote', 'blockquote p', 'blockquote ul', 'hr.assistant-rule'];
     const unstyled = painted.filter((query) => {
       const element = wrapper.find(query);
       expect(element.exists(), query).toBe(true);

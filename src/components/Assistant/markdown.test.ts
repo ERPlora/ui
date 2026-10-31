@@ -152,12 +152,58 @@ describe('parseMarkdown', () => {
       { kind: 'quote', blocks: [paragraph(text('<script>x</script>'))] },
     ]);
   });
+
+  // QA battery 2026-10-31 (B25, ui#55): the model parts an answer with «---»; read as text it showed a literal «---».
+  it('a line of three dashes, asterisks or underscores alone is a rule, never its marks', () => {
+    for (const mark of ['---', '***', '___', '- - -', '* * *', '_ _ _', '-----', '   ***  ']) {
+      expect(parseMarkdown(`Pasos.\n\n${mark}\n\nAjustes.`), mark).toEqual([
+        paragraph(text('Pasos.')),
+        { kind: 'rule' },
+        paragraph(text('Ajustes.')),
+      ]);
+    }
+  });
+
+  it('a rule ends the list or the paragraph right above it, and a rule inside a quote stays in it', () => {
+    expect(parseMarkdown('1. Abre la caja\n2. Ciérrala\n---\n## Ajustes')).toEqual([
+      { kind: 'list', ordered: true, items: [[text('Abre la caja')], [text('Ciérrala')]] },
+      { kind: 'rule' },
+      { kind: 'heading', level: 2, inlines: [text('Ajustes')] },
+    ]);
+    expect(parseMarkdown('- Uno\n* * *\n- Dos')).toEqual([
+      { kind: 'list', ordered: false, items: [[text('Uno')]] },
+      { kind: 'rule' },
+      { kind: 'list', ordered: false, items: [[text('Dos')]] },
+    ]);
+    expect(parseMarkdown('Antes\n---\nDespués')).toEqual([paragraph(text('Antes')), { kind: 'rule' }, paragraph(text('Después'))]);
+    expect(parseMarkdown('> Uno\n> ***\n> Dos')).toEqual([
+      { kind: 'quote', blocks: [paragraph(text('Uno')), { kind: 'rule' }, paragraph(text('Dos'))] },
+    ]);
+  });
+
+  it('dashes inside a line, two of them, mixed marks or a word after them are text, never a rule', () => {
+    for (const line of ['a --- b', '--', '-*-', '---texto', '***negrita', '    ---']) {
+      expect(parseMarkdown(line), line).not.toContainEqual({ kind: 'rule' });
+    }
+    expect(parseMarkdown('a --- b')).toEqual([paragraph(text('a --- b'))]);
+  });
+
+  it('a table keeps its own line of dashes under its head', () => {
+    expect(parseMarkdown('| A |\n|---|\n| 1 |\n\n---')).toEqual([
+      { kind: 'table', head: [[text('A')]], rows: [[[text('1')]]] },
+      { kind: 'rule' },
+    ]);
+  });
 });
 
 describe('linkPaths', () => {
   it('the screens an answer names, once each and in order', () => {
     const blocks = parseMarkdown('Ve a [Ajustes](/settings) o a /apps; luego [Ajustes](/settings).');
     expect(linkPaths(blocks)).toEqual(['/settings', '/apps']);
+  });
+
+  it('a rule names no screen, and the screens around it still count', () => {
+    expect(linkPaths(parseMarkdown('Ve a /apps.\n\n---\n\nY a [Ajustes](/settings).'))).toEqual(['/apps', '/settings']);
   });
 
   it('a screen named inside a quote is one of them', () => {
@@ -175,6 +221,10 @@ describe('spokenText (BASE-G113, «Read aloud»)', () => {
     const nameOf = (path: string) => (path === '/customer/customers' ? 'Clientes' : undefined);
     expect(spokenText(parseMarkdown(text), nameOf)).toBe('Ventas. Hoy 120 €, ver Ajustes o Clientes. uno. dos. Día, Total. Lunes, 80 €.');
     expect(spokenText(parseMarkdown('Mira /reports.'), nameOf)).toBe('Mira.');
+  });
+
+  it('says nothing of a rule: never its dashes', () => {
+    expect(spokenText(parseMarkdown('Abre la caja.\n\n---\n\n***\n\nCiérrala'))).toBe('Abre la caja. Ciérrala.');
   });
 
   it('reads a quote’s words, never its «>»', () => {

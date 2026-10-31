@@ -3,7 +3,8 @@
 // own elements — never `v-html`, so nothing the model writes is a tag. A link only to a screen this app serves
 // (`screenExists`), named as the menu names it when the answer gave it no label (`nameOf`, BASE-G114); clicking it
 // emits `go` (the panel navigates). Any other path is text. A table fits the bubble, or scrolls inside its own box; a
-// quote (`> …`, the model's warnings) is a block set apart, with the answer's own format inside it.
+// quote (`> …`, the model's warnings) is a block set apart, with the answer's own format inside it; a rule (`---`) is
+// a thin line between two parts.
 import { computed, type FunctionalComponent, h, type VNodeChild } from 'vue';
 
 import { type Block, type Inline, parseMarkdown } from './markdown';
@@ -62,6 +63,8 @@ function paintBlock(block: Block): VNodeChild {
       ]);
     case 'quote':
       return h('blockquote', { class: 'assistant-quote' }, block.blocks.map(paintBlock));
+    case 'rule':
+      return h('hr', { class: 'assistant-rule' });
   }
 }
 
@@ -88,7 +91,8 @@ const Blocks: FunctionalComponent<{ blocks: Block[] }> = (inner) => inner.blocks
 .assistant-md :deep(ul:last-child),
 .assistant-md :deep(ol:last-child),
 .assistant-md :deep(.assistant-table:last-child),
-.assistant-md :deep(.assistant-quote:last-child) {
+.assistant-md :deep(.assistant-quote:last-child),
+.assistant-md :deep(.assistant-rule:last-child) {
   margin-bottom: 0;
 }
 /* The page's reset takes the markers away: a list says it is one. */
@@ -152,5 +156,13 @@ const Blocks: FunctionalComponent<{ blocks: Block[] }> = (inner) => inner.blocks
   border-start-end-radius: var(--ep-radius-sm, 10px);
   border-end-end-radius: var(--ep-radius-sm, 10px);
   background: color-mix(in srgb, var(--ep-text-muted, #646b78) 8%, transparent);
+}
+/* A rule parts two pieces of an answer: a thin line in the same muted colour as a quote's bar, readable on the bubble in
+   light and dark, with the same room above and below it as between two paragraphs. */
+.assistant-md :deep(.assistant-rule) {
+  height: 0;
+  margin: 0 0 8px;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--ep-text-muted, #646b78) 40%, transparent);
 }
 </style>
