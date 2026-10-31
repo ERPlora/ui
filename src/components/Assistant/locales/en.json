@@ -75,6 +75,7 @@
       "yes": "Yes",
       "no": "No",
       "items": "no items | 1 item | {count} items",
+      "more": "{items} and {count} more",
       "fields": {
         "name": "Name",
         "price": "Price",

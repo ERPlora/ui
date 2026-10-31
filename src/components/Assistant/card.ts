@@ -3,8 +3,8 @@
 // and its app by its name, never the operation's id; each
 // datum in words — an amount its schema marks (`money`), in the business's currency (gh:hub#1045) or, in a preview,
 // the one its read answers, and, when it says it is signed (a difference), with its sign as Cash register writes it, a
-// yes or no, a dash for nothing, a list by how many. A normal write is one line; a dangerous one, every datum and what
-// to type.
+// yes or no, a dash for nothing, a list by its items in words or else by how many. A normal write is one line; a
+// dangerous one, every datum and what to type.
 import { formatMoney, type Money } from '../format/money';
 
 export interface AssistantField {
@@ -97,6 +97,28 @@ function compact(value: unknown, format: CardFormat): string {
   return parts.filter(Boolean).join(Array.isArray(value) ? ', ' : ' · ');
 }
 
+/** The items a list says by name: up to this many, every one; past it, one fewer and how many more (Odoo's tags list,
+ *  «A, B, C y 2 más»: never «and 1 more» for an item that could have been named). */
+const LIST_NAMES = 4;
+
+/** An item of a list said as a value on top — a text (a record the server names), a figure, a yes or no, an amount —;
+ *  '' when it cannot be: a record the server left out, or a line (which datum names a line, only its app knows: one whose
+ *  record was left out would read as a bare quantity or price). */
+function listItem(item: unknown, format: CardFormat): string {
+  const value = typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean' || isAmount(item);
+  return value ? compact(item, format) : '';
+}
+
+/** A list in words (FIX-HUB-PRINTING-ASSISTANT-CARD-LEAVES-OUT-ITS-RECORDS): its items one after another, the ones it
+ *  cannot say among the more; none it can say, how many it carries. */
+function listText(items: readonly unknown[], format: CardFormat): string {
+  const named = items.map((item) => listItem(item, format)).filter(Boolean);
+  if (named.length === 0) return format.t('assistant.card.items', { count: items.length });
+  const shown = named.slice(0, items.length <= LIST_NAMES ? LIST_NAMES : LIST_NAMES - 1);
+  const more = items.length - shown.length;
+  return more === 0 ? shown.join(', ') : format.t('assistant.card.more', { items: shown.join(', '), count: more });
+}
+
 export function fieldText(field: AssistantField, format: CardFormat): string {
   switch (field.kind) {
     case 'empty':
@@ -108,7 +130,7 @@ export function fieldText(field: AssistantField, format: CardFormat): string {
     case 'bool':
       return format.t(field.value ? 'assistant.card.yes' : 'assistant.card.no');
     case 'list':
-      return format.t('assistant.card.items', { count: Array.isArray(field.value) ? field.value.length : 0 });
+      return listText(Array.isArray(field.value) ? field.value : [], format);
     case 'object':
       return compact(field.value, format) || '—';
     default:
