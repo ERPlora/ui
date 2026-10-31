@@ -6,7 +6,7 @@ export { default as AssistantEmpty } from './AssistantEmpty.vue';
 export { default as AssistantPanel } from './AssistantPanel.vue';
 export { cardLine, fieldLabelKey, fieldLines, fieldText, typedMatches } from './card';
 export type { AssistantCard, AssistantField, CardFormat } from './card';
-export { assistantConfig, configureAssistant, verbKeyOf } from './config';
+export { assistantConfig, configureAssistant, spentNoteKeyOf, verbKeyOf } from './config';
 export type { AssistantApproval, AssistantClip, AssistantConfig, AssistantReportInput, AssistantUsage } from './config';
 export { MAX_AUDIO_BYTES, useDictation } from './dictation';
 export type { Dictation, DictationOptions, DictationProblem } from './dictation';

@@ -202,6 +202,24 @@ describe('AssistantMessage', () => {
     cashier.wrapper.unmount();
   });
 
+  it("a spent allowance where nobody may upgrade: the host's own line, when it gives one (ui#49)", async () => {
+    configure({ spentNoteKey: 'host.spentNote' });
+    const spent = answer({ error: 'assistant.quota_exceeded', details: { used: 30, limit: 30, resets_at: '2026-11-01T00:00:00Z' } });
+    const es = await mountBubble(spent);
+    expect(es.wrapper.get('[data-testid="assistant-spent-note"]').text()).toBe('Cada negocio tiene su propio asistente.');
+    expect(es.wrapper.text()).not.toContain('Pídele a quien administra el negocio que mejore el plan.');
+    expect(es.wrapper.find('[data-testid="assistant-upgrade"]').exists()).toBe(false);
+    es.wrapper.unmount();
+    const en = await mountBubble(spent, {}, 'en');
+    expect(en.wrapper.get('[data-testid="assistant-spent-note"]').text()).toBe('Each business has its own assistant.');
+    en.wrapper.unmount();
+    // Who may upgrade still gets «Upgrade plan», never the host's line as well.
+    const owner = await mountBubble(spent, { canUpgrade: true, planUrl: 'https://erplora.com/hubs/a/plan' });
+    expect(owner.wrapper.find('[data-testid="assistant-upgrade"]').exists()).toBe(true);
+    expect(owner.wrapper.find('[data-testid="assistant-spent-note"]').exists()).toBe(false);
+    owner.wrapper.unmount();
+  });
+
   it('«Report a problem» under a finished answer, never under the panel’s own failure', async () => {
     const done = await mountBubble(answer({ text: 'Tienes 3.' }));
     await done.wrapper.find('[data-testid="assistant-report"]').trigger('click');

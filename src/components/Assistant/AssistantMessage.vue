@@ -12,7 +12,7 @@ import { useI18n } from 'vue-i18n';
 
 import HubIcon from '../../shell/HubIcon.vue';
 import AssistantMarkdown from './AssistantMarkdown.vue';
-import { assistantConfig, verbKeyOf } from './config';
+import { assistantConfig, spentNoteKeyOf, verbKeyOf } from './config';
 import { errorView } from './guide';
 import type { Bubble } from './history';
 import { ASSISTANT_ICONS } from './icons';
@@ -261,8 +261,9 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
         <p
           v-else
           class="assistant-muted"
+          data-testid="assistant-spent-note"
         >
-          {{ t('assistant.askOwner') }}
+          {{ t(spentNoteKeyOf(config)) }}
         </p>
       </template>
     </div>

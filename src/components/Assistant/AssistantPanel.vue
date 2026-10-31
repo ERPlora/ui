@@ -29,7 +29,7 @@ import AssistantConfirm from './AssistantConfirm.vue';
 import AssistantEmpty from './AssistantEmpty.vue';
 import AssistantMessage from './AssistantMessage.vue';
 import AssistantReport from './AssistantReport.vue';
-import { assistantConfig } from './config';
+import { assistantConfig, spentNoteKeyOf } from './config';
 import { screenLabel, usageNote } from './guide';
 import type { Bubble } from './history';
 import { parseMarkdown, spokenText } from './markdown';
@@ -375,7 +375,10 @@ onBeforeUnmount(() => {
             <HubIcon name="ion:sparkles-outline" />
             {{ t('assistant.upgrade') }}
           </a>
-          <span v-else>{{ t('assistant.askOwner') }}</span>
+          <span
+            v-else
+            data-testid="assistant-spent-note"
+          >{{ t(spentNoteKeyOf(config)) }}</span>
         </div>
         <p
           v-else-if="note"
