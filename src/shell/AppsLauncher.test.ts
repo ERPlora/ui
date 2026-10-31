@@ -13,6 +13,7 @@ import HubIcon from './HubIcon.vue';
 import { createShellI18n } from './i18n';
 import { createShellSession, SESSION_KEY, type SessionMe, type SessionStatus } from './session';
 import { SHELL_CONFIG_KEY, type ShellConfig } from './shell-config';
+import { installViewLoadRecovery } from './view-load';
 
 function me(overrides: Partial<SessionMe> = {}): SessionMe {
   return {
@@ -205,30 +206,56 @@ describe('AppsLauncher (the topbar door to the apps: «My apps» sheet, nav laun
 });
 
 // hub#2489 / hub#2325: with a flaky network, tapping an app opened nothing and said nothing (its page
-// is a lazy chunk; the failed import left the screen where it was).
-describe('AppsLauncher: an app whose page fails to load (hub#2489)', () => {
-  it('tries once, no hidden retry: a failed import stays failed in the browser, the toast says so', async () => {
+// is a lazy chunk; the failed import left the screen where it was). gh:hub#438: a chunk that did not arrive is the
+// shell router's (`view-load.ts`, installed by `createShellRouter`) for every way of opening a screen, so the
+// launcher adds nothing of its own to it; what it still says is a page that fails for any other reason.
+describe('AppsLauncher: an app whose page fails to load (hub#2489, gh:hub#438)', () => {
+  const lostChunk = () => new TypeError('Failed to fetch dynamically imported module');
+  let reopen: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    reopen = vi.fn();
+    installViewLoadRecovery(router, reopen);
+  });
+
+  it('tries once, no hidden retry: the router opens the app in a fresh document and the launcher says nothing over it', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    ticketsChunk.mockRejectedValueOnce(new TypeError('Failed to fetch dynamically imported module'));
+    ticketsChunk.mockRejectedValueOnce(lostChunk());
     const { wrapper } = mountLauncher();
     await open(wrapper);
     await tiles(wrapper)[1].trigger('click');
     await flushPromises();
     expect(ticketsChunk).toHaveBeenCalledOnce();
-    expect(router.currentRoute.value.path).toBe('/demo/items');
-    expect(toast).toHaveBeenCalledOnce();
+    expect(reopen).toHaveBeenCalledOnce();
+    expect(reopen).toHaveBeenCalledWith('/sale/tickets');
+    expect(toast).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 
-  it('never stays silent: when it still fails, an error toast says which app, with a Retry that loads it afresh', async () => {
+  it("offline, one notice and not two: the router's, with its Retry", async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    ticketsChunk.mockRejectedValue(lostChunk());
+    const { wrapper } = mountLauncher();
+    await open(wrapper);
+    await tiles(wrapper)[1].trigger('click');
+    await flushPromises();
+    expect(router.currentRoute.value.path).toBe('/demo/items');
+    expect(toast).toHaveBeenCalledOnce();
+    expect(toast.mock.calls[0][3]).toBe('view-load-failed');
+    wrapper.unmount();
+  });
+
+  it('never stays silent: a page that fails for another reason says which app, with a Retry that loads it afresh', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    ticketsChunk.mockRejectedValue(new TypeError('Failed to fetch dynamically imported module'));
+    ticketsChunk.mockRejectedValue(new Error('TicketsPage: cannot read properties of undefined'));
     const { wrapper } = mountLauncher();
     await open(wrapper);
     await tiles(wrapper)[1].trigger('click');
     await flushPromises();
     expect(router.currentRoute.value.path).toBe('/demo/items');
     expect(error).toHaveBeenCalled();
+    expect(reopen).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledOnce();
     const [message, color, duration, id, action] = toast.mock.calls[0];
     expect(message).toBe('Could not open Sales and point of sale. Check the connection and try again.');
