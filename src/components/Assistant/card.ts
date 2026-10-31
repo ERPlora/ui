@@ -3,8 +3,8 @@
 // and its app by its name, never the operation's id; each
 // datum in words — an amount its schema marks (`money`), in the business's currency (gh:hub#1045) or, in a preview,
 // the one its read answers, and, when it says it is signed (a difference), with its sign as Cash register writes it, a
-// yes or no, a dash for nothing, a list by how many. A normal write is one line; a dangerous one, every datum and what
-// to type.
+// yes or no, a dash for nothing, a list by its items in words or else by how many. A normal write is one line; a
+// dangerous one, every datum and what to type.
 import { formatMoney, type Money } from '../format/money';
 
 export interface AssistantField {
@@ -20,6 +20,9 @@ export interface AssistantField {
   /** The currency of an amount of a preview, as its read answers it (an invoice keeps the one it was issued in);
    *  none = the business's, the card's own. */
   money?: Money | null;
+  /** A list whose every item the server said in words (a record by its name, a moment, a value by its label, an
+   *  amount: `live.assistant.NAMED`): the card says its items. Without it, how many it carries (codes nobody names). */
+  named?: boolean;
 }
 
 export interface AssistantCard {
@@ -97,6 +100,31 @@ function compact(value: unknown, format: CardFormat): string {
   return parts.filter(Boolean).join(Array.isArray(value) ? ', ' : ' · ');
 }
 
+/** The items a list says by name: up to this many, every one; past it, one fewer and how many more (Odoo's tags list,
+ *  «A, B, C y 2 más»: never «and 1 more» for an item that could have been named). */
+const LIST_NAMES = 4;
+
+/** An item of a list said as a value on top — a text (a record the server names), a figure, a yes or no, an amount —;
+ *  '' when it cannot be: a record the server left out, or a line (which datum names a line, only its app knows: one whose
+ *  record was left out would read as a bare quantity or price). */
+function listItem(item: unknown, format: CardFormat): string {
+  const value = typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean' || isAmount(item);
+  return value ? compact(item, format) : '';
+}
+
+/** A list in words (FIX-HUB-PRINTING-ASSISTANT-CARD-LEAVES-OUT-ITS-RECORDS), when the server said its items in words
+ *  (`named`): one after another, the ones it cannot say among the more; else, or none it can say, how many it carries.
+ *  Items that carry a comma themselves (a moment in Spanish, «2 nov 2026, 10:00») are told apart by a semicolon, as the
+ *  RAE and English style guides separate a series whose items have commas. */
+function listText(items: readonly unknown[], named: boolean, format: CardFormat): string {
+  const said = named ? items.map((item) => listItem(item, format)).filter(Boolean) : [];
+  if (said.length === 0) return format.t('assistant.card.items', { count: items.length });
+  const shown = said.slice(0, items.length <= LIST_NAMES ? LIST_NAMES : LIST_NAMES - 1);
+  const more = items.length - shown.length;
+  const text = shown.join(shown.some((item) => item.includes(',')) ? '; ' : ', ');
+  return more === 0 ? text : format.t('assistant.card.more', { items: text, count: more });
+}
+
 export function fieldText(field: AssistantField, format: CardFormat): string {
   switch (field.kind) {
     case 'empty':
@@ -108,7 +136,7 @@ export function fieldText(field: AssistantField, format: CardFormat): string {
     case 'bool':
       return format.t(field.value ? 'assistant.card.yes' : 'assistant.card.no');
     case 'list':
-      return format.t('assistant.card.items', { count: Array.isArray(field.value) ? field.value.length : 0 });
+      return listText(Array.isArray(field.value) ? field.value : [], field.named === true, format);
     case 'object':
       return compact(field.value, format) || '—';
     default:

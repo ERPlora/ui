@@ -33,7 +33,8 @@ const HIGH: AssistantCard = {
   app_name: 'Citas',
   action: 'bulk_delete',
   risk: 'high',
-  fields: [{ name: 'ids', label: 'Ids', kind: 'list', value: ['a', 'b', 'c'] }],
+  // Ids it names no record by: the server leaves each one out, and the list still says how many (hub#416).
+  fields: [{ name: 'ids', label: 'Ids', kind: 'list', value: [null, null, null] }],
   count: 3,
   confirm_word: '3',
 };
