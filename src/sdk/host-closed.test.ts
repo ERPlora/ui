@@ -14,11 +14,14 @@ function setup(session: Pick<Storage, "getItem" | "setItem"> = memoryStorage(), 
 }
 
 describe("isHostClosed", () => {
-  it.each(["base.hub_suspended", "base.hub_gone", "base.hub_preparing"])("is the host gate's %s", (code) => {
-    expect(isHostClosed(closed(code))).toBe(true);
-    // From the live stream too, where an error carries status 0.
-    expect(isHostClosed(closed(code, 0))).toBe(true);
-  });
+  it.each(["base.hub_suspended", "base.hub_gone", "base.hub_preparing", "base.hub_maintenance"])(
+    "is the host gate's %s",
+    (code) => {
+      expect(isHostClosed(closed(code))).toBe(true);
+      // From the live stream too, where an error carries status 0.
+      expect(isHostClosed(closed(code, 0))).toBe(true);
+    },
+  );
 
   it.each([
     // The same status as the gate's, another code: an app the business has no right to (402) and one being

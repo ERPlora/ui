@@ -1,7 +1,8 @@
 /**
  * A host that no longer serves the app: the Hub's registry gate answers every API call and the live stream with
  * its envelope once the business is suspended for an unpaid invoice (`base.hub_suspended`, 402), the hub ended
- * (`base.hub_gone`, 410) or it is still being prepared (`base.hub_preparing`, 503). An app already open would only
+ * (`base.hub_gone`, 410), it is still being prepared (`base.hub_preparing`, 503) or its database is moving to another
+ * cluster for a few minutes (`base.hub_maintenance`, 503, the Hub's `control.hub.move`). An app already open would only
  * show loose errors, so the SDK reloads the page once and the browser gets the gate's own page (the way back to
  * ERPlora), as an app shows the store's pause page.
  *
@@ -26,6 +27,7 @@ export const HOST_CLOSED_CODES: ReadonlySet<string> = new Set([
   "base.hub_suspended",
   "base.hub_gone",
   "base.hub_preparing",
+  "base.hub_maintenance",
 ]);
 /** The codes of a 401 that asks the live session for something instead of saying it ended. */
 export const SESSION_CHALLENGE_CODES: ReadonlySet<string> = new Set([
