@@ -13,7 +13,7 @@ import HubIcon from './HubIcon.vue';
 import { createShellI18n } from './i18n';
 import { createShellSession, SESSION_KEY, type SessionMe, type SessionStatus } from './session';
 import { SHELL_CONFIG_KEY, type ShellConfig } from './shell-config';
-import { installViewLoadRecovery } from './view-load';
+import { appNameOf, installViewLoadRecovery } from './view-load';
 
 function me(overrides: Partial<SessionMe> = {}): SessionMe {
   return {
@@ -215,7 +215,31 @@ describe('AppsLauncher: an app whose page fails to load (hub#2489, gh:hub#438)',
 
   beforeEach(() => {
     reopen = vi.fn();
-    installViewLoadRecovery(router, reopen);
+    // The server answers for the file (a 404 after a deploy) unless a test cuts the network.
+    vi.stubGlobal('fetch', vi.fn(async () => ({ status: 404 }) as Response));
+    installViewLoadRecovery(router, reopen, (path) => appNameOf(me(), path));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('a flaky network the browser still calls online (hub#2489): the screen stays and one notice says which app', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))));
+    ticketsChunk.mockRejectedValue(lostChunk());
+    const { wrapper } = mountLauncher();
+    await open(wrapper);
+    await tiles(wrapper)[1].trigger('click');
+    await flushPromises();
+    expect(reopen).not.toHaveBeenCalled();
+    expect(router.currentRoute.value.path).toBe('/demo/items');
+    expect(toast).toHaveBeenCalledOnce();
+    const [message, , , id, action] = toast.mock.calls[0];
+    expect(message).toBe('Could not open Sales and point of sale. Check the connection and try again.');
+    expect(id).toBe('view-load-failed');
+    expect(action.text).toBe('Retry');
+    wrapper.unmount();
   });
 
   it('tries once, no hidden retry: the router opens the app in a fresh document and the launcher says nothing over it', async () => {

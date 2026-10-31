@@ -14,7 +14,7 @@ import type { RouteLocationNormalized, RouteLocationRaw, Router, RouteRecordRaw,
 
 import { type ShellSession, sessionReady } from './session';
 import { useSurface } from './surface';
-import { installViewLoadRecovery } from './view-load';
+import { appNameOf, installViewLoadRecovery } from './view-load';
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -120,6 +120,8 @@ export function createShellRouter(routes: RouteRecordRaw[], options: ShellRouter
   });
   router.beforeEach(createAuthGate(options.session, options));
   router.beforeEach(webOnlyGate);
-  installViewLoadRecovery(router, options.redirect ?? ((url) => window.location.assign(url)));
+  installViewLoadRecovery(router, options.redirect ?? ((url) => window.location.assign(url)), (path) =>
+    appNameOf(options.session.me.value, path),
+  );
   return router;
 }

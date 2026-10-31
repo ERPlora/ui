@@ -23,7 +23,20 @@ function me(): SessionMe {
   return { user: { id: 'u1', label: 'Ana' }, permissions: [], menu: [], apps: [], language: 'en' };
 }
 
-function setup(failure: () => unknown = lostChunk, extra: RouteRecordRaw[] = []) {
+/** A session with one app, VeriFactu, whose screens live under `/verifactu`. */
+function withVerifactu(): SessionMe {
+  return {
+    ...me(),
+    menu: [{ id: 'verifactu', label: 'VeriFactu', items: [{ path: '/verifactu', label: 'Records', icon: 'ion:list-outline' }] }],
+    apps: [{ label: 'verifactu', state: 'on' }],
+  };
+}
+
+/** The check of the file: the server answers (a 404 after a deploy), or the network does not. */
+const answers = (status = 404) => vi.fn(async () => ({ status }) as Response);
+const noAnswer = () => vi.fn(async (): Promise<Response> => Promise.reject(new TypeError('Failed to fetch')));
+
+function setup(failure: () => unknown = lostChunk, extra: RouteRecordRaw[] = [], session: SessionMe = me()) {
   const redirect = vi.fn();
   const router = createShellRouter(
     [
@@ -33,7 +46,7 @@ function setup(failure: () => unknown = lostChunk, extra: RouteRecordRaw[] = [])
       ...extra,
     ],
     {
-      session: createShellSession(ref<SessionMe | undefined>(me()), ref<SessionStatus>('live')),
+      session: createShellSession(ref<SessionMe | undefined>(session), ref<SessionStatus>('live')),
       history: createMemoryHistory(),
       redirect,
       home: true,
@@ -53,12 +66,14 @@ let consoleError: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
   document.documentElement.lang = 'en';
+  vi.stubGlobal('fetch', answers());
 });
 
 afterEach(() => {
   toast.mockReset();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
@@ -69,6 +84,101 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     expect(redirect).toHaveBeenCalledOnce();
     expect(redirect).toHaveBeenCalledWith('/verifactu');
     expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('asks the server for the very file that failed, uncached, before leaving the screen', async () => {
+    const check = answers();
+    vi.stubGlobal('fetch', check);
+    const { router } = setup();
+    await router.push('/');
+    await tap(router, '/verifactu');
+    expect(check).toHaveBeenCalledOnce();
+    expect(check).toHaveBeenCalledWith('http://localhost:3000/static/spa/assets/VerifactuPage-0ld.js', {
+      method: 'HEAD',
+      cache: 'no-store',
+    });
+  });
+
+  it('Safari names no file: it asks for the address of the screen instead', async () => {
+    const check = answers(200);
+    vi.stubGlobal('fetch', check);
+    const { router, redirect } = setup(() => new TypeError('Importing a module script failed.'));
+    await router.push('/');
+    await tap(router, '/verifactu');
+    expect(check).toHaveBeenCalledWith('/verifactu', { method: 'HEAD', cache: 'no-store' });
+    expect(redirect).toHaveBeenCalledWith('/verifactu');
+  });
+
+  // hub#2489: a flaky network leaves the browser «online». A fresh document there would be the browser's error page,
+  // or a blank first screen, with no way back to the till.
+  it('a flaky network the browser still calls online: keeps the screen and says so, never a fresh document', async () => {
+    vi.stubGlobal('fetch', noAnswer());
+    const { router, redirect } = setup();
+    await router.push('/');
+    await tap(router, '/verifactu');
+    expect(redirect).not.toHaveBeenCalled();
+    expect(router.currentRoute.value.path).toBe('/');
+    expect(toast).toHaveBeenCalledOnce();
+    const [message, , duration, id, action] = toast.mock.calls[0];
+    expect(message).toBe('Could not open that page. Check the connection and try again.');
+    expect(duration).toBe(0);
+    expect(id).toBe('view-load-failed');
+    expect(action.text).toBe('Retry');
+  });
+
+  it('a check that never answers: after 5 s it stays and says so, never waits for ever', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
+    const { router, redirect } = setup();
+    await router.push('/');
+    await tap(router, '/verifactu');
+    expect(toast).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(4999);
+    expect(toast).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(redirect).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledOnce();
+  });
+
+  it('Retry asks again: still no answer, it stays and says so again; with one, the screen opens afresh', async () => {
+    const check = noAnswer();
+    vi.stubGlobal('fetch', check);
+    const { router, redirect } = setup();
+    await router.push('/');
+    await tap(router, '/verifactu');
+    toast.mock.calls[0][4].handler();
+    await flushPromises();
+    expect(redirect).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledTimes(2);
+    expect(toast.mock.calls[1][3]).toBe('view-load-failed');
+
+    check.mockResolvedValue({ status: 200 } as Response);
+    toast.mock.calls[1][4].handler();
+    await flushPromises();
+    expect(redirect).toHaveBeenCalledOnce();
+    expect(redirect).toHaveBeenCalledWith('/verifactu');
+  });
+
+  it('names the app when the screen is one of its apps, as «My apps» did (hub#2489)', async () => {
+    vi.stubGlobal('fetch', noAnswer());
+    const { router } = setup(lostChunk, [], withVerifactu());
+    await router.push('/');
+    await tap(router, '/verifactu');
+    expect(toast.mock.calls[0][0]).toBe('Could not open VeriFactu. Check the connection and try again.');
+    toast.mockReset();
+    document.documentElement.lang = 'es';
+    await tap(router, '/sale/charge');
+    expect(toast.mock.calls[0][0]).toBe('No se ha podido abrir esa página. Comprueba la conexión e inténtalo de nuevo.');
+  });
+
+  it("never names a section of the menu that is not an app (the hub's own screens)", async () => {
+    vi.stubGlobal('fetch', noAnswer());
+    const session = withVerifactu();
+    session.menu.push({ id: 'base', label: 'My business', items: [{ path: '/settings', label: 'Settings', icon: 'ion:cog' }] });
+    const { router } = setup(lostChunk, [{ path: '/settings', component: () => Promise.reject(lostChunk()) }], session);
+    await router.push('/');
+    await tap(router, '/settings');
+    expect(toast.mock.calls[0][0]).toBe('Could not open that page. Check the connection and try again.');
   });
 
   it('keeps what the tap asked for: the query and the fragment travel with it (Tables › «Charge»)', async () => {
@@ -91,8 +201,8 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     expect(redirect).toHaveBeenCalledWith('/verifactu');
   });
 
-  it('offline: keeps the screen it is on and says so, with a Retry that opens it afresh (never silent)', async () => {
-    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+  it('offline: keeps the screen it is on and says so, with a Retry that opens it afresh once back online (never silent)', async () => {
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     const { router, redirect } = setup();
     await router.push('/');
     await tap(router, '/verifactu');
@@ -106,8 +216,10 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     expect(id).toBe('view-load-failed');
     expect(action.text).toBe('Retry');
     // A retry inside the SPA cannot work (the browser keeps a failed module import failed for the life of the
-    // document): Retry opens the screen in a fresh document.
+    // document): back online, Retry opens the screen in a fresh document.
+    online.mockReturnValue(true);
     action.handler();
+    await flushPromises();
     expect(redirect).toHaveBeenCalledWith('/verifactu');
   });
 
