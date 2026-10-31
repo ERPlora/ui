@@ -104,12 +104,68 @@ describe('parseMarkdown', () => {
   it('HTML is text: nothing of the answer is ever interpreted as a tag', () => {
     expect(parseMarkdown('<img src=x onerror=alert(1)>')).toEqual([paragraph(text('<img src=x onerror=alert(1)>'))]);
   });
+
+  // QA battery 2026-10-31 (B21, B25): the model sets its warnings apart as quotes; read as text they showed «> ⚠️ …».
+  it('a quote is a block of its own, without its «>», and what is inside it is read', () => {
+    expect(parseMarkdown('Antes.\n> ⚠️ Solo **una** sesión abierta.\nDespués.')).toEqual([
+      paragraph(text('Antes.')),
+      {
+        kind: 'quote',
+        blocks: [paragraph(text('⚠️ Solo '), { kind: 'strong', children: [text('una')] }, text(' sesión abierta.'))],
+      },
+      paragraph(text('Después.')),
+    ]);
+  });
+
+  it('consecutive quoted lines are one quote; a blank quoted line parts its paragraphs', () => {
+    expect(parseMarkdown('> Uno\n>dos\n>\n> - a\n> - b')).toEqual([
+      {
+        kind: 'quote',
+        blocks: [paragraph(text('Uno\ndos')), { kind: 'list', ordered: false, items: [[text('a')], [text('b')]] }],
+      },
+    ]);
+  });
+
+  it('a blank line ends a quote: the next one is another', () => {
+    expect(parseMarkdown('> Uno\n\n> Dos')).toEqual([
+      { kind: 'quote', blocks: [paragraph(text('Uno'))] },
+      { kind: 'quote', blocks: [paragraph(text('Dos'))] },
+    ]);
+  });
+
+  it('a quote inside a quote, and a lone «>» paints nothing', () => {
+    expect(parseMarkdown('> Fuera\n>> Dentro')).toEqual([
+      {
+        kind: 'quote',
+        blocks: [paragraph(text('Fuera')), { kind: 'quote', blocks: [paragraph(text('Dentro'))] }],
+      },
+    ]);
+    expect(parseMarkdown('>\n>')).toEqual([]);
+  });
+
+  it('a «>» inside a line is no quote', () => {
+    expect(parseMarkdown('Si el total > 100 €, avisa.')).toEqual([paragraph(text('Si el total > 100 €, avisa.'))]);
+  });
+
+  it('a quote is HTML-free as well: a tag inside it is text', () => {
+    expect(parseMarkdown('> <script>x</script>')).toEqual([
+      { kind: 'quote', blocks: [paragraph(text('<script>x</script>'))] },
+    ]);
+  });
 });
 
 describe('linkPaths', () => {
   it('the screens an answer names, once each and in order', () => {
     const blocks = parseMarkdown('Ve a [Ajustes](/settings) o a /apps; luego [Ajustes](/settings).');
     expect(linkPaths(blocks)).toEqual(['/settings', '/apps']);
+  });
+
+  it('a screen named inside a quote is one of them', () => {
+    expect(linkPaths(parseMarkdown('Mira /apps.\n\n> Ve a [Ajustes](/settings).\n> > Y a /reports.'))).toEqual([
+      '/apps',
+      '/settings',
+      '/reports',
+    ]);
   });
 });
 
@@ -119,5 +175,11 @@ describe('spokenText (BASE-G113, «Read aloud»)', () => {
     const nameOf = (path: string) => (path === '/customer/customers' ? 'Clientes' : undefined);
     expect(spokenText(parseMarkdown(text), nameOf)).toBe('Ventas. Hoy 120 €, ver Ajustes o Clientes. uno. dos. Día, Total. Lunes, 80 €.');
     expect(spokenText(parseMarkdown('Mira /reports.'), nameOf)).toBe('Mira.');
+  });
+
+  it('reads a quote’s words, never its «>»', () => {
+    expect(spokenText(parseMarkdown('Cierra la caja.\n\n> ⚠️ No se puede **reabrir**\n>\n> - Cuenta el cajón'))).toBe(
+      'Cierra la caja. ⚠️ No se puede reabrir. Cuenta el cajón.',
+    );
   });
 });
