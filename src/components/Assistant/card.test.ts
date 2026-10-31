@@ -167,6 +167,8 @@ describe('a datum that is a list', () => {
     expect(fieldText(list(['2 nov 2026, 10:00', '9 nov 2026, 10:00']), spoken(es))).toBe('2 nov 2026, 10:00; 9 nov 2026, 10:00');
     // Names without a comma keep the comma between them.
     expect(fieldText(list(['Caja', 'Cocina']), spoken(es))).toBe('Caja, Cocina');
+    // One item with a comma is enough: a name that carries one would run into the next.
+    expect(fieldText(list(['García, Ana', 'Eva Gil']), spoken(es))).toBe('García, Ana; Eva Gil');
   });
 
   it('an empty one says it carries none', () => {
