@@ -23,7 +23,8 @@
 //     `create` with the text (trimmed) and leaves the typing in the field: the page creates the
 //     record and sets `v-model`.
 //   - Where the list goes (hub#443): under the field, or over it when the room under it is short
-//     and there is more over it; never past the visible window (the on-screen keyboard leaves it
+//     and there is more over it, a small gap away from it (its floating label stays readable); never
+//     past the visible window (the on-screen keyboard leaves it
 //     out), scrolling inside itself when it is taller. Ionic places a popover once, as it presents,
 //     and a searched list then only says «Loading…»: the combo places it itself, on every frame
 //     while it is open, so it follows the list that grows, the field that moves and the window.
@@ -179,6 +180,9 @@ const field = (): HTMLElement | null => root.value?.querySelector<HTMLElement>('
 // ── Where the list goes ───────────────────────────────────────────────────────────────────────
 /** Space kept between the list and the edge of the window. */
 const EDGE = 8;
+/** Space kept between the list and the field: over it, the floating label drawn on the field's top
+ *  border (half of it above the field's box) stays readable. */
+const GAP = 8;
 /** Opening with less room than this under the field (about four options) and more over it: over it. */
 const SHORT_ROOM = 240;
 
@@ -186,9 +190,9 @@ interface Placement {
   side: 'bottom' | 'top';
   /** The list's highest height: the room on its side, down (or up) to the window's edge. */
   room: number;
-  /** Under the field: where the list starts (the field's bottom), from the window's top. */
+  /** Under the field: where the list starts (a gap under the field), from the window's top. */
   top: number;
-  /** Over the field: where the list ends (the field's top), from the window's bottom. */
+  /** Over the field: where the list ends (a gap over the field), from the window's bottom. */
   bottom: number;
 }
 const placement = ref<Placement>({ side: 'bottom', room: 0, top: 0, bottom: 0 });
@@ -219,8 +223,8 @@ function place(opening = false): void {
   if (!el) return;
   const box = el.getBoundingClientRect();
   const view = visible();
-  const below = Math.max(0, Math.floor(view.bottom - box.bottom - EDGE));
-  const above = Math.max(0, Math.floor(box.top - view.top - EDGE));
+  const below = Math.max(0, Math.floor(view.bottom - box.bottom - GAP - EDGE));
+  const above = Math.max(0, Math.floor(box.top - view.top - GAP - EDGE));
   let side = placement.value.side;
   if (opening) {
     side = below < SHORT_ROOM && above > below ? 'top' : 'bottom';
@@ -229,7 +233,12 @@ function place(opening = false): void {
     const [room, other] = side === 'bottom' ? [below, above] : [above, below];
     if (wanted > room && other > room) side = side === 'bottom' ? 'top' : 'bottom';
   }
-  const next: Placement = { side, room: side === 'bottom' ? below : above, top: box.bottom, bottom: window.innerHeight - box.top };
+  const next: Placement = {
+    side,
+    room: side === 'bottom' ? below : above,
+    top: box.bottom + GAP,
+    bottom: window.innerHeight - box.top + GAP,
+  };
   const now = placement.value;
   if (next.side !== now.side || next.room !== now.room || next.top !== now.top || next.bottom !== now.bottom) placement.value = next;
 }
