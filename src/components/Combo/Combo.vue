@@ -8,7 +8,7 @@
 // Contract:
 //   - The field is an `ion-input` (md, outline, floating label) showing the chosen option's label;
 //     `v-model` is the chosen `{ id, label, hint? }` or `null`. Clearable while something is chosen.
-//   - The options are a listbox in an `ion-popover` under the field, as wide as it, that never takes
+//   - The options are a listbox in an `ion-popover` beside the field, as wide as it, that never takes
 //     the focus from it. A click or ArrowDown opens every option; typing filters them:
 //       · static `options`: «contains» on the label and the hint, ignoring case and accents;
 //       · `search(query)`: asked 150 ms after the last key (`debounce`), with loading, empty and
@@ -22,6 +22,11 @@
 //   - `allowCreate`: a last option «Create “…”» for a text that names no option; choosing it emits
 //     `create` with the text (trimmed) and leaves the typing in the field: the page creates the
 //     record and sets `v-model`.
+//   - Where the list goes (hub#443): under the field, or over it when the room under it is short
+//     and there is more over it; never past the visible window (the on-screen keyboard leaves it
+//     out), scrolling inside itself when it is taller. Ionic places a popover once, as it presents,
+//     and a searched list then only says «Loading…»: the combo places it itself, on every frame
+//     while it is open, so it follows the list that grows, the field that moves and the window.
 import { IonButton, IonContent, IonInput, IonItem, IonLabel, IonPopover, IonSpinner } from '@ionic/vue';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useId, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -171,10 +176,88 @@ async function answer(value: string, mine: number): Promise<void> {
 // ── Opening, choosing, closing ────────────────────────────────────────────────────────────────
 const field = (): HTMLElement | null => root.value?.querySelector<HTMLElement>('ion-input') ?? null;
 
+// ── Where the list goes ───────────────────────────────────────────────────────────────────────
+/** Space kept between the list and the edge of the window. */
+const EDGE = 8;
+/** Opening with less room than this under the field (about four options) and more over it: over it. */
+const SHORT_ROOM = 240;
+
+interface Placement {
+  side: 'bottom' | 'top';
+  /** The list's highest height: the room on its side, down (or up) to the window's edge. */
+  room: number;
+  /** Under the field: where the list starts (the field's bottom), from the window's top. */
+  top: number;
+  /** Over the field: where the list ends (the field's top), from the window's bottom. */
+  bottom: number;
+}
+const placement = ref<Placement>({ side: 'bottom', room: 0, top: 0, bottom: 0 });
+/** The options and states as tall as they are: the list's height with room for all of it. */
+const body = ref<HTMLElement | null>(null);
+let frame: number | undefined;
+
+const popoverStyle = computed(() => {
+  const { side, room, top, bottom } = placement.value;
+  return {
+    '--max-height': `${room}px`,
+    '--combo-top': side === 'bottom' ? `${top}px` : 'auto',
+    '--combo-bottom': side === 'top' ? `${bottom}px` : 'auto',
+  };
+});
+
+/** The part of the window the person sees: the on-screen keyboard and the zoom leave the rest out. */
+function visible(): { top: number; bottom: number } {
+  const view = window.visualViewport;
+  return view ? { top: view.offsetTop, bottom: view.offsetTop + view.height } : { top: 0, bottom: window.innerHeight };
+}
+
+/** Puts the list beside the field, inside the window. Opening (its size not known yet): under the
+ *  field unless the room there is short and there is more over it. Open: it stays on its side while
+ *  it fits there, and moves to the other one when it does not and there is more room there. */
+function place(opening = false): void {
+  const el = field();
+  if (!el) return;
+  const box = el.getBoundingClientRect();
+  const view = visible();
+  const below = Math.max(0, Math.floor(view.bottom - box.bottom - EDGE));
+  const above = Math.max(0, Math.floor(box.top - view.top - EDGE));
+  let side = placement.value.side;
+  if (opening) {
+    side = below < SHORT_ROOM && above > below ? 'top' : 'bottom';
+  } else {
+    const wanted = body.value?.offsetHeight ?? 0;
+    const [room, other] = side === 'bottom' ? [below, above] : [above, below];
+    if (wanted > room && other > room) side = side === 'bottom' ? 'top' : 'bottom';
+  }
+  const next: Placement = { side, room: side === 'bottom' ? below : above, top: box.bottom, bottom: window.innerHeight - box.top };
+  const now = placement.value;
+  if (next.side !== now.side || next.room !== now.room || next.top !== now.top || next.bottom !== now.bottom) placement.value = next;
+}
+
+/** On every frame while the list is open (the list grows, the field moves, the keyboard shows up). */
+function follow(): void {
+  if (!open.value) return;
+  place();
+  frame = requestAnimationFrame(follow);
+}
+
+function stopFollowing(): void {
+  if (frame !== undefined) cancelAnimationFrame(frame);
+  frame = undefined;
+}
+
+/** Shows the list, placed before Ionic presents it, and starts following. */
+function show(): void {
+  anchor.value = { target: field() } as unknown as Event;
+  place(true);
+  open.value = true;
+  stopFollowing();
+  frame = requestAnimationFrame(follow);
+}
+
 function openList(): void {
   if (props.disabled || open.value) return;
-  anchor.value = { target: field() } as unknown as Event;
-  open.value = true;
+  show();
   query.value = '';
   ask('');
   active.value = entries.value.length ? 0 : -1;
@@ -185,10 +268,7 @@ function onInput(ev: CustomEvent<{ value?: string | null }>): void {
   const value = ev.detail.value ?? '';
   text.value = value;
   query.value = value;
-  if (!open.value) {
-    anchor.value = { target: field() } as unknown as Event;
-    open.value = true;
-  }
+  if (!open.value) show();
   ask(value);
 }
 
@@ -196,6 +276,7 @@ function onInput(ev: CustomEvent<{ value?: string | null }>): void {
 function dismiss(revert = true): void {
   if (!open.value) return;
   open.value = false;
+  stopFollowing();
   clearTimeout(timer);
   asked += 1;
   loading.value = false;
@@ -286,7 +367,10 @@ watchEffect(() => {
   if (open.value && active.value >= 0) input.setAttribute('aria-activedescendant', optionId(active.value));
   else input.removeAttribute('aria-activedescendant');
 });
-onBeforeUnmount(() => clearTimeout(timer));
+onBeforeUnmount(() => {
+  clearTimeout(timer);
+  stopFollowing();
+});
 </script>
 
 <template>
@@ -326,14 +410,17 @@ onBeforeUnmount(() => clearTimeout(timer));
         />
       </ion-button>
     </ion-input>
-    <!-- The options, under the field and as wide as it; the focus stays in the field. -->
+    <!-- The options, beside the field and as wide as it, where `place()` puts them; the focus stays
+         in the field. -->
     <ion-popover
       class="combo__popover"
+      :style="popoverStyle"
       :is-open="open"
       :event="anchor"
-      side="bottom"
+      :side="placement.side"
       alignment="start"
       size="cover"
+      :arrow="false"
       :keyboard-close="false"
       :focus-trap="false"
       :show-backdrop="false"
@@ -342,76 +429,81 @@ onBeforeUnmount(() => clearTimeout(timer));
       @did-dismiss="dismiss()"
     >
       <ion-content>
-        <!-- The listbox and its options are plain elements around the ion-items: Ionic writes its
-             own role on the host of an ion-list (list) and an ion-item (listitem, or none). -->
         <div
-          :id="listboxId"
-          class="combo__listbox"
-          role="listbox"
-          :aria-label="label"
-          :aria-busy="loading ? 'true' : undefined"
+          ref="body"
+          class="combo__body"
         >
+          <!-- The listbox and its options are plain elements around the ion-items: Ionic writes its
+               own role on the host of an ion-list (list) and an ion-item (listitem, or none). -->
           <div
-            v-for="(entry, index) in entries"
-            :id="optionId(index)"
-            :key="entry.kind === 'option' ? `option-${entry.option.id}` : 'create'"
-            role="option"
-            :aria-selected="index === active ? 'true' : 'false'"
-            :class="['combo__option', { 'combo__option--active': index === active }]"
-            :data-testid="entry.kind === 'option' ? tid(`option-${entry.option.id}`) : tid('create')"
-            @mousedown.prevent
-            @mouseenter="active = index"
-            @click="pick(entry)"
+            :id="listboxId"
+            class="combo__listbox"
+            role="listbox"
+            :aria-label="label"
+            :aria-busy="loading ? 'true' : undefined"
           >
-            <ion-item lines="none">
-              <ion-label v-if="entry.kind === 'option'">
-                {{ entry.option.label }}
-                <p v-if="entry.option.hint">
-                  {{ entry.option.hint }}
-                </p>
-              </ion-label>
-              <ion-label v-else>
-                {{ t('combo.create', { text: entry.text }) }}
-              </ion-label>
-            </ion-item>
+            <div
+              v-for="(entry, index) in entries"
+              :id="optionId(index)"
+              :key="entry.kind === 'option' ? `option-${entry.option.id}` : 'create'"
+              role="option"
+              :aria-selected="index === active ? 'true' : 'false'"
+              :class="['combo__option', { 'combo__option--active': index === active }]"
+              :data-testid="entry.kind === 'option' ? tid(`option-${entry.option.id}`) : tid('create')"
+              @mousedown.prevent
+              @mouseenter="active = index"
+              @click="pick(entry)"
+            >
+              <ion-item lines="none">
+                <ion-label v-if="entry.kind === 'option'">
+                  {{ entry.option.label }}
+                  <p v-if="entry.option.hint">
+                    {{ entry.option.hint }}
+                  </p>
+                </ion-label>
+                <ion-label v-else>
+                  {{ t('combo.create', { text: entry.text }) }}
+                </ion-label>
+              </ion-item>
+            </div>
           </div>
-        </div>
-        <div
-          v-if="loading"
-          class="combo__status ion-padding"
-          role="status"
-          :data-testid="tid('loading')"
-        >
-          <ion-spinner
-            name="crescent"
-            aria-hidden="true"
-          />
-          <span>{{ t('combo.loading') }}</span>
-        </div>
-        <div
-          v-else-if="failed"
-          class="combo__status ion-padding"
-          role="alert"
-          :data-testid="tid('error')"
-        >
-          <span>{{ t('combo.loadError') }}</span>
-          <ion-button
-            size="small"
-            fill="clear"
-            :data-testid="tid('retry')"
-            @mousedown.prevent
-            @click="ask(query)"
+          <div
+            v-if="loading"
+            class="combo__status ion-padding"
+            role="status"
+            :data-testid="tid('loading')"
           >
-            {{ t('combo.retry') }}
-          </ion-button>
-        </div>
-        <div
-          v-else-if="!entries.length"
-          class="combo__status ion-padding"
-          role="status"
-          :data-testid="tid('empty')"
-        >
-          {{ emptyLabel ?? t('combo.empty') }}
+            <ion-spinner
+              name="crescent"
+              aria-hidden="true"
+            />
+            <span>{{ t('combo.loading') }}</span>
+          </div>
+          <div
+            v-else-if="failed"
+            class="combo__status ion-padding"
+            role="alert"
+            :data-testid="tid('error')"
+          >
+            <span>{{ t('combo.loadError') }}</span>
+            <ion-button
+              size="small"
+              fill="clear"
+              :data-testid="tid('retry')"
+              @mousedown.prevent
+              @click="ask(query)"
+            >
+              {{ t('combo.retry') }}
+            </ion-button>
+          </div>
+          <div
+            v-else-if="!entries.length"
+            class="combo__status ion-padding"
+            role="status"
+            :data-testid="tid('empty')"
+          >
+            {{ emptyLabel ?? t('combo.empty') }}
+          </div>
         </div>
       </ion-content>
     </ion-popover>
@@ -419,6 +511,12 @@ onBeforeUnmount(() => clearTimeout(timer));
 </template>
 
 <style scoped>
+/* The list's place is the combo's (`place()`), not the one Ionic measured once, as it presented the
+   popover: it beats Ionic's inline top/bottom of the content. Its height is `--max-height`. */
+.combo__popover::part(content) {
+  top: var(--combo-top) !important;
+  bottom: var(--combo-bottom) !important;
+}
 .combo__option {
   cursor: pointer;
 }
