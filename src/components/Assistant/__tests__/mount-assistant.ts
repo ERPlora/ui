@@ -39,7 +39,7 @@ export const OWNER: SessionMe = {
 export const EMPLOYEE: SessionMe = { ...OWNER, user: { id: 'u2', label: 'Leo' }, permissions: [USE] };
 
 /** A host's own words: the verb of each action of its writes, the writes whose action's verb does not say what they do,
- *  and its platform's screens (the Hub's, as its catalogue says them). */
+ *  its platform's screens (the Hub's, as its catalogue says them) and a line under a spent allowance (erplora.com's). */
 export const HOST_MESSAGES = {
   en: {
     host: {
@@ -49,6 +49,7 @@ export const HOST_MESSAGES = {
       },
       operations: { cart_checkout: { cart: { clear: 'Clear' } }, cash_register: { count: { add: 'Register count' } } },
       screens: { home: 'Home', settings: 'Settings' },
+      spentNote: 'Each business has its own assistant.',
     },
   },
   es: {
@@ -59,6 +60,7 @@ export const HOST_MESSAGES = {
       },
       operations: { cart_checkout: { cart: { clear: 'Vaciar' } }, cash_register: { count: { add: 'Registrar arqueo' } } },
       screens: { home: 'Inicio', settings: 'Ajustes' },
+      spentNote: 'Cada negocio tiene su propio asistente.',
     },
   },
 };

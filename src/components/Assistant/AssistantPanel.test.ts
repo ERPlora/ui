@@ -243,6 +243,14 @@ describe('AssistantPanel', () => {
     expect(employee.wrapper.find('[data-testid="assistant-no-plan-upgrade"]').exists()).toBe(false);
   });
 
+  it("without the assistant and nobody who may upgrade: the host's own line under it, when it gives one (ui#49)", async () => {
+    const m = await panel({ usage: { ...USAGE, used: 0, limit: 0 }, session: EMPLOYEE, config: { spentNoteKey: 'host.spentNote' } });
+    const foot = m.wrapper.get('[data-testid="assistant-no-plan"]');
+    expect(foot.get('[data-testid="assistant-spent-note"]').text()).toBe('Cada negocio tiene su propio asistente.');
+    expect(foot.text()).not.toContain('Pídele a quien administra el negocio que mejore el plan.');
+    expect(foot.find('[data-testid="assistant-no-plan-upgrade"]').exists()).toBe(false);
+  });
+
   it('offline: a line says it, and it can still write', async () => {
     vi.stubGlobal('navigator', { ...navigator, onLine: false });
     const m = await panel();

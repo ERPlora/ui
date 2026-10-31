@@ -6,7 +6,8 @@
 //   (`transcribe`), «Report a problem» under an answer (`report`), «Upgrade plan» (`planUrl` + `canUpgrade`).
 // - Who sees the assistant's button (`canUse`; everyone signed in by default).
 // - The host's words: the verb of each write (`verbKey`), the platform's screens a receipt names (`placeKey`) and those
-//   a path is (`screenKey`), as keys of the host's own catalogue; the chat's own words are `assistantMessages`.
+//   a path is (`screenKey`), and the line under a spent allowance where nobody upgrades (`spentNoteKey`), as keys of
+//   the host's own catalogue; the chat's own words are `assistantMessages`.
 // - A request of a turn that needs someone's approval (`approval`, `elevationToken`: the Hub's manager approval).
 // The client the reads and writes go through is the page's live client (`useLiveClient`), passed to each.
 import type { LiveClient } from '../../sdk/live-client';
@@ -68,6 +69,9 @@ export interface AssistantConfig {
   placeKey?: (screen: string | undefined) => string | null;
   /** The key of the name of a platform screen by its path (`/settings`); none: the menu's name. */
   screenKey?: (path: string) => string | null;
+  /** The key of the line said instead of «Upgrade plan» to whoever may not upgrade, under a spent allowance or a plan
+   *  without the assistant (erplora.com: each business has its own assistant); none: ask whoever runs the business. */
+  spentNoteKey?: string;
 }
 
 let current: AssistantConfig | undefined;
@@ -86,4 +90,10 @@ export function assistantConfig(): AssistantConfig {
 /** The key of the verb of a write: the host's, else «Do this». */
 export function verbKeyOf(config: AssistantConfig, operation: string): string {
   return config.verbKey?.(operation) ?? 'assistant.card.other';
+}
+
+/** The key of the line under a spent allowance where «Upgrade plan» is not offered: the host's, else «Ask whoever runs
+ *  the business to upgrade the plan». */
+export function spentNoteKeyOf(config: AssistantConfig): string {
+  return config.spentNoteKey ?? 'assistant.askOwner';
 }
