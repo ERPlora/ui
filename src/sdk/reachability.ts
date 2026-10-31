@@ -8,7 +8,8 @@ export async function serverAnswers(url: string, withinMs: number): Promise<bool
   const late = new Promise<false>((resolve) => {
     timer = setTimeout(() => resolve(false), withinMs);
   });
-  const answered = fetch(url, { method: "HEAD", cache: "no-store" }).then(
+  // `no-cors`: an opaque answer is still an answer (the dev server serves the screens from another origin).
+  const answered = fetch(url, { method: "HEAD", cache: "no-store", mode: "no-cors" }).then(
     () => true,
     () => false,
   );

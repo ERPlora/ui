@@ -11,6 +11,7 @@ const toast = vi.hoisted(() => vi.fn());
 vi.mock('./toast', () => ({ toast }));
 
 import { createShellRouter } from './router';
+import { failedFileOf } from './view-load';
 import { createShellSession, type SessionMe, type SessionStatus } from './session';
 
 const Page = { template: '<div />' };
@@ -96,7 +97,19 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     expect(check).toHaveBeenCalledWith('http://localhost:3000/static/spa/assets/VerifactuPage-0ld.js', {
       method: 'HEAD',
       cache: 'no-store',
+      mode: 'no-cors',
     });
+  });
+
+  // In development Vite serves each screen from its source, on its own origin (`…/pages/CustomerListPage.vue`).
+  it.each([
+    ['Chromium', 'Failed to fetch dynamically imported module: https://a.erplora.com/static/spa/assets/A-1x.js', 'https://a.erplora.com/static/spa/assets/A-1x.js'],
+    ['Firefox', 'error loading dynamically imported module: https://a.erplora.com/static/spa/assets/A-1x.js', 'https://a.erplora.com/static/spa/assets/A-1x.js'],
+    ['Vite (CSS)', 'Unable to preload CSS for /static/spa/assets/A-1x.css', '/static/spa/assets/A-1x.css'],
+    ['Vite dev', 'Failed to fetch dynamically imported module: http://localhost:5438/static/spa/apps/customer/frontend/pages/CustomerListPage.vue', 'http://localhost:5438/static/spa/apps/customer/frontend/pages/CustomerListPage.vue'],
+    ['Safari', 'Importing a module script failed.', undefined],
+  ])('reads the failed file out of the %s message', (_engine, message, file) => {
+    expect(failedFileOf(new TypeError(message))).toBe(file);
   });
 
   it('Safari names no file: it asks for the address of the screen instead', async () => {
@@ -105,7 +118,7 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     const { router, redirect } = setup(() => new TypeError('Importing a module script failed.'));
     await router.push('/');
     await tap(router, '/verifactu');
-    expect(check).toHaveBeenCalledWith('/verifactu', { method: 'HEAD', cache: 'no-store' });
+    expect(check).toHaveBeenCalledWith('/verifactu', { method: 'HEAD', cache: 'no-store', mode: 'no-cors' });
     expect(redirect).toHaveBeenCalledWith('/verifactu');
   });
 

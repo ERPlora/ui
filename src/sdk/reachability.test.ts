@@ -14,7 +14,8 @@ describe("serverAnswers", () => {
     const check = vi.fn(async () => ({ status: 404 }) as Response);
     vi.stubGlobal("fetch", check);
     await expect(serverAnswers("/static/spa/assets/A-1.js", 5000)).resolves.toBe(true);
-    expect(check).toHaveBeenCalledWith("/static/spa/assets/A-1.js", { method: "HEAD", cache: "no-store" });
+    // `no-cors`: an opaque answer is still an answer, so the dev server's other origin needs no CORS headers.
+    expect(check).toHaveBeenCalledWith("/static/spa/assets/A-1.js", { method: "HEAD", cache: "no-store", mode: "no-cors" });
   });
 
   it("is false when the network does not answer", async () => {

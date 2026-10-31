@@ -55,9 +55,12 @@ export function sameOriginHref(href: string, here: string): string | null {
   }
 }
 
-/** The file the browser could not fetch, as its message names it (Chromium, Firefox, Vite's CSS); Safari names none. */
+/**
+ * The file the browser could not fetch, the address its message ends with (Chromium, Firefox, Vite's CSS; in
+ * development a screen's source, `….vue`); Safari names none.
+ */
 export function failedFileOf(error: Error): string | undefined {
-  return /(https?:\/\/|\/)[^\s'"]+\.(m?js|css)(\?[^\s'"]*)?/.exec(error.message)?.[0];
+  return /(?:https?:\/\/|\/)\S+$/.exec(error.message.trim())?.[0];
 }
 
 /** The name of the session's app whose screens live under `path`'s first segment («My apps» names it the same). */
