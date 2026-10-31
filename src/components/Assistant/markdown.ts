@@ -1,6 +1,6 @@
 // The answer of the assistant with its format (BASE-G113): a small Markdown reader into a tree that a Vue component
 // paints — never HTML (`v-html`), so nothing the model writes is ever a tag. Bold, italics, inline code, headings,
-// lists, tables and quotes (`> …`, the model's warnings) are read; a link only to a path of this app
+// lists, tables, quotes (`> …`, the model's warnings) and rules (`---`, the model's part breaks) are read; a link only to a path of this app
 // (`[label](/settings)` or a bare `/customer/customers`): any other address stays as its label, as text (it never takes
 // the person out of the app). What it does not read (fenced code, images) stays as plain text.
 
@@ -18,7 +18,9 @@ export type Block =
   | { kind: 'list'; ordered: boolean; items: Inline[][] }
   | { kind: 'table'; head: Inline[][]; rows: Inline[][][] }
   /** Consecutive `>` lines, read again as an answer of their own (a quote may hold a list, or another quote). */
-  | { kind: 'quote'; blocks: Block[] };
+  | { kind: 'quote'; blocks: Block[] }
+  /** A line of three or more `-`, `*` or `_` alone (spaces between them allowed): a line between two parts. */
+  | { kind: 'rule' };
 
 const HEADING = /^(#{1,6})\s+(.*)$/;
 const BULLET = /^\s*[-*+]\s+(.*)$/;
@@ -26,6 +28,8 @@ const NUMBERED = /^\s*\d+[.)]\s+(.*)$/;
 const TABLE_ROW = /^\s*\|.*\|\s*$/;
 /** A quoted line: `>` at its start (up to three spaces before), and one space after it that is not part of the text. */
 const QUOTE = /^ {0,3}> ?(.*)$/;
+/** A rule: up to three spaces, then three or more of the same mark among `-`, `*` and `_`, and nothing else. */
+const RULE = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
 const TABLE_SEPARATOR = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
 /** A path of this app: `/` and words, never `//` (another host) nor inside a web address. */
 const HUB_PATH = /^\/(?!\/)[A-Za-z0-9_\-/]*(#[A-Za-z0-9_-]+)?$/;
@@ -158,6 +162,13 @@ export function parseMarkdown(text: string): Block[] {
       if (inner.length) blocks.push({ kind: 'quote', blocks: inner });
       continue;
     }
+    // Before a list: «- - -» and «* * *» are a rule, never an item.
+    if (RULE.test(line)) {
+      endParagraph();
+      blocks.push({ kind: 'rule' });
+      i += 1;
+      continue;
+    }
     const heading = HEADING.exec(line);
     if (heading) {
       endParagraph();
@@ -186,7 +197,7 @@ export function parseMarkdown(text: string): Block[] {
       const items: Inline[][] = [];
       while (i < lines.length) {
         const item = pattern.exec(lines[i]);
-        if (!item) break;
+        if (!item || RULE.test(lines[i])) break;
         items.push(parseInline(item[1].trim()));
         i += 1;
       }
@@ -215,7 +226,7 @@ function blockPaths(blocks: Block[], found: string[]): void {
     if (block.kind === 'paragraph' || block.kind === 'heading') inlinePaths(block.inlines, found);
     else if (block.kind === 'list') block.items.forEach((item) => inlinePaths(item, found));
     else if (block.kind === 'quote') blockPaths(block.blocks, found);
-    else {
+    else if (block.kind === 'table') {
       block.head.forEach((cell) => inlinePaths(cell, found));
       block.rows.forEach((row) => row.forEach((cell) => inlinePaths(cell, found)));
     }
@@ -246,6 +257,7 @@ export function spokenText(blocks: Block[], nameOf?: (path: string) => string | 
     if (block.kind === 'paragraph' || block.kind === 'heading') return [spokenInlines(block.inlines, nameOf)];
     if (block.kind === 'list') return block.items.map((item) => spokenInlines(item, nameOf));
     if (block.kind === 'quote') return block.blocks.flatMap(spoken);
+    if (block.kind === 'rule') return [];
     const row = (cells: Inline[][]) => cells.map((cell) => spokenInlines(cell, nameOf).trim()).join(', ');
     return [row(block.head), ...block.rows.map(row)];
   };
