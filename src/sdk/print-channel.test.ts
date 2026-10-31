@@ -182,16 +182,58 @@ describe('print channel: one claim per function', () => {
     expect(socket.sent.at(-1)).toEqual({ type: 'claim', role: 'receipt' });
   });
 
-  it('an error that answers a claim frees that function, so the next wake claims it again', () => {
+  it('an error that answers a claim frees that function once the next answer shows it, so the next wake claims it again', () => {
     const { socket } = connected(['kitchen', 'receipt']);
     socket.receive({ type: 'idle', role: 'kitchen' });
-    // The second claim (receipt) is answered with an error: the hub failed.
+    // The second claim (receipt) is answered with an error: the hub failed. An error names nothing it answers, so the
+    // channel asks a beat, whose answer comes after the claim's.
     socket.receive({ type: 'error', code: 'internal_error', message: 'boom' });
     expect(socket.closed).toBe(false);
+    expect(socket.sent.at(-1)).toEqual({ type: 'beat' });
+    socket.receive({ type: 'beat', refreshed: 1, heartbeatSeconds: 30 });
     socket.receive({ type: 'wake', role: 'receipt' });
     // Counted, not «the last frame»: the ready's own claim of receipt was already the last one sent.
     expect(socket.sent.filter((frame) => frame.type === 'claim' && frame.role === 'receipt')).toHaveLength(2);
     expect(events).toContainEqual({ kind: 'refused', code: 'internal_error', message: 'boom' });
+  });
+
+  it('an error nobody asked for (a wake the hub failed) frees no function with its claim in flight', () => {
+    const { socket } = connected(['kitchen', 'receipt']);
+    socket.receive({ type: 'error', code: 'internal_error', message: 'The wake failed.' });
+    socket.receive({ type: 'wake', role: 'kitchen' });
+    expect(socket.sent.filter((frame) => frame.type === 'claim' && frame.role === 'kitchen')).toHaveLength(1);
+    // Its answers come as they were asked, each to its own function.
+    socket.receive({ type: 'idle', role: 'kitchen' });
+    socket.receive({ type: 'idle', role: 'receipt' });
+    socket.receive({ type: 'beat', refreshed: 1, heartbeatSeconds: 30 });
+    socket.receive({ type: 'wake', role: 'kitchen' });
+    socket.receive({ type: 'wake', role: 'receipt' });
+    expect(socket.sent.filter((frame) => frame.type === 'claim')).toEqual([
+      { type: 'claim', role: 'kitchen' },
+      { type: 'claim', role: 'receipt' },
+      { type: 'claim', role: 'kitchen' },
+      { type: 'claim', role: 'receipt' },
+    ]);
+  });
+
+  it('after an error nobody asked for, the error that does answer a claim still frees its function', () => {
+    const { socket } = connected(['kitchen', 'receipt']);
+    socket.receive({ type: 'error', code: 'internal_error', message: 'The wake failed.' });
+    socket.receive({ type: 'idle', role: 'kitchen' });
+    // The claim of receipt is refused.
+    socket.receive({ type: 'error', code: 'internal_error', message: 'boom' });
+    socket.receive({ type: 'beat', refreshed: 1, heartbeatSeconds: 30 });
+    socket.receive({ type: 'wake', role: 'receipt' });
+    expect(socket.sent.filter((frame) => frame.type === 'claim' && frame.role === 'receipt')).toHaveLength(2);
+  });
+
+  it('a wake that comes before the refused claim is known as refused is not lost', () => {
+    const { socket } = connected(['receipt']);
+    socket.receive({ type: 'error', code: 'internal_error', message: 'boom' });
+    socket.receive({ type: 'wake', role: 'receipt' });
+    expect(socket.sent.filter((frame) => frame.type === 'claim')).toHaveLength(1);
+    socket.receive({ type: 'beat', refreshed: 1, heartbeatSeconds: 30 });
+    expect(socket.sent.filter((frame) => frame.type === 'claim')).toHaveLength(2);
   });
 });
 

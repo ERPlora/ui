@@ -65,7 +65,9 @@ export function createPrintHost(deps: PrintHostDeps): PrintHost {
     update(printers) {
       const ids = [...new Set(printers ?? [])].sort();
       const key = ids.join(',');
-      if (key === current && channel) return;
+      // A channel the hub refused for good (suspended, printing off…) is let go: the next update opens another, the
+      // same printers too, and never on its own (the old hub's `stoppedForGood`).
+      if (key === current && channel?.running()) return;
       stop();
       if (ids.length === 0) return;
       current = key;

@@ -93,6 +93,22 @@ describe('createPrintHost', () => {
     expect(FakeSocket.made[0].closed).toBe(true);
   });
 
+  it('a channel the hub refused for good (4402, 4403, 4404) opens again at the next update, the same printers too', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { host: printing } = host();
+    printing.update(['p1']);
+    FakeSocket.made[0].onclose?.({ code: 4404 });
+    expect(FakeSocket.made).toHaveLength(1);
+    // Printing switched on again (or the invoice paid): the registration is read again and the channel opens again.
+    printing.update(['p1']);
+    expect(FakeSocket.made).toHaveLength(2);
+    FakeSocket.made[1].onopen?.();
+    expect(FakeSocket.made[1].sent).toEqual([{ type: 'hello', deviceId: DEVICE, printers: ['p1'] }]);
+    // Never on its own: a refusal is not retried until something asks for it.
+    FakeSocket.made[1].onclose?.({ code: 4402 });
+    expect(FakeSocket.made).toHaveLength(2);
+  });
+
   it('a device retired stops printing, and stop closes the channel', () => {
     const { host: printing } = host();
     printing.update(['printer-1']);

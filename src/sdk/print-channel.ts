@@ -7,8 +7,11 @@
 //
 // What is pinned:
 // - one claim per function at a time: a `wake` while a claim or a print of that function is in flight claims nothing,
-//   the claim after the job picks it up; the hub answers frames in the order they were sent, so an `error` that answers
-//   a claim frees its function;
+//   the claim after the job picks it up. The hub answers every frame once and in order, and every answer but `error`
+//   names what it answers (`job`/`idle` its function, `ack` a confirmation, `beat`, `ready`); an `error` may also be
+//   nobody's (a wake the hub failed), so it frees nothing by itself: the next named answer shows which frames before it
+//   errors answered, and a claim among them frees its function (claiming again if it was woken meanwhile). An error
+//   while a claim is in flight asks a `beat`, whose answer comes right after the claim's;
 // - a failed print stops pulling that function until the next wake or reconnect: a printer out of paper would otherwise
 //   spin claim→fail→claim and burn the job's five hand-outs in a moment (the server does not wake a device for the job
 //   it sent back itself);
@@ -152,6 +155,8 @@ export function createPrintChannel(options: PrintChannelOptions): PrintChannel {
   let asked: Asked[] = [];
   /** Functions with a claim or a print in flight. */
   const busy = new Set<string>();
+  /** Functions woken while busy: claimed again if their claim turns out to have been refused. */
+  const woken = new Set<string>();
   /** Printed, and the hub has not acknowledged it yet. */
   const unconfirmed = new Set<string>();
 
@@ -169,7 +174,23 @@ export function createPrintChannel(options: PrintChannelOptions): PrintChannel {
   function claim(role: string): void {
     if (busy.has(role)) return;
     busy.add(role);
+    woken.delete(role);
     send({ type: 'claim', role }, { type: 'claim', role });
+  }
+
+  /**
+   * A named answer: drops the frame it answers and every one before it, which errors answered (the hub answers in
+   * order). A claim among those was refused: its function is free, and claimed again if it was woken meanwhile.
+   */
+  function answer(answers: (ask: Asked) => boolean): void {
+    const at = asked.findIndex(answers);
+    if (at < 0) return;
+    const refused = asked.splice(0, at + 1).slice(0, at);
+    for (const ask of refused) {
+      if (ask.type !== 'claim') continue;
+      busy.delete(ask.role);
+      if (woken.has(ask.role)) claim(ask.role);
+    }
   }
 
   function stopBeat(): void {
@@ -192,6 +213,7 @@ export function createPrintChannel(options: PrintChannelOptions): PrintChannel {
     socket = null;
     asked = [];
     busy.clear();
+    woken.clear();
     try {
       dying?.close();
     } catch {
@@ -248,14 +270,14 @@ export function createPrintChannel(options: PrintChannelOptions): PrintChannel {
       return; // not our protocol: a working socket is not torn down for it
     }
     const type = String(frame.type ?? '');
-    if (type === 'wake') {
-      claim(String(frame.role ?? ''));
-      return;
-    }
-    if (!['ready', 'job', 'idle', 'ack', 'beat', 'error'].includes(type)) return;
-    const answered = asked.shift();
+    const role = String(frame.role ?? '');
     switch (type) {
+      case 'wake':
+        if (busy.has(role)) woken.add(role);
+        else claim(role);
+        break;
       case 'ready': {
+        answer((ask) => ask.type === 'hello');
         attempt = 0;
         const roles = Array.isArray(frame.roles) ? frame.roles.map(String) : [];
         scheduleBeat(Number(frame.heartbeatSeconds) || DEFAULT_HEARTBEAT_SECONDS);
@@ -266,22 +288,28 @@ export function createPrintChannel(options: PrintChannelOptions): PrintChannel {
         break;
       }
       case 'job':
+        answer((ask) => ask.type === 'claim' && ask.role === role);
+        woken.delete(role);
         void handle(jobOf(frame), on);
         break;
       case 'idle':
-        busy.delete(String(frame.role ?? ''));
+        answer((ask) => ask.type === 'claim' && ask.role === role);
+        busy.delete(role);
+        woken.delete(role);
         break;
       case 'ack':
+        answer((ask) => ask.type === 'done' || ask.type === 'failed');
         unconfirmed.delete(String(frame.jobId ?? ''));
         break;
       case 'beat':
+        answer((ask) => ask.type === 'beat');
         if (Number(frame.refreshed) === 0) stopForGood(NOTHING_TO_PRINT);
         break;
       case 'error':
         tell({ kind: 'refused', code: String(frame.code ?? ''), message: String(frame.message ?? '') });
-        // A fatal refusal closes the socket right after this frame; the close decides. A claim it answered frees its
-        // function for the next wake.
-        if (answered?.type === 'claim') busy.delete(answered.role);
+        // A fatal refusal closes the socket right after this frame; the close decides. Whether it answered a claim
+        // shows at the next named answer: with a claim in flight, a beat brings one.
+        if (asked.some((ask) => ask.type === 'claim') && asked.at(-1)?.type !== 'beat') send({ type: 'beat' }, { type: 'beat' });
         break;
     }
   }
