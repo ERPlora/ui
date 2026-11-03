@@ -380,6 +380,61 @@ describe('a change told as done after a write of the turn that did not go throug
       expect(notices(answer, [declined('cancelled')]), answer).toEqual([]);
     }
   });
+
+  it('an honest answer after a write that did not go through is no claim (es and en)', () => {
+    for (const answer of [
+      // When a record was made or changed: how it reads, no headline.
+      'Ya tienes Café Triana, creado el 3 de noviembre.',
+      'No se puede modificar. Creada el 2 de noviembre.',
+      'Creado 3 de noviembre de 2026.',
+      'Actualizado el lunes por Ana.',
+      'Actualizado esta mañana.',
+      'Creado este mes.',
+      'Actualizada la semana pasada.',
+      'Created this morning by you.',
+      'Updated last week.',
+      'Updated 3 days ago.',
+      'Updated 12 minutes ago.',
+      'Created 3 November 2026.',
+      'Created 03/11/2026.',
+      // Things as they stay.
+      'Your theme should now stay light.',
+      'Everything should now remain as it is.',
+      'Ahora todo debería quedar como está.',
+      'Ya debería quedarse así.',
+      'Tu tema ya debería mantenerse claro.',
+      // A step to try again before what should happen.
+      'Please try again; it should now work.',
+      'Reload the page. It should now work.',
+      'Inténtalo de nuevo: ya debería funcionar.',
+      'Vuelve a intentarlo. Ahora debería funcionar.',
+      'Vuelva a intentarlo; ahora debería funcionar.',
+      'Inténtelo de nuevo: ya debería funcionar.',
+      'Recarga la página. Ya debería funcionar.',
+      'Recargue la página. Ya debería funcionar.',
+      'Refresh the screen: it should now work.',
+      'Retry in a minute; it should now go through.',
+      // A question.
+      'No problem! Changed your mind? Just ask and I will do it.',
+      '¿Cambiado de opinión? Pídemelo cuando quieras.',
+      'Now what should I change instead?',
+    ]) {
+      for (const outcome of NOT_THROUGH) {
+        expect(notices(answer, [declined(outcome)]), `${answer} (${outcome})`).toEqual([]);
+      }
+    }
+  });
+
+  it('a headline that names when, or takes a number, is still a claim when it says what changed', () => {
+    for (const answer of [
+      "Updated this month's menu.",
+      'Añadidos 2 productos al pedido.',
+      'Changed the price to 2.80 € this morning.',
+      'Activado el modo oscuro esta mañana.',
+    ]) {
+      expect(notices(answer, [declined('cancelled')]), answer).toEqual(['claimed_change']);
+    }
+  });
 });
 
 describe('an identifier', () => {
