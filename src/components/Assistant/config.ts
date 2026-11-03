@@ -4,7 +4,9 @@
 // - `turnUrl`: the route a turn is POSTed to; its answer is the stream of frames (`stream.ts`).
 // - Around the chat, each optional — without it, that piece is not there: the month's allowance (`usage`), dictation
 //   (`transcribe`), «Report a problem» under an answer (`report`), «Upgrade plan» (`planUrl` + `canUpgrade`).
-// - «Read aloud» under an answer, in the device's own voice where it has one (`readAloud`; on unless the host turns it off).
+// - «Read aloud» under an answer (`readAloud`; on unless the host turns it off): in the server voice the person chooses
+//   in the panel when the host gives one (`speak`: the mp3 of a text, round 2026-11-03m), else, and whenever it fails,
+//   in the device's own voice where it has one.
 // - Who sees the assistant's button (`canUse`; everyone signed in by default).
 // - The host's words: the verb of each write (`verbKey`), the platform's screens a receipt names (`placeKey`) and those
 //   a path is (`screenKey`), and the line under a spent allowance where nobody upgrades (`spentNoteKey`), as keys of
@@ -13,6 +15,7 @@
 // The client the reads and writes go through is the page's live client (`useLiveClient`), passed to each.
 import type { LiveClient } from '../../sdk/live-client';
 import type { ShellSession } from '../../shell/session';
+import type { AssistantLanguage } from './voices';
 
 /** The month's messages of the assistant: `limit` 0 is a plan without it; a demo counts none. */
 export interface AssistantUsage {
@@ -27,6 +30,13 @@ export interface AssistantClip {
   audio: string;
   mime_type: string;
   language: string;
+}
+
+/** A text to read aloud in a server voice: the voice's catalogue id (`voices.ts`) and the language it is read in. */
+export interface AssistantSpeech {
+  text: string;
+  language: AssistantLanguage;
+  voice: string;
 }
 
 /** What is wrong with an answer, as the person reports it. */
@@ -58,8 +68,12 @@ export interface AssistantConfig {
   transcribe?: (client: LiveClient, clip: AssistantClip) => Promise<{ text: string }>;
   /** Sends the report of an answer; without it, no «Report a problem». */
   report?: (client: LiveClient, report: AssistantReportInput) => Promise<unknown>;
-  /** Whether an answer offers «Read aloud» (the device's voice, where it has one); on when not given, `false` turns it off. */
+  /** Whether an answer offers «Read aloud» (the server's voice or the device's, where it has one); on when not given,
+   *  `false` turns it off. */
   readAloud?: boolean;
+  /** The audio (mp3) of a text read in a server voice (`voices.ts`); rejects when it cannot (not configured, down),
+   *  and the device's voice reads it instead. Without it, the device's voice and no choice of voice. */
+  speak?: (input: AssistantSpeech) => Promise<Blob>;
   /** Who sees the assistant's button; everyone signed in when not given. */
   canUse?: (session: ShellSession) => boolean;
   /** Who may upgrade the plan (only ever offered on the web); nobody when not given. */

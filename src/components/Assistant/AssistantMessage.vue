@@ -4,7 +4,7 @@
 // panel adds and the model never writes — «Go to …» for up to four screens of this app it names (BASE-G114), the
 // notices of what it said against what ran (BASE-G117), a receipt of each action of the turn, a failure with its way
 // out (BASE-G124; a spent allowance with its numbers and the plan, BASE-G122) and, under a finished answer, «Read
-// aloud» and, for a host that takes reports, «Report a problem» (BASE-G123). A receipt says its action by the host's
+// aloud» (with a line when it could not be read) and, for a host that takes reports, «Report a problem» (BASE-G123). A receipt says its action by the host's
 // verb (`AssistantConfig.verbKey`) and where it happened by the host's screen (`placeKey`) or the app's menu name.
 import { IonButton, IonIcon } from '@ionic/vue';
 import { computed } from 'vue';
@@ -33,6 +33,8 @@ const props = defineProps<{
   /** The host takes reports of an answer (`AssistantConfig.report`). */
   canReport: boolean;
   speaking?: boolean;
+  /** Its «Read aloud» failed: neither the server's voice nor the device's could read it. */
+  listenFailed?: boolean;
 }>();
 const emit = defineEmits<{
   go: [path: string];
@@ -302,6 +304,14 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
         {{ t('assistant.report.action') }}
       </ion-button>
     </div>
+    <p
+      v-if="finished && listenFailed"
+      class="assistant-muted"
+      role="alert"
+      data-testid="assistant-listen-failed"
+    >
+      {{ t('assistant.speech.failed') }}
+    </p>
   </div>
 </template>
 
