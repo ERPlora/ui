@@ -220,9 +220,11 @@ function signIn(): void {
   window.location.reload();
 }
 
-// ── Read aloud (the device's voice) ──
+// ── Read aloud (the device's voice; a host that turns it off never touches it) ──
 
-const voice = typeof globalThis.speechSynthesis === 'object' && typeof globalThis.SpeechSynthesisUtterance === 'function'
+const voice = config.readAloud !== false
+  && typeof globalThis.speechSynthesis === 'object'
+  && typeof globalThis.SpeechSynthesisUtterance === 'function'
   ? globalThis.speechSynthesis
   : null;
 

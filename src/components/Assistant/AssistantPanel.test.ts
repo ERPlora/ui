@@ -317,6 +317,60 @@ describe('AssistantPanel', () => {
     expect(m.wrapper.findComponent(AssistantReport).exists()).toBe(false);
   });
 
+  describe('«Read aloud» under an answer: the device’s voice, unless the host turns it off (ui#66)', () => {
+    /** A device that can read aloud: its voice and the utterances it is given. */
+    function deviceVoice() {
+      const voice = { speak: vi.fn(), cancel: vi.fn() };
+      vi.stubGlobal('speechSynthesis', voice);
+      vi.stubGlobal(
+        'SpeechSynthesisUtterance',
+        class {
+          lang = '';
+          onend: (() => void) | null = null;
+          onerror: (() => void) | null = null;
+          constructor(public text: string) {}
+        },
+      );
+      return voice;
+    }
+
+    async function answered(config?: Partial<AssistantConfig>) {
+      script.push(answer('Hoy has vendido 120 €.'));
+      const m = await panel({ config });
+      await assistant.ask('¿Cuánto he vendido?');
+      await flush();
+      expect(m.wrapper.get('[data-testid="assistant-answer"]').text()).toContain('Hoy has vendido 120 €.');
+      return m;
+    }
+
+    it('a host that says nothing of it: offered when the device can read, and it reads the answer in its voice', async () => {
+      const voice = deviceVoice();
+      const m = await answered();
+      await m.wrapper.get('[data-testid="assistant-listen"]').trigger('click');
+      expect(voice.speak).toHaveBeenCalledTimes(1);
+      expect(voice.speak.mock.calls[0][0]).toMatchObject({ text: 'Hoy has vendido 120 €.', lang: 'es' });
+    });
+
+    it('a host that turns it off (`readAloud: false`): no «Read aloud», and the device’s voice is never touched', async () => {
+      const voice = deviceVoice();
+      const m = await answered({ readAloud: false });
+      expect(m.wrapper.find('[data-testid="assistant-listen"]').exists()).toBe(false);
+      m.wrapper.unmount();
+      expect(voice.speak).not.toHaveBeenCalled();
+      expect(voice.cancel).not.toHaveBeenCalled();
+    });
+
+    it.each(['speechSynthesis', 'SpeechSynthesisUtterance'])(
+      'a device that cannot read (no %s): no «Read aloud», even when the host asks for it',
+      async (missing) => {
+        deviceVoice();
+        vi.stubGlobal(missing, undefined);
+        const m = await answered({ readAloud: true });
+        expect(m.wrapper.find('[data-testid="assistant-listen"]').exists()).toBe(false);
+      },
+    );
+  });
+
   it('«New conversation» empties it; the conversation is this person’s', async () => {
     const m = await panel();
     expect(m.wrapper.find('[data-testid="assistant-new"]').exists()).toBe(false);
