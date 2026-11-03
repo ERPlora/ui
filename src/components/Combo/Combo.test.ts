@@ -238,6 +238,8 @@ describe('Combo: a choice made with a finger', () => {
     option.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     await settle();
   }
+  /** A boolean, not the element: a failing `toBe(element)` serializes the whole happy-dom window. */
+  const hasFocus = (w: Wrapper): boolean => document.activeElement === native(w);
   /** What Ionic 8 does once a popover is gone (overlays.ts, restoreElementFocus): if nothing has the
    *  focus, it gives it back to what had it when the popover showed — the field. */
   async function ionicGivesTheFocusBack(w: Wrapper) {
@@ -254,7 +256,7 @@ describe('Combo: a choice made with a finger', () => {
     expect(w.emitted('update:modelValue')).toEqual([[COUNTRIES[1]]]);
     expect((field(w).element as El).value).toBe('Francia');
     expect(popover(w).exists()).toBe(false);
-    expect(document.activeElement).not.toBe(native(w));
+    expect(hasFocus(w), 'the field has the focus').toBe(false);
   });
 
   it('with a mouse the focus stays in the field', async () => {
@@ -262,7 +264,7 @@ describe('Combo: a choice made with a finger', () => {
     await settle();
     await chooseWith(w, 'mouse');
     expect(w.emitted('update:modelValue')).toEqual([[COUNTRIES[1]]]);
-    expect(document.activeElement).toBe(native(w));
+    expect(hasFocus(w), 'the field has the focus').toBe(true);
   });
 
   it('with the keyboard (Enter) the focus stays in the field', async () => {
@@ -272,7 +274,7 @@ describe('Combo: a choice made with a finger', () => {
     await typeIn(w, 'port');
     await key(w, 'Enter');
     expect(w.emitted('update:modelValue')).toEqual([[COUNTRIES[2]]]);
-    expect(document.activeElement).toBe(native(w));
+    expect(hasFocus(w), 'the field has the focus').toBe(true);
   });
 
   it('a finger choosing «Create …» lets go of the focus too', async () => {
@@ -285,7 +287,7 @@ describe('Combo: a choice made with a finger', () => {
     create.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     await settle();
     expect(w.emitted('create')).toEqual([['Italia']]);
-    expect(document.activeElement).not.toBe(native(w));
+    expect(hasFocus(w), 'the field has the focus').toBe(false);
   });
 
   it('Ionic giving the focus back once the list is gone does not bring the keyboard back', async () => {
@@ -293,7 +295,7 @@ describe('Combo: a choice made with a finger', () => {
     await settle();
     await chooseWith(w, 'touch');
     await ionicGivesTheFocusBack(w);
-    expect(document.activeElement).not.toBe(native(w));
+    expect(hasFocus(w), 'the field has the focus').toBe(false);
   });
 
   it('nor does the field taking it back as Ionic finishes showing the list (a quick finger)', async () => {
@@ -302,7 +304,7 @@ describe('Combo: a choice made with a finger', () => {
     await chooseWith(w, 'touch');
     w.getComponent(PopoverStub).vm.$emit('didPresent');
     await settle();
-    expect(document.activeElement).not.toBe(native(w));
+    expect(hasFocus(w), 'the field has the focus').toBe(false);
   });
 
   it('once the list is gone, the field takes the focus again as always', async () => {
@@ -312,7 +314,22 @@ describe('Combo: a choice made with a finger', () => {
     await ionicGivesTheFocusBack(w);
     await new Promise((resolve) => setTimeout(resolve, 0));
     native(w).focus();
-    expect(document.activeElement).toBe(native(w));
+    expect(hasFocus(w), 'the field has the focus').toBe(true);
+  });
+
+  it('a finger counts for its own click only: a later click no press started (a screen reader’s) keeps the focus', async () => {
+    const w = mountCombo();
+    await settle();
+    await chooseWith(w, 'touch');
+    await ionicGivesTheFocusBack(w);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    native(w).focus();
+    await field(w).trigger('click');
+    await settle();
+    options(w)[2].element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    await settle();
+    expect(w.emitted('update:modelValue')).toEqual([[COUNTRIES[1]], [COUNTRIES[2]]]);
+    expect(hasFocus(w), 'the field has the focus').toBe(true);
   });
 
   it('a touch on the field while the list is still closing takes the focus at once', async () => {
@@ -321,7 +338,7 @@ describe('Combo: a choice made with a finger', () => {
     await chooseWith(w, 'touch');
     field(w).element.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true, cancelable: true }));
     native(w).focus();
-    expect(document.activeElement).toBe(native(w));
+    expect(hasFocus(w), 'the field has the focus').toBe(true);
   });
 });
 
