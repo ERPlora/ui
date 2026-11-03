@@ -150,6 +150,9 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   hidden?: boolean;
   /** CSS track of the column in the list (`8rem`, `minmax(8rem,1fr)`…). Default `minmax(5.5rem,1fr)`. */
   width?: string;
+  /** hub#703 - The narrowest this column goes (`10.5rem`), for one whose content must keep some of its text: the
+   *  list gives up the next step of its ladder rather than cut it under this. Default `5.5rem`. Ignored with `width`. */
+  minWidth?: string;
   /** Pins the column to the end edge, like the row actions column. */
   pinned?: 'end';
   /** W-19 - `low`: hidden first when the list does not fit its box. Default `normal`. */

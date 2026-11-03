@@ -408,7 +408,11 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
   function trackMin(track: string, scroll: Element): number {
     const own = track.match(/^minmax\((\d+)px,1fr\)$/);
     if (own) return Number(own[1]);
+    const whole = track.match(/^minmax\(max\(([\d.]+)rem,(\d+)px\),1fr\)$/);
+    if (whole) return Math.max(Number(whole[1]) * 16, Number(whole[2]));
     if (track.startsWith('minmax(5.5rem,')) return FLOOR;
+    const floor = track.match(/^minmax\(([\d.]+)rem,/);
+    if (floor) return Number(floor[1]) * 16;
     const px = track.match(/^(\d+)px$/);
     if (px) return Number(px[1]);
     const rem = track.match(/^([\d.]+)rem$/);
@@ -502,5 +506,41 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     const t = await mountAt(720, { ...props834, rows: [ROWS_834[1]] });
     // «bea@example.com» is 120px: more than the floor, so it is held whole too; «Failed» and «€8.00» fit the floor.
     expect(template(t)).toBe('minmax(121px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+  });
+
+  // hub#703: the row gives up what comes next on its ladder before it cuts this column under its own floor.
+  describe('a column on its own floor (`minWidth`)', () => {
+    /** The columns of this table with `minWidth` on one of them. */
+    const flooredOn = (key: string) => COLUMNS_834.map((c) => (c.key === key ? { ...c, minWidth: '10.5rem' } : c));
+
+    it('at 600 the low column goes rather than the status under its 168px; without it the status stays at 88px and Note stays', async () => {
+      const t = await mountAt(600, { ...props834, columns: flooredOn('status') });
+      expect(headers(t)).toEqual(['Email', 'Status', 'Total']);
+      expect(template(t)).toBe('minmax(225px,1fr) minmax(10.5rem,1fr) minmax(5.5rem,1fr) 80px');
+
+      await t.setProps({ columns: COLUMNS_834 });
+      await settle();
+      expect(headers(t), 'the floor gone, the ladder is judged again').toEqual(['Email', 'Status', 'Total', 'Note']);
+      expect(template(t)).toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+    });
+
+    it('whole while the row has room, cut down to its floor and no further', async () => {
+      const t = await mountAt(720, { ...props834, columns: flooredOn('email') });
+      expect(template(t), '720: whole').toBe('minmax(max(10.5rem,225px),1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+      await resize(480);
+      expect(headers(t), '480: cut without Note').toEqual(['Email', 'Status', 'Total']);
+      expect(template(t)).toBe('minmax(10.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 80px');
+      expect(rowButtons(t)).toEqual(['pay', 'fail']);
+    });
+
+    it('the floor is the only thing that sent the list to the cards: gone, the list comes back', async () => {
+      // Folded and cut this table takes 416px with the status on its floor and 336px without it: at 400 only the second fits.
+      const t = await mountAt(400, { ...props834, views: ['table', 'cards'], columns: flooredOn('status') });
+      expect(isCards(t), 'on its floor it does not fit even folded').toBe(true);
+      await t.setProps({ columns: COLUMNS_834 });
+      await settle();
+      expect(isCards(t), 'the same columns but for the floor: judged again in the list').toBe(false);
+      expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
+    });
   });
 });
