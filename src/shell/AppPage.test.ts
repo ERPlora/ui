@@ -249,13 +249,45 @@ describe('polish.css: the height chain of a list page (`.page-fill`, `.panel-fil
     expect(rule(lists)).toBe('');
   });
 
-  it('on a phone the list grows with its rows from the page’s height, as DataTable’s `fill` does there (one scroll)', () => {
+  it('on a phone the list grows with its rows from the rest of its stack, as DataTable’s `fill` does there (one scroll)', () => {
     const phone = media(PHONE);
     const lists =
       '.page-fill > .data-table.data-table--fill, .page-fill > .page-fill, .panel-fill > .data-table.data-table--fill, .panel-fill > .panel-fill';
     expect(rule(lists, phone)).toBe('flex: 1 0 auto;');
     expect(rule('.page-fill > .page-fill, .panel-fill > .panel-fill', phone)).toBe('height: auto;');
     expect(phone).not.toMatch(/data-table__cards|data-table__surface|data-table__scroll/);
+  });
+
+  it('on a phone a list in a stack (a nested one too) takes the rest of it, never the whole page: the notices above do not push it under the tab bar (ui#60)', () => {
+    const phone = media(PHONE);
+    const inStack =
+      '.page-fill > .data-table.data-table--fill:not(.data-table--content-after), .panel-fill > .data-table.data-table--fill:not(.data-table--content-after)';
+    expect(rule(inStack, phone)).toBe('min-height: 0;');
+    expect(rule(inStack)).toBe('');
+
+    // A lone list (AppPage `detail-fill`, no stack) keeps DataTable's own phone height, the page's whole: that is
+    // what a stack has to undo. DataTable's style is scoped, so its selector also carries a `[data-v-…]`.
+    const dataTable = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/DataTable/DataTable.vue'), 'utf8');
+    expect(dataTable).toMatch(/\.data-table--fill:not\(\.data-table--content-after\) \{ height: auto; min-height: 100%; \}/);
+    expect(dataTable).toMatch(/<style scoped>/);
+    const specificity = (selector: string): number =>
+      (selector.replace(/:not\(([^)]*)\)/g, ' $1').match(/\.[\w-]+|\[[^\]]+\]|:[\w-]+/g) ?? []).length;
+    const lone = specificity('.data-table--fill:not(.data-table--content-after)[data-v-0]');
+    for (const selector of inStack.split(', ')) expect(specificity(selector), selector).toBeGreaterThan(lone);
+
+    // Which lists it reaches: in AppPage's stack, in a stack nested in it, in the SaaS panel's; not a lone one.
+    const page = mount({
+      template:
+        '<div class="hub-detail-shell--fill">' +
+        '<div class="page-fill"><p>Reconnect</p>' +
+        '<div class="page-fill"><p>Quota</p><div id="nested" class="data-table data-table--fill"></div></div>' +
+        '<div id="direct" class="data-table data-table--fill"></div>' +
+        '<div id="after" class="data-table data-table--fill data-table--content-after"></div></div>' +
+        '<div class="panel-fill"><div id="panel" class="data-table data-table--fill"></div></div>' +
+        '<div id="lone" class="data-table data-table--fill"></div></div>',
+    });
+    const reached = (id: string): boolean => page.get(`#${id}`).element.matches(inStack);
+    expect(['nested', 'direct', 'panel', 'after', 'lone'].map(reached)).toEqual([true, true, true, false, false]);
   });
 
   // The SaaS panel's own decisions (2026-10-14: R-14 and the phone heading) stay under its `.panel-fill`:
