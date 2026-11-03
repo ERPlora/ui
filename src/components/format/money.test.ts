@@ -26,6 +26,25 @@ describe('formatMoney', () => {
     expect(formatMoney(1250, 'en')).toBe('12.50');
   });
 
+  it('groups the thousands from four digits on, in every language (Holded, Odoo, Shopify, Excel es_ES)', () => {
+    const USD = { currency: 'USD', decimals: 2 };
+    expect(plain(formatMoney(123456, 'es', EUR))).toBe('1.234,56 €');
+    expect(plain(formatMoney(1234567, 'es', EUR))).toBe('12.345,67 €');
+    expect(plain(formatMoney(123456789, 'es', EUR))).toBe('1.234.567,89 €');
+    expect(plain(formatMoney(123456, 'en', EUR))).toBe('€1,234.56');
+    expect(plain(formatMoney(123456789, 'en', USD))).toBe('$1,234,567.89');
+    expect(plain(formatMoney(123456, 'pl-PL', PLN))).toBe('1 234,56 zł');
+    expect(plain(formatMoney(1234, 'es', JPY))).toBe('1.234 ¥');
+    expect(plain(formatMoney(-123456, 'es', EUR))).toBe('-1.234,56 €');
+    expect(plain(formatMoney(0, 'es', EUR))).toBe('0,00 €');
+    expect(plain(formatMoney(99999, 'es', EUR))).toBe('999,99 €');
+  });
+
+  it('groups the amount alone too, before the currency is known', () => {
+    expect(formatMoney(123456, 'es')).toBe('1.234,56');
+    expect(formatMoney(123456, 'en')).toBe('1,234.56');
+  });
+
   it('what is no number stays as it came', () => {
     expect(formatMoney('n/a', 'en', EUR)).toBe('n/a');
     expect(formatMoney(' ', 'en', EUR)).toBe(' ');

@@ -242,7 +242,7 @@ describe('a datum that is an object', () => {
     // In the one its write names, with its decimals.
     expect(fieldText(line({ kind: 'money', value: 150, money: USD }), opts)).toBe('Café · 1,50 $');
     expect(fieldText(top(USD), opts)).toBe('1,50 $');
-    expect(fieldText(line({ kind: 'money', value: 1500, money: JPY }), opts)).toBe('Café · 1500 ¥');
+    expect(fieldText(line({ kind: 'money', value: 1500, money: JPY }), opts)).toBe('Café · 1.500 ¥');
     // Inside a list inside an object, the same.
     const order = { lines: [{ text: 'Té', unit_price: { kind: 'money', value: 1200 } }] };
     expect(fieldText({ name: 'order', label: 'Pedido', kind: 'object', value: order }, opts)).toBe('Té · 12,00 €');
