@@ -563,7 +563,10 @@ html.immersive ion-router-outlet#main.split-pane-main > .ion-page > ion-content:
 }
 
 /* Phone (DataTable's own breakpoint): the list follows DataTable's `fill` there, growing with its rows from the
-   page's height (one scroll); a nested stack is as tall as what it holds. */
+   rest of its stack (one scroll); a nested stack is as tall as what it holds. A lone list (no stack) is at least
+   the page's height (DataTable's `min-height: 100%`); in a stack, direct or nested, that would add the notices
+   above it to the page and push its end and its empty state under the tab bar (ui#60), so the stack's rest is
+   its floor. Four classes: stronger than DataTable's scoped rule (two and its `[data-v-…]`). */
 @media (max-width: 640px) {
   .page-fill > .data-table.data-table--fill,
   .page-fill > .page-fill,
@@ -574,6 +577,10 @@ html.immersive ion-router-outlet#main.split-pane-main > .ion-page > ion-content:
   .page-fill > .page-fill,
   .panel-fill > .panel-fill {
     height: auto;
+  }
+  .page-fill > .data-table.data-table--fill:not(.data-table--content-after),
+  .panel-fill > .data-table.data-table--fill:not(.data-table--content-after) {
+    min-height: 0;
   }
 }
 
