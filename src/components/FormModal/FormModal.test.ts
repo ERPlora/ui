@@ -442,6 +442,63 @@ describe('FormModal: options', () => {
   });
 });
 
+describe('FormModal: read only (a window that only shows data, ui#62)', () => {
+  // Odoo, Shopify and Business Central: the header's close and ONE «Close» at the foot; never
+  // Cancel and Close side by side, which do the same, and nothing to save.
+  const doneButton = (w: VueWrapper): HTMLElement => w.get('.ep-form-modal__done').element as HTMLElement;
+
+  it('its footer is a single «Close» (Cerrar in Spanish): no Save, no Cancel', async () => {
+    for (const [locale, text] of [['en', 'Close'], ['es', 'Cerrar']] as const) {
+      const wrapper = mountModal({ readonly: true }, {}, locale);
+      await settle();
+      const footer = wrapper.get('.ep-form-modal__footer');
+      expect(footer.findAll('ion-button')).toHaveLength(1);
+      expect(wrapper.find('.ep-form-modal__submit').exists()).toBe(false);
+      expect(wrapper.find('.ep-form-modal__cancel').exists()).toBe(false);
+      expect(doneButton(wrapper).textContent?.trim()).toBe(text);
+      wrapper.unmount();
+      mounted.splice(0);
+    }
+  });
+
+  it('its «Close» closes it as the header\'s does (`cancel`, open → false), never a submit', async () => {
+    const wrapper = mountModal({ readonly: true });
+    await settle();
+    await click(doneButton(wrapper));
+    expect(wrapper.emitted('cancel')).toHaveLength(1);
+    expect(wrapper.emitted('update:open')).toEqual([[false]]);
+    expect(wrapper.emitted('submit')).toBeUndefined();
+  });
+
+  it('Enter in a field submits nothing: there is nothing to save', async () => {
+    const wrapper = mountModal({ readonly: true });
+    await settle();
+    await key(byTestId('email')!, 'Enter');
+    expect(wrapper.emitted('submit')).toBeUndefined();
+  });
+
+  it('with no field, its «Close» takes the focus', async () => {
+    const wrapper = mountModal({ readonly: true }, { default: () => [h('p', 'Three sale lines in no shift')] });
+    await settle();
+    expect(document.activeElement).toBe(doneButton(wrapper));
+  });
+
+  it('`testid` hooks its «Close» as `<testid>-done`', async () => {
+    mountModal({ readonly: true, testid: 'unassigned' });
+    await settle();
+    expect(byTestId('unassigned-done')).not.toBeNull();
+    expect(byTestId('unassigned-cancel')).toBeNull();
+    expect(byTestId('unassigned-submit')).toBeNull();
+  });
+
+  it('the footer slot still replaces the buttons', async () => {
+    const wrapper = mountModal({ readonly: true }, { footer: () => [h('button', { class: 'own' }, 'Print')] });
+    await settle();
+    expect(wrapper.find('.own').exists()).toBe(true);
+    expect(wrapper.find('.ep-form-modal__done').exists()).toBe(false);
+  });
+});
+
 describe('FormModal: on a phone (R-29)', () => {
   it('is a sheet by default and a centred card with `phoneLayout: card`, said on the ion-modal for the stylesheet', async () => {
     const sheet = mountModal();

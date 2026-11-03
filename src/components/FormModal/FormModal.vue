@@ -18,8 +18,10 @@
 //   - Enter in a single-line field submits; Escape cancels (not while pending). Only Save, Enter and
 //     the footer slot's `submit` submit: the `<form>`'s own submit event is just prevented, so a
 //     native button in a custom footer (type submit by default) never submits twice, nor by mistake.
-//   - Focus: on opening, a `[data-autofocus]` field, else the first field, else Cancel; on closing,
-//     back to what had it before (the button that opened it).
+//   - Focus: on opening, a `[data-autofocus]` field, else the first field, else Cancel (read only:
+//     Close); on closing, back to what had it before (the button that opened it).
+//   - `readonly`: a window that only shows data (ui#62; Odoo, Shopify, Business Central) — the footer
+//     is a single «Close» that closes it as the header's does (`cancel`); nothing submits.
 //   - Named by its title: Ionic copies `aria-label` and `role` into its own `role="dialog"` (in its
 //     shadow DOM, where `aria-labelledby` cannot reach) once, when the element loads, so each
 //     opening renders a fresh `ion-modal` and the name is always the current title.
@@ -70,7 +72,9 @@ const props = withDefaults(
     role?: FormModalRole;
     /** Below 640px: a bottom `sheet` (forms) or the centred `card` (confirmations). */
     phoneLayout?: FormModalPhoneLayout;
-    /** Prefix of the `data-testid` hooks (`<testid>`, `-submit`, `-cancel`, `-close`, `-error`). */
+    /** It only shows data: the footer is a single «Close» (no Save, no Cancel) and nothing submits. */
+    readonly?: boolean;
+    /** Prefix of the `data-testid` hooks (`<testid>`, `-submit`, `-cancel`, `-close`, `-done`, `-error`). */
     testid?: string;
   }>(),
   {
@@ -85,6 +89,7 @@ const props = withDefaults(
     submitIcon: undefined,
     role: 'dialog',
     phoneLayout: 'sheet',
+    readonly: false,
     testid: undefined,
   },
 );
@@ -129,7 +134,7 @@ watch(
 );
 
 function submit(): void {
-  if (props.pending || props.submitDisabled) return;
+  if (props.pending || props.submitDisabled || props.readonly) return;
   emit('submit');
 }
 
@@ -189,7 +194,7 @@ function focusFirstField(): void {
   if (!root) return;
   const marked = root.querySelector<HTMLElement>('[data-autofocus]');
   const field = marked ?? [...root.querySelectorAll<HTMLElement>(FIELDS)].find((el) => !isDisabled(el));
-  const target = field ?? root.querySelector<HTMLElement>('.ep-form-modal__cancel');
+  const target = field ?? root.querySelector<HTMLElement>('.ep-form-modal__cancel, .ep-form-modal__done');
   if (target) focusElement(target);
 }
 </script>
@@ -267,34 +272,45 @@ function focusFirstField(): void {
             :pending="pending"
           >
             <ion-button
-              class="ep-form-modal__cancel"
-              fill="clear"
+              v-if="readonly"
+              class="ep-form-modal__done"
               :disabled="pending"
-              :data-testid="tid('cancel')"
+              :data-testid="tid('done')"
               @click="cancel"
             >
-              {{ cancelText }}
+              {{ t('formModal.close') }}
             </ion-button>
-            <ion-button
-              class="ep-form-modal__submit"
-              :color="submitColor"
-              :disabled="pending || submitDisabled"
-              :data-testid="tid('submit')"
-              @click="submit"
-            >
-              <ion-spinner
-                v-if="pending"
-                slot="start"
-                name="crescent"
-                aria-hidden="true"
-              />
-              <HubIcon
-                v-else-if="submitIcon"
-                slot="start"
-                :name="submitIcon"
-              />
-              {{ submitText }}
-            </ion-button>
+            <template v-else>
+              <ion-button
+                class="ep-form-modal__cancel"
+                fill="clear"
+                :disabled="pending"
+                :data-testid="tid('cancel')"
+                @click="cancel"
+              >
+                {{ cancelText }}
+              </ion-button>
+              <ion-button
+                class="ep-form-modal__submit"
+                :color="submitColor"
+                :disabled="pending || submitDisabled"
+                :data-testid="tid('submit')"
+                @click="submit"
+              >
+                <ion-spinner
+                  v-if="pending"
+                  slot="start"
+                  name="crescent"
+                  aria-hidden="true"
+                />
+                <HubIcon
+                  v-else-if="submitIcon"
+                  slot="start"
+                  :name="submitIcon"
+                />
+                {{ submitText }}
+              </ion-button>
+            </template>
           </slot>
         </div>
       </form>
