@@ -15,6 +15,11 @@
     "transcribing": "Transcribing…",
     "listen": "Read aloud",
     "stopListening": "Stop reading",
+    "speech": {
+      "voice": "Voice",
+      "device": "Device voice",
+      "failed": "The answer could not be read aloud. Try again."
+    },
     "noAnswer": "(no answer)",
     "stopped": "Stopped.",
     "writing": "The assistant is writing",

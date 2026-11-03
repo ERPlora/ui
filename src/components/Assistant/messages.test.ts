@@ -56,7 +56,8 @@ describe('assistantMessages', () => {
     }
   });
 
-  it("cover every key of its own that the chat's code names", () => {
+  /** The keys of its own the chat's code names literally. */
+  function namedKeys(): Set<string> {
     const files = sources(HERE);
     expect(files.length).toBeGreaterThan(0);
     const named = new Set<string>();
@@ -65,7 +66,19 @@ describe('assistantMessages', () => {
       for (const [, key] of source.matchAll(/\bt\(\s*'(assistant\.[^']+)'/g)) named.add(key);
       for (const [, key] of source.matchAll(/\bkey: '(assistant\.[^']+)'/g)) named.add(key);
     }
+    return named;
+  }
+
+  it("cover every key of its own that the chat's code names", () => {
+    const named = namedKeys();
     expect(named.size).toBeGreaterThan(20);
     expect([...named].filter((key) => !EN.has(key))).toEqual([]);
+  });
+
+  it('say nothing of reading aloud that the chat never says (`assistant.speech`: no orphan words)', () => {
+    const named = namedKeys();
+    const speech = [...EN.keys()].filter((key) => key.startsWith('assistant.speech.'));
+    expect(speech.sort()).toEqual(['assistant.speech.device', 'assistant.speech.failed', 'assistant.speech.voice']);
+    expect(speech.filter((key) => !named.has(key))).toEqual([]);
   });
 });

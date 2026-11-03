@@ -2,7 +2,7 @@
 // person's conversation, the host's empty conversation, G122 the allowance, G123 report, G124 offline and without a
 // plan): on the right, docked beside the screen from 768 px and over it on a phone; closed with ×, Escape, the veil or
 // «Go to …»; the allowance read once per opening, as the host reads it.
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { h } from 'vue';
 
 import type { LiveClient } from '../../sdk/live-client';
@@ -12,7 +12,7 @@ import AssistantEmpty from './AssistantEmpty.vue';
 import AssistantPanel from './AssistantPanel.vue';
 import AssistantReport from './AssistantReport.vue';
 import type { AssistantCard } from './card';
-import { type AssistantConfig, type AssistantUsage, configureAssistant } from './config';
+import { type AssistantConfig, type AssistantSpeech, type AssistantUsage, configureAssistant } from './config';
 import { type Assistant, createAssistant, installAssistant } from './state';
 import type { TurnBody, TurnFrame, TurnOptions } from './stream';
 
@@ -318,14 +318,22 @@ describe('AssistantPanel', () => {
   });
 
   describe('«Read aloud» under an answer: the device’s voice, unless the host turns it off (ui#66)', () => {
-    /** A device that can read aloud: its voice and the utterances it is given. */
+    /** A device that can read aloud: its voice (with a Spanish voice of Spain's and one of Mexico's) and what it reads. */
     function deviceVoice() {
-      const voice = { speak: vi.fn(), cancel: vi.fn() };
+      const voice = {
+        speak: vi.fn(),
+        cancel: vi.fn(),
+        getVoices: () => [
+          { name: 'Paulina', lang: 'es-MX' },
+          { name: 'Google español', lang: 'es-ES' },
+        ],
+      };
       vi.stubGlobal('speechSynthesis', voice);
       vi.stubGlobal(
         'SpeechSynthesisUtterance',
         class {
           lang = '';
+          voice: unknown = null;
           onend: (() => void) | null = null;
           onerror: (() => void) | null = null;
           constructor(public text: string) {}
@@ -343,12 +351,17 @@ describe('AssistantPanel', () => {
       return m;
     }
 
-    it('a host that says nothing of it: offered when the device can read, and it reads the answer in its voice', async () => {
+    it('a host that says nothing of it: offered when the device can read, and it reads the answer in its best voice', async () => {
       const voice = deviceVoice();
       const m = await answered();
       await m.wrapper.get('[data-testid="assistant-listen"]').trigger('click');
+      await flush();
       expect(voice.speak).toHaveBeenCalledTimes(1);
-      expect(voice.speak.mock.calls[0][0]).toMatchObject({ text: 'Hoy has vendido 120 €.', lang: 'es' });
+      expect(voice.speak.mock.calls[0][0]).toMatchObject({
+        text: 'Hoy has vendido 120 €.',
+        lang: 'es-ES',
+        voice: { name: 'Google español' },
+      });
     });
 
     it('a host that turns it off (`readAloud: false`): no «Read aloud», and the device’s voice is never touched', async () => {
@@ -369,6 +382,234 @@ describe('AssistantPanel', () => {
         expect(m.wrapper.find('[data-testid="assistant-listen"]').exists()).toBe(false);
       },
     );
+
+    describe('in a server voice, when the host has one (`speak`, round 2026-11-03m)', () => {
+      const XIMENA = 'es-ES-Ximena:DragonHDLatestNeural';
+      const TRISTAN = 'es-ES-Tristan:DragonHDLatestNeural';
+      const MP3 = new Blob(['mp3'], { type: 'audio/mpeg' });
+
+      /** The page's audio player: each one made, as the panel plays it. */
+      class FakeAudio {
+        static made: FakeAudio[] = [];
+        src = '';
+        currentTime = 0;
+        onended: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        load = vi.fn();
+        play = vi.fn(async () => {});
+        pause = vi.fn();
+        removeAttribute = vi.fn((name: string) => {
+          if (name === 'src') this.src = '';
+        });
+        constructor() {
+          FakeAudio.made.push(this);
+        }
+      }
+
+      let created: MockInstance<typeof URL.createObjectURL>;
+      let revoked: MockInstance<typeof URL.revokeObjectURL>;
+      let warn: MockInstance<typeof console.warn>;
+      /** The device's storage, where the choice of voice is kept. */
+      let stored: Storage;
+
+      beforeEach(() => {
+        FakeAudio.made = [];
+        vi.stubGlobal('Audio', FakeAudio);
+        // The server's audio, and the silent clip that unlocks the player in the click.
+        created = vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => (blob === MP3 ? 'blob:answer' : 'blob:silence'));
+        revoked = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+        warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        stored = memoryStorage();
+        vi.stubGlobal('localStorage', stored);
+      });
+
+      afterEach(() => {
+        created.mockRestore();
+        revoked.mockRestore();
+        warn.mockRestore();
+      });
+
+      const listenButton = (m: Awaited<ReturnType<typeof answered>>) => m.wrapper.get('[data-testid="assistant-listen"]');
+      const voiceSelect = (m: Awaited<ReturnType<typeof answered>>) => m.wrapper.find('[data-testid="assistant-voice"]');
+
+      /** What an Ionic element was given (Vue sets its props as the element's properties, not as attributes). */
+      const prop = (element: Element, name: 'interface' | 'value') => (element as unknown as Record<string, unknown>)[name];
+
+      async function choose(m: Awaited<ReturnType<typeof answered>>, value: string) {
+        voiceSelect(m).element.dispatchEvent(new CustomEvent('ionChange', { detail: { value } }));
+        await flush();
+      }
+
+      it('reads the answer in the language’s first voice and plays its audio, «Stop reading» while it sounds', async () => {
+        deviceVoice();
+        const speak = vi.fn(async () => MP3);
+        const m = await answered({ speak });
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(speak).toHaveBeenCalledWith({
+          text: 'Hoy has vendido 120 €.',
+          language: 'es',
+          voice: XIMENA,
+          signal: expect.any(AbortSignal),
+        });
+        expect(created).toHaveBeenCalledWith(MP3);
+        expect(FakeAudio.made).toHaveLength(1);
+        expect(FakeAudio.made[0].src).toBe('blob:answer');
+        expect(FakeAudio.made[0].play).toHaveBeenCalled();
+        expect(listenButton(m).attributes('aria-pressed')).toBe('true');
+        expect(listenButton(m).text()).toBe('Dejar de leer');
+        FakeAudio.made[0].onended?.();
+        await flush();
+        expect(revoked).toHaveBeenCalledWith('blob:answer');
+        expect(listenButton(m).attributes('aria-pressed')).toBe('false');
+        expect(listenButton(m).text()).toBe('Leer en voz alta');
+      });
+
+      it('«Stop reading» stops the audio and frees it', async () => {
+        const speak = vi.fn(async () => MP3);
+        const m = await answered({ speak });
+        await listenButton(m).trigger('click');
+        await flush();
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(FakeAudio.made[0].pause).toHaveBeenCalled();
+        expect(revoked).toHaveBeenCalledWith('blob:answer');
+        expect(listenButton(m).attributes('aria-pressed')).toBe('false');
+      });
+
+      it('the server fails (not configured, down): the device reads it in its own voice', async () => {
+        const voice = deviceVoice();
+        const speak = vi.fn(async () => {
+          throw new Error('assistant.speech.not_configured');
+        });
+        const m = await answered({ speak });
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(speak).toHaveBeenCalled();
+        expect(voice.speak).toHaveBeenCalledTimes(1);
+        expect(voice.speak.mock.calls[0][0]).toMatchObject({ text: 'Hoy has vendido 120 €.', lang: 'es-ES' });
+        expect(m.wrapper.find('[data-testid="assistant-listen-failed"]').exists()).toBe(false);
+      });
+
+      it('the server fails on a device that cannot read (the Android webview): said under the answer, never silent', async () => {
+        vi.stubGlobal('speechSynthesis', undefined);
+        const speak = vi.fn<(input: AssistantSpeech) => Promise<Blob>>(async () => {
+          throw new Error('down');
+        });
+        const m = await answered({ speak });
+        expect(voiceSelect(m).exists()).toBe(true);
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(m.wrapper.get('[data-testid="assistant-listen-failed"]').text()).toBe(
+          'No se ha podido leer la respuesta en voz alta. Inténtalo de nuevo.',
+        );
+        expect(listenButton(m).attributes('aria-pressed')).toBe('false');
+        speak.mockImplementation(async () => MP3);
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(m.wrapper.find('[data-testid="assistant-listen-failed"]').exists()).toBe(false);
+      });
+
+      it('the voice is chosen in the panel: the language’s two and the device’s, remembered by the device', async () => {
+        const voice = deviceVoice();
+        const speak = vi.fn(async () => MP3);
+        const m = await answered({ speak });
+        const select = voiceSelect(m);
+        expect(prop(select.element, 'interface')).toBe('popover');
+        expect(prop(select.element, 'value')).toBe(XIMENA);
+        expect(select.findAll('ion-select-option').map((option) => [prop(option.element, 'value'), option.text()])).toEqual([
+          [XIMENA, 'Ximena'],
+          [TRISTAN, 'Tristan'],
+          ['device', 'Voz del dispositivo'],
+        ]);
+
+        await choose(m, TRISTAN);
+        expect(stored.getItem('erplora.assistant.voice.es')).toBe(TRISTAN);
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(speak).toHaveBeenLastCalledWith({
+          text: 'Hoy has vendido 120 €.',
+          language: 'es',
+          voice: TRISTAN,
+          signal: expect.any(AbortSignal),
+        });
+        FakeAudio.made[0].onended?.();
+        await flush();
+
+        await choose(m, 'device');
+        expect(stored.getItem('erplora.assistant.voice.es')).toBe('device');
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(speak).toHaveBeenCalledTimes(1);
+        expect(voice.speak).toHaveBeenCalledTimes(1);
+      });
+
+      it('the voice the device remembers is the one read in', async () => {
+        stored.setItem('erplora.assistant.voice.es', TRISTAN);
+        const speak = vi.fn(async () => MP3);
+        const m = await answered({ speak });
+        expect(prop(voiceSelect(m).element, 'value')).toBe(TRISTAN);
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(speak).toHaveBeenCalledWith(expect.objectContaining({ voice: TRISTAN }));
+      });
+
+      it('the screen changes language: the voices of the new one, and the choice kept for it', async () => {
+        deviceVoice();
+        stored.setItem('erplora.assistant.voice.es', TRISTAN);
+        stored.setItem('erplora.assistant.voice.en', 'en-US-Andrew2:DragonHDLatestNeural');
+        const speak = vi.fn(async () => MP3);
+        const m = await answered({ speak });
+        expect(prop(voiceSelect(m).element, 'value')).toBe(TRISTAN);
+        (m.wrapper.vm as unknown as { $i18n: { locale: string } }).$i18n.locale = 'en';
+        await flush();
+        expect(voiceSelect(m).findAll('ion-select-option').map((option) => option.text())).toEqual(['Ava', 'Andrew', 'Device voice']);
+        expect(prop(voiceSelect(m).element, 'value')).toBe('en-US-Andrew2:DragonHDLatestNeural');
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(speak).toHaveBeenCalledWith(expect.objectContaining({ language: 'en', voice: 'en-US-Andrew2:DragonHDLatestNeural' }));
+      });
+
+      it('the screen changes language while it reads: the reading stops, «Read aloud» again', async () => {
+        const speak = vi.fn(async () => MP3);
+        const m = await answered({ speak });
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(listenButton(m).attributes('aria-pressed')).toBe('true');
+        (m.wrapper.vm as unknown as { $i18n: { locale: string } }).$i18n.locale = 'en';
+        await flush();
+        expect(FakeAudio.made[0].pause).toHaveBeenCalled();
+        expect(revoked).toHaveBeenCalledWith('blob:answer');
+        expect(listenButton(m).attributes('aria-pressed')).toBe('false');
+        expect(listenButton(m).text()).toBe('Read aloud');
+      });
+
+      it('the panel goes away while it reads (the person signs out): the reading stops', async () => {
+        const speak = vi.fn(async () => MP3);
+        const m = await answered({ speak });
+        await listenButton(m).trigger('click');
+        await flush();
+        m.wrapper.unmount();
+        expect(FakeAudio.made[0].pause).toHaveBeenCalled();
+        expect(revoked).toHaveBeenCalledWith('blob:answer');
+      });
+
+      it('on a device that cannot read, no «Device voice» to choose', async () => {
+        vi.stubGlobal('speechSynthesis', undefined);
+        const m = await answered({ speak: vi.fn(async () => MP3) });
+        expect(voiceSelect(m).findAll('ion-select-option').map((option) => option.text())).toEqual(['Ximena', 'Tristan']);
+      });
+
+      it('no choice of voice without a server voice, nor with «Read aloud» off', async () => {
+        deviceVoice();
+        const without = await answered();
+        expect(voiceSelect(without).exists()).toBe(false);
+        without.wrapper.unmount();
+        const off = await answered({ speak: vi.fn(async () => MP3), readAloud: false });
+        expect(voiceSelect(off).exists()).toBe(false);
+        expect(off.wrapper.find('[data-testid="assistant-listen"]').exists()).toBe(false);
+      });
+    });
   });
 
   it('«New conversation» empties it; the conversation is this person’s', async () => {
