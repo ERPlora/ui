@@ -278,3 +278,20 @@ describe('ION_ICONS: briefcase, gift, archive, star, checkbox, open, play-circle
     }
   });
 });
+
+// Ionicons the Hub's till asks for (hub apps/sale/UI-REQUESTS.md): the line's «Comp» button shows
+// the gift outline, and the filled gift once the line is comped; the two change together.
+describe('ION_ICONS: gift and gift-outline (Hub sale, comp a till line)', () => {
+  it('registers the filled gift next to the outline, as ion: names resolve', async () => {
+    const ionicons = await import('ionicons/icons');
+    for (const [name, src] of [
+      ['gift', ionicons.gift],
+      ['gift-outline', ionicons.giftOutline],
+    ]) {
+      expect(src, name).toMatch(SVG_URL);
+      expect(ION_ICONS[name], name).toBe(src);
+      expect(resolveIcon(`ion:${name}`), name).toBe(src);
+    }
+    expect(ION_ICONS.gift).not.toBe(ION_ICONS['gift-outline']);
+  });
+});
