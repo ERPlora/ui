@@ -8,7 +8,14 @@
 //   «Once it has been saved…») and how things work («La diferencia queda guardada para siempre», «the price is updated
 //   every night») claim nothing: a how-to answer read from the docs is no change (QA battery 2026-10-31, B25). Read
 //   clause by clause: a negation before the verb in the same clause makes it a denial («no he creado el negocio»,
-//   «nothing has been saved»), not a claim;
+//   «nothing has been saved»), not a claim. When a write of the turn was tried and did not go through, two more forms
+//   claim it (ui#67): a headline in the participle that takes what changed («Switched to dark mode», «Updated your
+//   theme», «Created Café Triana», «Activado el modo oscuro»), and what the person should now see («Your screen should
+//   now be darker», «Ya debería verse más oscura»). With no write tried, a participle reads back what happened before
+//   («Created Café Triana on 3 November») and «it should now work» follows a step: neither claims. Neither form claims in
+//   a question («Changed your mind?»), when it says when a record was made («Creado el 3 de noviembre», «Updated 3 days
+//   ago»), how things stay («should now stay light») or after a step to try again («Please try again; it should now
+//   work»);
 // - `unread_id`: it writes an identifier (a UUID) that no tool of the turn returned and the person did not write;
 // - `unknown_screen`: it links a screen this app does not serve (BASE-G114: no «Go to» for it either).
 import { linkPaths, parseMarkdown } from './markdown';
@@ -57,8 +64,34 @@ const NEGATION = new RegExp(`${word('no|not|nunca|never|nada|nothing|none|ning[u
 const SUPPOSITION = word('si|cuando|una vez|en cuanto|hasta que|despu[eé]s de que|a menos que|if|when|once|as soon as|after|until|unless');
 // An instruction: a clause that opens with the verb of a step («Pulsa…», «Tap…»).
 const INSTRUCTION =
-  /^[^\p{L}]*(?:pulsa|pulse|toca|toque|haz|haga|ve|vaya|abre|abra|elige|elija|selecciona|seleccione|escribe|escriba|introduce|introduzca|confirma|confirme|rellena|rellene|añade|añada|busca|busque|comprueba|compruebe|revisa|revise|guarda|guarde|activa|active|desactiva|desactive|indica|indique|configura|configure|press|tap|click|go|open|choose|select|enter|type|confirm|fill|add|search|check|save)(?![\p{L}\p{N}])/iu;
+  /^[^\p{L}]*(?:please\s+)?(?:pulsa|pulse|toca|toque|haz|haga|ve|vaya|abre|abra|elige|elija|selecciona|seleccione|escribe|escriba|introduce|introduzca|confirma|confirme|rellena|rellene|añade|añada|busca|busque|comprueba|compruebe|revisa|revise|guarda|guarde|activa|active|desactiva|desactive|indica|indique|configura|configure|int[eé]nta(?:lo)?|int[eé]nte(?:lo)?|vuelve|vuelva|recarga|recargue|press|tap|click|go|open|choose|select|enter|type|confirm|fill|add|search|check|save|try|retry|reload|refresh)(?![\p{L}\p{N}])/iu;
 const NOW = word('ya|ahora|now');
+// A headline in the participle: the clause opens with the verb of a change and goes on with what changed, after an
+// article, a possessive, «to» / «a» or a name, a number or a quote. How a record reads takes none of them («Created by
+// Ana», «Created on 3 November», «Updated every night», «Actualizado a diario», «Deleted customers can be restored»).
+// Opening hours read like a headline («Closed Sundays», «Cerrado los domingos»): closing and opening are left out.
+const HEADLINE =
+  /^[^\p{L}\p{N}]*(?:(switched|turned)|updated|created|added|changed|modified|deleted|removed|saved|voided|registered|enabled|disabled|activated|deactivated|renamed|(?:cambiad|actualizad|cread|añadid|anadid|modificad|borrad|eliminad|guardad|anulad|registrad|activad|desactivad)[oa]s?)\s+/iu;
+// Case-sensitive: a capital opens a name («Created Café Triana»), not «Created by».
+const CHANGED =
+  /^(?:(?:to|from|the|an?|your|my|our|their|its|this|that|these|those|it|them|el|la|los|las|lo|un|una|unos|unas|tus?|sus?|mis?|este|esta|estos|estas|ese|esa|esos|esas|al)(?![\p{L}\p{N}])(?!\s+(?:diario|menudo|mano|few|las?\s+\d))|[\p{Lu}\p{N}«"“‘'*])/u;
+const SWITCH = /^(?:on|off)(?![\p{L}\p{N}])/iu;
+// When a record was made or changed is how it reads, no headline: «Created this morning», «Updated 3 days ago»,
+// «Created 3 November 2026», «Creado el 3 de noviembre», «Actualizado el lunes», «Creado este mes».
+const WHEN =
+  /^(?:(?:this|el|este|esta|la)\s+(?:\p{N}|pasad[oa]|otro\s+d[ií]a|d[ií]a|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|semana|mes|año|mañana|tarde|noche|morning|afternoon|evening|night|week|weekend|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?![\p{L}'’])|\p{N}+(?:\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)\s+ago|(?:st|nd|rd|th)?\s+(?:of\s+)?(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|\s+de\s+\p{L}|[/.-]\p{N}{1,2}[/.-]\p{N}))/iu;
+// What the person should now see: «should now», «now … should», «ya / ahora debería», «debería verse ahora».
+const EXPECTED = [
+  /(?:^|[^\p{L}\p{N}])should\s+now(?![\p{L}\p{N}])/iu,
+  /(?:^|[^\p{L}\p{N}])now\s+(?!that(?![\p{L}\p{N}]))(?:[\p{L}\p{N}'’]+\s+){0,3}should(?![\p{L}\p{N}])/iu,
+  /(?:^|[^\p{L}\p{N}])(?:ya|ahora)\s+(?!que(?![\p{L}\p{N}]))(?:[\p{L}\p{N}]+\s+){0,3}deber[ií]an?(?![\p{L}\p{N}])/iu,
+  /(?:^|[^\p{L}\p{N}])deber[ií]an?\s+(?:(?:verse|estar|ser|aparecer|salir|quedar)\s+)?(?:ya|ahora)(?![\p{L}\p{N}])/iu,
+];
+// Advice to the person («You should now go to Account») and things as they were are no effect of a change.
+const ADVICE = /(?:^|[^\p{L}\p{N}])you\s+(?:[\p{L}'’]+\s+)?should(?![\p{L}\p{N}])/iu;
+const UNCHANGED = word(
+  'still|unchanged|as before|as it was|the same|stays?|remains?|todav[ií]a|sigue|siguen|seguir|igual|como antes|como estaba|como est[aá]|sin cambios|quedarse|mantenerse',
+);
 const SAYS_DONE = /^[^\p{L}]*(?:listo|lista|listos|listas|hecho|hecha|hechos|hechas|done|all set)[^\p{L}]*$/iu;
 
 /** Where `patterns` hit in `clause`, with no negation before the verb: the text before the hit, or null. */
@@ -70,10 +103,33 @@ function hit(patterns: RegExp[], clause: string): string | null {
   return null;
 }
 
-/** Whether some clause says the assistant made a change in this turn (see `claimed_change` above). */
-function claimsChange(answer: string): boolean {
+/** Whether `clause` opens with a change told as done in the participle and goes on with what changed. */
+function headline(clause: string): boolean {
+  const found = HEADLINE.exec(clause);
+  if (found === null) return false;
+  const rest = clause.slice(found[0].length);
+  if (WHEN.test(rest)) return false;
+  return CHANGED.test(rest) || (found[1] !== undefined && SWITCH.test(rest));
+}
+
+/** Whether `clause` says what the person should now see, with no negation, advice or things as they were. */
+function expectsEffect(clause: string): boolean {
+  if (NEGATION.test(clause) || UNCHANGED.test(clause) || ADVICE.test(clause)) return false;
+  return EXPECTED.some((pattern) => pattern.test(clause));
+}
+
+/**
+ * Whether some clause says the assistant made a change in this turn (see `claimed_change` above); `tried`: a write of
+ * the turn was tried and did not go through.
+ */
+function claimsChange(answer: string, tried: boolean): boolean {
   let saidDone = false;
+  let stepBefore = false;
+  let at = 0;
   for (const sentence of answer.split(SENTENCE)) {
+    // A question («Changed your mind?») tells nothing as done: the sentence ends at the one character after it.
+    const asked = answer.charAt(at + sentence.length) === '?';
+    at += sentence.length + 1;
     if (sentence.trim() === '') continue;
     let instructed = false;
     let supposed = false;
@@ -85,10 +141,12 @@ function claimsChange(answer: string): boolean {
       if (reported !== null && !instructed && !supposed && !SUPPOSITION.test(reported)) return true;
       const state = hit(STATE, clause);
       if (state !== null && !instructed && !supposed && !SUPPOSITION.test(state) && (done || NOW.test(state))) return true;
+      if (tried && !asked && !instructed && !supposed && (headline(clause) || (!stepBefore && expectsEffect(clause)))) return true;
       supposed ||= SUPPOSITION.test(clause);
       done ||= SAYS_DONE.test(clause);
     }
     saidDone = SAYS_DONE.test(sentence);
+    stepBefore = instructed;
   }
   return false;
 }
@@ -105,7 +163,8 @@ export function groundingNotices(input: {
 }): GroundingNotice[] {
   const found: GroundingNotice[] = [];
   const wrote = input.executed.some((row) => row.kind === 'command' && row.outcome === 'ok');
-  if (!wrote && claimsChange(input.answer)) found.push('claimed_change');
+  const tried = input.executed.some((row) => row.kind === 'command');
+  if (!wrote && claimsChange(input.answer, tried)) found.push('claimed_change');
   const read = `${input.results.join('\n')}\n${input.question}`.toLowerCase();
   const ids = input.answer.match(UUID) ?? [];
   if (ids.some((id) => !read.includes(id.toLowerCase()))) found.push('unread_id');
