@@ -241,8 +241,13 @@ const language = computed(() => languageOf(locale.value));
 const voiceChoice = ref(DEVICE_VOICE);
 watch(
   language,
-  (current) => {
+  (current, previous) => {
     voiceChoice.value = readVoiceChoice(voiceStorage, current, { device: deviceReader !== null });
+    // A new language: what was being read in the old one stops.
+    if (previous !== undefined && speaking.value) {
+      reader?.stop();
+      speaking.value = null;
+    }
   },
   { immediate: true },
 );

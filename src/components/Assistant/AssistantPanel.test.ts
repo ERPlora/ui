@@ -392,6 +392,7 @@ describe('AssistantPanel', () => {
       class FakeAudio {
         static made: FakeAudio[] = [];
         src = '';
+        currentTime = 0;
         onended: (() => void) | null = null;
         onerror: (() => void) | null = null;
         load = vi.fn();
@@ -414,7 +415,8 @@ describe('AssistantPanel', () => {
       beforeEach(() => {
         FakeAudio.made = [];
         vi.stubGlobal('Audio', FakeAudio);
-        created = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:answer');
+        // The server's audio, and the silent clip that unlocks the player in the click.
+        created = vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => (blob === MP3 ? 'blob:answer' : 'blob:silence'));
         revoked = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
         warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         stored = memoryStorage();
@@ -444,7 +446,12 @@ describe('AssistantPanel', () => {
         const m = await answered({ speak });
         await listenButton(m).trigger('click');
         await flush();
-        expect(speak).toHaveBeenCalledWith({ text: 'Hoy has vendido 120 €.', language: 'es', voice: XIMENA });
+        expect(speak).toHaveBeenCalledWith({
+          text: 'Hoy has vendido 120 €.',
+          language: 'es',
+          voice: XIMENA,
+          signal: expect.any(AbortSignal),
+        });
         expect(created).toHaveBeenCalledWith(MP3);
         expect(FakeAudio.made).toHaveLength(1);
         expect(FakeAudio.made[0].src).toBe('blob:answer');
@@ -520,7 +527,12 @@ describe('AssistantPanel', () => {
         expect(stored.getItem('erplora.assistant.voice.es')).toBe(TRISTAN);
         await listenButton(m).trigger('click');
         await flush();
-        expect(speak).toHaveBeenLastCalledWith({ text: 'Hoy has vendido 120 €.', language: 'es', voice: TRISTAN });
+        expect(speak).toHaveBeenLastCalledWith({
+          text: 'Hoy has vendido 120 €.',
+          language: 'es',
+          voice: TRISTAN,
+          signal: expect.any(AbortSignal),
+        });
         FakeAudio.made[0].onended?.();
         await flush();
 
@@ -556,6 +568,20 @@ describe('AssistantPanel', () => {
         await listenButton(m).trigger('click');
         await flush();
         expect(speak).toHaveBeenCalledWith(expect.objectContaining({ language: 'en', voice: 'en-US-Andrew2:DragonHDLatestNeural' }));
+      });
+
+      it('the screen changes language while it reads: the reading stops, «Read aloud» again', async () => {
+        const speak = vi.fn(async () => MP3);
+        const m = await answered({ speak });
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(listenButton(m).attributes('aria-pressed')).toBe('true');
+        (m.wrapper.vm as unknown as { $i18n: { locale: string } }).$i18n.locale = 'en';
+        await flush();
+        expect(FakeAudio.made[0].pause).toHaveBeenCalled();
+        expect(revoked).toHaveBeenCalledWith('blob:answer');
+        expect(listenButton(m).attributes('aria-pressed')).toBe('false');
+        expect(listenButton(m).text()).toBe('Read aloud');
       });
 
       it('the panel goes away while it reads (the person signs out): the reading stops', async () => {

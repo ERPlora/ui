@@ -37,6 +37,9 @@ export interface AssistantSpeech {
   text: string;
   language: AssistantLanguage;
   voice: string;
+  /** Aborted when the person stops the reading (or asks for another) before the audio arrives: the host passes it to
+   *  its `fetch`, so the server's work and the download stop too. */
+  signal?: AbortSignal;
 }
 
 /** What is wrong with an answer, as the person reports it. */

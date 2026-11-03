@@ -3,6 +3,7 @@
 // «Stop reading» stops the one before; it fails, to be told, only when neither the server nor the device could read.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { AssistantSpeech } from './config';
 import type { DeviceReader, DeviceReading } from './deviceVoice';
 import { createReadAloud } from './readAloud';
 import { DEVICE_VOICE } from './voices';
@@ -11,6 +12,8 @@ const XIMENA = 'es-ES-Ximena:DragonHDLatestNeural';
 
 class FakeAudio {
   src = '';
+  /** Where the audio has got to, in seconds (0 until anything was heard). */
+  currentTime = 0;
   onended: (() => void) | null = null;
   onerror: (() => void) | null = null;
   load = vi.fn();
@@ -64,7 +67,7 @@ const flushAll = async () => {
 function deferredSpeak() {
   let answer!: (blob: Blob) => void;
   let fail!: (error: Error) => void;
-  const speak = vi.fn(
+  const speak = vi.fn<(input: AssistantSpeech) => Promise<Blob>>(
     () =>
       new Promise<Blob>((resolve, reject) => {
         answer = resolve;
@@ -79,7 +82,12 @@ const MP3 = new Blob(['mp3'], { type: 'audio/mpeg' });
 beforeEach(() => {
   audios = [];
   let made = 0;
-  urls = { create: vi.fn(() => `blob:audio-${++made}`), revoke: vi.fn() };
+  let silences = 0;
+  urls = {
+    // The silent clip that unlocks the player in the click, and the server's audio, each with its own URL.
+    create: vi.fn((blob: Blob) => (blob.type === 'audio/wav' ? `blob:silence-${++silences}` : `blob:audio-${++made}`)),
+    revoke: vi.fn(),
+  };
   warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
@@ -87,7 +95,15 @@ afterEach(() => {
   warn.mockRestore();
 });
 
-function reader(options: { speak?: (input: { text: string; language: 'es' | 'en'; voice: string }) => Promise<Blob>; device?: DeviceReader | null; audio?: boolean } = {}) {
+function reader(
+  options: {
+    speak?: (input: AssistantSpeech) => Promise<Blob>;
+    device?: DeviceReader | null;
+    audio?: boolean;
+    /** The page refuses to play the silent clip of the click (no gesture it counts). */
+    refuseSilence?: boolean;
+  } = {},
+) {
   return createReadAloud({
     speak: options.speak,
     device: options.device === undefined ? fakeDevice().reader : options.device,
@@ -96,6 +112,7 @@ function reader(options: { speak?: (input: { text: string; language: 'es' | 'en'
         ? undefined
         : () => {
             const audio = new FakeAudio();
+            if (options.refuseSilence) audio.play.mockRejectedValueOnce(new DOMException('not allowed', 'NotAllowedError'));
             audios.push(audio);
             return audio as unknown as HTMLAudioElement;
           },
@@ -110,15 +127,21 @@ describe('in the server’s voice', () => {
     const read = reader({ speak: server.speak, device: device.reader });
     let ended = false;
     const reading = read.read('Hoy has vendido 120 €.', 'es', XIMENA).then(() => (ended = true));
-    expect(server.speak).toHaveBeenCalledWith({ text: 'Hoy has vendido 120 €.', language: 'es', voice: XIMENA });
+    expect(server.speak).toHaveBeenCalledWith({
+      text: 'Hoy has vendido 120 €.',
+      language: 'es',
+      voice: XIMENA,
+      signal: expect.any(AbortSignal),
+    });
     server.answer(MP3);
     await flushAll();
     expect(urls.create).toHaveBeenCalledWith(MP3);
     expect(audios).toHaveLength(1);
     expect(audios[0].src).toBe('blob:audio-1');
-    expect(audios[0].play).toHaveBeenCalledTimes(1);
+    // The silent clip of the click, then the answer.
+    expect(audios[0].play).toHaveBeenCalledTimes(2);
     expect(ended).toBe(false);
-    expect(urls.revoke).not.toHaveBeenCalled();
+    expect(urls.revoke).not.toHaveBeenCalledWith('blob:audio-1');
     audios[0].onended?.();
     await reading;
     expect(ended).toBe(true);
@@ -126,12 +149,62 @@ describe('in the server’s voice', () => {
     expect(device.reader.read).not.toHaveBeenCalled();
   });
 
-  it('its player is made and unlocked in the click itself, before the audio arrives (Safari, the Android webview)', () => {
+  it('its player is unlocked by playing a silent clip in the click itself, before anything is awaited (iOS Safari)', async () => {
     const server = deferredSpeak();
     void reader({ speak: server.speak }).read('Hola.', 'es', XIMENA);
+    // Synchronously, still inside the click: only `play()` in a gesture unlocks a player on iOS.
     expect(audios).toHaveLength(1);
-    expect(audios[0].load).toHaveBeenCalledTimes(1);
-    expect(audios[0].play).not.toHaveBeenCalled();
+    expect(audios[0].play).toHaveBeenCalledTimes(1);
+    expect(audios[0].src).toBe('blob:silence-1');
+    const silence = urls.create.mock.calls[0][0] as Blob;
+    expect(silence.type).toBe('audio/wav');
+    expect(silence.size).toBeGreaterThan(44);
+    server.answer(MP3);
+    await flushAll();
+    expect(audios).toHaveLength(1);
+    expect(audios[0].src).toBe('blob:audio-1');
+    expect(audios[0].play).toHaveBeenCalledTimes(2);
+    expect(urls.revoke).toHaveBeenCalledWith('blob:silence-1');
+  });
+
+  it('a silent clip the page refuses to play does not stop the server’s audio from being tried', async () => {
+    const server = deferredSpeak();
+    const device = fakeDevice();
+    const read = reader({ speak: server.speak, device: device.reader, refuseSilence: true });
+    const reading = read.read('Hola.', 'es', XIMENA);
+    await flushAll();
+    server.answer(MP3);
+    await flushAll();
+    expect(audios[0].play).toHaveBeenCalledTimes(2);
+    expect(audios[0].src).toBe('blob:audio-1');
+    audios[0].onended?.();
+    await expect(reading).resolves.toBeUndefined();
+    expect(device.reader.read).not.toHaveBeenCalled();
+  });
+
+  it('stopped before the audio arrives: the request to the server is aborted and the silent clip is freed', async () => {
+    const server = deferredSpeak();
+    const read = reader({ speak: server.speak });
+    void read.read('Hola.', 'es', XIMENA);
+    const { signal } = server.speak.mock.calls[0][0] as { signal: AbortSignal };
+    expect(signal.aborted).toBe(false);
+    read.stop();
+    expect(signal.aborted).toBe(true);
+    expect(audios[0].pause).toHaveBeenCalled();
+    expect(urls.revoke).toHaveBeenCalledWith('blob:silence-1');
+  });
+
+  it('the audio breaks after part of it was heard: never read again from the start on the device, and it is told', async () => {
+    const server = deferredSpeak();
+    const device = fakeDevice();
+    const reading = reader({ speak: server.speak, device: device.reader }).read('Hola.', 'es', XIMENA);
+    server.answer(MP3);
+    await flushAll();
+    audios[0].currentTime = 3.2;
+    audios[0].onerror?.();
+    await expect(reading).rejects.toThrow();
+    expect(device.reader.read).not.toHaveBeenCalled();
+    expect(urls.revoke).toHaveBeenCalledWith('blob:audio-1');
   });
 
   it('«Stop reading» while it plays: it stops, its audio is freed, the reading ends, the device is not asked', async () => {
@@ -162,7 +235,7 @@ describe('in the server’s voice', () => {
     expect(audios).toHaveLength(2);
   });
 
-  it('stopped before the audio arrives: nothing is played and nothing is left behind', async () => {
+  it('stopped before the audio arrives: the audio is never played and nothing is left behind', async () => {
     const server = deferredSpeak();
     const device = fakeDevice();
     const read = reader({ speak: server.speak, device: device.reader });
@@ -170,8 +243,10 @@ describe('in the server’s voice', () => {
     read.stop();
     server.answer(MP3);
     await expect(reading).resolves.toBeUndefined();
-    expect(urls.create).not.toHaveBeenCalled();
-    expect(audios[0].play).not.toHaveBeenCalled();
+    expect(urls.create).not.toHaveBeenCalledWith(MP3);
+    expect(audios[0].play).toHaveBeenCalledTimes(1);
+    expect(audios[0].src).toBe('blob:silence-1');
+    expect(urls.revoke).toHaveBeenCalledWith('blob:silence-1');
     expect(device.reader.read).not.toHaveBeenCalled();
   });
 });
