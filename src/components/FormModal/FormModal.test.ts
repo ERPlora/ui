@@ -87,6 +87,14 @@ const closeButton = (w: VueWrapper): HTMLElement => w.get('.ep-form-modal__close
  *  native button of its shadow root (Ionic's `inheritAriaAttributes`), as in a browser. */
 const accessibleName = (button: HTMLElement): string | null | undefined =>
   button.shadowRoot?.querySelector('button')?.getAttribute('aria-label') ?? button.getAttribute('aria-label');
+/** The native control of an `ion-button` (its `native` shadow part): the only part of it that takes
+ *  the focus in a browser — its host has no tabindex and its shadow root does not delegate the focus. */
+const nativeOf = (button: HTMLElement): HTMLElement | null =>
+  button.shadowRoot?.querySelector<HTMLElement>('[part~="native"]') ?? null;
+/** Focused for real, as a browser sees it: happy-dom focuses any element, an `ion-button` host
+ *  included, so the focus has to be on the native control inside its shadow root (ui#73). */
+const reallyFocused = (button: HTMLElement): boolean =>
+  document.activeElement === button && nativeOf(button) !== null && button.shadowRoot?.activeElement === nativeOf(button);
 
 describe('FormModal: opening and closing', () => {
   it('closed, the ion-modal is there with nothing inside; open, it shows the title, the fields and the footer', async () => {
@@ -351,10 +359,10 @@ describe('FormModal: focus', () => {
     expect(document.activeElement).toBe(byTestId('b'));
   });
 
-  it('with no field, Cancel takes the focus (the least destructive choice)', async () => {
+  it('with no field, Cancel takes the focus (the least destructive choice), on its native button: Enter presses it', async () => {
     const wrapper = mountModal({}, { default: () => [h('p', 'Nothing to fill in')] });
     await settle();
-    expect(document.activeElement).toBe(cancelButton(wrapper));
+    expect(reallyFocused(cancelButton(wrapper))).toBe(true);
   });
 
   it('on closing, gives the focus back to what opened it', async () => {
@@ -369,6 +377,23 @@ describe('FormModal: focus', () => {
     expect(document.activeElement).toBe(byTestId('email'));
     await click(cancelButton(wrapper));
     expect(document.activeElement).toBe(trigger);
+  });
+
+  it('on closing, gives the focus back to an ion-button that opened it, on its native button (ui#73)', async () => {
+    // The usual opener: a page's «New» or «Edit» ion-button. Focused, the document only sees its host.
+    const trigger = document.createElement('ion-button');
+    trigger.textContent = 'Invite';
+    document.body.append(trigger);
+    await settle();
+    nativeOf(trigger)?.focus();
+    expect(reallyFocused(trigger)).toBe(true);
+    const wrapper = mountModal({ open: false });
+    await settle();
+    await wrapper.setProps({ open: true });
+    await settle();
+    expect(document.activeElement).toBe(byTestId('email'));
+    await click(cancelButton(wrapper));
+    expect(reallyFocused(trigger)).toBe(true);
   });
 });
 
@@ -477,10 +502,10 @@ describe('FormModal: read only (a window that only shows data, ui#62)', () => {
     expect(wrapper.emitted('submit')).toBeUndefined();
   });
 
-  it('with no field, its «Close» takes the focus', async () => {
+  it('with no field, its «Close» takes the focus on its native button, so Enter closes it (ui#73)', async () => {
     const wrapper = mountModal({ readonly: true }, { default: () => [h('p', 'Three sale lines in no shift')] });
     await settle();
-    expect(document.activeElement).toBe(doneButton(wrapper));
+    expect(reallyFocused(doneButton(wrapper))).toBe(true);
   });
 
   it('`testid` hooks its «Close» as `<testid>-done`', async () => {
