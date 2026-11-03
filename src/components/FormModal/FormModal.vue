@@ -19,7 +19,8 @@
 //     the footer slot's `submit` submit: the `<form>`'s own submit event is just prevented, so a
 //     native button in a custom footer (type submit by default) never submits twice, nor by mistake.
 //   - Focus: on opening, a `[data-autofocus]` field, else the first field, else Cancel (read only:
-//     Close); on closing, back to what had it before (the button that opened it).
+//     Close), unless the person is already in the form; on closing, back to what had it before (the
+//     button that opened it).
 //   - `readonly`: a window that only shows data (ui#62; Odoo, Shopify, Business Central) — the footer
 //     is a single «Close» that closes it as the header's does (`cancel`); nothing submits.
 //   - Named by its title: Ionic copies `aria-label` and `role` into its own `role="dialog"` (in its
@@ -192,6 +193,9 @@ function focusElement(el: HTMLElement): void {
 function focusFirstField(): void {
   const root = form.value;
   if (!root) return;
+  // `didPresent` lands when the opening animation ends, and the fields already take the focus during
+  // it: whoever went to one is typing there, and moving them would drop their text in the first field.
+  if (root.contains(document.activeElement)) return;
   const marked = root.querySelector<HTMLElement>('[data-autofocus]');
   const field = marked ?? [...root.querySelectorAll<HTMLElement>(FIELDS)].find((el) => !isDisabled(el));
   const target = field ?? root.querySelector<HTMLElement>('.ep-form-modal__cancel, .ep-form-modal__done');
