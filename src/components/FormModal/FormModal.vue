@@ -19,8 +19,9 @@
 //     the footer slot's `submit` submit: the `<form>`'s own submit event is just prevented, so a
 //     native button in a custom footer (type submit by default) never submits twice, nor by mistake.
 //   - Focus: on opening, a `[data-autofocus]` field, else the first field, else Cancel (read only:
-//     Close), unless the person is already in the form; on closing, back to what had it before (the
-//     button that opened it).
+//     Close) on its native button, so Enter presses it, unless the person is already in the form; on
+//     closing, back to what had it before (the button that opened it, its native button for an
+//     `ion-button`).
 //   - `readonly`: a window that only shows data (ui#62; Odoo, Shopify, Business Central) — the footer
 //     is a single «Close» that closes it as the header's does (`cancel`); nothing submits.
 //   - Named by its title: Ionic copies `aria-label` and `role` into its own `role="dialog"` (in its
@@ -123,12 +124,19 @@ const presentation = shallowRef(0);
 /** What had the focus when the dialog opened: it gets it back on closing. */
 let returnFocusTo: HTMLElement | null = null;
 
+/** What really has the focus: `document.activeElement` stops at a shadow host (an `ion-button` is
+ *  focused on the native button inside it), so go down the shadow roots to the element itself. */
+function focusedElement(): HTMLElement | null {
+  let active = document.activeElement;
+  while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+  return active instanceof HTMLElement && active !== document.body ? active : null;
+}
+
 watch(
   open,
   (isOpen) => {
     if (!isOpen) return;
-    const active = document.activeElement;
-    returnFocusTo = active instanceof HTMLElement && active !== document.body ? active : null;
+    returnFocusTo = focusedElement();
     presentation.value += 1;
   },
   { flush: 'sync', immediate: true },
@@ -183,11 +191,13 @@ const FIELDS =
 const isDisabled = (el: Element): boolean =>
   el.hasAttribute('disabled') || (el as HTMLElement & { disabled?: boolean }).disabled === true;
 
-/** Ionic fields focus their native control through `setFocus()`; anything else, `focus()`. */
+/** Ionic fields focus their native control through `setFocus()`. An `ion-button` has none, and its
+ *  host cannot take the focus (no tabindex, a shadow root that does not delegate it): its native
+ *  button, the `native` shadow part, takes it, and Enter presses it (ui#73). Anything else, `focus()`. */
 function focusElement(el: HTMLElement): void {
   const ionic = el as HTMLElement & { setFocus?: () => Promise<void> };
   if (typeof ionic.setFocus === 'function') void ionic.setFocus();
-  else el.focus();
+  else (el.shadowRoot?.querySelector<HTMLElement>('[part~="native"]') ?? el).focus();
 }
 
 function focusFirstField(): void {
