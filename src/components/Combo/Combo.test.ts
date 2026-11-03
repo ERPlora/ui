@@ -176,6 +176,24 @@ describe('Combo: static options', () => {
     expect(popover(own).get('[data-testid="country-empty"]').text()).toBe('No such country');
   });
 
+  it('a choice and its Clear say `input` to the form around them, as typing does (FormModal hears it)', async () => {
+    const w = mountCombo({ clearable: true });
+    await settle();
+    const heard = vi.fn();
+    w.element.parentElement?.addEventListener('input', heard);
+    await field(w).trigger('click');
+    await settle();
+    await options(w)[0].trigger('click');
+    await settle();
+    expect(heard).toHaveBeenCalledTimes(1);
+    await w.setProps({ modelValue: COUNTRIES[0] });
+    await settle();
+    await w.get('[data-testid="country-clear"]').trigger('click');
+    await settle();
+    expect(heard).toHaveBeenCalledTimes(2);
+    w.element.parentElement?.removeEventListener('input', heard);
+  });
+
   it('a click on an option chooses it: v-model, its label in the field, closed', async () => {
     const w = mountCombo();
     await settle();

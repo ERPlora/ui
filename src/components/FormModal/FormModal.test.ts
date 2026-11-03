@@ -324,6 +324,105 @@ describe('FormModal: errors', () => {
   });
 });
 
+describe('FormModal: the notice of a refusal by fields', () => {
+  const REFUSED = {
+    status: 422,
+    code: 'invalid_payload',
+    message: 'Check the highlighted details.',
+    fields: { email: 'Not a valid email.' },
+  };
+  const notice = (w: VueWrapper) => w.find('.ep-form-modal__error');
+  const fire = async (id: string, event: Event): Promise<void> => {
+    byTestId(id)?.dispatchEvent(event);
+    await settle();
+  };
+  const typed = (): Event => new Event('input', { bubbles: true });
+  const changed = (): Event => new CustomEvent('ionChange', { bubbles: true, composed: true });
+
+  it('goes away as soon as a field is corrected, and every field keeps its own message', async () => {
+    const seen: unknown[] = [];
+    const slot = (props: Record<string, unknown>) => {
+      seen.push(props.fieldErrors);
+      return [h('input', { 'data-testid': 'email' })];
+    };
+    const wrapper = mountModal({ error: REFUSED }, { default: slot });
+    await settle();
+    expect(notice(wrapper).text()).toContain('Check the highlighted details.');
+
+    await fire('email', typed());
+
+    expect(notice(wrapper).exists()).toBe(false);
+    expect(seen.at(-1)).toEqual({ email: 'Not a valid email.' });
+  });
+
+  it('goes away when a select or a toggle changes (they only speak by ionChange)', async () => {
+    const wrapper = mountModal({ error: REFUSED }, { default: () => [h('ion-select', { 'data-testid': 'kind' })] });
+    await settle();
+    await fire('kind', changed());
+    expect(notice(wrapper).exists()).toBe(false);
+  });
+
+  it("stays when a text field only says on blur that it changed (Enter sent it, nothing was corrected)", async () => {
+    const wrapper = mountModal({ error: REFUSED }, { default: () => [h('ion-input', { 'data-testid': 'email' })] });
+    await settle();
+    await fire('email', changed());
+    expect(notice(wrapper).exists()).toBe(true);
+  });
+
+  it("stays while the person only searches in a field's own popover", async () => {
+    const wrapper = mountModal(
+      { error: REFUSED },
+      { default: () => [h('ion-popover', [h('input', { 'data-testid': 'search' })])] },
+    );
+    await settle();
+    await fire('search', typed());
+    expect(notice(wrapper).exists()).toBe(true);
+  });
+
+  it('is not brought back by a parent that re-renders the same refusal', async () => {
+    const wrapper = mountModal({ error: REFUSED });
+    await settle();
+    await fire('email', typed());
+    await wrapper.setProps({ error: { ...REFUSED, fields: { ...REFUSED.fields } } });
+    await settle();
+    expect(notice(wrapper).exists()).toBe(false);
+  });
+
+  it('comes back when the next try is refused too, even with the same words', async () => {
+    const wrapper = mountModal({ error: REFUSED });
+    await settle();
+    await fire('email', typed());
+    await click(submitButton(wrapper));
+    expect(wrapper.emitted('submit')).toHaveLength(1);
+    expect(notice(wrapper).exists()).toBe(true);
+
+    await fire('email', typed());
+    await wrapper.setProps({ error: null });
+    await settle();
+    await wrapper.setProps({ error: REFUSED });
+    await settle();
+    expect(notice(wrapper).exists()).toBe(true);
+  });
+
+  it('comes back on a new opening with the refusal still there', async () => {
+    const wrapper = mountModal({ error: REFUSED });
+    await settle();
+    await fire('email', typed());
+    await wrapper.setProps({ open: false });
+    await settle();
+    await wrapper.setProps({ open: true });
+    await settle();
+    expect(notice(wrapper).exists()).toBe(true);
+  });
+
+  it('a refusal without fields stays while the person types: nothing else says it', async () => {
+    const wrapper = mountModal({ error: { status: 409, code: 'hubs.member_exists', message: 'Already a member.' } });
+    await settle();
+    await fire('email', typed());
+    expect(notice(wrapper).text()).toContain('Already a member.');
+  });
+});
+
 describe('FormModal: focus', () => {
   it('on opening, focuses the first field', async () => {
     mountModal({}, { default: () => [h('p', 'Hint'), h('input', { 'data-testid': 'first' }), h('input', { 'data-testid': 'second' })] });
