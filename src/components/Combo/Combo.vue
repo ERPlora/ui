@@ -28,6 +28,9 @@
 //     out), scrolling inside itself when it is taller. Ionic places a popover once, as it presents,
 //     and a searched list then only says «Loading…»: the combo places it itself, on every frame
 //     while it is open, so it follows the list that grows, the field that moves and the window.
+//   - A choice made with a finger or a pen (hub#537) lets go of the focus, so the on-screen keyboard
+//     goes away and the next tap lands where it is aimed (MUI Autocomplete's `blurOnSelect="touch"`);
+//     a mouse or the keyboard keep it in the field, to go on with Tab.
 import { IonButton, IonContent, IonInput, IonItem, IonLabel, IonPopover, IonSpinner } from '@ionic/vue';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useId, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -294,6 +297,37 @@ function dismiss(revert = true): void {
   if (revert) text.value = props.modelValue?.label ?? '';
 }
 
+// ── A choice made with a finger lets go of the focus (hub#537) ───────────────────────────────────
+/** How the last option was pressed (`pointerType`: `mouse`, `touch`, `pen`), until its click. */
+let pressedWith = '';
+/** From a choice made with a finger until the list is gone: the field turns the focus away. */
+let lettingGo = false;
+
+/** A click on an option: a finger or a pen let go of the focus once the option is chosen. */
+function choose(entry: Entry): void {
+  const finger = pressedWith === 'touch' || pressedWith === 'pen';
+  pressedWith = '';
+  if (finger) {
+    lettingGo = true;
+    nativeInput.value?.blur();
+  }
+  pick(entry);
+}
+
+/** The field got the focus. While letting go, nobody asked for it: Ionic gives it back to what had it
+ *  when the list showed (once the popover is gone, `restoreElementFocus`, or as it ends showing it,
+ *  `keepFocus`), and the keyboard would come back. */
+function onFocusIn(): void {
+  if (lettingGo) nativeInput.value?.blur();
+}
+
+/** The popover is gone. Ionic gives the focus back right after this event (a microtask): letting go
+ *  ends on the next task. */
+function onDidDismiss(): void {
+  dismiss();
+  if (lettingGo) setTimeout(() => (lettingGo = false));
+}
+
 function pick(entry: Entry): void {
   if (entry.kind === 'create') {
     emit('create', entry.text);
@@ -400,6 +434,8 @@ onBeforeUnmount(() => {
       :class="{ 'ion-invalid': !!errorText, 'ion-touched': !!errorText }"
       :data-testid="testid"
       @ion-input="onInput"
+      @pointerdown="lettingGo = false"
+      @focusin="onFocusIn"
       @click="openList"
       @keydown="onKeydown"
     >
@@ -435,7 +471,7 @@ onBeforeUnmount(() => {
       :show-backdrop="false"
       @will-present="keepFocus"
       @did-present="keepFocus"
-      @did-dismiss="dismiss()"
+      @did-dismiss="onDidDismiss"
     >
       <ion-content>
         <div
@@ -459,9 +495,10 @@ onBeforeUnmount(() => {
               :aria-selected="index === active ? 'true' : 'false'"
               :class="['combo__option', { 'combo__option--active': index === active }]"
               :data-testid="entry.kind === 'option' ? tid(`option-${entry.option.id}`) : tid('create')"
+              @pointerdown="pressedWith = $event.pointerType"
               @mousedown.prevent
               @mouseenter="active = index"
-              @click="pick(entry)"
+              @click="choose(entry)"
             >
               <ion-item lines="none">
                 <ion-label v-if="entry.kind === 'option'">
