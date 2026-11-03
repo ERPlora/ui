@@ -4,6 +4,7 @@
 // - `turnUrl`: the route a turn is POSTed to; its answer is the stream of frames (`stream.ts`).
 // - Around the chat, each optional — without it, that piece is not there: the month's allowance (`usage`), dictation
 //   (`transcribe`), «Report a problem» under an answer (`report`), «Upgrade plan» (`planUrl` + `canUpgrade`).
+// - «Read aloud» under an answer, in the device's own voice where it has one (`readAloud`; on unless the host turns it off).
 // - Who sees the assistant's button (`canUse`; everyone signed in by default).
 // - The host's words: the verb of each write (`verbKey`), the platform's screens a receipt names (`placeKey`) and those
 //   a path is (`screenKey`), and the line under a spent allowance where nobody upgrades (`spentNoteKey`), as keys of
@@ -57,6 +58,8 @@ export interface AssistantConfig {
   transcribe?: (client: LiveClient, clip: AssistantClip) => Promise<{ text: string }>;
   /** Sends the report of an answer; without it, no «Report a problem». */
   report?: (client: LiveClient, report: AssistantReportInput) => Promise<unknown>;
+  /** Whether an answer offers «Read aloud» (the device's voice, where it has one); on when not given, `false` turns it off. */
+  readAloud?: boolean;
   /** Who sees the assistant's button; everyone signed in when not given. */
   canUse?: (session: ShellSession) => boolean;
   /** Who may upgrade the plan (only ever offered on the web); nobody when not given. */
