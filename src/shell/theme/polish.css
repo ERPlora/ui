@@ -173,6 +173,20 @@ ion-select-popover ion-checkbox::part(label) {
   white-space: normal;
 }
 
+/* ── Dropdowns: what an outlined field has chosen reads whole with the field closed ───────────── */
+/* Ionic keeps it on one line ending in «…», and a person cannot read what is set: «Madrid (Central European …» in a
+   business's settings at 320, a long name in the store at any phone width (saas#272). The outlined field of a form has
+   room to take more lines; a select without `fill` is a compact control of a bar (a table's filter, the assistant's
+   voice), with one line to live in, so it keeps its «…», outside a dialog (FormModal wraps those too).
+   Ionic floats the label over the field's top edge, 8px into the box, and centres the text in 56px: from three lines the
+   text fills the box and the label lies on it (ui#93). Every line count gets the room two lines of 18px have,
+   (56 - 1 - 2 × 18) / 2: one line keeps its 56px, and with more the box grows as its lines need (two of the panel's
+   20px, 60px, measured at 320). */
+ion-select.select-fill-outline::part(text) {
+  white-space: normal;
+  padding-block: 9.5px;
+}
+
 /* ── Buttons: radius, weight, no uppercase or hard shadow ──────────────────────────────────── */
 ion-button {
   --border-radius: 10px;
