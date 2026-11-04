@@ -4,6 +4,8 @@
 // (`configureAssistant`). On the right: from 768 px it docks beside the
 // screen and pushes it (the screen keeps working); on a phone it covers the screen over a veil. It closes with ×,
 // Escape, the veil, the topbar's button again or «Go to …»; open or closed is remembered by the device (BASE-G110).
+// With a keyboard and a mouse it opens with the cursor in the box (not on a touch screen, where the keyboard would
+// jump up), and closing with the focus in it gives the focus back to what opened it (ui#86).
 // - Head: «Assistant», «New conversation» once there is one, ×.
 // - Thread: the empty conversation — the host's, in the `empty` slot (`{ setup, ask }`; the Hub's setup shortcuts,
 //   BASE-G121), else the chat's own sentence —, or the bubbles (BASE-G111, G113, G114, G117, G124), following the
@@ -30,6 +32,7 @@ import HubIcon from '../../shell/HubIcon.vue';
 import { NOT_FOUND_ROUTE } from '../../shell/router';
 import { useSession } from '../../shell/session';
 import { useSurface } from '../../shell/surface';
+import { focusedElement } from '../focus';
 import AssistantComposer from './AssistantComposer.vue';
 import AssistantConfirm from './AssistantConfirm.vue';
 import AssistantEmpty from './AssistantEmpty.vue';
@@ -62,6 +65,7 @@ const router = useRouter();
 const assistant = useAssistant();
 const state = assistant.state;
 
+const panel = useTemplateRef<HTMLElement>('panel');
 const thread = useTemplateRef<HTMLElement>('thread');
 const reporting = shallowRef<Bubble | null>(null);
 const speaking = ref<string | null>(null);
@@ -172,17 +176,34 @@ function close(): void {
   assistant.setOpen(false);
 }
 
+/** What had the focus when it opened (the topbar's button): it gets it back on closing, as from a dialog. */
+let returnFocusTo: HTMLElement | null = null;
+
+/** Closing with the focus in the panel (or lost on the page) gives it back to what opened it; a person working
+ *  beside the docked panel keeps it where it is. Runs before the panel empties, while its focus is still in it. */
+function giveFocusBack(): void {
+  const target = returnFocusTo;
+  returnFocusTo = null;
+  const active = document.activeElement;
+  const inPanel = active === null || active === document.body || (panel.value?.contains(active) ?? false);
+  if (inPanel && target?.isConnected) target.focus();
+}
+
 watch(
   () => state.open,
   (open) => {
-    if (!open) return;
+    if (!open) {
+      giveFocusBack();
+      return;
+    }
+    returnFocusTo = focusedElement();
     void readUsage();
+    // With a keyboard and a mouse the cursor waits in the box; on a touch screen it does not, or the keyboard would
+    // cover half of it. The panel is visible from the moment it opens (its style), so the box can take it now.
     void nextTick(() => {
       scrollDown();
       if (!media('(pointer: coarse)')?.matches) {
-        const box = thread.value?.closest('.assistant-panel')?.querySelector<HTMLElement & { setFocus?: () => Promise<void> }>(
-          'ion-textarea',
-        );
+        const box = panel.value?.querySelector<HTMLElement & { setFocus?: () => Promise<void> }>('ion-textarea');
         void box?.setFocus?.();
       }
     });
@@ -342,6 +363,7 @@ onBeforeUnmount(() => {
     @click="close"
   />
   <aside
+    ref="panel"
     class="assistant-panel"
     data-testid="assistant-panel"
     role="dialog"
@@ -523,13 +545,19 @@ onBeforeUnmount(() => {
   color: var(--ion-text-color, #1a1c20);
   transform: translateX(100%);
   visibility: hidden;
+  /* Closing: it slides out, then hides (and leaves the tab order). */
   transition:
     transform 0.2s ease,
-    visibility 0.2s;
+    visibility 0s linear 0.2s;
 }
 .assistant-panel[data-open='true'] {
   transform: none;
   visibility: visible;
+  /* Opening: visible at once, so its box can take the cursor while it slides in. A hidden element cannot take the
+     focus, and a visibility transitioned in is still hidden on its first frame (ui#86). */
+  transition:
+    transform 0.2s ease,
+    visibility 0s;
 }
 @media (min-width: 768px) {
   .assistant-panel {
@@ -537,7 +565,8 @@ onBeforeUnmount(() => {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .assistant-panel {
+  /* Open or closed (it always says which): as strong as the open rule, so neither state moves. */
+  .assistant-panel[data-open] {
     transition: none;
   }
 }

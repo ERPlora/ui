@@ -39,6 +39,7 @@ import { computed, shallowRef, useId, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import HubIcon from '../../shell/HubIcon.vue';
+import { focusedElement } from '../focus';
 import { InlineFeedback } from '../InlineFeedback';
 import en from './locales/en.json';
 import es from './locales/es.json';
@@ -136,14 +137,6 @@ const tid = (part?: string): string | undefined =>
 const presentation = shallowRef(0);
 /** What had the focus when the dialog opened: it gets it back on closing. */
 let returnFocusTo: HTMLElement | null = null;
-
-/** What really has the focus: `document.activeElement` stops at a shadow host (an `ion-button` is
- *  focused on the native button inside it), so go down the shadow roots to the element itself. */
-function focusedElement(): HTMLElement | null {
-  let active = document.activeElement;
-  while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
-  return active instanceof HTMLElement && active !== document.body ? active : null;
-}
 
 watch(
   open,
