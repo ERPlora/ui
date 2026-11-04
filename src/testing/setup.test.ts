@@ -1,7 +1,8 @@
 // What `vitest.setup.ts` gives every test file of this package, so a new test has nothing to remember:
 // an `ion-icon` paints by name, as the shell makes it paint at boot, without the warning whose dump
-// (the whole element, by the thousand lines) buries a real failure in the log of the run. This file
-// registers nothing on purpose.
+// (the whole element, by the thousand lines) buries a real failure in the log of the run; and an
+// Ionic element in a failing assertion prints as HTML (`elementNames.ts`). This file registers and
+// names nothing on purpose.
 import { IonIcon } from '@ionic/vue';
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -25,5 +26,9 @@ describe('a test file of this package, before it does anything', () => {
     await vi.waitFor(() => expect(icon.element.shadowRoot?.querySelector('svg')).not.toBeNull());
     expect(warn.mock.calls.filter(([message]) => String(message).includes('Could not load icon'))).toEqual([]);
     icon.unmount();
+  });
+
+  it('has named the element classes Ionic registered on loading: a failing assertion prints an ion-button as HTML (ui#77)', () => {
+    expect(customElements.get('ion-button')?.name).toBe('IonButtonElement');
   });
 });
