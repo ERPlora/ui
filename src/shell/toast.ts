@@ -47,7 +47,9 @@ let asked = 0;
  * `duration` in ms (0 = sticky, closed by its button, labelled in the language of the page:
  * `toast.close` of the shell catalogue). `id` names it so
  * {@link dismissToast} can withdraw it once what it says stops being true. `action` adds a button
- * that runs its handler (and closes the toast). The toast on screen, if any, is closed first (one at a time).
+ * that runs its handler (and closes the toast). `position: 'top'` is for a notice that shares the screen with a
+ * sheet's keys at the bottom edge (hub#732); it takes no anchor, because Ionic would set it under the bottom bar.
+ * The toast on screen, if any, is closed first (one at a time).
  */
 export async function toast(
   message: string,
@@ -55,14 +57,15 @@ export async function toast(
   duration = 2600,
   id?: string,
   action?: ToastAction,
+  position: 'bottom' | 'top' = 'bottom',
 ): Promise<void> {
   const order = ++asked;
-  const anchor = toastAnchor();
+  const anchor = position === 'bottom' ? toastAnchor() : undefined;
   const t = await toastController.create({
     message,
     color,
     duration,
-    position: 'bottom',
+    position,
     ...(anchor ? { positionAnchor: anchor } : {}),
     buttons: [
       ...(action ? [{ text: action.text, handler: action.handler }] : []),

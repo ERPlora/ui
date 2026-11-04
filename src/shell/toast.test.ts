@@ -181,6 +181,30 @@ describe('the toast sits above the bottom bar of the screen on view (S-04)', () 
   });
 });
 
+// hub#732: a notice that shares the screen with a sheet's keys at the bottom edge is asked for at the top, so a tap on
+// the last row of keys does not fall on it.
+describe('a toast asked for at the top (hub#732)', () => {
+  const pageWithBar = `<ion-app><ion-router-outlet><div class="ion-page"><ion-footer data-id="bar"></ion-footer></div></ion-router-outlet></ion-app>`;
+
+  it('sits at the top edge, with no anchor: Ionic would put it under the bottom bar on view', async () => {
+    document.body.innerHTML = pageWithBar;
+    await toast('Sent', 'success', 2600);
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ position: 'bottom', positionAnchor: document.querySelector('[data-id="bar"]') }));
+
+    await toast('Sent', 'success', 2600, undefined, undefined, 'top');
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Sent', color: 'success', duration: 2600, position: 'top' }));
+    expect(create).toHaveBeenLastCalledWith(expect.not.objectContaining({ positionAnchor: expect.anything() }));
+  });
+
+  it('closes the toast on screen first, wherever it sat: one notice at a time', async () => {
+    await toast('At the bottom');
+    const first = await create.mock.results.at(-1)!.value;
+    await toast('At the top', 'success', 2600, undefined, undefined, 'top');
+    expect(first.dismiss).toHaveBeenCalledTimes(1);
+    expect(present).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('no global CSV feedback', () => {
   it('exports no window-event hook: the Web Components table that emitted csvExport/csvImport is gone (PLAN §16.11)', () => {
     expect(toastModule).not.toHaveProperty('bootActionFeedback');
