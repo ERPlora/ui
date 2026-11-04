@@ -1,10 +1,10 @@
 // «Read aloud» of an answer (round 2026-11-03m): in the server's voice the person chose — the host's `speak` gives
 // its mp3 (Azure AI Speech), played from a `blob:` URL that is freed as soon as it ends, fails or is stopped —, else
-// in the device's own voice (`deviceVoice.ts`): when the person chose it, when the host has no server voice, or when
-// the server or its audio fails before a word of it was heard (never the whole answer again after a part). One
-// reading at a time: a new one or «Stop reading» stops the one before and aborts its request to the server. It fails,
-// for the panel to say so, when nothing could read it (the Android webview has no `speechSynthesis`) or the server's
-// audio broke halfway; never silent without a word.
+// in the device's own voice (`nativeVoice.ts`: the system's in the installed app, else the browser's): when the person
+// chose it, when the host has no server voice, or when the server or its audio fails before a word of it was heard
+// (never the whole answer again after a part). One reading at a time: a new one or «Stop reading» stops the one before
+// and aborts its request to the server. It fails, for the panel to say so, when nothing could read it (an Android app
+// without a system voice for the language) or the server's audio broke halfway; never silent without a word.
 // The server's player is unlocked in the click itself by playing a silent clip in it: iOS lets a player start later
 // (when the server's audio arrives) only when `play()` was called on it inside a gesture.
 import type { AssistantSpeech } from './config';

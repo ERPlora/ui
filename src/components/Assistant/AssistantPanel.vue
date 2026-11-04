@@ -15,13 +15,17 @@
 //   for a host that takes reports.
 // «Read aloud» (round 2026-11-03m) reads in the server voice the person chooses in the head (the host's `speak`; the
 // language's two and the device's, remembered by the device per language), else in the device's own voice, and says
-// so under the answer when neither could; the conversation is this person's (BASE-G120: `forUser`).
+// so under the answer when neither could; the conversation is this person's (BASE-G120: `forUser`). The device's voice
+// is the system's in the installed app, else the browser's (round 2026-11-04a, `nativeVoice.ts`): in the Android app,
+// whose webview has none of its own, it is offered once the app says it has a voice for the language, which it is
+// first asked when the panel opens.
 import { IonButton, IonSelect, IonSelectOption } from '@ionic/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import { useLiveClient } from '../../sdk/live-client';
+import { nativeBridge } from '../../shell/device-notices';
 import HubIcon from '../../shell/HubIcon.vue';
 import { NOT_FOUND_ROUTE } from '../../shell/router';
 import { useSession } from '../../shell/session';
@@ -36,6 +40,7 @@ import { createDeviceReader, deviceEnv } from './deviceVoice';
 import { screenLabel, usageNote } from './guide';
 import type { Bubble } from './history';
 import { parseMarkdown, spokenText } from './markdown';
+import { createDeviceVoice } from './nativeVoice';
 import { browserAudio, createReadAloud } from './readAloud';
 import { browserStorage, useAssistant } from './state';
 import { DEVICE_VOICE, languageOf, readVoiceChoice, saveVoiceChoice, voicesFor } from './voices';
@@ -228,11 +233,21 @@ function signIn(): void {
 // ── Read aloud (the server voice the person chose, else the device's; a host that turns it off touches neither) ──
 
 const readAloud = config.readAloud !== false;
-const device = readAloud ? deviceEnv() : null;
-const deviceReader = device ? createDeviceReader(device) : null;
+const browserVoice = readAloud ? deviceEnv() : null;
+const deviceReader = readAloud
+  ? createDeviceVoice({
+      invoke: nativeBridge()?.invoke ?? null,
+      browser: browserVoice ? createDeviceReader(browserVoice) : null,
+    })
+  : null;
 const reader = readAloud && (config.speak || deviceReader)
   ? createReadAloud({ speak: config.speak, device: deviceReader, audio: browserAudio() })
   : null;
+/** Whether the device reads the language aloud: at once with the browser's voice; with only the app's, once it says
+ *  so for the language. */
+const deviceReads = ref(deviceReader?.browser ?? false);
+/** «Read aloud» under the answers: a server voice, or the device's for the language. */
+const canSpeak = computed(() => reader !== null && (Boolean(config.speak) || deviceReads.value));
 /** The answer whose «Read aloud» failed: said under it until the next. */
 const failedRead = ref<string | null>(null);
 
@@ -242,7 +257,7 @@ const voiceChoice = ref(DEVICE_VOICE);
 watch(
   language,
   (current, previous) => {
-    voiceChoice.value = readVoiceChoice(voiceStorage, current, { device: deviceReader !== null });
+    voiceChoice.value = readVoiceChoice(voiceStorage, current, { device: deviceReads.value });
     // A new language: what was being read in the old one stops.
     if (previous !== undefined && speaking.value) {
       reader?.stop();
@@ -252,13 +267,29 @@ watch(
   { immediate: true },
 );
 
+// Only the app's voice: asked, with the panel open, whether it reads the language; the choice kept for it is read again
+// once it does.
+watch(
+  [() => state.open, language],
+  ([open, current]) => {
+    if (!open || !deviceReader || deviceReader.browser) return;
+    void deviceReader.canRead(current).then((reads) => {
+      if (language.value === current) deviceReads.value = reads;
+    });
+  },
+  { immediate: true },
+);
+watch(deviceReads, (reads) => {
+  voiceChoice.value = readVoiceChoice(voiceStorage, language.value, { device: reads });
+});
+
 /** What the person may choose: the language's server voices and the device's, where it can read; nothing to choose
  *  without a server voice. */
 const voiceOptions = computed(() =>
   reader && config.speak
     ? [
         ...voicesFor(language.value).map((voice) => ({ id: voice.id, label: voice.name })),
-        ...(deviceReader ? [{ id: DEVICE_VOICE, label: t('assistant.speech.device') }] : []),
+        ...(deviceReads.value ? [{ id: DEVICE_VOICE, label: t('assistant.speech.device') }] : []),
       ]
     : [],
 );
@@ -400,7 +431,7 @@ onBeforeUnmount(() => {
           :app-name-of="appNameOf"
           :can-upgrade="canUpgrade"
           :plan-url="planUrl"
-          :can-speak="reader !== null"
+          :can-speak="canSpeak"
           :can-report="canReport"
           :speaking="speaking === bubble.id"
           :listen-failed="failedRead === bubble.id"
