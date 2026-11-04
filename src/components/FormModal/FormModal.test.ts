@@ -9,12 +9,14 @@ import { fileURLToPath } from 'node:url';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { Window } from 'happy-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { IonInput, IonSelect, IonTextarea } from '@ionic/vue';
 import { h, nextTick } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
 import * as root from '../../index';
 import * as components from '../index';
 import { ApiError } from '../../sdk/errors';
+import { Combo } from '../Combo';
 import FormModal from './FormModal.vue';
 import * as entry from './index';
 import type { IonModalStubApi } from './__tests__/ionModalStub';
@@ -343,7 +345,7 @@ describe('FormModal: the notice of a refusal by fields', () => {
   const typed = (): Event => new Event('input', { bubbles: true });
   const changed = (): Event => new CustomEvent('ionChange', { bubbles: true, composed: true });
 
-  it('goes away as soon as a field is corrected, and every field keeps its own message', async () => {
+  it('goes away as soon as a field is corrected; a field it cannot tell (no name, no message shown) keeps its message', async () => {
     const seen: unknown[] = [];
     const slot = (props: Record<string, unknown>) => {
       seen.push(props.fieldErrors);
@@ -450,6 +452,220 @@ describe('FormModal: the notice of a refusal by fields', () => {
     await settle();
     await fire('email', typed());
     expect(notice(wrapper).text()).toContain('Already a member.');
+  });
+});
+
+describe('FormModal: the message of a refused field (ui#89)', () => {
+  // Odoo, WooCommerce, Shopify and the form libraries: a field the server refused stops saying so as
+  // soon as the person changes it (types or chooses), never on focus or blur; the others keep theirs
+  // until they are changed too, and the next refusal says them all again.
+  const REFUSED = {
+    status: 422,
+    code: 'invalid_payload',
+    message: 'Check the highlighted details.',
+    fields: { email: 'Not a valid email.', name: 'Too long.' },
+  };
+  type FieldErrors = Readonly<Record<string, string>>;
+  const notice = (w: VueWrapper) => w.find('.ep-form-modal__error');
+  const typed = (): Event => new Event('input', { bubbles: true });
+  const changed = (): Event => new CustomEvent('ionChange', { bubbles: true, composed: true });
+  /** Where a keystroke lands: the native input Ionic renders inside its field. */
+  const nativeInput = (id: string): HTMLInputElement => {
+    const native = byTestId(id)?.querySelector('input');
+    if (!native) throw new Error(`no native input in ${id}`);
+    return native;
+  };
+  const fire = async (el: Element, event: Event): Promise<void> => {
+    el.dispatchEvent(event);
+    await settle();
+  };
+  const errorTextOf = (id: string): unknown => (byTestId(id) as (HTMLElement & { errorText?: unknown }) | null)?.errorText;
+  /** The fields as a page writes them: `:error-text="fieldErrors.<key>"` and red while it has one. */
+  const ionField = (component: unknown, id: string, message: string | undefined, extra: Record<string, unknown> = {}) =>
+    h(component as never, {
+      'data-testid': id,
+      label: id,
+      errorText: message,
+      class: { 'ion-invalid': !!message, 'ion-touched': !!message },
+      ...extra,
+    });
+  function mountFields(error: unknown, fields: (errors: FieldErrors) => unknown[]): { wrapper: VueWrapper; seen: FieldErrors[] } {
+    const seen: FieldErrors[] = [];
+    const wrapper = mountModal({ error } as Partial<Props>, {
+      default: (props) => {
+        const errors = props.fieldErrors as FieldErrors;
+        seen.push(errors);
+        return fields(errors);
+      },
+    });
+    return { wrapper, seen };
+  }
+
+  it('goes away as soon as the person types in that field, which it finds by the message it shows; the others keep theirs', async () => {
+    const { seen } = mountFields(REFUSED, (errors) => [
+      ionField(IonInput, 'email', errors.email),
+      ionField(IonInput, 'name', errors.name),
+    ]);
+    await settle();
+    expect(errorTextOf('email')).toBe('Not a valid email.');
+
+    await fire(nativeInput('email'), typed());
+
+    expect(seen.at(-1)).toEqual({ name: 'Too long.' });
+    expect(errorTextOf('email')).toBeFalsy();
+    expect(byTestId('email')?.classList.contains('ion-invalid')).toBe(false);
+    expect(errorTextOf('name')).toBe('Too long.');
+    expect(byTestId('name')?.classList.contains('ion-invalid')).toBe(true);
+  });
+
+  it('goes away as soon as the person types in a textarea (its keystroke lands on the native textarea)', async () => {
+    const { seen } = mountFields({ ...REFUSED, fields: { message: 'Too long.', email: 'Not a valid email.' } }, (errors) => [
+      ionField(IonTextarea, 'message', errors.message),
+      ionField(IonInput, 'email', errors.email),
+    ]);
+    await settle();
+    const native = byTestId('message')?.querySelector('textarea');
+    if (!native) throw new Error('no native textarea');
+    await fire(native, typed());
+    expect(seen.at(-1)).toEqual({ email: 'Not a valid email.' });
+  });
+
+  it('goes away when a select is changed (it only speaks by ionChange)', async () => {
+    const { seen } = mountFields({ ...REFUSED, fields: { kind: 'Pick a kind.', name: 'Too long.' } }, (errors) => [
+      ionField(IonSelect, 'kind', errors.kind),
+      ionField(IonInput, 'name', errors.name),
+    ]);
+    await settle();
+    await fire(byTestId('kind')!, changed());
+    expect(seen.at(-1)).toEqual({ name: 'Too long.' });
+  });
+
+  it("goes away when a Combo's choice is told from its wrapper (the field inside it shows the message)", async () => {
+    const countries = [{ id: 'ES', label: 'España' }];
+    const { seen, wrapper } = mountFields({ ...REFUSED, fields: { country: 'Pick a country.' } }, (errors) => [
+      h(Combo, { label: 'Country', options: countries, testid: 'country', errorText: errors.country }),
+    ]);
+    await settle();
+    expect(seen.at(-1)).toEqual({ country: 'Pick a country.' });
+    await fire(wrapper.get('.combo').element, typed());
+    expect(seen.at(-1)).toEqual({});
+  });
+
+  it('a field named like its key clears its own message, even when another field shows the same words', async () => {
+    const { seen } = mountFields({ ...REFUSED, fields: { first_name: 'Required.', last_name: 'Required.' } }, (errors) => [
+      h('input', { 'data-testid': 'first', name: 'first_name', 'aria-description': errors.first_name }),
+      h('input', { 'data-testid': 'last', name: 'last_name', 'aria-description': errors.last_name }),
+    ]);
+    await settle();
+    await fire(byTestId('last')!, typed());
+    expect(seen.at(-1)).toEqual({ first_name: 'Required.' });
+  });
+
+  it('two unnamed fields showing the same words: it does not guess, both keep their message', async () => {
+    const { seen } = mountFields({ ...REFUSED, fields: { first_name: 'Required.', last_name: 'Required.' } }, (errors) => [
+      ionField(IonInput, 'first', errors.first_name),
+      ionField(IonInput, 'last', errors.last_name),
+    ]);
+    await settle();
+    await fire(nativeInput('first'), typed());
+    expect(seen.at(-1)).toEqual({ first_name: 'Required.', last_name: 'Required.' });
+  });
+
+  it('a wrapper with several fields inside tells nothing about which one changed', async () => {
+    const { seen, wrapper } = mountFields(REFUSED, (errors) => [
+      h('div', { class: 'pair' }, [ionField(IonInput, 'email', errors.email), ionField(IonInput, 'name', errors.name)]),
+    ]);
+    await settle();
+    await fire(wrapper.get('.pair').element, typed());
+    expect(seen.at(-1)).toEqual(REFUSED.fields);
+  });
+
+  it('stays on focus, and on the blur of a text field (its ionChange only repeats what was typed)', async () => {
+    const { seen } = mountFields(REFUSED, (errors) => [ionField(IonInput, 'email', errors.email)]);
+    await settle();
+    await fire(nativeInput('email'), new FocusEvent('focusin', { bubbles: true }));
+    await fire(byTestId('email')!, changed());
+    expect(seen.at(-1)).toEqual(REFUSED.fields);
+  });
+
+  it("stays while the person searches in a field's own popover, though that box shows the same words", async () => {
+    const { seen } = mountFields(REFUSED, (errors) => [
+      ionField(IonInput, 'email', errors.email),
+      h('ion-popover', [ionField(IonInput, 'search', errors.email)]),
+    ]);
+    await settle();
+    await fire(nativeInput('search'), typed());
+    expect(seen.at(-1)).toEqual(REFUSED.fields);
+  });
+
+  it('the notice stays gone once every refused field is corrected', async () => {
+    const { wrapper } = mountFields({ ...REFUSED, fields: { email: 'Not a valid email.' } }, (errors) => [
+      ionField(IonInput, 'email', errors.email),
+    ]);
+    await settle();
+    await fire(nativeInput('email'), typed());
+    expect(notice(wrapper).exists()).toBe(false);
+  });
+
+  it('the reason of the whole form (`__all__`) is no field: typing never takes it away', async () => {
+    const fields = { __all__: 'The end cannot be before the start.', email: 'Not a valid email.' };
+    const { seen, wrapper } = mountFields({ ...REFUSED, message: fields.__all__, fields }, (errors) => [
+      ionField(IonInput, 'email', errors.email),
+      ionField(IonInput, 'all', errors.__all__),
+    ]);
+    await settle();
+    await fire(nativeInput('email'), typed());
+    await fire(nativeInput('all'), typed());
+    expect(seen.at(-1)).toEqual({ __all__: 'The end cannot be before the start.' });
+    expect(notice(wrapper).text()).toContain('The end cannot be before the start.');
+  });
+
+  it('typing the refused value back does not bring the message back: only the next refusal does', async () => {
+    const { seen, wrapper } = mountFields(REFUSED, (errors) => [ionField(IonInput, 'email', errors.email)]);
+    await settle();
+    await fire(nativeInput('email'), typed());
+    await fire(nativeInput('email'), typed());
+    expect(seen.at(-1)).toEqual({ name: 'Too long.' });
+
+    await click(submitButton(wrapper));
+    await wrapper.setProps({ error: null });
+    await settle();
+    await wrapper.setProps({ error: REFUSED });
+    await settle();
+    expect(seen.at(-1)).toEqual(REFUSED.fields);
+  });
+
+  it('comes back when Save is pressed again while the page still shows the same refusal', async () => {
+    const { seen, wrapper } = mountFields(REFUSED, (errors) => [ionField(IonInput, 'email', errors.email)]);
+    await settle();
+    await fire(nativeInput('email'), typed());
+    await click(submitButton(wrapper));
+    expect(seen.at(-1)).toEqual(REFUSED.fields);
+  });
+
+  it('comes back for another refusal, and on a new opening with the refusal still there', async () => {
+    const { seen, wrapper } = mountFields(REFUSED, (errors) => [ionField(IonInput, 'email', errors.email)]);
+    await settle();
+    await fire(nativeInput('email'), typed());
+    await wrapper.setProps({ error: { ...REFUSED, message: 'That email is already in use.' } });
+    await settle();
+    expect(seen.at(-1)).toEqual(REFUSED.fields);
+
+    await fire(nativeInput('email'), typed());
+    await wrapper.setProps({ open: false });
+    await settle();
+    await wrapper.setProps({ open: true });
+    await settle();
+    expect(seen.at(-1)).toEqual(REFUSED.fields);
+  });
+
+  it('a parent that re-renders the same refusal does not bring it back', async () => {
+    const { seen, wrapper } = mountFields(REFUSED, (errors) => [ionField(IonInput, 'email', errors.email)]);
+    await settle();
+    await fire(nativeInput('email'), typed());
+    await wrapper.setProps({ error: { ...REFUSED, fields: { ...REFUSED.fields } } });
+    await settle();
+    expect(seen.at(-1)).toEqual({ name: 'Too long.' });
   });
 });
 
