@@ -1,11 +1,9 @@
 // Test helper of the assistant's chat: the SDK's live harness (fake network serving the API), the shell's i18n with
 // the chat's words (`assistantMessages`) and a host's own (`host.*`: the verbs of its writes, its screens), a session,
 // the shell's config, a memory router with the routes a test names and Ionic's router API on it, and the chat
-// configured as a host configures it when it boots (`HOST_CONFIG`, each test may change a piece). The shell's icons are
-// registered, as `createShell` registers them when an app starts, and what a test mounted is unmounted when it ends
-// (the panel listens on the document: one left mounted would answer the next test's keys).
+// configured as a host configures it when it boots (`HOST_CONFIG`, each test may change a piece). What a test mounted
+// is unmounted when it ends (the panel listens on the document: one left mounted would answer the next test's keys).
 import { enableAutoUnmount, mount } from '@vue/test-utils';
-import { addIcons } from 'ionicons';
 import { afterEach, vi } from 'vitest';
 import { type Component, createApp, ref } from 'vue';
 import { createMemoryHistory, createRouter, type RouteLocationRaw, type Router, type RouteRecordRaw } from 'vue-router';
@@ -13,7 +11,6 @@ import { createMemoryHistory, createRouter, type RouteLocationRaw, type Router, 
 import { type ApiHandler, createTestClient } from '../../../sdk/__tests__/live-harness';
 import { LIVE_CLIENT_KEY } from '../../../sdk/live-client';
 import { createShellI18n } from '../../../shell/i18n';
-import { ION_ICONS } from '../../../shell/icons';
 import { provideSession, type SessionMe, type SessionStatus } from '../../../shell/session';
 import { provideShellConfig } from '../../../shell/shell-config';
 import { type AssistantConfig, configureAssistant } from '../config';
@@ -21,7 +18,6 @@ import { assistantMessages } from '../messages';
 
 export { errorFrame, flush, resultFrame } from '../../../sdk/__tests__/live-harness';
 
-addIcons(ION_ICONS);
 enableAutoUnmount(afterEach);
 
 /** Who may use the assistant and who may upgrade the plan, in the test host's words. */

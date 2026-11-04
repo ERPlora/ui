@@ -3,13 +3,11 @@
 // report, «Send report» while it runs, a refusal that keeps what was typed and can be sent again, and «Report sent»
 // with the address support answers to. The sending is the page's (`send`): the dialog knows no operation.
 import { mount, type VueWrapper } from '@vue/test-utils';
-import { addIcons } from 'ionicons';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 
 import * as root from '../../index';
 import { createShellI18n } from '../../shell/i18n';
-import { ION_ICONS } from '../../shell/icons';
 import * as components from '../index';
 import * as entry from './index';
 import ReportProblemModal from './ReportProblemModal.vue';
@@ -19,8 +17,6 @@ vi.mock('@ionic/vue', async (importOriginal) => {
   const { IonModalStub } = await import('../FormModal/__tests__/ionModalStub');
   return { ...(await importOriginal<typeof import('@ionic/vue')>()), IonModal: IonModalStub };
 });
-
-addIcons(ION_ICONS);
 
 type Props = InstanceType<typeof ReportProblemModal>['$props'];
 type Send = (report: ReportProblemReport) => Promise<ReportProblemSent>;

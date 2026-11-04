@@ -4,13 +4,11 @@
 // the panel: title, message (or slot), consequences, an optional «type the name to confirm», and
 // Cancel / the action in the tone of what it does.
 import { mount, type VueWrapper } from '@vue/test-utils';
-import { addIcons } from 'ionicons';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { h, nextTick } from 'vue';
 
 import * as root from '../../index';
 import { createShellI18n } from '../../shell/i18n';
-import { ION_ICONS } from '../../shell/icons';
 import * as components from '../index';
 import ConfirmDialog from './ConfirmDialog.vue';
 import * as entry from './index';
@@ -19,9 +17,6 @@ vi.mock('@ionic/vue', async (importOriginal) => {
   const { IonModalStub } = await import('../FormModal/__tests__/ionModalStub');
   return { ...(await importOriginal<typeof import('@ionic/vue')>()), IonModal: IonModalStub };
 });
-
-// What `createShell` does at boot: `ion:` icons paint by name from this registry.
-addIcons(ION_ICONS);
 
 type Props = InstanceType<typeof ConfirmDialog>['$props'];
 
