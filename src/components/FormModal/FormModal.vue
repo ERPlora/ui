@@ -435,6 +435,11 @@ ion-modal.ep-form-modal .ep-form-modal__footer ion-button {
 ion-modal.ep-form-modal .ep-form-modal__cancel {
   --color: var(--ion-text-color);
 }
+/* What a select has chosen takes the lines it needs. On one line it sets the select's minimum width, and a form's
+   one-column grid grows to it, every field with it, past the dialog (hub#760, hub#784). */
+ion-modal.ep-form-modal ion-select::part(text) {
+  white-space: normal;
+}
 
 /* Phone (R-29): a form is a sheet from the bottom as tall as its fields, up to 90vh, the fields
    scrolling between the title and the buttons. A confirmation (`card`) keeps the centred card. */
