@@ -916,6 +916,35 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     expect(STYLE).toMatch(/ion-modal\.ep-form-modal ion-select::part\(text\)\s*\{[^}]*white-space:\s*normal;/);
   });
 
+  // ui#93: an outlined select floats its label over the top edge of its box, down to 8px inside it, and centres what it
+  // has chosen in the 56px box, under Ionic's 1px margin. Measured in Chromium (hub `Nueva mesa`, lines of 18px): one line
+  // starts at 19.5 and two at 10.5, clear of the label; three or more fill the box from 1px, and the label lies on them.
+  // happy-dom lays nothing out and has no `::part`, so these numbers are the ones of that measure.
+  describe('what an outlined select has chosen, against its floating label', () => {
+    const LINE = 18;
+    const BOX = 56;
+    const IONIC_MARGIN = 1;
+    const LABEL_BOTTOM = 8;
+    const OUTLINED_TEXT = /ion-modal\.ep-form-modal ion-select\.select-fill-outline::part\(text\)\s*\{([^}]*)\}/;
+    const padding = (): number => Number(/padding-block:\s*([\d.]+)px;/.exec(OUTLINED_TEXT.exec(STYLE)?.[1] ?? '')?.[1] ?? 0);
+
+    it('three lines or more start clear of the label, where two lines start', () => {
+      const twoLinesStartAt = IONIC_MARGIN + (BOX - IONIC_MARGIN - 2 * LINE) / 2;
+      const manyLinesStartAt = IONIC_MARGIN + padding();
+      expect(manyLinesStartAt).toBeGreaterThan(LABEL_BOTTOM);
+      expect(manyLinesStartAt).toBe(twoLinesStartAt);
+    });
+
+    it('one or two lines keep the height of any other field', () => {
+      expect(IONIC_MARGIN + 2 * LINE + 2 * padding()).toBeLessThanOrEqual(BOX);
+    });
+
+    // Without `fill` the label takes its own line above the text and a compact select keeps its height.
+    it('a select that is not outlined gets no extra room', () => {
+      expect(STYLE).not.toMatch(/ion-modal\.ep-form-modal ion-select::part\(text\)\s*\{[^}]*padding/);
+    });
+  });
+
   /** The dialog's stylesheet applied in a window `width` px wide (happy-dom computes the media
    *  queries, not the layout), on the DOM FormModal and Ionic render. */
   async function styleAt(width: number, phoneLayout: string, size = 'md') {
