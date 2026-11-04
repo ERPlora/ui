@@ -14,6 +14,7 @@ import { h, nextTick } from 'vue';
 import { createShellI18n } from '../../shell/i18n';
 import * as root from '../../index';
 import * as components from '../index';
+import { ApiError } from '../../sdk/errors';
 import FormModal from './FormModal.vue';
 import * as entry from './index';
 import type { IonModalStubApi } from './__tests__/ionModalStub';
@@ -324,6 +325,131 @@ describe('FormModal: errors', () => {
     await wrapper.setProps({ error: null });
     await settle();
     expect(seen.at(-1)).toEqual({});
+  });
+});
+
+describe('FormModal: the notice of a refusal by fields', () => {
+  const REFUSED = {
+    status: 422,
+    code: 'invalid_payload',
+    message: 'Check the highlighted details.',
+    fields: { email: 'Not a valid email.' },
+  };
+  const notice = (w: VueWrapper) => w.find('.ep-form-modal__error');
+  const fire = async (id: string, event: Event): Promise<void> => {
+    byTestId(id)?.dispatchEvent(event);
+    await settle();
+  };
+  const typed = (): Event => new Event('input', { bubbles: true });
+  const changed = (): Event => new CustomEvent('ionChange', { bubbles: true, composed: true });
+
+  it('goes away as soon as a field is corrected, and every field keeps its own message', async () => {
+    const seen: unknown[] = [];
+    const slot = (props: Record<string, unknown>) => {
+      seen.push(props.fieldErrors);
+      return [h('input', { 'data-testid': 'email' })];
+    };
+    const wrapper = mountModal({ error: REFUSED }, { default: slot });
+    await settle();
+    expect(notice(wrapper).text()).toContain('Check the highlighted details.');
+
+    await fire('email', typed());
+
+    expect(notice(wrapper).exists()).toBe(false);
+    expect(seen.at(-1)).toEqual({ email: 'Not a valid email.' });
+  });
+
+  it('goes away when a select or a toggle changes (they only speak by ionChange)', async () => {
+    const wrapper = mountModal({ error: REFUSED }, { default: () => [h('ion-select', { 'data-testid': 'kind' })] });
+    await settle();
+    await fire('kind', changed());
+    expect(notice(wrapper).exists()).toBe(false);
+  });
+
+  it("stays when a text field only says on blur that it changed (Enter sent it, nothing was corrected)", async () => {
+    const wrapper = mountModal({ error: REFUSED }, { default: () => [h('ion-input', { 'data-testid': 'email' })] });
+    await settle();
+    await fire('email', changed());
+    expect(notice(wrapper).exists()).toBe(true);
+  });
+
+  it("stays while the person only searches in a field's own popover", async () => {
+    const wrapper = mountModal(
+      { error: REFUSED },
+      { default: () => [h('ion-popover', [h('input', { 'data-testid': 'search' })])] },
+    );
+    await settle();
+    await fire('search', typed());
+    expect(notice(wrapper).exists()).toBe(true);
+  });
+
+  it('is not brought back by a parent that re-renders the same refusal', async () => {
+    const wrapper = mountModal({ error: REFUSED });
+    await settle();
+    await fire('email', typed());
+    await wrapper.setProps({ error: { ...REFUSED, fields: { ...REFUSED.fields } } });
+    await settle();
+    expect(notice(wrapper).exists()).toBe(false);
+  });
+
+  it('comes back when the next try is refused too, even with the same words', async () => {
+    const wrapper = mountModal({ error: REFUSED });
+    await settle();
+    await fire('email', typed());
+    await click(submitButton(wrapper));
+    expect(wrapper.emitted('submit')).toHaveLength(1);
+    expect(notice(wrapper).exists()).toBe(true);
+
+    await fire('email', typed());
+    await wrapper.setProps({ error: null });
+    await settle();
+    await wrapper.setProps({ error: REFUSED });
+    await settle();
+    expect(notice(wrapper).exists()).toBe(true);
+  });
+
+  it('comes back on a new opening with the refusal still there', async () => {
+    const wrapper = mountModal({ error: REFUSED });
+    await settle();
+    await fire('email', typed());
+    await wrapper.setProps({ open: false });
+    await settle();
+    await wrapper.setProps({ open: true });
+    await settle();
+    expect(notice(wrapper).exists()).toBe(true);
+  });
+
+  it('a refusal of the whole form stays while the person types, alone or beside a field: nothing else says its reason', async () => {
+    const refusals: Record<string, string>[] = [
+      { __all__: 'The end cannot be before the start.' },
+      { __all__: 'The end cannot be before the start.', email: 'Not a valid email.' },
+    ];
+    for (const fields of refusals) {
+      const wrapper = mountModal({ error: { status: 422, code: 'invalid_payload', message: 'The end cannot be before the start.', fields } });
+      await settle();
+      await fire('email', typed());
+      expect(notice(wrapper).text()).toContain('The end cannot be before the start.');
+      wrapper.unmount();
+    }
+  });
+
+  it("comes back for another refusal of the SDK with other words, though its fields are the same", async () => {
+    const fields = { email: 'Not a valid email.' };
+    const wrapper = mountModal({ error: new ApiError(422, 'invalid_payload', 'Check the highlighted details.', fields) });
+    await settle();
+    await fire('email', typed());
+    expect(notice(wrapper).exists()).toBe(false);
+
+    await wrapper.setProps({ error: new ApiError(422, 'invalid_payload', 'That email is already in use.', fields) });
+    await settle();
+    expect(notice(wrapper).text()).toContain('That email is already in use.');
+  });
+
+  it('a refusal without fields stays while the person types: nothing else says it', async () => {
+    const wrapper = mountModal({ error: { status: 409, code: 'hubs.member_exists', message: 'Already a member.' } });
+    await settle();
+    await fire('email', typed());
+    expect(notice(wrapper).text()).toContain('Already a member.');
   });
 });
 

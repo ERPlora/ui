@@ -328,6 +328,11 @@ function onDidDismiss(): void {
   if (lettingGo) setTimeout(() => (lettingGo = false));
 }
 
+/** The value changed with no keystroke: the form around it hears a native `input`, as from any field. */
+function tellTheForm(): void {
+  root.value?.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 function pick(entry: Entry): void {
   if (entry.kind === 'create') {
     emit('create', entry.text);
@@ -337,12 +342,14 @@ function pick(entry: Entry): void {
   emit('update:modelValue', entry.option);
   text.value = entry.option.label;
   dismiss(false);
+  tellTheForm();
 }
 
 function clear(): void {
   emit('update:modelValue', null);
   text.value = '';
   dismiss(false);
+  tellTheForm();
 }
 
 function move(step: number): void {
