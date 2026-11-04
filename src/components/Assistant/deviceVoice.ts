@@ -7,7 +7,8 @@
 // - the list waited for when the device gives it late (Chrome lists its voices after `voiceschanged`);
 // - the text read in pieces of under 200 characters, by sentences, one after the other: desktop Chrome cuts its
 //   online Google voices after about 15 seconds of a single utterance.
-// The Android webview has no `speechSynthesis` (`deviceEnv` is none there): the server's voice is all it has.
+// The Android webview has no `speechSynthesis` (`deviceEnv` is none there): in the app, the system's voice reads
+// instead (`nativeVoice.ts`, round 2026-11-04a).
 import type { AssistantLanguage } from './voices';
 
 /** The language each voice is read in, with its region. */
@@ -123,7 +124,7 @@ export interface DeviceEnv {
   Utterance: typeof SpeechSynthesisUtterance;
 }
 
-/** The device's voice, where it has one (never in the Android webview). */
+/** The browser's voice, where it has one (never in the Android webview: `nativeVoice.ts`). */
 export function deviceEnv(): DeviceEnv | null {
   const synth = globalThis.speechSynthesis as SpeechSynthesis | undefined;
   const Utterance = globalThis.SpeechSynthesisUtterance as typeof SpeechSynthesisUtterance | undefined;

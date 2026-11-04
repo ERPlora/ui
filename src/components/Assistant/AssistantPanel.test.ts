@@ -2,7 +2,7 @@
 // person's conversation, the host's empty conversation, G122 the allowance, G123 report, G124 offline and without a
 // plan): on the right, docked beside the screen from 768 px and over it on a phone; closed with ×, Escape, the veil or
 // «Go to …»; the allowance read once per opening, as the host reads it.
-import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
 import { h } from 'vue';
 
 import type { LiveClient } from '../../sdk/live-client';
@@ -13,6 +13,7 @@ import AssistantPanel from './AssistantPanel.vue';
 import AssistantReport from './AssistantReport.vue';
 import type { AssistantCard } from './card';
 import { type AssistantConfig, type AssistantSpeech, type AssistantUsage, configureAssistant } from './config';
+import { TTS_AVAILABLE_COMMAND, TTS_SPEAK_COMMAND, TTS_STOP_COMMAND } from './nativeVoice';
 import { type Assistant, createAssistant, installAssistant } from './state';
 import type { TurnBody, TurnFrame, TurnOptions } from './stream';
 
@@ -382,6 +383,107 @@ describe('AssistantPanel', () => {
         expect(m.wrapper.find('[data-testid="assistant-listen"]').exists()).toBe(false);
       },
     );
+
+    describe('in the installed app, in the system’s voice (round 2026-11-04a)', () => {
+      type TauriWindow = { __TAURI__?: unknown };
+      /** What the app has a voice for, and its readings, left to end by hand. */
+      let voices: Record<string, boolean>;
+      let readings: { resolve: (value: unknown) => void; reject: (error: unknown) => void }[];
+      let invoke: Mock<(command: string, args?: Record<string, unknown>) => Promise<unknown>>;
+      let warn: MockInstance<typeof console.warn>;
+
+      beforeEach(() => {
+        voices = { 'es-ES': true, 'en-US': true };
+        readings = [];
+        invoke = vi.fn(async (command: string, args?: Record<string, unknown>) => {
+          if (command === TTS_AVAILABLE_COMMAND) return { available: voices[String(args?.language)] === true };
+          if (command === TTS_SPEAK_COMMAND) return new Promise((resolve, reject) => readings.push({ resolve, reject }));
+          if (command === TTS_STOP_COMMAND) readings.splice(0).forEach((reading) => reading.resolve(null));
+          return null;
+        });
+        (window as TauriWindow).__TAURI__ = { core: { invoke } };
+        // The Android webview: no `speechSynthesis`.
+        vi.stubGlobal('speechSynthesis', undefined);
+        warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+
+      afterEach(() => {
+        delete (window as TauriWindow).__TAURI__;
+        warn.mockRestore();
+      });
+
+      const listenButton = (m: Awaited<ReturnType<typeof answered>>) => m.wrapper.get('[data-testid="assistant-listen"]');
+      const commands = () => invoke.mock.calls.map(([command]) => command);
+
+      it('the Android app, whose webview cannot read: «Read aloud» reads the answer in the system’s voice', async () => {
+        const m = await answered();
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(invoke).toHaveBeenCalledWith(TTS_SPEAK_COMMAND, { text: 'Hoy has vendido 120 €.', language: 'es-ES' });
+        expect(listenButton(m).attributes('aria-pressed')).toBe('true');
+        readings[0].resolve(null);
+        await flush();
+        expect(listenButton(m).attributes('aria-pressed')).toBe('false');
+      });
+
+      it('pressed again while it reads: the system’s voice stops', async () => {
+        const m = await answered();
+        await listenButton(m).trigger('click');
+        await flush();
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(commands()).toContain(TTS_STOP_COMMAND);
+        expect(listenButton(m).attributes('aria-pressed')).toBe('false');
+      });
+
+      it('the system’s voice fails: said under the answer, never silent', async () => {
+        const m = await answered();
+        await listenButton(m).trigger('click');
+        await flush();
+        readings[0].reject('tts_failed');
+        await flush();
+        expect(m.wrapper.get('[data-testid="assistant-listen-failed"]').text()).toBe(
+          'No se ha podido leer la respuesta en voz alta. Inténtalo de nuevo.',
+        );
+      });
+
+      it('an app with no voice for the language (or older than this round): no «Read aloud»', async () => {
+        voices = {};
+        const m = await answered();
+        expect(m.wrapper.find('[data-testid="assistant-listen"]').exists()).toBe(false);
+      });
+
+      it('the app is asked nothing while the panel is closed: its voice is not woken for a panel nobody opened', async () => {
+        await panel({ open: false });
+        await flush();
+        expect(invoke).not.toHaveBeenCalled();
+        assistant.setOpen(true);
+        for (let i = 0; i < 3; i += 1) await flush();
+        expect(invoke).toHaveBeenCalledWith(TTS_AVAILABLE_COMMAND, { language: 'es-ES' });
+      });
+
+      it('the Windows app (its webview reads with Windows’ voices): the browser’s voice reads, the app having none', async () => {
+        voices = {};
+        const voice = deviceVoice();
+        const m = await answered();
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(voice.speak).toHaveBeenCalledTimes(1);
+        expect(commands()).not.toContain(TTS_SPEAK_COMMAND);
+      });
+
+      it('with a server voice, «Device voice» is the system’s, offered when the app has a voice for the language', async () => {
+        const MP3 = new Blob(['mp3'], { type: 'audio/mpeg' });
+        const m = await answered({ speak: vi.fn(async () => MP3) });
+        const options = m.wrapper.get('[data-testid="assistant-voice"]').findAll('ion-select-option');
+        expect(options.map((option) => option.text())).toEqual(['Ximena', 'Tristan', 'Voz del dispositivo']);
+        m.wrapper.unmount();
+        voices = {};
+        const without = await answered({ speak: vi.fn(async () => MP3) });
+        const left = without.wrapper.get('[data-testid="assistant-voice"]').findAll('ion-select-option');
+        expect(left.map((option) => option.text())).toEqual(['Ximena', 'Tristan']);
+      });
+    });
 
     describe('in a server voice, when the host has one (`speak`, round 2026-11-03m)', () => {
       const XIMENA = 'es-ES-Ximena:DragonHDLatestNeural';
