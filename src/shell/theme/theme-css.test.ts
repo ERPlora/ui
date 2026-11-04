@@ -434,3 +434,15 @@ describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA
     expect(polish).toMatch(/@media \(max-width: 640px\) \{\s*\.topbar-section \{\s*display: none;/);
   });
 });
+
+// hub#775. `ion-select-popover` paints in `ion-app`, out of reach of a form's own styles, and Ionic keeps the
+// `part="label"` of its `ion-radio` and `ion-checkbox` on one line ending in «…». happy-dom lays nothing out: the boxes
+// are measured by the Hub's e2e (tests/e2e/fix-ui-select-long-option-reads-whole.spec.ts) at 320, 375, 390 and 820.
+describe('polish.css: the options of a dropdown', () => {
+  const polish = plain(read('polish.css'));
+
+  it('a long option goes on to the next line instead of ending in «…», a radio or a checkbox alike', () => {
+    const selector = 'ion-select-popover ion-radio::part(label),\nion-select-popover ion-checkbox::part(label)';
+    expect(blocks(polish, selector).map(declarations)).toEqual([['white-space: normal']]);
+  });
+});
