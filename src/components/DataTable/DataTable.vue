@@ -391,7 +391,7 @@ const layout = useDataTableLayout({
   deps: () => [props.columns, props.actions, columnChoice.value, props.selectable, props.maxInlineActions, fitStepsKey.value],
   shape: () =>
     JSON.stringify([
-      visibleColumns.value.map((c) => [c.key, c.width ?? '', yieldingColumns.value.includes(c)]),
+      visibleColumns.value.map((c) => [c.key, c.width ?? '', c.minWidth ?? '', yieldingColumns.value.includes(c)]),
       props.actions.map((a) => [a.id, !!a.icon, !!a.showLabel, !!a.pinned, !!a.menuOnly]),
       props.selectable,
       props.maxInlineActions,
