@@ -1,13 +1,63 @@
 // The icon reader the guardrails run on (`@erplora/ui/testing`): which icon names a source file
 // spells out, whether each one is registered, and a scan of a tree of files by globs. This package
-// runs it on itself (`src/shell/icons.test.ts`); hub and saas run it on their own apps.
+// runs it on itself (`src/shell/icons.test.ts`); hub and saas run it on their own apps. And what a
+// test setup calls so an `ion-icon` paints by name, as the shell makes it paint at boot.
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { IonIcon } from '@ionic/vue';
+import { mount } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { iconReferences, isRegisteredIcon, scanIcons } from './icons';
+import { ION_ICONS } from '../shell/icons';
+import { iconReferences, isRegisteredIcon, registerShellIcons, scanIcons } from './icons';
+
+describe('registerShellIcons', () => {
+  /** The registry an `ion-icon` reads names from; every copy of Ionicons shares it through `window`. */
+  const registry = (): Map<string, string> | undefined =>
+    (window as unknown as { Ionicons?: { map?: Map<string, string> } }).Ionicons?.map;
+
+  // Ionicons holds on to the map it first created: it is emptied, never replaced.
+  beforeEach(() => registry()?.clear());
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.replaceChildren();
+  });
+
+  it('registers every shell icon under its name, as `createShell` does at boot', () => {
+    registerShellIcons();
+    expect(Object.fromEntries(registry() ?? [])).toEqual(ION_ICONS);
+  });
+
+  it('makes an `ion-icon` paint by name instead of logging the warning that floods a test run', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // Ionicons also logs the error it catches on the path of a missing icon.
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const missingIconWarnings = () => warn.mock.calls.filter(([message]) => String(message).includes('Could not load icon'));
+
+    // The control: with nothing registered, the warning this helper exists to remove is there
+    // (once per attempt to load, and an `ion-icon` makes more than one).
+    const unregistered = mount(IonIcon, { props: { name: 'refresh-outline' }, attachTo: document.body });
+    await vi.waitFor(() => expect(missingIconWarnings()).not.toEqual([]));
+    unregistered.unmount();
+    warn.mockClear();
+
+    registerShellIcons();
+    const registered = mount(IonIcon, { props: { name: 'refresh-outline' }, attachTo: document.body });
+    await vi.waitFor(() => expect(registered.element.shadowRoot?.querySelector('svg')).not.toBeNull());
+    expect(missingIconWarnings()).toEqual([]);
+    registered.unmount();
+  });
+
+  it('can run twice (a setup file and a harness that still registers) without logging anything', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    registerShellIcons();
+    registerShellIcons();
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
 
 describe('iconReferences / isRegisteredIcon', () => {
   it('reads static names in multi-line tags, PascalCase or kebab-case, and in calls; never bound ones', () => {
