@@ -910,6 +910,12 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
   // confirmation (`phoneLayout: 'card'`, ConfirmDialog) stays the centred card at every width.
   const STYLE = /<style>([\s\S]*?)<\/style>/.exec(sfc)?.[1] ?? '';
 
+  // hub#760, hub#784: a select keeps what it has chosen on one line, so its minimum width is that line's, and the
+  // one-column grid of a form grows to it, every field with it. Inside a dialog the chosen text takes the lines it needs.
+  it('a select wraps what it has chosen, so no field grows past the dialog', () => {
+    expect(STYLE).toMatch(/ion-modal\.ep-form-modal ion-select::part\(text\)\s*\{[^}]*white-space:\s*normal;/);
+  });
+
   /** The dialog's stylesheet applied in a window `width` px wide (happy-dom computes the media
    *  queries, not the layout), on the DOM FormModal and Ionic render. */
   async function styleAt(width: number, phoneLayout: string, size = 'md') {
