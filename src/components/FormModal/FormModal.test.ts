@@ -8,12 +8,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { Window } from 'happy-dom';
-import { addIcons } from 'ionicons';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { h, nextTick } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
-import { ION_ICONS } from '../../shell/icons';
 import * as root from '../../index';
 import * as components from '../index';
 import FormModal from './FormModal.vue';
@@ -26,9 +24,6 @@ vi.mock('@ionic/vue', async (importOriginal) => {
 });
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-
-// What `createShell` does at boot: `ion:` icons paint by name from this registry.
-addIcons(ION_ICONS);
 
 type Props = InstanceType<typeof FormModal>['$props'];
 type Slots = Record<string, (props: Record<string, unknown>) => unknown>;
