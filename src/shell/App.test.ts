@@ -410,7 +410,9 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(wrapper.findAllComponents(Listener)).toHaveLength(1);
   });
 
-  it('no background piece without a person signed in, and a new one for the next person', async () => {
+  // ui#81: the piece's key follows the person, yet it is not the pane's: they are siblings, and Vue warns of a repeated key.
+  it('no background piece without a person signed in, and a new one with a key of its own for the next person', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     session.value = me({ user: null });
     const wrapper = mountApp(undefined, { config: { ...HUB, chrome: { background: Listener } } });
     expect(wrapper.findComponent(Listener).exists()).toBe(false);
@@ -422,6 +424,9 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     session.value = me({ user: { id: 'u3', label: 'Marta Ruiz' } });
     await flushPromises();
 
+    const repeatedKeys = warn.mock.calls.map((call) => String(call[0])).filter((text) => text.includes('Duplicate keys'));
+    warn.mockRestore();
+    expect(repeatedKeys).toEqual([]);
     expect(first.exists()).toBe(false);
     expect(wrapper.findAllComponents(Listener)).toHaveLength(1);
   });
