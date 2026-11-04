@@ -360,6 +360,30 @@ describe('FormModal: focus', () => {
     expect(reallyFocused(cancelButton(wrapper))).toBe(true);
   });
 
+  // The dialog says it has opened about half a second after it shows, and by then a person may already
+  // be in another field (hub#700): what they type would land in the first one and theirs stay empty.
+  const opened = (wrapper: VueWrapper): void => {
+    wrapper.findComponent({ name: 'IonModal' }).vm.$emit('didPresent');
+  };
+
+  it('a person already in another field keeps it when the dialog ends opening', async () => {
+    const wrapper = mountModal({}, { default: () => [h('input', { 'data-testid': 'first' }), h('input', { 'data-testid': 'second' })] });
+    await settle();
+    byTestId('second')?.focus();
+    opened(wrapper);
+    await settle();
+    expect(document.activeElement).toBe(byTestId('second'));
+  });
+
+  it('a person already in another field keeps it over a `data-autofocus` one', async () => {
+    const wrapper = mountModal({}, { default: () => [h('input', { 'data-testid': 'a' }), h('input', { 'data-testid': 'b', 'data-autofocus': '' })] });
+    await settle();
+    byTestId('a')?.focus();
+    opened(wrapper);
+    await settle();
+    expect(document.activeElement).toBe(byTestId('a'));
+  });
+
   it('on closing, gives the focus back to what opened it', async () => {
     const trigger = document.createElement('button');
     trigger.textContent = 'Invite';
