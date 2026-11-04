@@ -56,7 +56,8 @@ const showMenu = useChromeVisible();
 
 // Keyed on the person (hub#2539): the next one gets every screen mounted again, never what was read
 // with the session of the one who left. On the split pane and not on the outlet alone: Ionic wires
-// `ion-split-pane` and `ion-menu` to their `content-id` once, when they connect.
+// `ion-split-pane` and `ion-menu` to their `content-id` once, when they connect. The background pieces
+// add a suffix to it: the project's is the pane's sibling, and siblings need keys of their own.
 const screenKey = computed(() => user.value?.id ?? '');
 
 const initials = computed(() => {
@@ -322,7 +323,7 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
     <component
       :is="chrome.background"
       v-if="chrome?.background && user"
-      :key="screenKey"
+      :key="`${screenKey}:background`"
     />
     <template v-if="user">
       <component
