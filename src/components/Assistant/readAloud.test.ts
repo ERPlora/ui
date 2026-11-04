@@ -259,7 +259,7 @@ describe('the device’s voice as the fallback', () => {
     ['the audio cannot start (autoplay refused)', 'play'],
     ['the audio fails while it plays', 'media'],
   ])('%s: the device reads it, and the audio is freed', async (_, where) => {
-    const { server, device, read, reading } = readingOfHola();
+    const { server, device, reading } = readingOfHola();
     if (where === 'play') audios[0].play.mockRejectedValueOnce(new DOMException('not allowed', 'NotAllowedError'));
     if (where === 'speak') server.fail(new Error('assistant.speech.not_configured'));
     else server.answer(MP3);
