@@ -163,6 +163,16 @@ ion-item > ion-note[slot="end"] {
   max-width: max(7rem, calc(50vw - 6rem));
 }
 
+/* ── Dropdown options: a long one reads whole before it is chosen ─────────────────────────── */
+/* Ionic keeps the `part="label"` of its `ion-radio` and `ion-checkbox` on one line ending in «…»: «Se consume en el
+   local (servicio de resta…» in a phone's «New menu» (hub#775). `ion-select-popover` paints in `ion-app`, out of reach
+   of a form's own styles, so it is said once here and every dropdown of the Hub and the SaaS gets it. Ionic's alert and
+   action sheet wrap their options already (measured at 375), and the list keeps scrolling on `.popover-content`. */
+ion-select-popover ion-radio::part(label),
+ion-select-popover ion-checkbox::part(label) {
+  white-space: normal;
+}
+
 /* ── Buttons: radius, weight, no uppercase or hard shadow ──────────────────────────────────── */
 ion-button {
   --border-radius: 10px;
