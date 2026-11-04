@@ -245,6 +245,30 @@ describe('gridTemplate fits a column to what its content needs (FIX-UI-DATATABLE
   });
 });
 
+// hub#703 (Inventory › Products on a tablet): cut to the common floor, a status chip said only «Sin …» beside
+// three row actions. A column that must keep some of its text says how much, and never goes under it.
+describe('gridTemplate keeps a column on its own floor (`minWidth`, hub#703)', () => {
+  const cols = [col({ key: 'status', minWidth: '10.5rem' }), col({ key: 'total' })];
+  const template = (extra: { contentWidths?: Record<string, number>; clipped?: boolean }) =>
+    gridTemplate({ selectable: false, columns: cols, hasActions: false, actionsTrackPx: 0, ...extra });
+  it('not measured yet, or its floor holds its content: its floor takes the place of the common one', () => {
+    expect(template({})).toBe('minmax(10.5rem,1fr) minmax(5.5rem,1fr)');
+    expect(template({ contentWidths: { status: 0 } })).toBe('minmax(10.5rem,1fr) minmax(5.5rem,1fr)');
+    expect(template({ clipped: true })).toBe('minmax(10.5rem,1fr) minmax(5.5rem,1fr)');
+  });
+  it('with room: its content whole, and never under its floor whatever the content measures', () => {
+    expect(template({ contentWidths: { status: 300 } })).toBe('minmax(max(10.5rem,300px),1fr) minmax(5.5rem,1fr)');
+    expect(template({ contentWidths: { status: 121 } })).toBe('minmax(max(10.5rem,121px),1fr) minmax(5.5rem,1fr)');
+  });
+  it('out of room (`clipped`): it shrinks to its floor, not to the common one, and grows no further than its content', () => {
+    expect(template({ contentWidths: { status: 300 }, clipped: true })).toBe('minmax(10.5rem,300px) minmax(5.5rem,1fr)');
+  });
+  it('a column with its own width keeps it: there is no track to give a floor to', () => {
+    const own = [col({ key: 'status', minWidth: '10.5rem', width: '8rem' })];
+    expect(gridTemplate({ selectable: false, columns: own, hasActions: false, actionsTrackPx: 0, contentWidths: { status: 300 } })).toBe('8rem');
+  });
+});
+
 describe('cardTitleColumn (outfitkit#205)', () => {
   const cols = [col({ key: 'code' }), col({ key: 'name' }), col({ key: 'currency' })];
   const row = { code: 'L1', name: 'Tarifa mayorista 1', currency: 'EUR' };
