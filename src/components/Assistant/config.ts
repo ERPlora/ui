@@ -3,7 +3,8 @@
 //   configureAssistant({ turnUrl: '/api/assistant/turn', usage: (client) => client.api.call('<app>.assistant.usage', {}) })
 // - `turnUrl`: the route a turn is POSTed to; its answer is the stream of frames (`stream.ts`).
 // - Around the chat, each optional — without it, that piece is not there: the month's allowance (`usage`), dictation
-//   (`transcribe`), «Report a problem» under an answer (`report`), «Upgrade plan» (`planUrl` + `canUpgrade`).
+//   (`transcribe`), «Report a problem» under an answer (`report`), «Upgrade plan» (`planUrl` + `canUpgrade`; `openPlan`
+//   takes its click).
 // - «Read aloud» under an answer (`readAloud`; on unless the host turns it off): in the server voice the person chooses
 //   in the panel when the host gives one (`speak`: the mp3 of a text, round 2026-11-03m), else, and whenever it fails,
 //   in the device's own voice where it has one.
@@ -83,6 +84,9 @@ export interface AssistantConfig {
   canUpgrade?: (session: ShellSession) => boolean;
   /** The page where the plan is upgraded. */
   planUrl?: () => string;
+  /** Takes the click of «Upgrade plan», inside the click: the host may stop the link (`preventDefault`) and open it its
+   *  own way (the Hub, with a pass that signs in). When it leaves the click alone, or without it, the link opens `planUrl`. */
+  openPlan?: (client: LiveClient, event: Event) => void;
   /** The key of the verb of a write, by its operation (`<app>.<entity>.<action>`); «Do this» when not given. */
   verbKey?: (operation: string) => string;
   /** The key of the name of a platform screen a receipt names (the server's `screen`); none: the app's name. */

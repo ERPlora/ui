@@ -89,6 +89,7 @@ const nameOf = (path: string) => screenLabel(path, session.menu.value, t, config
 const appNameOf = (app: string) => session.menu.value.find((section) => section.id === app)?.label;
 
 const planUrl = config.planUrl?.() ?? '';
+const openPlan = (event: Event) => config.openPlan?.(client, event);
 // gh:hub#1259: the plan is upgraded by whoever the host says (the Hub: who administers the business), and only on
 // the web (it sells).
 const canUpgrade = computed(() => isWeb.value && (config.canUpgrade?.(session) ?? false));
@@ -441,6 +442,7 @@ onBeforeUnmount(() => {
           @sign-in="signIn"
           @report="reporting = bubble"
           @listen="listen(bubble)"
+          @open-plan="openPlan"
         />
       </div>
 
@@ -468,6 +470,7 @@ onBeforeUnmount(() => {
             target="_blank"
             rel="noopener"
             data-testid="assistant-no-plan-upgrade"
+            @click="openPlan"
           >
             <HubIcon name="ion:sparkles-outline" />
             {{ t('assistant.upgrade') }}
