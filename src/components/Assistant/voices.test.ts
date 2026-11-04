@@ -1,36 +1,31 @@
-// The assistant's voices (round 2026-11-03m): two server voices per language, the same catalogue the SaaS keeps in
-// Python (their ids are the contract with the server), the device's own voice as the other choice, and the person's
-// choice remembered by the device, one per language.
+// The assistant's voices: the catalogue of server voices is the host's (`AssistantConfig.voices`, none today: no engine
+// reads aloud, PLAN-SAAS round 2026-11-04c), the device's own voice is the other choice, and the person's choice is
+// remembered by the device, one per language. The voices here are made up: the package names none of its own.
 import { describe, expect, it, vi } from 'vitest';
 
 import { memoryStorage } from './__tests__/mount-assistant';
-import {
-  ASSISTANT_VOICES,
-  DEVICE_VOICE,
-  defaultVoice,
-  languageOf,
-  readVoiceChoice,
-  saveVoiceChoice,
-  voiceKey,
-  voicesFor,
-} from './voices';
+import * as module from './voices';
+import { DEVICE_VOICE, type AssistantVoice, languageOf, readVoiceChoice, saveVoiceChoice, voiceKey, voicesFor } from './voices';
+
+const LUCIA = 'es-lucia';
+const MATEO = 'es-mateo';
+const EMMA = 'en-emma';
+const CATALOGUE: readonly AssistantVoice[] = [
+  { id: LUCIA, name: 'Lucía', language: 'es' },
+  { id: MATEO, name: 'Mateo', language: 'es' },
+  { id: EMMA, name: 'Emma', language: 'en' },
+];
 
 describe('the catalogue of voices', () => {
-  it('names the server voices by the ids the server knows, two per language, a woman first', () => {
-    expect(ASSISTANT_VOICES).toEqual([
-      { id: 'es-ES-Ximena:DragonHDLatestNeural', name: 'Ximena', language: 'es', gender: 'female' },
-      { id: 'es-ES-Tristan:DragonHDLatestNeural', name: 'Tristan', language: 'es', gender: 'male' },
-      { id: 'en-US-Ava:DragonHDLatestNeural', name: 'Ava', language: 'en', gender: 'female' },
-      { id: 'en-US-Andrew2:DragonHDLatestNeural', name: 'Andrew', language: 'en', gender: 'male' },
-    ]);
+  it('is not the package’s: it names no voice of its own, only the device’s choice', () => {
+    expect(Object.keys(module)).not.toContain('ASSISTANT_VOICES');
     expect(DEVICE_VOICE).toBe('device');
   });
 
-  it('gives the voices of a language and the first of them as its default', () => {
-    expect(voicesFor('es').map((voice) => voice.name)).toEqual(['Ximena', 'Tristan']);
-    expect(voicesFor('en').map((voice) => voice.name)).toEqual(['Ava', 'Andrew']);
-    expect(defaultVoice('es').id).toBe('es-ES-Ximena:DragonHDLatestNeural');
-    expect(defaultVoice('en').id).toBe('en-US-Ava:DragonHDLatestNeural');
+  it('gives the voices of a language, in the host’s order', () => {
+    expect(voicesFor(CATALOGUE, 'es').map((voice) => voice.name)).toEqual(['Lucía', 'Mateo']);
+    expect(voicesFor(CATALOGUE, 'en').map((voice) => voice.name)).toEqual(['Emma']);
+    expect(voicesFor([], 'es')).toEqual([]);
   });
 
   it.each([
@@ -47,45 +42,52 @@ describe('the catalogue of voices', () => {
 });
 
 describe('the person’s choice of voice, per language, on this device', () => {
-  const XIMENA = 'es-ES-Ximena:DragonHDLatestNeural';
-  const TRISTAN = 'es-ES-Tristan:DragonHDLatestNeural';
-  const AVA = 'en-US-Ava:DragonHDLatestNeural';
+  const read = (storage: Storage | undefined, language: 'es' | 'en', device = true) =>
+    readVoiceChoice(storage, language, { device, voices: CATALOGUE });
 
   it('is kept under `erplora.assistant.voice.<language>`', () => {
     expect(voiceKey('es')).toBe('erplora.assistant.voice.es');
     const storage = memoryStorage();
-    saveVoiceChoice(storage, 'es', TRISTAN);
+    saveVoiceChoice(storage, 'es', MATEO);
     saveVoiceChoice(storage, 'en', DEVICE_VOICE);
-    expect(storage.getItem('erplora.assistant.voice.es')).toBe(TRISTAN);
+    expect(storage.getItem('erplora.assistant.voice.es')).toBe(MATEO);
     expect(storage.getItem('erplora.assistant.voice.en')).toBe(DEVICE_VOICE);
   });
 
   it('reads back what was chosen for each language, apart', () => {
     const storage = memoryStorage();
-    saveVoiceChoice(storage, 'es', TRISTAN);
-    expect(readVoiceChoice(storage, 'es', { device: true })).toBe(TRISTAN);
-    expect(readVoiceChoice(storage, 'en', { device: true })).toBe(AVA);
+    saveVoiceChoice(storage, 'es', MATEO);
+    expect(read(storage, 'es')).toBe(MATEO);
+    expect(read(storage, 'en')).toBe(EMMA);
     saveVoiceChoice(storage, 'es', DEVICE_VOICE);
-    expect(readVoiceChoice(storage, 'es', { device: true })).toBe(DEVICE_VOICE);
+    expect(read(storage, 'es')).toBe(DEVICE_VOICE);
   });
 
-  it('is the language’s default when nothing was chosen, nothing can be kept, or what was kept is not a voice of it', () => {
-    expect(readVoiceChoice(undefined, 'es', { device: true })).toBe(XIMENA);
+  it('is the language’s first voice when nothing was chosen, nothing can be kept, or what was kept is not a voice of it', () => {
+    expect(read(undefined, 'es')).toBe(LUCIA);
     const storage = memoryStorage();
-    expect(readVoiceChoice(storage, 'es', { device: true })).toBe(XIMENA);
-    storage.setItem('erplora.assistant.voice.es', AVA);
-    expect(readVoiceChoice(storage, 'es', { device: true })).toBe(XIMENA);
-    storage.setItem('erplora.assistant.voice.es', 'es-ES-Elvira:DragonHDLatestNeural');
-    expect(readVoiceChoice(storage, 'es', { device: true })).toBe(XIMENA);
+    expect(read(storage, 'es')).toBe(LUCIA);
+    storage.setItem('erplora.assistant.voice.es', EMMA);
+    expect(read(storage, 'es')).toBe(LUCIA);
+    storage.setItem('erplora.assistant.voice.es', 'es-gone');
+    expect(read(storage, 'es')).toBe(LUCIA);
   });
 
-  it('is the default, never the device’s voice, on a device that cannot read (the Android webview)', () => {
+  it('is the first voice, never the device’s, on a device that cannot read (the Android webview)', () => {
     const storage = memoryStorage();
     saveVoiceChoice(storage, 'es', DEVICE_VOICE);
-    expect(readVoiceChoice(storage, 'es', { device: false })).toBe(XIMENA);
+    expect(read(storage, 'es', false)).toBe(LUCIA);
   });
 
-  it('a storage that refuses (private mode, blocked): read as the default, a write that fails is told, never thrown', () => {
+  it('without voices for the language there is nothing to choose: no voice named, whatever the device keeps', () => {
+    const storage = memoryStorage();
+    saveVoiceChoice(storage, 'es', DEVICE_VOICE);
+    expect(readVoiceChoice(storage, 'es', { device: true, voices: [] })).toBe('');
+    expect(readVoiceChoice(undefined, 'en', { device: true, voices: [] })).toBe('');
+    expect(readVoiceChoice(memoryStorage(), 'en', { device: true, voices: voicesFor(CATALOGUE, 'es') })).toBe('');
+  });
+
+  it('a storage that refuses (private mode, blocked): read as the first voice, a write that fails is told, never thrown', () => {
     const blocked = {
       getItem: () => {
         throw new DOMException('blocked', 'SecurityError');
@@ -96,7 +98,7 @@ describe('the person’s choice of voice, per language, on this device', () => {
     } as unknown as Storage;
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      expect(readVoiceChoice(blocked, 'en', { device: true })).toBe(AVA);
+      expect(read(blocked, 'en')).toBe(EMMA);
       expect(() => saveVoiceChoice(blocked, 'en', DEVICE_VOICE)).not.toThrow();
       expect(warn).toHaveBeenCalled();
     } finally {

@@ -16,7 +16,7 @@
 // The client the reads and writes go through is the page's live client (`useLiveClient`), passed to each.
 import type { LiveClient } from '../../sdk/live-client';
 import type { ShellSession } from '../../shell/session';
-import type { AssistantLanguage } from './voices';
+import type { AssistantLanguage, AssistantVoice } from './voices';
 
 /** The month's messages of the assistant: `limit` 0 is a plan without it; a demo counts none. */
 export interface AssistantUsage {
@@ -33,7 +33,8 @@ export interface AssistantClip {
   language: string;
 }
 
-/** A text to read aloud in a server voice: the voice's catalogue id (`voices.ts`) and the language it is read in. */
+/** A text to read aloud in a server voice: the voice's id in the host's catalogue (`AssistantConfig.voices`; empty: the
+ *  server's own for the language) and the language it is read in. */
 export interface AssistantSpeech {
   text: string;
   language: AssistantLanguage;
@@ -75,9 +76,12 @@ export interface AssistantConfig {
   /** Whether an answer offers «Read aloud» (the server's voice or the device's, where it has one); on when not given,
    *  `false` turns it off. */
   readAloud?: boolean;
-  /** The audio (mp3) of a text read in a server voice (`voices.ts`); rejects when it cannot (not configured, down),
-   *  and the device's voice reads it instead. Without it, the device's voice and no choice of voice. */
+  /** The audio (mp3) of a text read in a server voice; rejects when it cannot (not configured, down), and the device's
+   *  voice reads it instead. Without it, the device's voice and no choice of voice. */
   speak?: (input: AssistantSpeech) => Promise<Blob>;
+  /** The server voices the person may choose among, with `speak`, the first of each language by default: the ids are
+   *  the contract between the host and its server. Without them, nothing to choose and `speak` is asked with no voice. */
+  voices?: readonly AssistantVoice[];
   /** Who sees the assistant's button; everyone signed in when not given. */
   canUse?: (session: ShellSession) => boolean;
   /** Who may upgrade the plan (only ever offered on the web); nobody when not given. */
