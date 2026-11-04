@@ -492,6 +492,12 @@ ion-modal.ep-form-modal .ep-form-modal__cancel {
 ion-modal.ep-form-modal ion-select::part(text) {
   white-space: normal;
 }
+/* An outlined select floats its label over its top edge, 8px into the box, and centres the text in 56px: from three lines
+   the text fills the box and the label lies on it (ui#93). Every line count gets the room two lines have, (56 - 1 - 2 × 18) / 2:
+   one or two lines still fit in 56px, and with more the box grows. */
+ion-modal.ep-form-modal ion-select.select-fill-outline::part(text) {
+  padding-block: 9.5px;
+}
 
 /* Phone (R-29): a form is a sheet from the bottom as tall as its fields, up to 90vh, the fields
    scrolling between the title and the buttons. A confirmation (`card`) keeps the centred card. */
