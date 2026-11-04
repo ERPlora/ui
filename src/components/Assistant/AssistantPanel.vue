@@ -15,8 +15,8 @@
 //   count them), and the composer (BASE-G111, G112).
 // - Over everything, even with the panel closed: the card of a write (BASE-G115, G116, G119); the report (BASE-G123),
 //   for a host that takes reports.
-// «Read aloud» (round 2026-11-03m) reads in the server voice the person chooses in the head (the host's `speak`; the
-// language's two and the device's, remembered by the device per language), else in the device's own voice, and says
+// «Read aloud» (round 2026-11-03m) reads in the server voice the person chooses in the head (the host's `speak` and
+// `voices`: the language's and the device's, remembered by the device per language), else in the device's own voice, and says
 // so under the answer when neither could; the conversation is this person's (BASE-G120: `forUser`). The device's voice
 // is the system's in the installed app, else the browser's (round 2026-11-04a, `nativeVoice.ts`): in the Android app,
 // whose webview has none of its own, it is offered once the app says it has a voice for the language, which it is
@@ -275,10 +275,12 @@ const failedRead = ref<string | null>(null);
 const voiceStorage = browserStorage('localStorage');
 const language = computed(() => languageOf(locale.value));
 const voiceChoice = ref(DEVICE_VOICE);
+/** The host's server voices (with `speak`); none: nothing to choose. */
+const serverVoices = config.voices ?? [];
 watch(
   language,
   (current, previous) => {
-    voiceChoice.value = readVoiceChoice(voiceStorage, current, { device: deviceReads.value });
+    voiceChoice.value = readVoiceChoice(voiceStorage, current, { device: deviceReads.value, voices: serverVoices });
     // A new language: what was being read in the old one stops.
     if (previous !== undefined && speaking.value) {
       reader?.stop();
@@ -301,19 +303,20 @@ watch(
   { immediate: true },
 );
 watch(deviceReads, (reads) => {
-  voiceChoice.value = readVoiceChoice(voiceStorage, language.value, { device: reads });
+  voiceChoice.value = readVoiceChoice(voiceStorage, language.value, { device: reads, voices: serverVoices });
 });
 
 /** What the person may choose: the language's server voices and the device's, where it can read; nothing to choose
- *  without a server voice. */
-const voiceOptions = computed(() =>
-  reader && config.speak
+ *  without server voices for the language (the host's `speak`, if any, reads in the server's own). */
+const voiceOptions = computed(() => {
+  const voices = voicesFor(serverVoices, language.value);
+  return reader && config.speak && voices.length
     ? [
-        ...voicesFor(language.value).map((voice) => ({ id: voice.id, label: voice.name })),
+        ...voices.map((voice) => ({ id: voice.id, label: voice.name })),
         ...(deviceReads.value ? [{ id: DEVICE_VOICE, label: t('assistant.speech.device') }] : []),
       ]
-    : [],
-);
+    : [];
+});
 
 function chooseVoice(event: CustomEvent<{ value?: unknown }>): void {
   const choice = String(event.detail.value ?? '');

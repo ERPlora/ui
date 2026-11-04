@@ -8,7 +8,7 @@ import type { DeviceReader, DeviceReading } from './deviceVoice';
 import { createReadAloud } from './readAloud';
 import { DEVICE_VOICE } from './voices';
 
-const XIMENA = 'es-ES-Ximena:DragonHDLatestNeural';
+const LUCIA = 'es-lucia';
 
 class FakeAudio {
   src = '';
@@ -126,11 +126,11 @@ describe('in the server’s voice', () => {
     const device = fakeDevice();
     const read = reader({ speak: server.speak, device: device.reader });
     let ended = false;
-    const reading = read.read('Hoy has vendido 120 €.', 'es', XIMENA).then(() => (ended = true));
+    const reading = read.read('Hoy has vendido 120 €.', 'es', LUCIA).then(() => (ended = true));
     expect(server.speak).toHaveBeenCalledWith({
       text: 'Hoy has vendido 120 €.',
       language: 'es',
-      voice: XIMENA,
+      voice: LUCIA,
       signal: expect.any(AbortSignal),
     });
     server.answer(MP3);
@@ -151,7 +151,7 @@ describe('in the server’s voice', () => {
 
   it('its player is unlocked by playing a silent clip in the click itself, before anything is awaited (iOS Safari)', async () => {
     const server = deferredSpeak();
-    void reader({ speak: server.speak }).read('Hola.', 'es', XIMENA);
+    void reader({ speak: server.speak }).read('Hola.', 'es', LUCIA);
     // Synchronously, still inside the click: only `play()` in a gesture unlocks a player on iOS.
     expect(audios).toHaveLength(1);
     expect(audios[0].play).toHaveBeenCalledTimes(1);
@@ -171,7 +171,7 @@ describe('in the server’s voice', () => {
     const server = deferredSpeak();
     const device = fakeDevice();
     const read = reader({ speak: server.speak, device: device.reader, refuseSilence: true });
-    const reading = read.read('Hola.', 'es', XIMENA);
+    const reading = read.read('Hola.', 'es', LUCIA);
     await flushAll();
     server.answer(MP3);
     await flushAll();
@@ -185,7 +185,7 @@ describe('in the server’s voice', () => {
   it('stopped before the audio arrives: the request to the server is aborted and the silent clip is freed', async () => {
     const server = deferredSpeak();
     const read = reader({ speak: server.speak });
-    void read.read('Hola.', 'es', XIMENA);
+    void read.read('Hola.', 'es', LUCIA);
     const { signal } = server.speak.mock.calls[0][0] as { signal: AbortSignal };
     expect(signal.aborted).toBe(false);
     read.stop();
@@ -197,7 +197,7 @@ describe('in the server’s voice', () => {
   it('the audio breaks after part of it was heard: never read again from the start on the device, and it is told', async () => {
     const server = deferredSpeak();
     const device = fakeDevice();
-    const reading = reader({ speak: server.speak, device: device.reader }).read('Hola.', 'es', XIMENA);
+    const reading = reader({ speak: server.speak, device: device.reader }).read('Hola.', 'es', LUCIA);
     server.answer(MP3);
     await flushAll();
     audios[0].currentTime = 3.2;
@@ -211,7 +211,7 @@ describe('in the server’s voice', () => {
     const server = deferredSpeak();
     const device = fakeDevice();
     const read = reader({ speak: server.speak, device: device.reader });
-    const reading = read.read('Hola.', 'es', XIMENA);
+    const reading = read.read('Hola.', 'es', LUCIA);
     server.answer(MP3);
     await flushAll();
     read.stop();
@@ -225,10 +225,10 @@ describe('in the server’s voice', () => {
   it('a new reading stops the one playing before', async () => {
     const first = deferredSpeak();
     const read = reader({ speak: first.speak });
-    const reading = read.read('Una.', 'es', XIMENA);
+    const reading = read.read('Una.', 'es', LUCIA);
     first.answer(MP3);
     await flushAll();
-    void read.read('Otra.', 'es', XIMENA);
+    void read.read('Otra.', 'es', LUCIA);
     await expect(reading).resolves.toBeUndefined();
     expect(audios[0].pause).toHaveBeenCalled();
     expect(urls.revoke).toHaveBeenCalledWith('blob:audio-1');
@@ -239,7 +239,7 @@ describe('in the server’s voice', () => {
     const server = deferredSpeak();
     const device = fakeDevice();
     const read = reader({ speak: server.speak, device: device.reader });
-    const reading = read.read('Hola.', 'es', XIMENA);
+    const reading = read.read('Hola.', 'es', LUCIA);
     read.stop();
     server.answer(MP3);
     await expect(reading).resolves.toBeUndefined();
@@ -260,7 +260,7 @@ describe('the device’s voice as the fallback', () => {
     const server = deferredSpeak();
     const device = fakeDevice();
     const read = reader({ speak: server.speak, device: device.reader });
-    const reading = read.read('Hola.', 'es', XIMENA);
+    const reading = read.read('Hola.', 'es', LUCIA);
     if (where === 'play') audios[0].play.mockRejectedValueOnce(new DOMException('not allowed', 'NotAllowedError'));
     if (where === 'speak') server.fail(new Error('assistant.speech.not_configured'));
     else server.answer(MP3);
@@ -289,7 +289,7 @@ describe('the device’s voice as the fallback', () => {
   it('a host without a server voice, or a page that cannot play audio: the device reads', async () => {
     for (const options of [{ speak: undefined }, { speak: deferredSpeak().speak, audio: false }]) {
       const device = fakeDevice();
-      void reader({ ...options, device: device.reader }).read('Hola.', 'es', XIMENA);
+      void reader({ ...options, device: device.reader }).read('Hola.', 'es', LUCIA);
       await flushAll();
       expect(device.reader.read).toHaveBeenCalledWith('Hola.', 'es');
     }
@@ -310,7 +310,7 @@ describe('the device’s voice as the fallback', () => {
 describe('never silent without saying so', () => {
   it('the server fails and the device cannot read (the Android webview): the reading fails', async () => {
     const server = deferredSpeak();
-    const reading = reader({ speak: server.speak, device: null }).read('Hola.', 'es', XIMENA);
+    const reading = reader({ speak: server.speak, device: null }).read('Hola.', 'es', LUCIA);
     server.fail(new Error('down'));
     await expect(reading).rejects.toThrow();
   });
@@ -326,7 +326,7 @@ describe('never silent without saying so', () => {
   it('a reading stopped while the server fails is not told as a failure', async () => {
     const server = deferredSpeak();
     const read = reader({ speak: server.speak, device: null });
-    const reading = read.read('Hola.', 'es', XIMENA);
+    const reading = read.read('Hola.', 'es', LUCIA);
     read.stop();
     server.fail(new Error('down'));
     await expect(reading).resolves.toBeUndefined();
