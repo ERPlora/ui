@@ -25,5 +25,5 @@ export { assistantMessages } from './messages';
 export { createAssistant, forgetAssistant, installAssistant, useAssistant } from './state';
 export type { Assistant, AssistantDeps, AssistantState } from './state';
 export type { Decision, PendingCall, TurnBody, TurnFrame, TurnOptions } from './stream';
-export { ASSISTANT_VOICES, DEVICE_VOICE, defaultVoice, languageOf, voicesFor } from './voices';
+export { DEVICE_VOICE, languageOf } from './voices';
 export type { AssistantLanguage, AssistantVoice } from './voices';

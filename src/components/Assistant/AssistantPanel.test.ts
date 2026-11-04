@@ -470,6 +470,16 @@ describe('AssistantPanel', () => {
       return voice;
     }
 
+    /** A host's catalogue of server voices (`AssistantConfig.voices`): made up, the package names none of its own. */
+    const LUCIA = 'es-lucia';
+    const MATEO = 'es-mateo';
+    const CATALOGUE = [
+      { id: LUCIA, name: 'Lucía', language: 'es' as const },
+      { id: MATEO, name: 'Mateo', language: 'es' as const },
+      { id: 'en-emma', name: 'Emma', language: 'en' as const },
+      { id: 'en-noah', name: 'Noah', language: 'en' as const },
+    ];
+
     async function answered(config?: Partial<AssistantConfig>) {
       script.push(answer('Hoy has vendido 120 €.'));
       const m = await panel({ config });
@@ -599,22 +609,29 @@ describe('AssistantPanel', () => {
         expect(commands()).not.toContain(TTS_SPEAK_COMMAND);
       });
 
+      it('with a server voice, the «Device voice» kept is the one chosen once the app says it has a voice for the language', async () => {
+        const stored = memoryStorage();
+        vi.stubGlobal('localStorage', stored);
+        stored.setItem('erplora.assistant.voice.es', 'device');
+        const m = await answered({ voices: CATALOGUE, speak: vi.fn(async () => new Blob(['mp3'], { type: 'audio/mpeg' })) });
+        const select = m.wrapper.get('[data-testid="assistant-voice"]').element as unknown as { value: string };
+        expect(select.value).toBe('device');
+      });
+
       it('with a server voice, «Device voice» is the system’s, offered when the app has a voice for the language', async () => {
         const MP3 = new Blob(['mp3'], { type: 'audio/mpeg' });
-        const m = await answered({ speak: vi.fn(async () => MP3) });
+        const m = await answered({ voices: CATALOGUE, speak: vi.fn(async () => MP3) });
         const options = m.wrapper.get('[data-testid="assistant-voice"]').findAll('ion-select-option');
-        expect(options.map((option) => option.text())).toEqual(['Ximena', 'Tristan', 'Voz del dispositivo']);
+        expect(options.map((option) => option.text())).toEqual(['Lucía', 'Mateo', 'Voz del dispositivo']);
         m.wrapper.unmount();
         voices = {};
-        const without = await answered({ speak: vi.fn(async () => MP3) });
+        const without = await answered({ voices: CATALOGUE, speak: vi.fn(async () => MP3) });
         const left = without.wrapper.get('[data-testid="assistant-voice"]').findAll('ion-select-option');
-        expect(left.map((option) => option.text())).toEqual(['Ximena', 'Tristan']);
+        expect(left.map((option) => option.text())).toEqual(['Lucía', 'Mateo']);
       });
     });
 
     describe('in a server voice, when the host has one (`speak`, round 2026-11-03m)', () => {
-      const XIMENA = 'es-ES-Ximena:DragonHDLatestNeural';
-      const TRISTAN = 'es-ES-Tristan:DragonHDLatestNeural';
       const MP3 = new Blob(['mp3'], { type: 'audio/mpeg' });
 
       /** The page's audio player: each one made, as the panel plays it. */
@@ -672,13 +689,13 @@ describe('AssistantPanel', () => {
       it('reads the answer in the language’s first voice and plays its audio, «Stop reading» while it sounds', async () => {
         deviceVoice();
         const speak = vi.fn(async () => MP3);
-        const m = await answered({ speak });
+        const m = await answered({ voices: CATALOGUE, speak });
         await listenButton(m).trigger('click');
         await flush();
         expect(speak).toHaveBeenCalledWith({
           text: 'Hoy has vendido 120 €.',
           language: 'es',
-          voice: XIMENA,
+          voice: LUCIA,
           signal: expect.any(AbortSignal),
         });
         expect(created).toHaveBeenCalledWith(MP3);
@@ -711,7 +728,7 @@ describe('AssistantPanel', () => {
         const speak = vi.fn(async () => {
           throw new Error('assistant.speech.not_configured');
         });
-        const m = await answered({ speak });
+        const m = await answered({ voices: CATALOGUE, speak });
         await listenButton(m).trigger('click');
         await flush();
         expect(speak).toHaveBeenCalled();
@@ -725,7 +742,7 @@ describe('AssistantPanel', () => {
         const speak = vi.fn<(input: AssistantSpeech) => Promise<Blob>>(async () => {
           throw new Error('down');
         });
-        const m = await answered({ speak });
+        const m = await answered({ voices: CATALOGUE, speak });
         expect(voiceSelect(m).exists()).toBe(true);
         await listenButton(m).trigger('click');
         await flush();
@@ -742,24 +759,24 @@ describe('AssistantPanel', () => {
       it('the voice is chosen in the panel: the language’s two and the device’s, remembered by the device', async () => {
         const voice = deviceVoice();
         const speak = vi.fn(async () => MP3);
-        const m = await answered({ speak });
+        const m = await answered({ voices: CATALOGUE, speak });
         const select = voiceSelect(m);
         expect(prop(select.element, 'interface')).toBe('popover');
-        expect(prop(select.element, 'value')).toBe(XIMENA);
+        expect(prop(select.element, 'value')).toBe(LUCIA);
         expect(select.findAll('ion-select-option').map((option) => [prop(option.element, 'value'), option.text()])).toEqual([
-          [XIMENA, 'Ximena'],
-          [TRISTAN, 'Tristan'],
+          [LUCIA, 'Lucía'],
+          [MATEO, 'Mateo'],
           ['device', 'Voz del dispositivo'],
         ]);
 
-        await choose(m, TRISTAN);
-        expect(stored.getItem('erplora.assistant.voice.es')).toBe(TRISTAN);
+        await choose(m, MATEO);
+        expect(stored.getItem('erplora.assistant.voice.es')).toBe(MATEO);
         await listenButton(m).trigger('click');
         await flush();
         expect(speak).toHaveBeenLastCalledWith({
           text: 'Hoy has vendido 120 €.',
           language: 'es',
-          voice: TRISTAN,
+          voice: MATEO,
           signal: expect.any(AbortSignal),
         });
         FakeAudio.made[0].onended?.();
@@ -774,29 +791,29 @@ describe('AssistantPanel', () => {
       });
 
       it('the voice the device remembers is the one read in', async () => {
-        stored.setItem('erplora.assistant.voice.es', TRISTAN);
+        stored.setItem('erplora.assistant.voice.es', MATEO);
         const speak = vi.fn(async () => MP3);
-        const m = await answered({ speak });
-        expect(prop(voiceSelect(m).element, 'value')).toBe(TRISTAN);
+        const m = await answered({ voices: CATALOGUE, speak });
+        expect(prop(voiceSelect(m).element, 'value')).toBe(MATEO);
         await listenButton(m).trigger('click');
         await flush();
-        expect(speak).toHaveBeenCalledWith(expect.objectContaining({ voice: TRISTAN }));
+        expect(speak).toHaveBeenCalledWith(expect.objectContaining({ voice: MATEO }));
       });
 
       it('the screen changes language: the voices of the new one, and the choice kept for it', async () => {
         deviceVoice();
-        stored.setItem('erplora.assistant.voice.es', TRISTAN);
-        stored.setItem('erplora.assistant.voice.en', 'en-US-Andrew2:DragonHDLatestNeural');
+        stored.setItem('erplora.assistant.voice.es', MATEO);
+        stored.setItem('erplora.assistant.voice.en', 'en-noah');
         const speak = vi.fn(async () => MP3);
-        const m = await answered({ speak });
-        expect(prop(voiceSelect(m).element, 'value')).toBe(TRISTAN);
+        const m = await answered({ voices: CATALOGUE, speak });
+        expect(prop(voiceSelect(m).element, 'value')).toBe(MATEO);
         (m.wrapper.vm as unknown as { $i18n: { locale: string } }).$i18n.locale = 'en';
         await flush();
-        expect(voiceSelect(m).findAll('ion-select-option').map((option) => option.text())).toEqual(['Ava', 'Andrew', 'Device voice']);
-        expect(prop(voiceSelect(m).element, 'value')).toBe('en-US-Andrew2:DragonHDLatestNeural');
+        expect(voiceSelect(m).findAll('ion-select-option').map((option) => option.text())).toEqual(['Emma', 'Noah', 'Device voice']);
+        expect(prop(voiceSelect(m).element, 'value')).toBe('en-noah');
         await listenButton(m).trigger('click');
         await flush();
-        expect(speak).toHaveBeenCalledWith(expect.objectContaining({ language: 'en', voice: 'en-US-Andrew2:DragonHDLatestNeural' }));
+        expect(speak).toHaveBeenCalledWith(expect.objectContaining({ language: 'en', voice: 'en-noah' }));
       });
 
       it('the screen changes language while it reads: the reading stops, «Read aloud» again', async () => {
@@ -825,8 +842,31 @@ describe('AssistantPanel', () => {
 
       it('on a device that cannot read, no «Device voice» to choose', async () => {
         vi.stubGlobal('speechSynthesis', undefined);
-        const m = await answered({ speak: vi.fn(async () => MP3) });
-        expect(voiceSelect(m).findAll('ion-select-option').map((option) => option.text())).toEqual(['Ximena', 'Tristan']);
+        const m = await answered({ voices: CATALOGUE, speak: vi.fn(async () => MP3) });
+        expect(voiceSelect(m).findAll('ion-select-option').map((option) => option.text())).toEqual(['Lucía', 'Mateo']);
+      });
+
+      it('`speak` and no catalogue: nothing to choose, the server picks its voice, and the device reads when it refuses', async () => {
+        const voice = deviceVoice();
+        const speak = vi.fn(async () => {
+          throw new Error('assistant.speech_unavailable');
+        });
+        const m = await answered({ speak });
+        expect(voiceSelect(m).exists()).toBe(false);
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(speak).toHaveBeenCalledWith(expect.objectContaining({ text: 'Hoy has vendido 120 €.', language: 'es', voice: '' }));
+        expect(voice.speak).toHaveBeenCalledTimes(1);
+      });
+
+      it('`speak` and no catalogue: a choice kept on the device, which nobody could undo here, is not followed', async () => {
+        deviceVoice();
+        stored.setItem('erplora.assistant.voice.es', 'device');
+        const speak = vi.fn(async () => MP3);
+        const m = await answered({ speak });
+        await listenButton(m).trigger('click');
+        await flush();
+        expect(speak).toHaveBeenCalledWith(expect.objectContaining({ voice: '' }));
       });
 
       it('no choice of voice without a server voice, nor with «Read aloud» off', async () => {
@@ -834,7 +874,7 @@ describe('AssistantPanel', () => {
         const without = await answered();
         expect(voiceSelect(without).exists()).toBe(false);
         without.wrapper.unmount();
-        const off = await answered({ speak: vi.fn(async () => MP3), readAloud: false });
+        const off = await answered({ voices: CATALOGUE, speak: vi.fn(async () => MP3), readAloud: false });
         expect(voiceSelect(off).exists()).toBe(false);
         expect(off.wrapper.find('[data-testid="assistant-listen"]').exists()).toBe(false);
       });

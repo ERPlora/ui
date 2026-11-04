@@ -1,5 +1,5 @@
 // «Read aloud» of an answer (round 2026-11-03m): in the server's voice the person chose — the host's `speak` gives
-// its mp3 (Azure AI Speech), played from a `blob:` URL that is freed as soon as it ends, fails or is stopped —, else
+// its mp3, played from a `blob:` URL that is freed as soon as it ends, fails or is stopped —, else
 // in the device's own voice (`nativeVoice.ts`: the system's in the installed app, else the browser's): when the person
 // chose it, when the host has no server voice, or when the server or its audio fails before a word of it was heard
 // (never the whole answer again after a part). One reading at a time: a new one or «Stop reading» stops the one before
@@ -28,7 +28,7 @@ export interface ReadAloudDeps {
 }
 
 export interface ReadAloud {
-  /** Reads the text in `voice` (a catalogue id, or `DEVICE_VOICE`), stopping what was being read: it ends when the
+  /** Reads the text in `voice` (a catalogue id, empty for the server's own, or `DEVICE_VOICE`), stopping what was being read: it ends when the
    *  reading ends or is stopped, and fails when nothing could read it. Called in the click: the server's player is
    *  made and unlocked before anything is awaited. */
   read(text: string, language: AssistantLanguage, voice: string): Promise<void>;
