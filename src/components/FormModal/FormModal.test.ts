@@ -14,6 +14,7 @@ import { h, nextTick } from 'vue';
 import { createShellI18n } from '../../shell/i18n';
 import * as root from '../../index';
 import * as components from '../index';
+import { ApiError } from '../../sdk/errors';
 import FormModal from './FormModal.vue';
 import * as entry from './index';
 import type { IonModalStubApi } from './__tests__/ionModalStub';
@@ -416,6 +417,32 @@ describe('FormModal: the notice of a refusal by fields', () => {
     await wrapper.setProps({ open: true });
     await settle();
     expect(notice(wrapper).exists()).toBe(true);
+  });
+
+  it('a refusal of the whole form stays while the person types, alone or beside a field: nothing else says its reason', async () => {
+    const refusals: Record<string, string>[] = [
+      { __all__: 'The end cannot be before the start.' },
+      { __all__: 'The end cannot be before the start.', email: 'Not a valid email.' },
+    ];
+    for (const fields of refusals) {
+      const wrapper = mountModal({ error: { status: 422, code: 'invalid_payload', message: 'The end cannot be before the start.', fields } });
+      await settle();
+      await fire('email', typed());
+      expect(notice(wrapper).text()).toContain('The end cannot be before the start.');
+      wrapper.unmount();
+    }
+  });
+
+  it("comes back for another refusal of the SDK with other words, though its fields are the same", async () => {
+    const fields = { email: 'Not a valid email.' };
+    const wrapper = mountModal({ error: new ApiError(422, 'invalid_payload', 'Check the highlighted details.', fields) });
+    await settle();
+    await fire('email', typed());
+    expect(notice(wrapper).exists()).toBe(false);
+
+    await wrapper.setProps({ error: new ApiError(422, 'invalid_payload', 'That email is already in use.', fields) });
+    await settle();
+    expect(notice(wrapper).text()).toContain('That email is already in use.');
   });
 
   it('a refusal without fields stays while the person types: nothing else says it', async () => {

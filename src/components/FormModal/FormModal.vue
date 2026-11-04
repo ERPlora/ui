@@ -15,7 +15,8 @@
 //     the command's `error` (its message on top, its 422 `fields` to the slot as `fieldErrors`).
 //   - A refusal with `fields` says on top only «check the highlighted details»: that notice goes away
 //     as soon as something is changed and comes back if the next try is refused; each field keeps its
-//     own message. A refusal without `fields` stays until the next try: nothing else says it.
+//     own message. A refusal without `fields`, or of the whole form (`__all__`), stays until the next
+//     try: nothing else says it.
 //   - Cancel, the close button, Escape and the backdrop (`dismissOnBackdrop`) emit `cancel` and set
 //     `open` to false; closing from the page is not a cancel.
 //   - Enter in a single-line field submits; Escape cancels (not while pending). Only Save, Enter and
@@ -119,15 +120,26 @@ const cancelText = computed(() => props.cancelLabel ?? t('formModal.cancel'));
 const backdropDismiss = computed(() => props.dismissOnBackdrop && !props.pending);
 const fieldErrors = computed<Readonly<Record<string, string>>>(() => ({ ...(props.error?.fields ?? {}) }));
 /** Something was changed since the refusal: its notice has done its job. By value, not by object: a
- *  parent that re-renders the same refusal does not bring the notice back. */
+ *  parent that re-renders the same refusal does not bring the notice back. Named, because an
+ *  `ApiError`'s `message` is not enumerable and `JSON.stringify` would leave it out. */
 const edited = shallowRef(false);
 watch(
-  () => JSON.stringify(props.error ?? null),
+  () => {
+    const error = props.error;
+    return error ? JSON.stringify([error.status, error.code, error.message, error.fields]) : '';
+  },
   () => {
     edited.value = false;
   },
 );
-const showsError = computed(() => !!props.error && !(edited.value && Object.keys(fieldErrors.value).length > 0));
+/** The notice only repeats what the highlighted fields say; the reason of the whole form (`__all__`,
+ *  as in Django forms) is said nowhere else. */
+const NON_FIELD_ERRORS = '__all__';
+const onlyPointsAtFields = computed(() => {
+  const names = Object.keys(fieldErrors.value);
+  return names.length > 0 && !names.includes(NON_FIELD_ERRORS);
+});
+const showsError = computed(() => !!props.error && !(edited.value && onlyPointsAtFields.value));
 
 const hookPrefix = computed(() => props.testid?.trim() || undefined);
 const tid = (part?: string): string | undefined =>
