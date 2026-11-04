@@ -2,11 +2,24 @@
 // is not registered in `src/shell/icons.ts` paints NOTHING (no network for icons, by CSP), so a
 // template that names one must fail a test, not a till. `iconReferences` reads the icon names a
 // source spells out, `isRegisteredIcon` checks one, and `scanIcons` runs both over a tree of files.
+// `registerShellIcons` is the other half, for a test setup: the icons of a mounted component.
 // Node only (it reads the disk): import it from tests, never from app code.
 import { globSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { resolveIcon } from '../shell/icons';
+import { addIcons } from 'ionicons';
+
+import { ION_ICONS, resolveIcon } from '../shell/icons';
+
+/**
+ * What `createShell` does at boot, for the tests that mount without it: an `ion-icon` paints by name
+ * instead of warning with the whole element, which Vitest dumps by the thousand lines. Call it once
+ * from a `vitest.setup.ts`, which also runs before `@vitest-environment node` files. Idempotent; a
+ * no-op without a DOM.
+ */
+export function registerShellIcons(): void {
+  addIcons(ION_ICONS);
+}
 
 /** `HubIcon` names carry their set (`mdi:cart`); everywhere else a bare name is an Ionicons one. */
 export type IconKind = 'HubIcon' | 'icon';
