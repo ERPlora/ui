@@ -925,8 +925,10 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     const BOX = 56;
     const IONIC_MARGIN = 1;
     const LABEL_BOTTOM = 8;
-    const OUTLINED_TEXT = /ion-modal\.ep-form-modal ion-select\.select-fill-outline::part\(text\)\s*\{([^}]*)\}/;
-    const padding = (): number => Number(/padding-block:\s*([\d.]+)px;/.exec(OUTLINED_TEXT.exec(STYLE)?.[1] ?? '')?.[1] ?? 0);
+    // saas#272: the shared theme says it for every outlined select, those of a dialog with them, once.
+    const THEME = readFileSync(join(HERE, '../../shell/theme/polish.css'), 'utf8');
+    const OUTLINED_TEXT = /(?:^|\})\s*ion-select\.select-fill-outline::part\(text\)\s*\{([^}]*)\}/m;
+    const padding = (): number => Number(/padding-block:\s*([\d.]+)px;/.exec(OUTLINED_TEXT.exec(THEME)?.[1] ?? '')?.[1] ?? 0);
 
     it('three lines or more start clear of the label, where two lines start', () => {
       const twoLinesStartAt = IONIC_MARGIN + (BOX - IONIC_MARGIN - 2 * LINE) / 2;
@@ -937,6 +939,10 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
 
     it('one or two lines keep the height of any other field', () => {
       expect(IONIC_MARGIN + 2 * LINE + 2 * padding()).toBeLessThanOrEqual(BOX);
+    });
+
+    it('the dialog does not say it a second time', () => {
+      expect(STYLE).not.toMatch(/select-fill-outline/);
     });
 
     // Without `fill` the label takes its own line above the text and a compact select keeps its height.
