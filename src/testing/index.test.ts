@@ -18,6 +18,11 @@ describe('@erplora/ui/testing (helpers for the tests of this package and of the 
     expect(testing.isRegisteredIcon).toBe(icons.isRegisteredIcon);
   });
 
+  it('carries what an app’s test setup calls so `ion-icon` paints by name: registerShellIcons', () => {
+    expect(testing.registerShellIcons).toBeTypeOf('function');
+    expect(testing.registerShellIcons).toBe(icons.registerShellIcons);
+  });
+
   it('carries the accessible-name guardrail: unnamedIcons, unnamedButtons and bareIonIcons', () => {
     expect(testing.unnamedIcons).toBe(a11y.unnamedIcons);
     expect(testing.unnamedButtons).toBe(a11y.unnamedButtons);
