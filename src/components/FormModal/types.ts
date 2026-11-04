@@ -23,7 +23,8 @@ export interface FormModalError {
 
 /** Props of the default (fields) slot. */
 export interface FormModalFieldsSlotProps {
-  /** Per-field messages of the last error (`{}` without them): `:error-text="fieldErrors.email"`. */
+  /** Per-field messages of the last error (`{}` without them), but those of the fields the person has
+   *  changed since (ui#89): `:error-text="fieldErrors.email"`. */
   fieldErrors: Readonly<Record<string, string>>;
   pending: boolean;
 }
