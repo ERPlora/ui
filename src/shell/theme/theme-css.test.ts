@@ -437,7 +437,7 @@ describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA
 
 // hub#775. `ion-select-popover` paints in `ion-app`, out of reach of a form's own styles, and Ionic keeps the
 // `part="label"` of its `ion-radio` and `ion-checkbox` on one line ending in «…». happy-dom lays nothing out: the boxes
-// are measured by the Hub's e2e (tests/e2e/fix-ui-select-long-option-reads-whole.spec.ts) at 320, 375, 390 and 820.
+// are measured by the Hub's e2e (tests/e2e/fix-ui-select-long-option-reads-whole.spec.ts) and the panel's.
 describe('polish.css: the options of a dropdown', () => {
   const polish = plain(read('polish.css'));
 
