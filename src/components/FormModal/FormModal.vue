@@ -13,14 +13,19 @@
 //   - `submit` never closes it: the page closes it (`open = false`) when its command succeeds, and
 //     meanwhile passes `pending` (Save disabled with a spinner; nothing closes it) and, on failure,
 //     the command's `error` (its message on top, its 422 `fields` to the slot as `fieldErrors`).
+//   - A refusal with `fields` says on top only «check the highlighted details»: that notice goes away
+//     as soon as something is changed and comes back if the next try is refused; each field keeps its
+//     own message. A refusal without `fields`, or of the whole form (`__all__`), stays until the next
+//     try: nothing else says it.
 //   - Cancel, the close button, Escape and the backdrop (`dismissOnBackdrop`) emit `cancel` and set
 //     `open` to false; closing from the page is not a cancel.
 //   - Enter in a single-line field submits; Escape cancels (not while pending). Only Save, Enter and
 //     the footer slot's `submit` submit: the `<form>`'s own submit event is just prevented, so a
 //     native button in a custom footer (type submit by default) never submits twice, nor by mistake.
 //   - Focus: on opening, a `[data-autofocus]` field, else the first field, else Cancel (read only:
-//     Close) on its native button, so Enter presses it; on closing, back to what had it before (the
-//     button that opened it, its native button for an `ion-button`).
+//     Close) on its native button, so Enter presses it, unless the person is already in the form; on
+//     closing, back to what had it before (the button that opened it, its native button for an
+//     `ion-button`).
 //   - `readonly`: a window that only shows data (ui#62; Odoo, Shopify, Business Central) — the footer
 //     is a single «Close» that closes it as the header's does (`cancel`); nothing submits.
 //   - Named by its title: Ionic copies `aria-label` and `role` into its own `role="dialog"` (in its
@@ -35,6 +40,7 @@ import { computed, shallowRef, useId, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import HubIcon from '../../shell/HubIcon.vue';
+import { focusedElement } from '../focus';
 import { InlineFeedback } from '../InlineFeedback';
 import en from './locales/en.json';
 import es from './locales/es.json';
@@ -113,6 +119,27 @@ const submitText = computed(() => props.submitLabel ?? t('formModal.submit'));
 const cancelText = computed(() => props.cancelLabel ?? t('formModal.cancel'));
 const backdropDismiss = computed(() => props.dismissOnBackdrop && !props.pending);
 const fieldErrors = computed<Readonly<Record<string, string>>>(() => ({ ...(props.error?.fields ?? {}) }));
+/** Something was changed since the refusal: its notice has done its job. By value, not by object: a
+ *  parent that re-renders the same refusal does not bring the notice back. Named, because an
+ *  `ApiError`'s `message` is not enumerable and `JSON.stringify` would leave it out. */
+const edited = shallowRef(false);
+watch(
+  () => {
+    const error = props.error;
+    return error ? JSON.stringify([error.status, error.code, error.message, error.fields]) : '';
+  },
+  () => {
+    edited.value = false;
+  },
+);
+/** The notice only repeats what the highlighted fields say; the reason of the whole form (`__all__`,
+ *  as in Django forms) is said nowhere else. */
+const NON_FIELD_ERRORS = '__all__';
+const onlyPointsAtFields = computed(() => {
+  const names = Object.keys(fieldErrors.value);
+  return names.length > 0 && !names.includes(NON_FIELD_ERRORS);
+});
+const showsError = computed(() => !!props.error && !(edited.value && onlyPointsAtFields.value));
 
 const hookPrefix = computed(() => props.testid?.trim() || undefined);
 const tid = (part?: string): string | undefined =>
@@ -123,18 +150,11 @@ const presentation = shallowRef(0);
 /** What had the focus when the dialog opened: it gets it back on closing. */
 let returnFocusTo: HTMLElement | null = null;
 
-/** What really has the focus: `document.activeElement` stops at a shadow host (an `ion-button` is
- *  focused on the native button inside it), so go down the shadow roots to the element itself. */
-function focusedElement(): HTMLElement | null {
-  let active = document.activeElement;
-  while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
-  return active instanceof HTMLElement && active !== document.body ? active : null;
-}
-
 watch(
   open,
   (isOpen) => {
     if (!isOpen) return;
+    edited.value = false;
     returnFocusTo = focusedElement();
     presentation.value += 1;
   },
@@ -143,6 +163,7 @@ watch(
 
 function submit(): void {
   if (props.pending || props.submitDisabled || props.readonly) return;
+  edited.value = false;
   emit('submit');
 }
 
@@ -156,6 +177,25 @@ function cancel(): void {
 function onEscape(): void {
   if (props.pending || backdropDismiss.value) return;
   cancel();
+}
+
+/** A person changed a field. Typing bubbles up as a native `input` (scoped ion-input and ion-textarea
+ *  too, and a Combo's choice says it the same way); a search in a field's own popover or modal is not
+ *  a change of the form. */
+function onEdit(event: Event): void {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const overlay = target.closest('ion-popover, ion-modal');
+  if (overlay && form.value?.contains(overlay)) return;
+  edited.value = true;
+}
+
+/** ion-select, ion-toggle, ion-checkbox and the like only speak by `ionChange`. A text field's says on
+ *  blur what `input` already told: after Enter sent the form, leaving the field corrects nothing. */
+const TEXT_FIELDS = 'ion-input, ion-textarea, ion-searchbar';
+function onIonChange(event: Event): void {
+  if (event.target instanceof Element && event.target.matches(TEXT_FIELDS)) return;
+  onEdit(event);
 }
 
 /** Enter in a single-line field submits; a textarea, a button or an IME composition keep theirs, and
@@ -202,6 +242,9 @@ function focusElement(el: HTMLElement): void {
 function focusFirstField(): void {
   const root = form.value;
   if (!root) return;
+  // `didPresent` lands when the opening animation ends, and the fields already take the focus during
+  // it: whoever went to one is typing there, and moving them would drop their text in the first field.
+  if (root.contains(document.activeElement)) return;
   const marked = root.querySelector<HTMLElement>('[data-autofocus]');
   const field = marked ?? [...root.querySelectorAll<HTMLElement>(FIELDS)].find((el) => !isDisabled(el));
   const target = field ?? root.querySelector<HTMLElement>('.ep-form-modal__cancel, .ep-form-modal__done');
@@ -259,15 +302,17 @@ function focusFirstField(): void {
         :aria-busy="pending ? 'true' : undefined"
         @submit.prevent
         @keydown.enter="onEnter"
+        @input="onEdit"
+        @ionChange="onIonChange"
       >
         <div class="ep-form-modal__body ion-padding">
           <InlineFeedback
-            v-if="error"
+            v-if="showsError"
             class="ep-form-modal__error"
             tone="danger"
             :data-testid="tid('error')"
           >
-            {{ error.message }}
+            {{ error?.message }}
           </InlineFeedback>
           <slot
             :field-errors="fieldErrors"

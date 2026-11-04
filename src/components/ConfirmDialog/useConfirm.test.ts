@@ -6,12 +6,10 @@
 // One dialog is shared by the whole app (mounted on first use, with the app's context: i18n,
 // plugins); it closes and resolves `true` on confirm, `false` on cancel, Escape or the backdrop.
 import { mount, type VueWrapper } from '@vue/test-utils';
-import { addIcons } from 'ionicons';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { type Component, defineComponent, h, nextTick, shallowRef } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
-import { ION_ICONS } from '../../shell/icons';
 import { ionModalStubOf } from '../FormModal/__tests__/ionModalStub';
 import type { ConfirmOptions } from './types';
 import { useConfirm } from './useConfirm';
@@ -20,8 +18,6 @@ vi.mock('@ionic/vue', async (importOriginal) => {
   const { IonModalStub } = await import('../FormModal/__tests__/ionModalStub');
   return { ...(await importOriginal<typeof import('@ionic/vue')>()), IonModal: IonModalStub };
 });
-
-addIcons(ION_ICONS);
 
 type Confirm = (options: ConfirmOptions) => Promise<boolean>;
 

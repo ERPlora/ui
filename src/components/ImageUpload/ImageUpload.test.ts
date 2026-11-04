@@ -4,12 +4,10 @@
 // a spinner shows and the buttons wait; what it answers (`{ id, url }`) is the new `v-model`, and a
 // rejection paints its message.
 import { flushPromises, mount } from '@vue/test-utils';
-import { addIcons } from 'ionicons';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
-import { ION_ICONS } from '../../shell/icons';
 import ImageUpload from './ImageUpload.vue';
 import source from './ImageUpload.vue?raw';
 
@@ -19,9 +17,6 @@ type Image = { id: string; url: string };
 const LOGO: Image = { id: '0192f0c4-logo', url: '/media/website/logo.png' };
 const NEW: Image = { id: '0192f0c4-new', url: '/media/website/new.webp' };
 const MIB = 1024 * 1024;
-
-// What `createShell` does at boot: `ion:` icons paint by name from this registry.
-addIcons(ION_ICONS);
 
 function mountUpload(props: Record<string, unknown> = {}, locale = 'en') {
   return mount(ImageUpload, {
