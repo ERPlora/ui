@@ -8,12 +8,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { Window } from 'happy-dom';
-import { addIcons } from 'ionicons';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { h, nextTick } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
-import { ION_ICONS } from '../../shell/icons';
 import * as root from '../../index';
 import * as components from '../index';
 import FormModal from './FormModal.vue';
@@ -26,9 +24,6 @@ vi.mock('@ionic/vue', async (importOriginal) => {
 });
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-
-// What `createShell` does at boot: `ion:` icons paint by name from this registry.
-addIcons(ION_ICONS);
 
 type Props = InstanceType<typeof FormModal>['$props'];
 type Slots = Record<string, (props: Record<string, unknown>) => unknown>;
@@ -363,6 +358,30 @@ describe('FormModal: focus', () => {
     const wrapper = mountModal({}, { default: () => [h('p', 'Nothing to fill in')] });
     await settle();
     expect(reallyFocused(cancelButton(wrapper))).toBe(true);
+  });
+
+  // The dialog says it has opened about half a second after it shows, and by then a person may already
+  // be in another field (hub#700): what they type would land in the first one and theirs stay empty.
+  const opened = (wrapper: VueWrapper): void => {
+    wrapper.findComponent({ name: 'IonModal' }).vm.$emit('didPresent');
+  };
+
+  it('a person already in another field keeps it when the dialog ends opening', async () => {
+    const wrapper = mountModal({}, { default: () => [h('input', { 'data-testid': 'first' }), h('input', { 'data-testid': 'second' })] });
+    await settle();
+    byTestId('second')?.focus();
+    opened(wrapper);
+    await settle();
+    expect(document.activeElement).toBe(byTestId('second'));
+  });
+
+  it('a person already in another field keeps it over a `data-autofocus` one', async () => {
+    const wrapper = mountModal({}, { default: () => [h('input', { 'data-testid': 'a' }), h('input', { 'data-testid': 'b', 'data-autofocus': '' })] });
+    await settle();
+    byTestId('a')?.focus();
+    opened(wrapper);
+    await settle();
+    expect(document.activeElement).toBe(byTestId('a'));
   });
 
   it('on closing, gives the focus back to what opened it', async () => {

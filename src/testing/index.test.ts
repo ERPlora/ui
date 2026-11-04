@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import pkg from '../../package.json';
 import * as a11y from './a11y';
+import * as elementNames from './elementNames';
 import * as happyDom from './happyDom';
 import * as icons from './icons';
 import * as testing from './index';
@@ -18,6 +19,11 @@ describe('@erplora/ui/testing (helpers for the tests of this package and of the 
     expect(testing.isRegisteredIcon).toBe(icons.isRegisteredIcon);
   });
 
+  it('carries what an app’s test setup calls so `ion-icon` paints by name: registerShellIcons', () => {
+    expect(testing.registerShellIcons).toBeTypeOf('function');
+    expect(testing.registerShellIcons).toBe(icons.registerShellIcons);
+  });
+
   it('carries the accessible-name guardrail: unnamedIcons, unnamedButtons and bareIonIcons', () => {
     expect(testing.unnamedIcons).toBe(a11y.unnamedIcons);
     expect(testing.unnamedButtons).toBe(a11y.unnamedButtons);
@@ -26,6 +32,10 @@ describe('@erplora/ui/testing (helpers for the tests of this package and of the 
 
   it('carries the happy-dom gaps an app’s test setup fills for Ionic: fillHappyDomGaps', () => {
     expect(testing.fillHappyDomGaps).toBe(happyDom.fillHappyDomGaps);
+  });
+
+  it('carries what an app’s test setup calls so a failing assertion prints an Ionic element as HTML: nameElementClasses', () => {
+    expect(testing.nameElementClasses).toBe(elementNames.nameElementClasses);
   });
 
   it('carries the mails of a Django file backend: readMailCode, readPasswordResetLink, waitForMail, readMails', () => {
