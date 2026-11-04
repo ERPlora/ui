@@ -713,7 +713,7 @@ describe('AssistantPanel', () => {
 
       it('«Stop reading» stops the audio and frees it', async () => {
         const speak = vi.fn(async () => MP3);
-        const m = await answered({ voices: CATALOGUE, speak });
+        const m = await answered({ speak });
         await listenButton(m).trigger('click');
         await flush();
         await listenButton(m).trigger('click');
@@ -818,7 +818,7 @@ describe('AssistantPanel', () => {
 
       it('the screen changes language while it reads: the reading stops, «Read aloud» again', async () => {
         const speak = vi.fn(async () => MP3);
-        const m = await answered({ voices: CATALOGUE, speak });
+        const m = await answered({ speak });
         await listenButton(m).trigger('click');
         await flush();
         expect(listenButton(m).attributes('aria-pressed')).toBe('true');
@@ -832,7 +832,7 @@ describe('AssistantPanel', () => {
 
       it('the panel goes away while it reads (the person signs out): the reading stops', async () => {
         const speak = vi.fn(async () => MP3);
-        const m = await answered({ voices: CATALOGUE, speak });
+        const m = await answered({ speak });
         await listenButton(m).trigger('click');
         await flush();
         m.wrapper.unmount();

@@ -120,6 +120,14 @@ function reader(
   });
 }
 
+/** «Hola.» being read in a server voice, with what the test acts on. */
+function readingOfHola() {
+  const server = deferredSpeak();
+  const device = fakeDevice();
+  const read = reader({ speak: server.speak, device: device.reader });
+  return { server, device, read, reading: read.read('Hola.', 'es', LUCIA) };
+}
+
 describe('in the server’s voice', () => {
   it('asks the host for the text in the chosen voice and plays its audio; the reading ends when the audio does', async () => {
     const server = deferredSpeak();
@@ -208,10 +216,7 @@ describe('in the server’s voice', () => {
   });
 
   it('«Stop reading» while it plays: it stops, its audio is freed, the reading ends, the device is not asked', async () => {
-    const server = deferredSpeak();
-    const device = fakeDevice();
-    const read = reader({ speak: server.speak, device: device.reader });
-    const reading = read.read('Hola.', 'es', LUCIA);
+    const { server, device, read, reading } = readingOfHola();
     server.answer(MP3);
     await flushAll();
     read.stop();
@@ -236,10 +241,7 @@ describe('in the server’s voice', () => {
   });
 
   it('stopped before the audio arrives: the audio is never played and nothing is left behind', async () => {
-    const server = deferredSpeak();
-    const device = fakeDevice();
-    const read = reader({ speak: server.speak, device: device.reader });
-    const reading = read.read('Hola.', 'es', LUCIA);
+    const { server, device, read, reading } = readingOfHola();
     read.stop();
     server.answer(MP3);
     await expect(reading).resolves.toBeUndefined();
@@ -257,10 +259,7 @@ describe('the device’s voice as the fallback', () => {
     ['the audio cannot start (autoplay refused)', 'play'],
     ['the audio fails while it plays', 'media'],
   ])('%s: the device reads it, and the audio is freed', async (_, where) => {
-    const server = deferredSpeak();
-    const device = fakeDevice();
-    const read = reader({ speak: server.speak, device: device.reader });
-    const reading = read.read('Hola.', 'es', LUCIA);
+    const { server, device, read, reading } = readingOfHola();
     if (where === 'play') audios[0].play.mockRejectedValueOnce(new DOMException('not allowed', 'NotAllowedError'));
     if (where === 'speak') server.fail(new Error('assistant.speech.not_configured'));
     else server.answer(MP3);
