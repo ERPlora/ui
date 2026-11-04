@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../ConfirmDialog';
 import { configure, EMPLOYEE, flush, memoryStorage, mountAssistant, OWNER, PLAN_URL } from './__tests__/mount-assistant';
 import AssistantEmpty from './AssistantEmpty.vue';
 import AssistantPanel from './AssistantPanel.vue';
+import panelSource from './AssistantPanel.vue?raw';
 import AssistantReport from './AssistantReport.vue';
 import type { AssistantCard } from './card';
 import { type AssistantConfig, type AssistantSpeech, type AssistantUsage, configureAssistant } from './config';
@@ -173,6 +174,132 @@ describe('AssistantPanel', () => {
     expect(document.documentElement.classList.contains('assistant-docked')).toBe(false);
     await m.wrapper.get('[data-testid="assistant-veil"]').trigger('click');
     expect(assistant.state.open).toBe(false);
+  });
+
+  describe('the cursor when it opens (ui#86)', () => {
+    /** The button the person opened it with, holding the focus as the topbar's sparkles do. */
+    function opener(): HTMLButtonElement {
+      const button = document.createElement('button');
+      document.body.append(button);
+      button.focus();
+      return button;
+    }
+    /** The composer's native field, the one the keyboard writes in. */
+    const box = () => document.querySelector<HTMLTextAreaElement>('[data-testid="assistant-input"] textarea');
+
+    it('with a keyboard and a mouse, the cursor waits in «Write a message…», so typing writes there', async () => {
+      opener();
+      await panel();
+      expect(box()).not.toBeNull();
+      expect(document.activeElement).toBe(box());
+    });
+
+    it('on a touch screen the focus stays where it was, so the keyboard does not jump up', async () => {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: query === '(min-width: 768px)' || query === '(pointer: coarse)',
+        addEventListener() {},
+        removeEventListener() {},
+      }));
+      const button = opener();
+      await panel();
+      expect(box()).not.toBeNull();
+      expect(document.activeElement).toBe(button);
+    });
+
+    it('closed with Escape, the focus goes back to the button that opened it', async () => {
+      const button = opener();
+      await panel();
+      box()!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await flush();
+      expect(assistant.state.open).toBe(false);
+      expect(document.activeElement).toBe(button);
+    });
+
+    it('an Ionic button that opened it gets the focus back on its native button, as the topbar\'s sparkles (ui#73)', async () => {
+      const m = await panel({ open: false });
+      const sparkles = document.createElement('ion-button');
+      document.body.append(sparkles);
+      await flush();
+      const native = sparkles.shadowRoot?.querySelector<HTMLElement>('[part~="native"]');
+      expect(native).toBeTruthy();
+      native!.focus();
+      assistant.setOpen(true);
+      for (let i = 0; i < 3; i += 1) await flush();
+      expect(document.activeElement).toBe(box());
+      await m.wrapper.get('[data-testid="assistant-close"]').trigger('click');
+      await flush();
+      expect(document.activeElement).toBe(sparkles);
+      expect(sparkles.shadowRoot?.activeElement).toBe(native);
+    });
+
+    it('closed while the person works beside it, the focus stays where they are', async () => {
+      opener();
+      await panel();
+      const field = document.createElement('input');
+      document.body.append(field);
+      field.focus();
+      assistant.setOpen(false);
+      await flush();
+      expect(document.activeElement).toBe(field);
+    });
+
+    describe('its own style, as the browser cascades it', () => {
+      type Device = { settings: { device: { prefersReducedMotion: string } } };
+      const device = () => (window as unknown as { happyDOM: Device }).happyDOM.settings.device;
+      let style: HTMLStyleElement;
+
+      beforeEach(() => {
+        // The panel's rules, unscoped so they reach the painted panel without its scope attribute.
+        style = document.createElement('style');
+        style.textContent = /<style scoped>([\s\S]*?)<\/style>/.exec(panelSource)?.[1] ?? '';
+        document.head.append(style);
+      });
+
+      afterEach(() => {
+        style.remove();
+        device().prefersReducedMotion = 'no-preference';
+      });
+
+      /** How a change of `property` is transitioned on the element, in seconds (zeros: it is not). */
+      function transitionOf(element: Element, property: string): { duration: number; delay: number } {
+        const seconds = (time: string) => Number.parseFloat(time) / (time.endsWith('ms') ? 1000 : 1);
+        for (const item of getComputedStyle(element).transition.split(',')) {
+          const [name, ...rest] = item.trim().split(/\s+/);
+          if (name !== property && name !== 'all') continue;
+          const [duration = 0, delay = 0] = rest.filter((token) => /^-?[\d.]+m?s$/.test(token)).map(seconds);
+          return { duration, delay };
+        }
+        return { duration: 0, delay: 0 };
+      }
+
+      it('opening, it is visible from the first frame of its slide, so the box can take the cursor at once', async () => {
+        const m = await panel();
+        expect(getComputedStyle(aside(m).element).visibility).toBe('visible');
+        expect(transitionOf(aside(m).element, 'transform').duration).toBeGreaterThan(0);
+        expect(transitionOf(aside(m).element, 'visibility')).toEqual({ duration: 0, delay: 0 });
+      });
+
+      it('closing, it stays on screen while it slides out, and only then hides', async () => {
+        const m = await panel();
+        assistant.setOpen(false);
+        await flush();
+        const slide = transitionOf(aside(m).element, 'transform').duration;
+        expect(getComputedStyle(aside(m).element).visibility).toBe('hidden');
+        expect(slide).toBeGreaterThan(0);
+        expect(transitionOf(aside(m).element, 'visibility')).toEqual({ duration: 0, delay: slide });
+      });
+
+      it('with reduced motion, it opens and closes without moving', async () => {
+        device().prefersReducedMotion = 'reduce';
+        const m = await panel();
+        expect(transitionOf(aside(m).element, 'transform')).toEqual({ duration: 0, delay: 0 });
+        expect(transitionOf(aside(m).element, 'visibility')).toEqual({ duration: 0, delay: 0 });
+        assistant.setOpen(false);
+        await flush();
+        expect(transitionOf(aside(m).element, 'transform')).toEqual({ duration: 0, delay: 0 });
+        expect(transitionOf(aside(m).element, 'visibility')).toEqual({ duration: 0, delay: 0 });
+      });
+    });
   });
 
   it('reads the allowance once per opening, through the page\'s client, and from 80 % says what is left', async () => {

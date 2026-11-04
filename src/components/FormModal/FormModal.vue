@@ -13,6 +13,13 @@
 //   - `submit` never closes it: the page closes it (`open = false`) when its command succeeds, and
 //     meanwhile passes `pending` (Save disabled with a spinner; nothing closes it) and, on failure,
 //     the command's `error` (its message on top, its 422 `fields` to the slot as `fieldErrors`).
+//   - A refusal with `fields` says on top only «check the highlighted details»: that notice goes away
+//     as soon as something is changed and comes back if the next try is refused. Each field's message
+//     goes away as soon as that field is changed (typed or chosen; never on focus or blur), and the
+//     next refusal says them all again (ui#89; Odoo, WooCommerce, Shopify). FormModal tells the field
+//     by its `name` when it is a key of `fields` (as a Django form names its errors), else by the
+//     message it shows (`error-text`) when no other refused field has those words. A refusal without
+//     `fields`, or of the whole form (`__all__`), stays until the next try: nothing else says it.
 //   - Cancel, the close button, Escape and the backdrop (`dismissOnBackdrop`) emit `cancel` and set
 //     `open` to false; closing from the page is not a cancel.
 //   - Enter in a single-line field submits; Escape cancels (not while pending). Only Save, Enter and
@@ -36,6 +43,7 @@ import { computed, shallowRef, useId, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import HubIcon from '../../shell/HubIcon.vue';
+import { focusedElement } from '../focus';
 import { InlineFeedback } from '../InlineFeedback';
 import en from './locales/en.json';
 import es from './locales/es.json';
@@ -113,7 +121,37 @@ const form = useTemplateRef<HTMLFormElement>('form');
 const submitText = computed(() => props.submitLabel ?? t('formModal.submit'));
 const cancelText = computed(() => props.cancelLabel ?? t('formModal.cancel'));
 const backdropDismiss = computed(() => props.dismissOnBackdrop && !props.pending);
-const fieldErrors = computed<Readonly<Record<string, string>>>(() => ({ ...(props.error?.fields ?? {}) }));
+const refusedFields = computed<Readonly<Record<string, string>>>(() => props.error?.fields ?? {});
+/** Something was changed since the refusal: its notice has done its job. */
+const edited = shallowRef(false);
+/** The refused fields the person has changed since: their message has done its job too. */
+const corrected = shallowRef<ReadonlySet<string>>(new Set());
+/** What the fields still say: the refusal's messages but the corrected ones. */
+const fieldErrors = computed<Readonly<Record<string, string>>>(() =>
+  Object.fromEntries(Object.entries(refusedFields.value).filter(([name]) => !corrected.value.has(name))),
+);
+/** A new refusal, a new opening or a new try: every message is said again. */
+function sayItAllAgain(): void {
+  edited.value = false;
+  corrected.value = new Set();
+}
+// By value, not by object: a parent that re-renders the same refusal does not bring anything back.
+// Named, because an `ApiError`'s `message` is not enumerable and `JSON.stringify` would leave it out.
+watch(
+  () => {
+    const error = props.error;
+    return error ? JSON.stringify([error.status, error.code, error.message, error.fields]) : '';
+  },
+  sayItAllAgain,
+);
+/** The notice only repeats what the highlighted fields say; the reason of the whole form (`__all__`,
+ *  as in Django forms) is said nowhere else, and is no field: changing one never takes it away. */
+const NON_FIELD_ERRORS = '__all__';
+const onlyPointsAtFields = computed(() => {
+  const names = Object.keys(refusedFields.value);
+  return names.length > 0 && !names.includes(NON_FIELD_ERRORS);
+});
+const showsError = computed(() => !!props.error && !(edited.value && onlyPointsAtFields.value));
 
 const hookPrefix = computed(() => props.testid?.trim() || undefined);
 const tid = (part?: string): string | undefined =>
@@ -124,18 +162,11 @@ const presentation = shallowRef(0);
 /** What had the focus when the dialog opened: it gets it back on closing. */
 let returnFocusTo: HTMLElement | null = null;
 
-/** What really has the focus: `document.activeElement` stops at a shadow host (an `ion-button` is
- *  focused on the native button inside it), so go down the shadow roots to the element itself. */
-function focusedElement(): HTMLElement | null {
-  let active = document.activeElement;
-  while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
-  return active instanceof HTMLElement && active !== document.body ? active : null;
-}
-
 watch(
   open,
   (isOpen) => {
     if (!isOpen) return;
+    sayItAllAgain();
     returnFocusTo = focusedElement();
     presentation.value += 1;
   },
@@ -144,6 +175,7 @@ watch(
 
 function submit(): void {
   if (props.pending || props.submitDisabled || props.readonly) return;
+  sayItAllAgain();
   emit('submit');
 }
 
@@ -157,6 +189,65 @@ function cancel(): void {
 function onEscape(): void {
   if (props.pending || backdropDismiss.value) return;
   cancel();
+}
+
+/** A person changed a field. Typing bubbles up as a native `input` (scoped ion-input and ion-textarea
+ *  too, and a Combo's choice says it the same way); a search in a field's own popover or modal is not
+ *  a change of the form. */
+function onEdit(event: Event): void {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const overlay = target.closest('ion-popover, ion-modal');
+  if (overlay && form.value?.contains(overlay)) return;
+  edited.value = true;
+  const name = refusedFieldOf(target);
+  if (name) corrected.value = new Set([...corrected.value, name]);
+}
+
+/** The fields a page puts in the slot. Ionic's own say who they are on their host. */
+const FIELD_HOSTS = 'ion-input, ion-textarea, ion-select, ion-checkbox, ion-toggle, ion-radio-group, ion-range';
+type FieldHost = Element & { name?: unknown; errorText?: unknown };
+
+/** The refused field the person changed, or nothing when it cannot tell: by its own `name` when it
+ *  is a key of the refusal, else by the message it shows when no other refused field has those
+ *  words (two fields saying «Required.» are not told apart by guess). The keystroke lands on
+ *  Ionic's native input, inside its field; a Combo says its choice from its wrapper, around one. */
+function refusedFieldOf(target: Element): string | undefined {
+  const pending = Object.keys(fieldErrors.value).filter((name) => name !== NON_FIELD_ERRORS);
+  if (pending.length === 0) return undefined;
+  const inside = target.querySelectorAll(FIELD_HOSTS);
+  const candidates = [target.closest(FIELD_HOSTS), target, inside.length === 1 ? inside[0] : null];
+  for (const el of candidates) {
+    if (!el) continue;
+    const name = nameOf(el);
+    if (name && pending.includes(name)) return name;
+    const shown = shownMessageOf(el);
+    if (shown) {
+      const saying = pending.filter((key) => fieldErrors.value[key] === shown);
+      return saying.length === 1 ? saying[0] : undefined;
+    }
+  }
+  return undefined;
+}
+
+/** A native field's `name`, or an Ionic one's (it hands it to its native input). */
+function nameOf(el: Element): string | null {
+  const name = (el as FieldHost).name;
+  return typeof name === 'string' && name ? name : null;
+}
+
+/** What an Ionic field shows under it: Ionic Vue sets `error-text` as the element's property. */
+function shownMessageOf(el: Element): string | null {
+  const shown = (el as FieldHost).errorText;
+  return typeof shown === 'string' && shown ? shown : null;
+}
+
+/** ion-select, ion-toggle, ion-checkbox and the like only speak by `ionChange`. A text field's says on
+ *  blur what `input` already told: after Enter sent the form, leaving the field corrects nothing. */
+const TEXT_FIELDS = 'ion-input, ion-textarea, ion-searchbar';
+function onIonChange(event: Event): void {
+  if (event.target instanceof Element && event.target.matches(TEXT_FIELDS)) return;
+  onEdit(event);
 }
 
 /** Enter in a single-line field submits; a textarea, a button or an IME composition keep theirs, and
@@ -263,15 +354,17 @@ function focusFirstField(): void {
         :aria-busy="pending ? 'true' : undefined"
         @submit.prevent
         @keydown.enter="onEnter"
+        @input="onEdit"
+        @ionChange="onIonChange"
       >
         <div class="ep-form-modal__body ion-padding">
           <InlineFeedback
-            v-if="error"
+            v-if="showsError"
             class="ep-form-modal__error"
             tone="danger"
             :data-testid="tid('error')"
           >
-            {{ error.message }}
+            {{ error?.message }}
           </InlineFeedback>
           <slot
             :field-errors="fieldErrors"
@@ -393,6 +486,17 @@ ion-modal.ep-form-modal .ep-form-modal__footer ion-button {
 /* Cancel in the text colour, both themes (the mockups' neutral button). */
 ion-modal.ep-form-modal .ep-form-modal__cancel {
   --color: var(--ion-text-color);
+}
+/* What a select has chosen takes the lines it needs. On one line it sets the select's minimum width, and a form's
+   one-column grid grows to it, every field with it, past the dialog (hub#760, hub#784). */
+ion-modal.ep-form-modal ion-select::part(text) {
+  white-space: normal;
+}
+/* An outlined select floats its label over its top edge, 8px into the box, and centres the text in 56px: from three lines
+   the text fills the box and the label lies on it (ui#93). Every line count gets the room two lines have, (56 - 1 - 2 × 18) / 2:
+   one or two lines still fit in 56px, and with more the box grows. */
+ion-modal.ep-form-modal ion-select.select-fill-outline::part(text) {
+  padding-block: 9.5px;
 }
 
 /* Phone (R-29): a form is a sheet from the bottom as tall as its fields, up to 90vh, the fields

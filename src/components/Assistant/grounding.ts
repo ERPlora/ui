@@ -15,8 +15,13 @@
 //   («Created Café Triana on 3 November») and «it should now work» follows a step: neither claims. Neither form claims in
 //   a question («Changed your mind?»), when it says when a record was made («Creado el 3 de noviembre», «Updated 3 days
 //   ago»), how things stay («should now stay light») or after a step to try again («Please try again; it should now
-//   work»);
-// - `unread_id`: it writes an identifier (a UUID) that no tool of the turn returned and the person did not write;
+//   work»). What a source says is no claim (ui#92): in a sentence that names its source («según el BOE», «according to
+//   the AEAT», «el BOE publica que…», a web address) or in an answer that closes with its web sources (the gateway's own
+//   line under an answer built on its web search, ASSISTANT-F14), a change told with no one saying who made it («la ley
+//   se ha modificado», «the rules have been updated») is the source's news. The first person still claims there, and so
+//   does what the answer says of a write of the turn that did not go through;
+// - `unread_id`: it writes an identifier (a UUID) that no tool of the turn returned and the person did not write. One
+//   inside a web address is part of another site's page, no identifier of the business (ui#92);
 // - `unknown_screen`: it links a screen this app does not serve (BASE-G114: no «Go to» for it either).
 import { linkPaths, parseMarkdown } from './markdown';
 
@@ -93,6 +98,24 @@ const UNCHANGED = word(
   'still|unchanged|as before|as it was|the same|stays?|remains?|todav[ií]a|sigue|siguen|seguir|igual|como antes|como estaba|como est[aá]|sin cambios|quedarse|mantenerse',
 );
 const SAYS_DONE = /^[^\p{L}]*(?:listo|lista|listos|listas|hecho|hecha|hechos|hechas|done|all set)[^\p{L}]*$/iu;
+// A web address (`https://…`, `www.…`), bare, in a Markdown link or between «<» and «>»; it never ends in the
+// punctuation of the sentence around it («(https://boe.es/doc).»). Read as one character (`ADDRESS`): its dots and
+// question marks end no sentence.
+const WEB_ADDRESS = /(?:\bhttps?:\/\/|\bwww\.)[^\s<>()[\]{}"'«»“”‘’]*[^\s<>()[\]{}"'«»“”‘’.,;:!?…]/giu;
+const ADDRESS = '\uE000';
+// A sentence that names where what it says comes from: «según», «de acuerdo con», «el BOE publica que», «according to»,
+// «the AEAT says». An English reporting verb that is also a noun («the notes have been saved») takes «that».
+const ATTRIBUTION = word(
+  'seg[uú]n|de acuerdo con|conforme a|(?:publica|informa|recoge|indica|explica|dice|señala|anuncia|afirma|establece)(?:\\s+de)?\\s+que|according to|as (?:reported|published|stated) (?:by|in)|says|(?:reports|states|explains|announced|announces|published|publishes|indicates)\\s+that',
+);
+// A line of the sources an answer closes with: one web address, alone, in a list, as a Markdown link, between «<» and
+// «>» or after «Fuentes:» / «Sources:».
+const SOURCE_LINE = /^\s*(?:(?:[-*+•]|\d+[.)])\s+)?(?:[*_]*(?:fuentes?|sources?)[*_]*\s*:[*_]*\s*)?(?:\[[^\]\n]*\]\(|<)?\uE000[)>]?[\s*_]*$/iu;
+
+/** Whether `text` (its web addresses read as `ADDRESS`) closes with the web address of a source. */
+function closesWithSources(text: string): boolean {
+  return SOURCE_LINE.test(text.trimEnd().split('\n').at(-1) ?? '');
+}
 
 /** Where `patterns` hit in `clause`, with no negation before the verb: the text before the hit, or null. */
 function hit(patterns: RegExp[], clause: string): string | null {
@@ -123,14 +146,18 @@ function expectsEffect(clause: string): boolean {
  * the turn was tried and did not go through.
  */
 function claimsChange(answer: string, tried: boolean): boolean {
+  const text = answer.replace(WEB_ADDRESS, ADDRESS);
+  const sourced = closesWithSources(text);
   let saidDone = false;
   let stepBefore = false;
   let at = 0;
-  for (const sentence of answer.split(SENTENCE)) {
+  for (const sentence of text.split(SENTENCE)) {
     // A question («Changed your mind?») tells nothing as done: the sentence ends at the one character after it.
-    const asked = answer.charAt(at + sentence.length) === '?';
+    const asked = text.charAt(at + sentence.length) === '?';
     at += sentence.length + 1;
     if (sentence.trim() === '') continue;
+    // What a source says: a change told with no one saying who made it is its news, not the assistant's.
+    const news = sourced || sentence.includes(ADDRESS) || ATTRIBUTION.test(sentence);
     let instructed = false;
     let supposed = false;
     let done = saidDone;
@@ -138,9 +165,11 @@ function claimsChange(answer: string, tried: boolean): boolean {
       if (hit(OWN, clause) !== null) return true;
       instructed ||= INSTRUCTION.test(clause);
       const reported = hit(DONE, clause);
-      if (reported !== null && !instructed && !supposed && !SUPPOSITION.test(reported)) return true;
+      if (reported !== null && !news && !instructed && !supposed && !SUPPOSITION.test(reported)) return true;
       const state = hit(STATE, clause);
-      if (state !== null && !instructed && !supposed && !SUPPOSITION.test(state) && (done || NOW.test(state))) return true;
+      if (state !== null && !news && !instructed && !supposed && !SUPPOSITION.test(state) && (done || NOW.test(state))) {
+        return true;
+      }
       if (tried && !asked && !instructed && !supposed && (headline(clause) || (!stepBefore && expectsEffect(clause)))) return true;
       supposed ||= SUPPOSITION.test(clause);
       done ||= SAYS_DONE.test(clause);
@@ -166,7 +195,7 @@ export function groundingNotices(input: {
   const tried = input.executed.some((row) => row.kind === 'command');
   if (!wrote && claimsChange(input.answer, tried)) found.push('claimed_change');
   const read = `${input.results.join('\n')}\n${input.question}`.toLowerCase();
-  const ids = input.answer.match(UUID) ?? [];
+  const ids = input.answer.replace(WEB_ADDRESS, ' ').match(UUID) ?? [];
   if (ids.some((id) => !read.includes(id.toLowerCase()))) found.push('unread_id');
   if (linkPaths(parseMarkdown(input.answer)).some((path) => !input.screenExists(path))) found.push('unknown_screen');
   return found;
