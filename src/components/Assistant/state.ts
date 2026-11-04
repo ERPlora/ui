@@ -366,7 +366,8 @@ export function createAssistant(deps: AssistantDeps) {
 
 export type Assistant = ReturnType<typeof createAssistant>;
 
-function browserStorage(name: 'sessionStorage' | 'localStorage'): Storage | undefined {
+/** The browser's storage, where it can be reached (never in a page that blocks it). */
+export function browserStorage(name: 'sessionStorage' | 'localStorage'): Storage | undefined {
   try {
     return globalThis[name];
   } catch {

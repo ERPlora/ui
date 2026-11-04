@@ -15,6 +15,11 @@
     "transcribing": "Transcribiendo…",
     "listen": "Leer en voz alta",
     "stopListening": "Dejar de leer",
+    "speech": {
+      "voice": "Voz",
+      "device": "Voz del dispositivo",
+      "failed": "No se ha podido leer la respuesta en voz alta. Inténtalo de nuevo."
+    },
     "noAnswer": "(sin respuesta)",
     "stopped": "Detenido.",
     "writing": "El asistente está escribiendo",

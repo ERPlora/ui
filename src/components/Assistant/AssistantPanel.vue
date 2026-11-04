@@ -13,13 +13,19 @@
 //   count them), and the composer (BASE-G111, G112).
 // - Over everything, even with the panel closed: the card of a write (BASE-G115, G116, G119); the report (BASE-G123),
 //   for a host that takes reports.
-// «Read aloud» uses the device's own voice; the conversation is this person's (BASE-G120: `forUser`).
-import { IonButton } from '@ionic/vue';
+// «Read aloud» (round 2026-11-03m) reads in the server voice the person chooses in the head (the host's `speak`; the
+// language's two and the device's, remembered by the device per language), else in the device's own voice, and says
+// so under the answer when neither could; the conversation is this person's (BASE-G120: `forUser`). The device's voice
+// is the system's in the installed app, else the browser's (round 2026-11-04a, `nativeVoice.ts`): in the Android app,
+// whose webview has none of its own, it is offered once the app says it has a voice for the language, which it is
+// first asked when the panel opens.
+import { IonButton, IonSelect, IonSelectOption } from '@ionic/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import { useLiveClient } from '../../sdk/live-client';
+import { nativeBridge } from '../../shell/device-notices';
 import HubIcon from '../../shell/HubIcon.vue';
 import { NOT_FOUND_ROUTE } from '../../shell/router';
 import { useSession } from '../../shell/session';
@@ -30,10 +36,14 @@ import AssistantEmpty from './AssistantEmpty.vue';
 import AssistantMessage from './AssistantMessage.vue';
 import AssistantReport from './AssistantReport.vue';
 import { assistantConfig, spentNoteKeyOf } from './config';
+import { createDeviceReader, deviceEnv } from './deviceVoice';
 import { screenLabel, usageNote } from './guide';
 import type { Bubble } from './history';
 import { parseMarkdown, spokenText } from './markdown';
-import { useAssistant } from './state';
+import { createDeviceVoice } from './nativeVoice';
+import { browserAudio, createReadAloud } from './readAloud';
+import { browserStorage, useAssistant } from './state';
+import { DEVICE_VOICE, languageOf, readVoiceChoice, saveVoiceChoice, voicesFor } from './voices';
 
 defineSlots<{
   /** The host's empty conversation: `setup` when the panel was opened for the setup; `ask` sends a question. */
@@ -220,30 +230,97 @@ function signIn(): void {
   window.location.reload();
 }
 
-// ── Read aloud (the device's voice; a host that turns it off never touches it) ──
+// ── Read aloud (the server voice the person chose, else the device's; a host that turns it off touches neither) ──
 
-const voice = config.readAloud !== false
-  && typeof globalThis.speechSynthesis === 'object'
-  && typeof globalThis.SpeechSynthesisUtterance === 'function'
-  ? globalThis.speechSynthesis
+const readAloud = config.readAloud !== false;
+const browserVoice = readAloud ? deviceEnv() : null;
+const deviceReader = readAloud
+  ? createDeviceVoice({
+      invoke: nativeBridge()?.invoke ?? null,
+      browser: browserVoice ? createDeviceReader(browserVoice) : null,
+    })
   : null;
+const reader = readAloud && (config.speak || deviceReader)
+  ? createReadAloud({ speak: config.speak, device: deviceReader, audio: browserAudio() })
+  : null;
+/** Whether the device reads the language aloud: at once with the browser's voice; with only the app's, once it says
+ *  so for the language. */
+const deviceReads = ref(deviceReader?.browser ?? false);
+/** «Read aloud» under the answers: a server voice, or the device's for the language. */
+const canSpeak = computed(() => reader !== null && (Boolean(config.speak) || deviceReads.value));
+/** The answer whose «Read aloud» failed: said under it until the next. */
+const failedRead = ref<string | null>(null);
+
+const voiceStorage = browserStorage('localStorage');
+const language = computed(() => languageOf(locale.value));
+const voiceChoice = ref(DEVICE_VOICE);
+watch(
+  language,
+  (current, previous) => {
+    voiceChoice.value = readVoiceChoice(voiceStorage, current, { device: deviceReads.value });
+    // A new language: what was being read in the old one stops.
+    if (previous !== undefined && speaking.value) {
+      reader?.stop();
+      speaking.value = null;
+    }
+  },
+  { immediate: true },
+);
+
+// Only the app's voice: asked, with the panel open, whether it reads the language; the choice kept for it is read again
+// once it does.
+watch(
+  [() => state.open, language],
+  ([open, current]) => {
+    if (!open || !deviceReader || deviceReader.browser) return;
+    void deviceReader.canRead(current).then((reads) => {
+      if (language.value === current) deviceReads.value = reads;
+    });
+  },
+  { immediate: true },
+);
+watch(deviceReads, (reads) => {
+  voiceChoice.value = readVoiceChoice(voiceStorage, language.value, { device: reads });
+});
+
+/** What the person may choose: the language's server voices and the device's, where it can read; nothing to choose
+ *  without a server voice. */
+const voiceOptions = computed(() =>
+  reader && config.speak
+    ? [
+        ...voicesFor(language.value).map((voice) => ({ id: voice.id, label: voice.name })),
+        ...(deviceReads.value ? [{ id: DEVICE_VOICE, label: t('assistant.speech.device') }] : []),
+      ]
+    : [],
+);
+
+function chooseVoice(event: CustomEvent<{ value?: unknown }>): void {
+  const choice = String(event.detail.value ?? '');
+  if (!voiceOptions.value.some((option) => option.id === choice)) return;
+  voiceChoice.value = choice;
+  saveVoiceChoice(voiceStorage, language.value, choice);
+}
 
 function listen(bubble: Bubble): void {
-  if (!voice) return;
-  voice.cancel();
+  if (!reader) return;
+  failedRead.value = null;
   if (speaking.value === bubble.id) {
+    reader.stop();
     speaking.value = null;
     return;
   }
-  const utterance = new SpeechSynthesisUtterance(spokenText(parseMarkdown(bubble.text), nameOf));
-  utterance.lang = locale.value;
-  const done = () => {
-    if (speaking.value === bubble.id) speaking.value = null;
-  };
-  utterance.onend = done;
-  utterance.onerror = done;
   speaking.value = bubble.id;
-  voice.speak(utterance);
+  reader.read(spokenText(parseMarkdown(bubble.text), nameOf), language.value, voiceChoice.value).then(
+    () => {
+      if (speaking.value === bubble.id) speaking.value = null;
+    },
+    (error: unknown) => {
+      console.warn('assistant: the answer could not be read aloud', error);
+      if (speaking.value !== bubble.id) return;
+      speaking.value = null;
+      failedRead.value = bubble.id;
+    },
+  );
 }
 
 onBeforeUnmount(() => {
@@ -252,7 +329,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('offline', onConnection);
   document.removeEventListener('keydown', onKeydown);
   document.documentElement.classList.remove(DOCKED_CLASS);
-  if (speaking.value) voice?.cancel();
+  if (speaking.value) reader?.stop();
 });
 </script>
 
@@ -282,6 +359,23 @@ onBeforeUnmount(() => {
           />
           {{ t('assistant.title') }}
         </h2>
+        <ion-select
+          v-if="voiceOptions.length"
+          class="assistant-voice"
+          data-testid="assistant-voice"
+          interface="popover"
+          :aria-label="t('assistant.speech.voice')"
+          :value="voiceChoice"
+          @ion-change="chooseVoice"
+        >
+          <ion-select-option
+            v-for="option in voiceOptions"
+            :key="option.id"
+            :value="option.id"
+          >
+            {{ option.label }}
+          </ion-select-option>
+        </ion-select>
         <ion-button
           v-if="state.thread.bubbles.length"
           fill="clear"
@@ -337,9 +431,10 @@ onBeforeUnmount(() => {
           :app-name-of="appNameOf"
           :can-upgrade="canUpgrade"
           :plan-url="planUrl"
-          :can-speak="voice !== null"
+          :can-speak="canSpeak"
           :can-report="canReport"
           :speaking="speaking === bubble.id"
+          :listen-failed="failedRead === bubble.id"
           @go="go"
           @retry="assistant.retry()"
           @new-conversation="assistant.newConversation()"
@@ -467,6 +562,15 @@ onBeforeUnmount(() => {
 .assistant-title-icon {
   flex: none;
   color: var(--ion-color-primary);
+}
+.assistant-voice {
+  flex: none;
+  max-width: 10rem;
+  min-height: 36px;
+  font-size: 0.875rem;
+  color: var(--ion-color-medium-shade, #5f6368);
+  --padding-start: 8px;
+  --padding-end: 4px;
 }
 .assistant-thread {
   flex: 1 1 auto;
