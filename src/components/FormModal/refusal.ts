@@ -1,10 +1,9 @@
 // useRefusal — what a refused form still says while the person corrects it: FormModal's rule (ui#88,
 // ui#89; Odoo, WooCommerce, Shopify), for any form, a page's included (hub#821).
 //   const { run, error } = useCommand('app.settings.update');
-//   const { fieldErrors, showsError, changed, sayItAllAgain } = useRefusal(error);
+//   const { fieldErrors, showsError, changed } = useRefusal(error);
 //   <InlineFeedback v-if="showsError" …>{{ error?.message }}</InlineFeedback>
 //   <ion-input :error-text="fieldErrors.email" @ion-input="email = …; changed('email')" />
-//   async function save() { sayItAllAgain(); await run(…) }
 // Contract:
 //   - A refusal with `fields` says on top only «check the highlighted details»: `showsError` goes false
 //     as soon as something is changed (`changed()`) and comes back with the next refusal or try.
@@ -13,8 +12,9 @@
 //   - A refusal without `fields`, or of the whole form (`__all__`, as Django forms name it), stays until
 //     the next try: nothing else says it, and changing a field never takes it away.
 //   - A refusal is told by its value, not by its object: a parent that hands the same refusal again
-//     does not bring back what was corrected. So a new try must say it (`sayItAllAgain()`) when it
-//     may be refused with the very same words.
+//     does not bring back what was corrected. `useCommand` empties its `error` on each try, so the next
+//     refusal is always new; an error that stays put between tries (a parent's prop, as FormModal's)
+//     needs the try said (`sayItAllAgain()`).
 import { computed, shallowRef, toValue, watch, type ComputedRef, type MaybeRefOrGetter } from 'vue';
 
 import type { FormModalError } from './types';
