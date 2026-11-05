@@ -123,6 +123,12 @@ describe('useSettingsForm', () => {
     expect(form.changes.value).toEqual({ default_duration: '4.5' });
   });
 
+  it('a whole number typed with edge spaces goes as a number', () => {
+    const { form } = service();
+    form.set('default_duration', ' 45 ');
+    expect(form.changes.value).toEqual({ default_duration: 45 });
+  });
+
   it('a text goes without its edge spaces, and one typed back to what is saved is not sent', () => {
     const { form } = service();
     form.set('page_title', '  Book now ');
@@ -177,6 +183,13 @@ describe('useSettingsForm', () => {
     await nextTick();
     expect(form.form.value?.default_duration).toBe('30');
     expect(form.form.value?.page_title).toBe('Theirs');
+  });
+
+  it('after a save the form shows what the server kept, not what was typed', async () => {
+    const { form } = service(async () => ({ ...SAVED, page_title: 'Book now' }));
+    form.set('page_title', '  Book now ');
+    await form.save();
+    expect(form.form.value?.page_title).toBe('Book now');
   });
 
   it('a change after a save says nothing is saved yet', async () => {
@@ -388,6 +401,26 @@ describe('useSettingsForm', () => {
       form.set('auto_close_after_hours', '0');
       await form.save();
       expect(form.fieldErrors.value).toEqual({ require_location: 'Not allowed.', auto_close_after_hours: 'Between 1 and 24 hours.' });
+    });
+
+    it('on a field the server refused too, what the screen judges now is what it says', async () => {
+      const { form, error } = clock();
+      form.set('auto_close_after_hours', '30');
+      error.value = { code: 'invalid_payload', message: 'Check.', status: 422, fields: { auto_close_after_hours: 'Too many.' } };
+      await nextTick();
+      await form.save();
+      expect(form.fieldErrors.value).toEqual({ auto_close_after_hours: 'Between 1 and 24 hours.' });
+    });
+
+    it('a judged field the server names otherwise says it under its name there, until it is fixed', async () => {
+      const judging = { ...SERVICE, judge: (form: ServiceForm) => (form.tax ? null : { tax: 'Choose a tax.' }) };
+      const { form, command } = setup<ServiceOut, ServiceForm, ServiceIn>(judging, SAVED);
+      form.set('tax', null);
+      await form.save();
+      expect(command.run).not.toHaveBeenCalled();
+      expect(form.fieldErrors.value).toEqual({ default_tax_category_key: 'Choose a tax.' });
+      form.set('tax', { id: 'reduced', label: 'Reduced VAT' });
+      expect(form.fieldErrors.value).toEqual({});
     });
 
     it('a new try judges again: what was judged and is fine now goes', async () => {
