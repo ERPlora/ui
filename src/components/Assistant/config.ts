@@ -89,7 +89,8 @@ export interface AssistantConfig {
   /** The page where the plan is upgraded. */
   planUrl?: () => string;
   /** Takes the click of «Upgrade plan», inside the click: the host may stop the link (`preventDefault`) and open it its
-   *  own way (the Hub, with a pass that signs in). When it leaves the click alone, or without it, the link opens `planUrl`. */
+   *  own way (the Hub, with a pass that signs in). When it leaves the click alone, or without it, the link opens `planUrl`.
+   *  A failure goes to the app's error handler; a host that already stopped the link still has to open something. */
   openPlan?: (client: LiveClient, event: Event) => void;
   /** The key of the verb of a write, by its operation (`<app>.<entity>.<action>`); «Do this» when not given. */
   verbKey?: (operation: string) => string;

@@ -433,6 +433,63 @@ describe('AssistantPanel', () => {
       await flush();
       expectPlainLink(m.wrapper.get('[data-testid="assistant-upgrade"]').element);
     });
+
+    describe.each([
+      {
+        where: "the foot's link",
+        async mountWith(openPlan: AssistantConfig['openPlan']) {
+          const m = await panel({ usage: { ...USAGE, used: 0, limit: 0 }, config: { openPlan } });
+          return { m, link: m.wrapper.get('[data-testid="assistant-no-plan-upgrade"]').element };
+        },
+      },
+      {
+        where: "the answer's link",
+        async mountWith(openPlan: AssistantConfig['openPlan']) {
+          script.push([{ type: 'error', code: 'assistant.quota_exceeded', used: 30, limit: 30, resets_at: '2026-11-01T00:00:00Z', demo: false }]);
+          const m = await panel({ usage: { ...USAGE, used: 25 }, config: { openPlan } });
+          await assistant.ask('Hola');
+          await flush();
+          return { m, link: m.wrapper.get('[data-testid="assistant-upgrade"]').element };
+        },
+      },
+    ])('$where', ({ mountWith }) => {
+      /** What the app's error handler hears: where a failure in the click goes (the Hub reports it). */
+      function failuresOf(m: Awaited<ReturnType<typeof panel>>): unknown[] {
+        const failures: unknown[] = [];
+        m.wrapper.getCurrentComponent().appContext.config.errorHandler = (error) => {
+          failures.push(error);
+        };
+        return failures;
+      }
+
+      it('a host that leaves the click alone (the Hub, when the browser blocks its tab): the link still opens by itself', async () => {
+        const openPlan = vi.fn<NonNullable<AssistantConfig['openPlan']>>();
+        const { link } = await mountWith(openPlan);
+        expectPlainLink(link);
+        expect(openPlan).toHaveBeenCalledTimes(1);
+      });
+
+      it('a host that fails in the click: the link still opens by itself, and the error reaches the app', async () => {
+        const failure = new Error('the host failed');
+        const { m, link } = await mountWith(() => {
+          throw failure;
+        });
+        const failures = failuresOf(m);
+        expectPlainLink(link);
+        expect(failures).toEqual([failure]);
+      });
+
+      it('a host that rejects after the click: the error reaches the app, not swallowed', async () => {
+        const failure = new Error('the host rejected');
+        const { m, link } = await mountWith(async () => {
+          throw failure;
+        });
+        const failures = failuresOf(m);
+        click(link);
+        await flush();
+        expect(failures).toEqual([failure]);
+      });
+    });
   });
 
   it("without the assistant and nobody who may upgrade: the host's own line under it, when it gives one (ui#49)", async () => {
