@@ -23,6 +23,8 @@
 //   - A refused field nothing in the form says (no field painting its message, no text with its words)
 //     has its reason said on top until that field is changed or the next try (hub#833): a window with
 //     no marks cannot promise them, so an `invalid_payload` that marks nothing shows only those reasons.
+//   - A refusal that lands brings the first marked field, else the banner, into view: a person at the
+//     bottom of a long form would otherwise see nothing happen (hub#833).
 //   - Cancel, the close button, Escape and the backdrop (`dismissOnBackdrop`) emit `cancel` and set
 //     `open` to false; closing from the page is not a cancel.
 //   - Enter in a single-line field submits; Escape cancels (not while pending). Only Save, Enter and
@@ -157,7 +159,10 @@ watch(
     const error = props.error;
     return error ? JSON.stringify([error.status, error.code, error.message, error.fields]) : '';
   },
-  sayItAllAgain,
+  (refusal) => {
+    sayItAllAgain();
+    if (refusal) void nextTick(bringRefusalIntoView);
+  },
 );
 /** The notice only repeats what the highlighted fields say; the reason of the whole form (`__all__`,
  *  as in Django forms) is said nowhere else, and is no field: changing one never takes it away. */
@@ -290,6 +295,14 @@ function isSaid(root: Element, reason: string): boolean {
     (el) => el.matches(PAINTS_ITS_MESSAGE) && shownMessageOf(el) === reason,
   );
   return painted || writes(root, reason);
+}
+
+/** The person may have scrolled past what the refusal says (a long form on a phone, Save at its bottom),
+ *  and then it looks as if nothing happened: the first marked field, else the banner, comes into view. */
+function bringRefusalIntoView(): void {
+  const root = body.value;
+  const first = root?.querySelector(PAINTS_ITS_MESSAGE) ?? root?.querySelector('.ep-form-modal__error');
+  first?.scrollIntoView({ block: 'nearest' });
 }
 
 /** Runs once the refusal has painted, so it reads what the person sees. A closed dialog reads nothing:

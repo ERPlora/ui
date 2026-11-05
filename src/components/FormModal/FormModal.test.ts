@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { Window } from 'happy-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IonInput, IonSelect, IonTextarea } from '@ionic/vue';
 import { h, nextTick } from 'vue';
 
@@ -881,6 +881,56 @@ describe('FormModal: a refused field that nothing in the form says (hub#833)', (
     expect(banner(wrapper).text()).toContain(reason);
     await type('label');
     expect(banner(wrapper).text()).toContain(reason);
+  });
+});
+
+describe('FormModal: a refusal lands where the person is (hub#833)', () => {
+  // On a phone a long form scrolls, and the person who pressed Save is at its bottom: what the refusal says
+  // is above them, and it looks as if nothing happened.
+  const REFUSED = { status: 422, code: 'invalid_payload', message: 'Check the highlighted details.', fields: { email: 'Not a valid email.' } };
+  const scrolled: Element[] = [];
+  let spy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    scrolled.length = 0;
+    spy = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(function (this: Element) {
+      scrolled.push(this);
+    });
+  });
+  afterEach(() => spy.mockRestore());
+  const marked = (id: string, message: string | undefined, extra: Record<string, unknown> = {}) =>
+    h(IonInput as never, { 'data-testid': id, label: id, errorText: message, class: { 'ion-invalid': !!message, 'ion-touched': !!message }, ...extra });
+  const mountFields = (fields: (errors: Readonly<Record<string, string>>) => unknown[]): VueWrapper =>
+    mountModal({ error: null }, { default: (props) => fields(props.fieldErrors as Readonly<Record<string, string>>) });
+
+  it('brings the first marked field into view, without moving what is already seen', async () => {
+    const wrapper = mountFields((errors) => [marked('name', errors.name), marked('email', errors.email), marked('phone', errors.phone)]);
+    await settle();
+    await wrapper.setProps({ error: { ...REFUSED, fields: { email: 'Not a valid email.', phone: 'Not a phone.' } } });
+    await settle();
+    expect(scrolled).toEqual([byTestId('email')]);
+    expect(spy).toHaveBeenCalledWith({ block: 'nearest' });
+  });
+
+  it('with nothing marked, brings the banner, which says why', async () => {
+    const wrapper = mountFields(() => [marked('name', undefined)]);
+    await settle();
+    await wrapper.setProps({ error: { status: 409, code: 'conflict', message: 'Someone else changed it.' } });
+    await settle();
+    expect(scrolled).toEqual([wrapper.get('.ep-form-modal__error').element]);
+  });
+
+  it('moves nothing without a refusal, when one goes away, or when the same one is re-rendered', async () => {
+    const wrapper = mountFields((errors) => [marked('email', errors.email)]);
+    await settle();
+    expect(scrolled).toEqual([]);
+    await wrapper.setProps({ error: REFUSED });
+    await settle();
+    scrolled.length = 0;
+    await wrapper.setProps({ error: { ...REFUSED, fields: { ...REFUSED.fields } } });
+    await settle();
+    await wrapper.setProps({ error: null });
+    await settle();
+    expect(scrolled).toEqual([]);
   });
 });
 
