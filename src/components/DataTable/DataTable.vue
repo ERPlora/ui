@@ -2259,9 +2259,10 @@ onUpdated(nameSearchBox);
 /* FIX-UI-DATATABLE-CELL-NO-WRAP-SQUEEZES-CHIP-BESIDE-BADGE - A data row's cell that cannot hold its things side by side
    drops the next one under, 4px apart (status badges stack, as in Shopify, Odoo and Square), instead of squeezing
    one: a chip beside a badge that never shrinks was left with its icon cut and no text. A lone text has its line to
-   itself and still ends in «…»; the column still asks for its things side by side (`naturalCellWidth`); the header
-   (its name and the sort caret) and the pinned actions keep their line. */
-.data-table__row--data > .data-table__cell:not(.data-table__cell--actions) { flex-wrap: wrap; row-gap: 0.25rem; }
+   itself and still ends in «…»; the column still asks for its things side by side (`naturalCellWidth`, gap included); the
+   header (its name and the sort caret) and the pinned actions keep their line. hub#865 - Side by side they are 4px apart
+   too: a flex box drops the text space a slot puts between its things, and two pills touched. */
+.data-table__row--data > .data-table__cell:not(.data-table__cell--actions) { flex-wrap: wrap; gap: 0.25rem; }
 /* #67 - PINNED column (row actions, `pinned: 'end'`): stuck to the right edge, on the row background. */
 .data-table__cell--pinned { position: sticky; right: 0; z-index: 1; background: inherit; margin-right: -1rem; padding-right: 1rem; }
 /* The shadow only when something is really hidden to the left. */
