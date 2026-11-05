@@ -19,7 +19,8 @@
 //     next refusal says them all again (ui#89; Odoo, WooCommerce, Shopify). FormModal tells the field
 //     by its `name` when it is a key of `fields` (as a Django form names its errors), else by the
 //     message it shows (`error-text`) when no other refused field has those words. A refusal without
-//     `fields`, or of the whole form (`__all__`), stays until the next try: nothing else says it.
+//     `fields`, or of the whole form (`__all__`), stays until the next try: nothing else says it. The rule
+//     is `useRefusal` (`refusal.ts`), which a page uses for a form of its own (hub#821).
 //   - A refused field nothing in the form says (no field painting its message, no text with its words)
 //     has its reason said on top until that field is changed or the next try (hub#833): a window with
 //     no marks cannot promise them, so an `invalid_payload` that marks nothing shows only those reasons.
@@ -52,6 +53,7 @@ import { focusedElement } from '../focus';
 import { InlineFeedback } from '../InlineFeedback';
 import en from './locales/en.json';
 import es from './locales/es.json';
+import { NON_FIELD_ERRORS, useRefusal } from './refusal';
 import type {
   FormModalError,
   FormModalFieldsSlotProps,
@@ -127,15 +129,15 @@ const body = useTemplateRef<HTMLElement>('body');
 const submitText = computed(() => props.submitLabel ?? t('formModal.submit'));
 const cancelText = computed(() => props.cancelLabel ?? t('formModal.cancel'));
 const backdropDismiss = computed(() => props.dismissOnBackdrop && !props.pending);
-const refusedFields = computed<Readonly<Record<string, string>>>(() => props.error?.fields ?? {});
-/** Something was changed since the refusal: its notice has done its job. */
-const edited = shallowRef(false);
-/** The refused fields the person has changed since: their message has done its job too. */
-const corrected = shallowRef<ReadonlySet<string>>(new Set());
-/** What the fields still say: the refusal's messages but the corrected ones. */
-const fieldErrors = computed<Readonly<Record<string, string>>>(() =>
-  Object.fromEntries(Object.entries(refusedFields.value).filter(([name]) => !corrected.value.has(name))),
-);
+/** What the refusal still says while the person corrects it (`useRefusal`, shared with the pages). A new
+ *  refusal reads again what the form says and brings it into view. */
+const refusal = useRefusal(() => props.error, {
+  onRefusal: (refused) => {
+    void nextTick(readWhatTheFormSays);
+    if (refused) void nextTick(bringRefusalIntoView);
+  },
+});
+const { refusedFields, fieldErrors } = refusal;
 /** The refused fields nothing in the form said when the refusal painted (hub#833). */
 const unsaid = shallowRef<ReadonlySet<string>>(new Set());
 /** Their reasons, once each, but those of the fields the person has changed since. */
@@ -146,31 +148,11 @@ const unsaidReasons = computed<readonly string[]>(() => [
       .map(([, reason]) => reason),
   ),
 ]);
-/** A new refusal, a new opening or a new try: every message is said again. */
+/** A new opening or a new try: every message is said again. */
 function sayItAllAgain(): void {
-  edited.value = false;
-  corrected.value = new Set();
+  refusal.sayItAllAgain();
   void nextTick(readWhatTheFormSays);
 }
-// By value, not by object: a parent that re-renders the same refusal does not bring anything back.
-// Named, because an `ApiError`'s `message` is not enumerable and `JSON.stringify` would leave it out.
-watch(
-  () => {
-    const error = props.error;
-    return error ? JSON.stringify([error.status, error.code, error.message, error.fields]) : '';
-  },
-  (refusal) => {
-    sayItAllAgain();
-    if (refusal) void nextTick(bringRefusalIntoView);
-  },
-);
-/** The notice only repeats what the highlighted fields say; the reason of the whole form (`__all__`,
- *  as in Django forms) is said nowhere else, and is no field: changing one never takes it away. */
-const NON_FIELD_ERRORS = '__all__';
-const onlyPointsAtFields = computed(() => {
-  const names = Object.keys(refusedFields.value);
-  return names.length > 0 && !names.includes(NON_FIELD_ERRORS);
-});
 /** The server's words for a refusal by fields: they say nothing but «look at the marks». */
 const POINTS_AT_THE_MARKS = 'invalid_payload';
 const marksNothing = computed(() => {
@@ -178,10 +160,7 @@ const marksNothing = computed(() => {
   return names.length > 0 && names.every((name) => unsaid.value.has(name));
 });
 const showsNotice = computed(
-  () =>
-    !!props.error &&
-    !(edited.value && onlyPointsAtFields.value) &&
-    !(props.error.code === POINTS_AT_THE_MARKS && marksNothing.value),
+  () => refusal.showsError.value && !(props.error?.code === POINTS_AT_THE_MARKS && marksNothing.value),
 );
 const showsBanner = computed(() => showsNotice.value || unsaidReasons.value.length > 0);
 
@@ -231,9 +210,7 @@ function onEdit(event: Event): void {
   if (!(target instanceof Element)) return;
   const overlay = target.closest('ion-popover, ion-modal');
   if (overlay && form.value?.contains(overlay)) return;
-  edited.value = true;
-  const name = refusedFieldOf(target);
-  if (name) corrected.value = new Set([...corrected.value, name]);
+  refusal.changed(refusedFieldOf(target));
 }
 
 /** The fields a page puts in the slot. Ionic's own say who they are on their host. */
