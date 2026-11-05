@@ -31,6 +31,9 @@ const done = (fields: Partial<Extract<TurnFrame, { type: 'done' }>> = {}): TurnF
   type: 'done', append: [], pending: [], continuation: null, ...fields,
 });
 
+/** The round that stops on the card of `CREATE`, the only write the model asked for. */
+const onCard = (): TurnFrame[] => [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })];
+
 /** A Hub that answers each POST with the frames of `script`, in order; it records each body. */
 function hub(...script: (TurnFrame[] | Error)[]) {
   const bodies: TurnBody[] = [];
@@ -161,7 +164,7 @@ describe('several things in a row (BASE-G115, G119)', () => {
 
   it('«Cancel all» stops this write and the rest of the turn', async () => {
     const { post, bodies } = hub(
-      [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })],
+      onCard(),
       [done({ append: [{ role: 'tool', tool_call_id: 'c1', content: '{}' }, { role: 'assistant', content: 'Vale, no hago nada.' }] })],
     );
     const assistant = assistantWith(post);
@@ -376,6 +379,97 @@ describe('the conversation (BASE-G120)', () => {
   });
 });
 
+describe('where an answer came from, for its report (saas#287, ui#103)', () => {
+  const answer = (assistant: ReturnType<typeof assistantWith>) => assistant.state.thread.bubbles.at(-1)!;
+
+  it('a round that brought pages marks the answer, and the continuation after its tools never unmarks it', async () => {
+    const { post } = hub(
+      [{ type: 'text', text: 'Lo busco.' }, done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok', web: true })],
+      [{ type: 'text', text: 'El IVA es del 10 %.' }, done({ web: false })],
+    );
+    const assistant = assistantWith(post);
+    await assistant.ask('¿Qué IVA tienen las comidas?');
+    expect(answer(assistant)).toMatchObject({ done: true, web: true });
+  });
+
+  it('an answer whose rounds all brought none says so', async () => {
+    const { post } = hub(
+      [done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok', web: false })],
+      [{ type: 'text', text: 'Tienes 3 mesas.' }, done({ web: false })],
+    );
+    const assistant = assistantWith(post);
+    await assistant.ask('¿Cuántas mesas tengo?');
+    expect(answer(assistant)).toMatchObject({ done: true, web: false });
+  });
+
+  it('a host that does not say where a round came from leaves the answer unknown', async () => {
+    const { post } = hub(
+      [done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok', web: false })],
+      [{ type: 'text', text: 'Tienes 3 mesas.' }, done()],
+    );
+    const assistant = assistantWith(post);
+    await assistant.ask('¿Cuántas mesas tengo?');
+    expect(answer(assistant).done).toBe(true);
+    expect(answer(assistant).web).toBeUndefined();
+  });
+
+  it('«Stop» while a round writes leaves the answer unknown: that round never said where it came from', async () => {
+    let calls = 0;
+    const post = vi.fn((_body: TurnBody, options: TurnOptions) => {
+      calls += 1;
+      if (calls === 1) {
+        options.onFrame(done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok', web: false }));
+        return Promise.resolve();
+      }
+      return new Promise<void>((_resolve, reject) => {
+        options.onFrame({ type: 'text', text: 'Según la web' });
+        options.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      });
+    });
+    const assistant = assistantWith(post);
+    const running = assistant.ask('¿Qué IVA tienen las comidas?');
+    await vi.waitFor(() => expect(calls).toBe(2));
+    assistant.stop();
+    await running;
+    expect(answer(assistant)).toMatchObject({ text: 'Según la web', stopped: true, done: true });
+    expect(answer(assistant).web).toBeUndefined();
+  });
+
+  it('«Stop» before a round wrote anything keeps what the rounds before it said', async () => {
+    let calls = 0;
+    const post = vi.fn((_body: TurnBody, options: TurnOptions) => {
+      calls += 1;
+      if (calls === 1) {
+        options.onFrame({ type: 'text', text: 'Miro tus mesas.' });
+        options.onFrame(done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok', web: false }));
+        return Promise.resolve();
+      }
+      return new Promise<void>((_resolve, reject) => {
+        options.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      });
+    });
+    const assistant = assistantWith(post);
+    const running = assistant.ask('¿Cuántas mesas tengo?');
+    await vi.waitFor(() => expect(calls).toBe(2));
+    assistant.stop();
+    await running;
+    expect(answer(assistant)).toMatchObject({ text: 'Miro tus mesas.', stopped: true, web: false });
+  });
+
+  it('the mark is kept in the tab: after a reload each answer still says it', async () => {
+    const storage = memoryStorage();
+    const { post } = hub(
+      [{ type: 'text', text: 'El IVA es del 10 %.' }, done({ web: true })],
+      [{ type: 'text', text: 'Tienes 3 mesas.' }, done({ web: false })],
+    );
+    const assistant = assistantWith(post, storage);
+    await assistant.ask('¿Qué IVA tienen las comidas?');
+    await assistant.ask('¿Cuántas mesas tengo?');
+    const again = assistantWith(hub().post, storage);
+    expect(again.state.thread.bubbles.filter((b) => b.role === 'assistant').map((b) => b.web)).toEqual([true, false]);
+  });
+});
+
 describe('the setup (BASE-G121)', () => {
   it('opened from the checklist, the turns carry the setup', async () => {
     const { post, bodies } = hub([done()]);
@@ -400,7 +494,7 @@ describe("a write someone must approve (the host's approval: the Hub's manager, 
 
   it("each request of the turn goes through the host's approval, which may run it again", async () => {
     const { post, bodies } = hub(
-      [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })],
+      onCard(),
       needsApproval(),
       [
         { type: 'executed', call_id: 'c1', name: 'demo.item.create', app: 'demo', kind: 'command', outcome: 'ok', code: '' },
@@ -423,7 +517,7 @@ describe("a write someone must approve (the host's approval: the Hub's manager, 
 
   it('when nobody approves, the write is not done and the model is told, as with «Cancel»', async () => {
     const { post, bodies } = hub(
-      [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })],
+      onCard(),
       needsApproval(),
       [
         { type: 'executed', call_id: 'c1', name: 'demo.item.create', app: 'demo', kind: 'command', outcome: 'cancelled', code: 'base.assistant_not_confirmed' },
@@ -442,7 +536,7 @@ describe("a write someone must approve (the host's approval: the Hub's manager, 
 
   it('a refusal no approval declined ends the answer with its code', async () => {
     const { post } = hub(
-      [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })],
+      onCard(),
       needsApproval(),
     );
     const assistant = await waitingOnCard(post, { run: (request) => request(), declined: () => false });

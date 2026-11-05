@@ -101,6 +101,20 @@ describe('AssistantReport', () => {
     expect(m.wrapper.emitted('close')).toHaveLength(1);
   });
 
+  // saas#287: erplora.com does not mail support the text of an answer that brought pages of the web (Brave's terms).
+  it.each([true, false])('says whether the answer came from the web, as its bubble knows it (web: %s)', async (web) => {
+    const m = await report(SENT, { ...ANSWER, web });
+    await send();
+    expect(m.sent[0].web).toBe(web);
+  });
+
+  it('an answer that does not know (a thread kept before the mark) says nothing of it: erplora.com then plays safe', async () => {
+    const m = await report(SENT);
+    await send();
+    expect(m.sent).toHaveLength(1);
+    expect(m.sent[0]).not.toHaveProperty('web');
+  });
+
   it('without a reason picked, it is «It is wrong»', async () => {
     const m = await report(SENT);
     await send();

@@ -8,6 +8,8 @@
 //   and `retry` asks the same question again.
 // - At the end, what the answer says is checked against what ran (BASE-G117), and the conversation is kept in the tab
 //   for this person only (BASE-G120); another person starts empty, with the panel closed (gh:hub#2538).
+// - The bubble keeps whether its answer may quote pages of the web, for its report (saas#287): any round's `done` that
+//   says so marks it; a round that wrote without saying (a host that does not say, «Stop» mid-round) leaves it unknown.
 // - Each request of a turn goes through the host's approval when it has one (`AssistantConfig.approval`: the Hub's
 //   manager approval, BASE-G118); an approval nobody gave is heard by the model as a «Cancel».
 // The tab's one (`useAssistant`) posts to the host's route (`AssistantConfig.turnUrl`).
@@ -27,7 +29,15 @@ import {
   saveThread,
   type Thread,
 } from './history';
-import { type Decision, type PendingCall, postTurn, type TurnBody, type TurnFrame, type TurnOptions } from './stream';
+import {
+  type Decision,
+  fromTheWeb,
+  type PendingCall,
+  postTurn,
+  type TurnBody,
+  type TurnFrame,
+  type TurnOptions,
+} from './stream';
 
 export const OPEN_KEY = 'erplora.assistant.open';
 
@@ -68,6 +78,8 @@ interface Turn {
   continuation: string | null;
   executed: Executed[];
   results: string[];
+  /** Whether the answer may quote pages of the web, so far (`fromTheWeb`): no round yet brought any. */
+  web: boolean | undefined;
 }
 
 function readOpen(storage: Storage | undefined): boolean {
@@ -232,6 +244,12 @@ export function createAssistant(deps: AssistantDeps) {
       if (current.pending.length) body.pending = current.pending;
       if (decision) body.decision = decision;
       decision = undefined;
+      // What this round adds to where the answer came from: its `done`'s word, or, without one, unknown if it wrote.
+      const markWeb = () => {
+        const said = doneFrame as Extract<TurnFrame, { type: 'done' }> | null;
+        current.web = fromTheWeb(current.web, said ? said.web : spoke ? undefined : false);
+        current.bubble.web = current.web;
+      };
       try {
         // A write someone must approve (the Hub's manager, BASE-G118): the host asks, then the same turn with the pass.
         const signal = controller.signal;
@@ -239,6 +257,7 @@ export function createAssistant(deps: AssistantDeps) {
         await (approval ? approval.run(request) : request());
       } catch (error) {
         if (turn !== current) return;
+        markWeb();
         if (isAbort(error)) return finish(undefined, undefined, true);
         const sent = body.decision;
         if (approval?.declined(error) && sent?.accepted) {
@@ -250,6 +269,7 @@ export function createAssistant(deps: AssistantDeps) {
         return finish(code, error instanceof ApiError ? (error.details ?? {}) : {});
       }
       if (turn !== current) return;
+      markWeb();
       const closed = doneFrame as Extract<TurnFrame, { type: 'done' }> | null;
       if (closed) {
         state.thread.conversation.push(...closed.append);
@@ -290,7 +310,7 @@ export function createAssistant(deps: AssistantDeps) {
     const bubble: Bubble = { id: id(), role: 'assistant', text: '', files: [], notices: [], done: false, question };
     state.thread.bubbles.push(bubble);
     // The reactive copy: what the frames write is what the panel paints.
-    turn = { bubble: state.thread.bubbles.at(-1)!, question, pending: [], continuation: null, executed: [], results: [] };
+    turn = { bubble: state.thread.bubbles.at(-1)!, question, pending: [], continuation: null, executed: [], results: [], web: false };
     save();
     await run();
   }
@@ -324,7 +344,7 @@ export function createAssistant(deps: AssistantDeps) {
     }
     const bubble: Bubble = { id: id(), role: 'assistant', text: '', files: [], notices: [], done: false, question };
     state.thread.bubbles.push(bubble);
-    turn = { bubble: state.thread.bubbles.at(-1)!, question, pending: [], continuation: null, executed: [], results: [] };
+    turn = { bubble: state.thread.bubbles.at(-1)!, question, pending: [], continuation: null, executed: [], results: [], web: false };
     await run();
   }
 

@@ -46,6 +46,9 @@ export interface Bubble {
   question?: string;
   /** What ran in the turn, for the receipts under the bubble. */
   executed?: { name: string; app: string; app_name?: string; screen?: string; outcome: string }[];
+  /** Whether its turn brought pages of the web (any round of it, saas#287), said with its report; unknown — kept before
+   *  the mark, a host that does not say — when not there. */
+  web?: boolean;
 }
 
 export interface Thread {
