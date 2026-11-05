@@ -31,6 +31,9 @@ const done = (fields: Partial<Extract<TurnFrame, { type: 'done' }>> = {}): TurnF
   type: 'done', append: [], pending: [], continuation: null, ...fields,
 });
 
+/** The round that stops on the card of `CREATE`, the only write the model asked for. */
+const onCard = (): TurnFrame[] => [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })];
+
 /** A Hub that answers each POST with the frames of `script`, in order; it records each body. */
 function hub(...script: (TurnFrame[] | Error)[]) {
   const bodies: TurnBody[] = [];
@@ -161,7 +164,7 @@ describe('several things in a row (BASE-G115, G119)', () => {
 
   it('«Cancel all» stops this write and the rest of the turn', async () => {
     const { post, bodies } = hub(
-      [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })],
+      onCard(),
       [done({ append: [{ role: 'tool', tool_call_id: 'c1', content: '{}' }, { role: 'assistant', content: 'Vale, no hago nada.' }] })],
     );
     const assistant = assistantWith(post);
@@ -491,7 +494,7 @@ describe("a write someone must approve (the host's approval: the Hub's manager, 
 
   it("each request of the turn goes through the host's approval, which may run it again", async () => {
     const { post, bodies } = hub(
-      [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })],
+      onCard(),
       needsApproval(),
       [
         { type: 'executed', call_id: 'c1', name: 'demo.item.create', app: 'demo', kind: 'command', outcome: 'ok', code: '' },
@@ -514,7 +517,7 @@ describe("a write someone must approve (the host's approval: the Hub's manager, 
 
   it('when nobody approves, the write is not done and the model is told, as with «Cancel»', async () => {
     const { post, bodies } = hub(
-      [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })],
+      onCard(),
       needsApproval(),
       [
         { type: 'executed', call_id: 'c1', name: 'demo.item.create', app: 'demo', kind: 'command', outcome: 'cancelled', code: 'base.assistant_not_confirmed' },
@@ -533,7 +536,7 @@ describe("a write someone must approve (the host's approval: the Hub's manager, 
 
   it('a refusal no approval declined ends the answer with its code', async () => {
     const { post } = hub(
-      [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })],
+      onCard(),
       needsApproval(),
     );
     const assistant = await waitingOnCard(post, { run: (request) => request(), declined: () => false });
