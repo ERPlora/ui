@@ -43,6 +43,7 @@ const emit = defineEmits<{
   signIn: [];
   report: [];
   listen: [];
+  openPlan: [event: Event];
 }>();
 
 const { t, locale } = useI18n({ useScope: 'global' });
@@ -256,6 +257,7 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
           target="_blank"
           rel="noopener"
           data-testid="assistant-upgrade"
+          @click="emit('openPlan', $event)"
         >
           <HubIcon name="ion:sparkles-outline" />
           {{ t('assistant.upgrade') }}

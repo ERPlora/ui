@@ -202,6 +202,17 @@ describe('AssistantMessage', () => {
     cashier.wrapper.unmount();
   });
 
+  it('«Upgrade plan» tells the panel of its click, with the event: the host may take it from the link (hub#723)', async () => {
+    const spent = answer({ error: 'assistant.quota_exceeded', details: { used: 30, limit: 30, resets_at: '2026-11-01T00:00:00Z' } });
+    const owner = await mountBubble(spent, { canUpgrade: true, planUrl: 'https://erplora.com/hubs/a/plan' });
+    const link = owner.wrapper.get('[data-testid="assistant-upgrade"]');
+    link.element.addEventListener('click', (seen) => seen.preventDefault(), { once: true });
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    link.element.dispatchEvent(event);
+    expect(owner.wrapper.emitted('openPlan')).toEqual([[event]]);
+    owner.wrapper.unmount();
+  });
+
   it("a spent allowance where nobody may upgrade: the host's own line, when it gives one (ui#49)", async () => {
     configure({ spentNoteKey: 'host.spentNote' });
     const spent = answer({ error: 'assistant.quota_exceeded', details: { used: 30, limit: 30, resets_at: '2026-11-01T00:00:00Z' } });
