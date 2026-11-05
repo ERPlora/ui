@@ -481,10 +481,25 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
     // Status cell squeezed the chip to 29–36px, its icon cut and no text (Hub: Inventory › Products at 820 and 834 px,
     // measured in Chromium). In a data row the cell wraps, 4px between its lines, as Shopify, Odoo and Square stack
     // status badges; a lone text has its line to itself and still ends in «…».
-    expect(rule(DATA_CELL)).toBe('flex-wrap: wrap; row-gap: 0.25rem;');
+    expect(rule(DATA_CELL)).toBe('flex-wrap: wrap; gap: 0.25rem;');
     // The base rule stays one line: the header (its name and the sort caret) never wraps.
     expect(rule('.data-table__cell')).toBe('display: flex; align-items: center; min-width: 0;');
     expect(rule('.data-table__cell > :deep(span)')).toBe('overflow: hidden; text-overflow: ellipsis; white-space: nowrap;');
+  });
+
+  it('hub#865: side by side, a data cell keeps its things as far apart as one under the other (4px), never touching', () => {
+    // A flex box drops the text space a slot puts between its things: «Rejected» and «Corrected» side by side in the
+    // Status cell touched, 0px apart (Hub: VeriFactu › Records at 1920 px, measured in Chromium), while one under the
+    // other they were 4px apart. The page had kept them apart with a sheet of its own around them.
+    const declared = Object.fromEntries(
+      rule(DATA_CELL)
+        .split(';')
+        .map((declaration) => declaration.trim())
+        .filter(Boolean)
+        .map((declaration) => declaration.split(/:\s*/) as [string, string]),
+    );
+    const [rowGap, columnGap = rowGap] = (declared.gap ?? `${declared['row-gap']} ${declared['column-gap']}`).split(/\s+/);
+    expect({ rowGap, columnGap }).toEqual({ rowGap: '0.25rem', columnGap: '0.25rem' });
   });
 
   it('FIX-UI-DATATABLE-CELL-NO-WRAP-SQUEEZES-CHIP-BESIDE-BADGE: that rule holds every data cell, a slot’s two things its direct children, and no header nor actions cell', async () => {
