@@ -104,12 +104,21 @@ function compact(value: unknown, format: CardFormat): string {
  *  «A, B, C y 2 más»: never «and 1 more» for an item that could have been named). */
 const LIST_NAMES = 4;
 
-/** An item of a list said as a value on top — a text (a record the server names), a figure, a yes or no, an amount —;
- *  '' when it cannot be: a record the server left out, or a line (which datum names a line, only its app knows: one whose
- *  record was left out would read as a bare quantity or price). */
+/** The text a line carries alone — the name the server gave its only record (a booking's services, `{service_id}`:
+ *  hub#835) —; none for any other line. */
+function soleText(item: unknown): string | null {
+  if (item === null || typeof item !== 'object' || Array.isArray(item)) return null;
+  const data = Object.values(item);
+  return data.length === 1 && typeof data[0] === 'string' ? data[0] : null;
+}
+
+/** An item of a list said as a value on top — a text (a record the server names), a figure, a yes or no, an amount, a
+ *  line by the record it carries alone (`soleText`) —; '' when it cannot be: a record the server left out, or any other
+ *  line (which datum names a line, only its app knows: one whose record was left out would read as a bare quantity or
+ *  price). */
 function listItem(item: unknown, format: CardFormat): string {
   const value = typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean' || isAmount(item);
-  return value ? compact(item, format) : '';
+  return value ? compact(item, format) : (soleText(item) ?? '');
 }
 
 /** A list in words (FIX-HUB-PRINTING-ASSISTANT-CARD-LEAVES-OUT-ITS-RECORDS), when the server said its items in words
