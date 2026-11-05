@@ -446,3 +446,15 @@ describe('polish.css: the options of a dropdown', () => {
     expect(blocks(polish, selector).map(declarations)).toEqual([['white-space: normal']]);
   });
 });
+
+// saas#272. Ionic keeps what a select has chosen on one line ending in «…», so with the field closed a person cannot read
+// what is set: «Madrid (Central European …» in a business's settings at 320. happy-dom lays nothing out: the boxes are
+// measured by the panel's e2e (tests/e2e/panel/fix-select-chosen-text-reads-whole.spec.ts).
+describe('polish.css: what a select has chosen', () => {
+  const polish = plain(read('polish.css'));
+
+  it('an outlined field of a form takes the lines it needs, clear of its floating label, and a compact select of a bar keeps its one line', () => {
+    expect(blocks(polish, 'ion-select.select-fill-outline::part(text)').map(declarations)).toEqual([['white-space: normal', 'padding-block: 9.5px']]);
+    expect(blocks(polish, 'ion-select::part(text)')).toEqual([]);
+  });
+});
