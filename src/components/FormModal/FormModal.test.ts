@@ -932,6 +932,17 @@ describe('FormModal: a refusal lands where the person is (hub#833)', () => {
     await settle();
     expect(scrolled).toEqual([]);
   });
+
+  it("a refusal going away moves nothing, though a field stays red by the page's own rule", async () => {
+    const wrapper = mountFields(() => [marked('name', 'Say a name.')]);
+    await settle();
+    await wrapper.setProps({ error: REFUSED });
+    await settle();
+    scrolled.length = 0;
+    await wrapper.setProps({ error: null });
+    await settle();
+    expect(scrolled).toEqual([]);
+  });
 });
 
 describe('FormModal: focus', () => {
