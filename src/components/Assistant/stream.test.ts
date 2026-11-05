@@ -5,7 +5,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../sdk/errors';
-import { postTurn, type TurnFrame } from './stream';
+import { fromTheWeb, postTurn, type TurnFrame } from './stream';
 
 /** The host's route of a turn. */
 const URL = '/api/chat/turn';
@@ -98,5 +98,26 @@ describe('a turn repeated after an approval (the Hub\'s manager approval, BASE-G
     });
     await postTurn({ messages: [] }, { url: URL, onFrame: () => undefined, fetcher, doc: page() });
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+});
+
+// saas#287, ui#103: whether an answer may quote pages of the web, round by round of its turn. erplora.com does not mail
+// support the text of a reported answer that did, nor of one that does not say while its search is on (Brave's terms).
+describe('where an answer came from, a round more (fromTheWeb)', () => {
+  it('a round that brought pages marks the answer, and a later round that brought none never unmarks it', () => {
+    expect(fromTheWeb(false, true)).toBe(true);
+    expect(fromTheWeb(true, false)).toBe(true);
+    expect(fromTheWeb(true, undefined)).toBe(true);
+    expect(fromTheWeb(undefined, true)).toBe(true);
+  });
+
+  it('only rounds that all said they brought none make an answer not from the web', () => {
+    expect(fromTheWeb(false, false)).toBe(false);
+  });
+
+  it('a round that does not say leaves the answer unknown, unless one already brought pages', () => {
+    expect(fromTheWeb(false, undefined)).toBeUndefined();
+    expect(fromTheWeb(undefined, false)).toBeUndefined();
+    expect(fromTheWeb(undefined, undefined)).toBeUndefined();
   });
 });

@@ -64,6 +64,8 @@ async function send(): Promise<void> {
   const note = comment.value.trim();
   if (note) input.comment = note;
   if (bubble.question) input.question = bubble.question;
+  // Only what the chat knows: a `false` it does not know would mail an answer that may quote the web (saas#287).
+  if (bubble.web !== undefined) input.web = bubble.web;
   try {
     await report(client, input);
     open.value = false;

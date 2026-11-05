@@ -51,6 +51,9 @@ export interface AssistantReportInput {
   comment?: string;
   question?: string;
   answer: string;
+  /** Whether its turn brought pages of the web (`Bubble.web`); left out when the chat does not know, and then
+   *  erplora.com, while its search is on, does not mail the answer (saas#287). */
+  web?: boolean;
 }
 
 /** A request of a turn that someone must approve before it runs (the Hub's manager approval). */

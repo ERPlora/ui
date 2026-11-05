@@ -37,7 +37,17 @@ export type TurnFrame =
   | { type: 'text'; text: string }
   | { type: 'usage'; used: number; limit: number; resets_at: string | null; demo: boolean }
   | ({ type: 'error'; code: string; retriable?: boolean } & Record<string, unknown>)
-  | { type: 'done'; append: ChatMessage[]; pending: PendingCall[]; continuation: string | null };
+  // `web`: whether the round brought pages of the web (saas#287); a host that does not say leaves it out.
+  | { type: 'done'; append: ChatMessage[]; pending: PendingCall[]; continuation: string | null; web?: boolean };
+
+/** Whether an answer may quote pages of the web, with one round more of its turn: any round that brought pages makes it
+ *  so, and a later one that brought none never undoes it (the continuation after the tools starts from scratch); a round
+ *  that does not say (`undefined`) leaves it unknown unless one already brought pages. */
+export function fromTheWeb(sofar: boolean | undefined, round: boolean | undefined): boolean | undefined {
+  if (sofar === true || round === true) return true;
+  if (sofar === undefined || round === undefined) return undefined;
+  return false;
+}
 
 export interface TurnOptions {
   onFrame: (frame: TurnFrame) => void;
