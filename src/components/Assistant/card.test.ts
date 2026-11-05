@@ -152,6 +152,8 @@ describe('a datum that is a list', () => {
     // Even marked, a line is never said by a bare figure: it counts among the more.
     expect(fieldText(list(['Caja', { quantity: 2 }]), spoken(es))).toBe('Caja y 1 más');
     expect(fieldText(list([{ product_id: 'Café', quantity: 2 }]), spoken(es))).toBe('1 elemento');
+    // Nor is an item that is a list said by what it carries.
+    expect(fieldText(list(['Caja', ['Cocina']]), spoken(es))).toBe('Caja y 1 más');
   });
 
   it('a line that carries only its record is said by the name the server gave it (a booking’s services, hub#835)', () => {
@@ -163,6 +165,11 @@ describe('a datum that is a list', () => {
     expect(fieldText(list([{ service_id: 'Corte de pelo' }, {}]), spoken(es))).toBe('Corte de pelo y 1 más');
     // A list the server did not mark still says how many.
     expect(fieldText(list([{ service_id: 'Corte de pelo' }], false), spoken(es))).toBe('1 elemento');
+    // An empty datum beside its record (the name a model writes as null, or empty) does not show: the line still
+    // carries only its record. A line with nothing but empty data says nothing.
+    const beside = [{ service_id: 'Corte de pelo', service: null }, { service: '', service_id: 'Tinte' }];
+    expect(fieldText(list(beside), spoken(es))).toBe('Corte de pelo, Tinte');
+    expect(fieldText(list([{ service_id: 'Corte de pelo' }, { service: null }]), spoken(es))).toBe('Corte de pelo y 1 más');
   });
 
   it('a list of texts the server did not name says how many, never its codes (flow.flow.grant’s operations)', () => {

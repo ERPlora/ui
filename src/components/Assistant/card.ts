@@ -105,10 +105,11 @@ function compact(value: unknown, format: CardFormat): string {
 const LIST_NAMES = 4;
 
 /** The text a line carries alone — the name the server gave its only record (a booking's services, `{service_id}`:
- *  hub#835) —; none for any other line. */
+ *  hub#835) —; none for any other line. Its empty data (a name the model wrote as null beside the id) do not count:
+ *  an empty datum does not show. */
 function soleText(item: unknown): string | null {
   if (item === null || typeof item !== 'object' || Array.isArray(item)) return null;
-  const data = Object.values(item);
+  const data = Object.values(item).filter((datum) => datum !== null && datum !== '');
   return data.length === 1 && typeof data[0] === 'string' ? data[0] : null;
 }
 
