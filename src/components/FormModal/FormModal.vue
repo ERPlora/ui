@@ -20,6 +20,11 @@
 //     by its `name` when it is a key of `fields` (as a Django form names its errors), else by the
 //     message it shows (`error-text`) when no other refused field has those words. A refusal without
 //     `fields`, or of the whole form (`__all__`), stays until the next try: nothing else says it.
+//   - A refused field nothing in the form says (no field painting its message, no text with its words)
+//     has its reason said on top until that field is changed or the next try (hub#833): a window with
+//     no marks cannot promise them, so an `invalid_payload` that marks nothing shows only those reasons.
+//   - A refusal that lands brings the first marked field, else the banner, into view: a person at the
+//     bottom of a long form would otherwise see nothing happen (hub#833).
 //   - Cancel, the close button, Escape and the backdrop (`dismissOnBackdrop`) emit `cancel` and set
 //     `open` to false; closing from the page is not a cancel.
 //   - Enter in a single-line field submits; Escape cancels (not while pending). Only Save, Enter and
@@ -39,7 +44,7 @@
 //     90vh, the fields scrolling between the title and the buttons; with `phoneLayout: 'card'` (a
 //     confirmation, ConfirmDialog) the centred card at every width.
 import { IonButton, IonButtons, IonHeader, IonModal, IonSpinner, IonTitle, IonToolbar } from '@ionic/vue';
-import { computed, shallowRef, useId, useTemplateRef, watch } from 'vue';
+import { computed, nextTick, shallowRef, useId, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import HubIcon from '../../shell/HubIcon.vue';
@@ -117,6 +122,7 @@ const { t } = useI18n({ useScope: 'local', messages: { en, es } });
 
 const titleId = `ep-form-modal-title-${useId()}`;
 const form = useTemplateRef<HTMLFormElement>('form');
+const body = useTemplateRef<HTMLElement>('body');
 
 const submitText = computed(() => props.submitLabel ?? t('formModal.submit'));
 const cancelText = computed(() => props.cancelLabel ?? t('formModal.cancel'));
@@ -130,10 +136,21 @@ const corrected = shallowRef<ReadonlySet<string>>(new Set());
 const fieldErrors = computed<Readonly<Record<string, string>>>(() =>
   Object.fromEntries(Object.entries(refusedFields.value).filter(([name]) => !corrected.value.has(name))),
 );
+/** The refused fields nothing in the form said when the refusal painted (hub#833). */
+const unsaid = shallowRef<ReadonlySet<string>>(new Set());
+/** Their reasons, once each, but those of the fields the person has changed since. */
+const unsaidReasons = computed<readonly string[]>(() => [
+  ...new Set(
+    Object.entries(fieldErrors.value)
+      .filter(([name]) => unsaid.value.has(name))
+      .map(([, reason]) => reason),
+  ),
+]);
 /** A new refusal, a new opening or a new try: every message is said again. */
 function sayItAllAgain(): void {
   edited.value = false;
   corrected.value = new Set();
+  void nextTick(readWhatTheFormSays);
 }
 // By value, not by object: a parent that re-renders the same refusal does not bring anything back.
 // Named, because an `ApiError`'s `message` is not enumerable and `JSON.stringify` would leave it out.
@@ -142,7 +159,10 @@ watch(
     const error = props.error;
     return error ? JSON.stringify([error.status, error.code, error.message, error.fields]) : '';
   },
-  sayItAllAgain,
+  (refusal) => {
+    sayItAllAgain();
+    if (refusal) void nextTick(bringRefusalIntoView);
+  },
 );
 /** The notice only repeats what the highlighted fields say; the reason of the whole form (`__all__`,
  *  as in Django forms) is said nowhere else, and is no field: changing one never takes it away. */
@@ -151,7 +171,19 @@ const onlyPointsAtFields = computed(() => {
   const names = Object.keys(refusedFields.value);
   return names.length > 0 && !names.includes(NON_FIELD_ERRORS);
 });
-const showsError = computed(() => !!props.error && !(edited.value && onlyPointsAtFields.value));
+/** The server's words for a refusal by fields: they say nothing but «look at the marks». */
+const POINTS_AT_THE_MARKS = 'invalid_payload';
+const marksNothing = computed(() => {
+  const names = Object.keys(refusedFields.value);
+  return names.length > 0 && names.every((name) => unsaid.value.has(name));
+});
+const showsNotice = computed(
+  () =>
+    !!props.error &&
+    !(edited.value && onlyPointsAtFields.value) &&
+    !(props.error.code === POINTS_AT_THE_MARKS && marksNothing.value),
+);
+const showsBanner = computed(() => showsNotice.value || unsaidReasons.value.length > 0);
 
 const hookPrefix = computed(() => props.testid?.trim() || undefined);
 const tid = (part?: string): string | undefined =>
@@ -242,6 +274,51 @@ function shownMessageOf(el: Element): string | null {
   return typeof shown === 'string' && shown ? shown : null;
 }
 
+/** Ionic hides a field's `error-text` unless the field is in this state. */
+const PAINTS_ITS_MESSAGE = '.ion-invalid.ion-touched';
+/** Text that says nothing of a page's own: the banner, and the Ionic fields, which render their
+ *  `error-text` even while they hide it. */
+const NOT_WRITTEN_BY_THE_PAGE = `.ep-form-modal__error, ${FIELD_HOSTS}`;
+
+/** The page wrote this reason itself under a field (`<small>{{ fieldErrors.customer }}</small>`). */
+function writes(el: Element, reason: string): boolean {
+  return [...el.childNodes].some((node) =>
+    node instanceof Element
+      ? !node.matches(NOT_WRITTEN_BY_THE_PAGE) && writes(node, reason)
+      : node.nodeType === Node.TEXT_NODE && !!node.textContent?.includes(reason),
+  );
+}
+
+/** Is this reason on screen, in a field painting it or written by the page? */
+function isSaid(root: Element, reason: string): boolean {
+  const painted = [...root.querySelectorAll(FIELD_HOSTS)].some(
+    (el) => el.matches(PAINTS_ITS_MESSAGE) && shownMessageOf(el) === reason,
+  );
+  return painted || writes(root, reason);
+}
+
+/** The person may have scrolled past what the refusal says (a long form on a phone, Save at its bottom),
+ *  and then it looks as if nothing happened: the first marked field, else the banner, comes into view. */
+function bringRefusalIntoView(): void {
+  const root = body.value;
+  const first = root?.querySelector(PAINTS_ITS_MESSAGE) ?? root?.querySelector('.ep-form-modal__error');
+  first?.scrollIntoView({ block: 'nearest' });
+}
+
+/** Runs once the refusal has painted, so it reads what the person sees. A closed dialog reads nothing:
+ *  its opening reads again (`didPresent`). */
+function readWhatTheFormSays(): void {
+  const root = body.value;
+  const message = props.error?.message;
+  unsaid.value = new Set(
+    root
+      ? Object.entries(refusedFields.value)
+          .filter(([, reason]) => reason !== message && !isSaid(root, reason))
+          .map(([name]) => name)
+      : [],
+  );
+}
+
 /** ion-select, ion-toggle, ion-checkbox and the like only speak by `ionChange`. A text field's says on
  *  blur what `input` already told: after Enter sent the form, leaving the field corrects nothing. */
 const TEXT_FIELDS = 'ion-input, ion-textarea, ion-searchbar';
@@ -291,6 +368,11 @@ function focusElement(el: HTMLElement): void {
   else (el.shadowRoot?.querySelector<HTMLElement>('[part~="native"]') ?? el).focus();
 }
 
+function onDidPresent(): void {
+  readWhatTheFormSays();
+  focusFirstField();
+}
+
 function focusFirstField(): void {
   const root = form.value;
   if (!root) return;
@@ -316,7 +398,7 @@ function focusFirstField(): void {
     :data-size="size"
     :data-phone-layout="phoneLayout"
     :data-testid="tid()"
-    @did-present="focusFirstField"
+    @did-present="onDidPresent"
     @did-dismiss="onDidDismiss"
   >
     <div
@@ -357,14 +439,24 @@ function focusFirstField(): void {
         @input="onEdit"
         @ionChange="onIonChange"
       >
-        <div class="ep-form-modal__body ion-padding">
+        <div
+          ref="body"
+          class="ep-form-modal__body ion-padding"
+        >
           <InlineFeedback
-            v-if="showsError"
+            v-if="showsBanner"
             class="ep-form-modal__error"
             tone="danger"
             :data-testid="tid('error')"
           >
-            {{ error?.message }}
+            <template v-if="showsNotice">
+              {{ error?.message }}
+            </template>
+            <span
+              v-for="reason in unsaidReasons"
+              :key="reason"
+              class="ep-form-modal__reason"
+            >{{ reason }}</span>
           </InlineFeedback>
           <slot
             :field-errors="fieldErrors"
@@ -473,6 +565,9 @@ ion-modal.ep-form-modal .ep-form-modal__body {
 }
 ion-modal.ep-form-modal .ep-form-modal__error {
   margin-bottom: 16px;
+}
+ion-modal.ep-form-modal .ep-form-modal__reason {
+  display: block;
 }
 ion-modal.ep-form-modal .ep-form-modal__footer {
   display: flex;
