@@ -119,7 +119,9 @@ function looksAt(dir: string, from: number): () => Promise<Mail[]> {
 
 /**
  * The finished mails, oldest first, of the files of `dir` written from `since` on: one look of a wait, so it never
- * stops Node and never reads a file written before the action. None while the folder does not exist yet.
+ * stops Node and never reads a file written before the action. As a wait, it forgives the clock's last tick (a file
+ * stamped up to 50 ms before `since` counts): a mail sent just before the action may be among them, and a test that
+ * counts the mails since then leaves it out by its `writtenAt`. None while the folder does not exist yet.
  */
 export function readMailsSince(query: Pick<MailQuery, 'dir' | 'since'>): Promise<Mail[]> {
   return looksAt(query.dir, query.since - CLOCK_SLACK_MS)();
