@@ -173,6 +173,97 @@ describe('the toast sits above the bottom bar of the screen on view (S-04)', () 
     expect(toastAnchor()).toBeUndefined();
   });
 
+  // saas#344: back from a payment, `open = false` and the notice come in one go, while the dialog is still open. Ionic
+  // gives the page back (drops the outlet's `aria-hidden`) once the dialog starts to close, a few promises later, and
+  // the page the flow went to is there by then: the bar is the one on view when the notice shows, not when it is asked.
+  it('asked as a dialog closes, it sits above the bar of the page the dialog leaves on view (saas#344)', async () => {
+    shell(`<div class="ion-page"><ion-content></ion-content><ion-footer data-id="tabbar"></ion-footer></div>`);
+    const outlet = document.querySelector('ion-router-outlet')!;
+    outlet.setAttribute('aria-hidden', 'true');
+    const shown = toastSuccess('Café Central is now on Starter');
+    await Promise.resolve();
+    outlet.removeAttribute('aria-hidden');
+    await shown;
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ position: 'bottom', positionAnchor: byId('tabbar') }));
+  });
+
+  it('asked as the next page comes, it sits above the bar of that page, not of the one it leaves (saas#344)', async () => {
+    shell(`<div class="ion-page"><ion-content></ion-content></div>`);
+    const shown = toastSuccess('Saved');
+    await Promise.resolve();
+    document.querySelector('ion-router-outlet')!.insertAdjacentHTML(
+      'beforeend',
+      `<div class="ion-page"><ion-content></ion-content><ion-footer data-id="next"></ion-footer></div>`,
+    );
+    await shown;
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ positionAnchor: byId('next') }));
+  });
+
+  /**
+   * A page's dialog as Ionic leaves it on screen, over the page it hides (`aria-hidden` on the outlet): inline (opened
+   * by `isOpen`, no controller). `letGo` is what Ionic does once the dialog starts to close: it gives the page back and
+   * says `willDismiss`.
+   */
+  function openDialog(): { dialog: HTMLElement & { isOpen: boolean }; letGo: () => void } {
+    const outlet = document.querySelector('ion-router-outlet')!;
+    outlet.setAttribute('aria-hidden', 'true');
+    let willDismiss: (detail: unknown) => void = () => {};
+    const dialog = Object.assign(document.createElement('ion-modal'), {
+      isOpen: true,
+      hasController: false,
+      onWillDismiss: () => new Promise((resolve) => (willDismiss = resolve)),
+      onDidDismiss: () => new Promise(() => {}),
+    });
+    document.querySelector('ion-app')!.append(dialog);
+    return {
+      dialog,
+      letGo: () => {
+        outlet.removeAttribute('aria-hidden');
+        willDismiss({});
+      },
+    };
+  }
+
+  // saas#344, in Chrome: back from a payment the dialog is set to close (`isOpen` false at Vue's next flush) and the
+  // notice asked in one go, but Ionic lets the dialog go only once its own lock is free, ~300 ms later; till then the
+  // page stays hidden behind it. The notice waits for the dialog to give the page back, and sits above the page's bar.
+  it('asked as its dialog is set to close, it waits for the dialog to give the page back (saas#344)', async () => {
+    shell(`<div class="ion-page"><ion-content></ion-content><ion-footer data-id="tabbar"></ion-footer></div>`);
+    const { dialog, letGo } = openDialog();
+    const shown = toastSuccess('Café Central is now on Starter');
+    await Promise.resolve();
+    dialog.isOpen = false;
+    await new Promise((later) => setTimeout(later, 60));
+    expect(create).not.toHaveBeenCalled();
+    letGo();
+    await shown;
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ position: 'bottom', positionAnchor: byId('tabbar') }));
+  });
+
+  it('over a dialog that stays open it shows at once, with nothing of the page hidden behind it to sit above', async () => {
+    shell(`<div class="ion-page"><ion-content></ion-content><ion-footer data-id="tabbar"></ion-footer></div>`);
+    openDialog();
+    await toastError('Could not save');
+    expect(create).toHaveBeenLastCalledWith(expect.not.objectContaining({ positionAnchor: expect.anything() }));
+  });
+
+  it('a dialog set to close that never lets go does not keep the notice: it shows after 2 s, at the bottom edge', async () => {
+    vi.useFakeTimers();
+    try {
+      shell(`<div class="ion-page"><ion-content></ion-content><ion-footer data-id="tabbar"></ion-footer></div>`);
+      const { dialog } = openDialog();
+      dialog.isOpen = false;
+      const shown = toastSuccess('Saved');
+      await vi.advanceTimersByTimeAsync(1900);
+      expect(create).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(200);
+      await shown;
+      expect(create).toHaveBeenLastCalledWith(expect.not.objectContaining({ positionAnchor: expect.anything() }));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('without a bottom bar it stays at the bottom edge, with no anchor', async () => {
     shell(`<div class="ion-page"><ion-content></ion-content></div>`);
     await toastInfo('FYI');
