@@ -3,6 +3,9 @@
 // ATTENDANCE-F04, SERVICE-F11): the refusal's red notice, «saved» and «Save», painted from what
 // useSettingsForm gives and from the page's own texts. Its variants are the pages' (Staff and Attendance:
 // a spinner on Save; Attendance: its icon, Save on without changes and only for whoever may change them).
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { defineComponent, effectScope, h, ref, shallowRef, type EffectScope, type PropType } from 'vue';
@@ -13,6 +16,8 @@ import * as components from '../index';
 import SettingsFormFooter, { type SettingsFormFooterState } from './SettingsFormFooter.vue';
 import { useSettingsForm } from './settingsForm';
 import type { FormModalError } from './types';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 type Props = InstanceType<typeof SettingsFormFooter>['$props'];
 
@@ -142,12 +147,27 @@ describe('SettingsFormFooter', () => {
     expect(wrapper.text()).not.toMatch(/\bSave\b|saved/);
   });
 
-  it('the notices go right before «Save», all three children of the page form, so the page lays them out as before', () => {
+  it('the notices are the page form\'s own children, right before the row that holds «Save»', () => {
     const { wrapper, hook } = mountFooter(state({ saved: true, showsError: true, error: REFUSED }));
     const form = wrapper.get('[data-testid="page-form"]').element;
     const ids = [...form.children].map((child) => child.getAttribute('data-testid'));
-    expect(ids).toEqual(['page-field', 'demo-settings-save-error', 'demo-settings-saved', 'demo-settings-save']);
-    expect(hook('save').element.parentElement).toBe(form);
+    expect(ids).toEqual(['page-field', 'demo-settings-save-error', 'demo-settings-saved', null]);
+    const row = form.lastElementChild!;
+    expect(row.classList.contains('ep-settings-form-footer__actions')).toBe(true);
+    expect([...row.children]).toEqual([hook('save').element]);
+  });
+
+  // As FormModal's footer, and as Staff and Attendance had it: on a wide page a «Save» as wide as the form (the
+  // other six pages, a grid child stretched) was a bar 1168 px long at 1440x900.
+  it('«Save» sits at the end of its row, at its own width, as FormModal\'s does', () => {
+    const { hook } = mountFooter(state());
+    const source = readFileSync(join(HERE, 'SettingsFormFooter.vue'), 'utf8');
+    const style = /<style scoped>([\s\S]*?)<\/style>/.exec(source)?.[1] ?? '';
+    const row = /\.ep-settings-form-footer__actions\s*\{([^}]*)\}/.exec(style)?.[1] ?? '';
+    expect(row).toMatch(/display:\s*flex;/);
+    expect(row).toMatch(/justify-content:\s*flex-end;/);
+    expect(style).not.toMatch(/width:\s*100%|flex:\s*1|flex-grow/);
+    expect(hook('save').attributes('expand')).toBeUndefined();
   });
 
   it('its hooks carry the page prefix (`<testid>-save-error`, `-saved`, `-save`)', () => {
@@ -195,8 +215,9 @@ describe('SettingsFormFooter', () => {
     });
 
     it('`readonly`: whoever may not change the settings has no «Save» (Attendance)', () => {
-      const { hook } = mountFooter(state({ dirty: true }), { readonly: true });
+      const { wrapper, hook } = mountFooter(state({ dirty: true }), { readonly: true });
       expect(hook('save').exists()).toBe(false);
+      expect(wrapper.find('.ep-settings-form-footer__actions').exists()).toBe(false);
     });
   });
 

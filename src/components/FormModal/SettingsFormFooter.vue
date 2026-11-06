@@ -14,8 +14,9 @@
 //     something to say; the green «saved» notice while `saved`; then «Save» (submit), off with nothing to
 //     send or while saving, and a tap on it saves (`settings.save()`).
 //   - Every text is the page's (`saveLabel`, `savedLabel`, `errorHeading`): the piece says nothing of its own.
-//   - The three are the page form's own children, in that order (no wrapper): the form lays them out as it
-//     did when each page wrote them by hand.
+//   - The notices are the page form's own children, right before a row that holds «Save» at its end and at
+//     its own width, as FormModal's footer (and Staff's and Attendance's pages) have it: the form spaces them
+//     as it spaces its fields, and a wide page no longer paints «Save» as a bar as long as the form.
 //   - Hooks: `<testid>-save-error`, `<testid>-saved` and `<testid>-save`.
 //   - Variants: `spinner` (Save spins while saving), `saveIcon` (its icon, the spinner replacing it while
 //     saving), `allowUnchanged` (Save stays on with nothing to send: it sends nothing and says «saved»)
@@ -93,24 +94,36 @@ function save(): void {
   >
     {{ savedLabel }}
   </InlineFeedback>
-  <ion-button
+  <div
     v-if="!readonly"
-    type="submit"
-    :data-testid="`${testid}-save`"
-    :disabled="saveOff"
-    @click="save"
+    class="ep-settings-form-footer__actions"
   >
-    <ion-spinner
-      v-if="spinner && pending"
-      slot="start"
-      name="crescent"
-      aria-hidden="true"
-    />
-    <HubIcon
-      v-else-if="saveIcon"
-      slot="start"
-      :name="saveIcon"
-    />
-    {{ saveLabel }}
-  </ion-button>
+    <ion-button
+      type="submit"
+      :data-testid="`${testid}-save`"
+      :disabled="saveOff"
+      @click="save"
+    >
+      <ion-spinner
+        v-if="spinner && pending"
+        slot="start"
+        name="crescent"
+        aria-hidden="true"
+      />
+      <HubIcon
+        v-else-if="saveIcon"
+        slot="start"
+        :name="saveIcon"
+      />
+      {{ saveLabel }}
+    </ion-button>
+  </div>
 </template>
+
+<style scoped>
+/* «Save» at the end of the form, at its own width (FormModal's footer). */
+.ep-settings-form-footer__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+</style>
