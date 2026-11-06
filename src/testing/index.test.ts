@@ -38,11 +38,13 @@ describe('@erplora/ui/testing (helpers for the tests of this package and of the 
     expect(testing.nameElementClasses).toBe(elementNames.nameElementClasses);
   });
 
-  it('carries the mails of a Django file backend: readMailCode, readPasswordResetLink, waitForMail, readMails', () => {
+  it('carries the mails of a Django file backend: readMailCode, readPasswordResetLink, waitForMail, readMails, readMailsSince', () => {
     expect(testing.readMailCode).toBe(mail.readMailCode);
     expect(testing.readPasswordResetLink).toBe(mail.readPasswordResetLink);
     expect(testing.waitForMail).toBe(mail.waitForMail);
     expect(testing.readMails).toBe(mail.readMails);
+    expect(testing.readMailsSince).toBeTypeOf('function');
+    expect(testing.readMailsSince).toBe(mail.readMailsSince);
     expect(testing.MAIL_CODE).toBe(mail.MAIL_CODE);
   });
 
