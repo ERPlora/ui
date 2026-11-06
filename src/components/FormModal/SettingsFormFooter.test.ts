@@ -71,8 +71,8 @@ const disabled = (el: Element): boolean =>
 
 const iconOf = (el: Element): string | undefined => (el as HTMLElement & { icon?: string }).icon;
 
-/** An `ion-button`'s type: Vue sets it as the element's property (as `disabled`), not as an attribute. */
-const typeOf = (el: Element): string | null => (el as HTMLElement & { type?: string }).type ?? el.getAttribute('type');
+/** A prop of an Ionic element: Vue sets it as the element's property (as `disabled`), not as an attribute. */
+const propOf = (el: Element, name: string): unknown => (el as unknown as Record<string, unknown>)[name] ?? el.getAttribute(name);
 
 describe('SettingsFormFooter', () => {
   it('is in @erplora/ui/components, next to useSettingsForm', () => {
@@ -84,7 +84,7 @@ describe('SettingsFormFooter', () => {
     const save = hook('save');
     expect(save.exists()).toBe(true);
     expect(save.element.tagName).toBe('ION-BUTTON');
-    expect(typeOf(save.element)).toBe('submit');
+    expect(propOf(save.element, 'type')).toBe('submit');
     expect(save.text()).toBe('Save');
     expect(disabled(save.element)).toBe(true);
     expect(hook('save-error').exists()).toBe(false);
@@ -167,7 +167,7 @@ describe('SettingsFormFooter', () => {
     expect(row).toMatch(/display:\s*flex;/);
     expect(row).toMatch(/justify-content:\s*flex-end;/);
     expect(style).not.toMatch(/width:\s*100%|flex:\s*1|flex-grow/);
-    expect(hook('save').attributes('expand')).toBeUndefined();
+    expect(propOf(hook('save').element, 'expand')).toBeNull();
   });
 
   it('its hooks carry the page prefix (`<testid>-save-error`, `-saved`, `-save`)', () => {
@@ -184,6 +184,7 @@ describe('SettingsFormFooter', () => {
       settings.pending.value = true;
       await flushPromises();
       const spinner = hook('save').get('ion-spinner');
+      expect(propOf(spinner.element, 'name')).toBe('crescent');
       expect(spinner.attributes('slot')).toBe('start');
       expect(spinner.attributes('aria-hidden')).toBe('true');
     });
@@ -202,6 +203,12 @@ describe('SettingsFormFooter', () => {
       await flushPromises();
       expect(hook('save').find('ion-icon').exists()).toBe(false);
       expect(hook('save').find('ion-spinner').exists()).toBe(true);
+    });
+
+    it('`saveIcon`: the icon is the one the page names, whichever it is', () => {
+      const { hook } = mountFooter(state(), { saveIcon: 'ion:checkmark-outline' });
+      // HubIcon paints an Ionicon by its name (the other sets, as `lucide:save` above, by their baked SVG).
+      expect(propOf(hook('save').get('ion-icon').element, 'name')).toBe('checkmark-outline');
     });
 
     it('`allowUnchanged`: «Save» stays on with nothing to send, off only while saving (Attendance)', async () => {
