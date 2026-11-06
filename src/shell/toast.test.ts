@@ -173,6 +173,32 @@ describe('the toast sits above the bottom bar of the screen on view (S-04)', () 
     expect(toastAnchor()).toBeUndefined();
   });
 
+  // saas#344: back from a payment, `open = false` and the notice come in one go, while the dialog is still open. Ionic
+  // gives the page back (drops the outlet's `aria-hidden`) once the dialog starts to close, a few promises later, and
+  // the page the flow went to is there by then: the bar is the one on view when the notice shows, not when it is asked.
+  it('asked as a dialog closes, it sits above the bar of the page the dialog leaves on view (saas#344)', async () => {
+    shell(`<div class="ion-page"><ion-content></ion-content><ion-footer data-id="tabbar"></ion-footer></div>`);
+    const outlet = document.querySelector('ion-router-outlet')!;
+    outlet.setAttribute('aria-hidden', 'true');
+    const shown = toastSuccess('Café Central is now on Starter');
+    await Promise.resolve();
+    outlet.removeAttribute('aria-hidden');
+    await shown;
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ position: 'bottom', positionAnchor: byId('tabbar') }));
+  });
+
+  it('asked as the next page comes, it sits above the bar of that page, not of the one it leaves (saas#344)', async () => {
+    shell(`<div class="ion-page"><ion-content></ion-content></div>`);
+    const shown = toastSuccess('Saved');
+    await Promise.resolve();
+    document.querySelector('ion-router-outlet')!.insertAdjacentHTML(
+      'beforeend',
+      `<div class="ion-page"><ion-content></ion-content><ion-footer data-id="next"></ion-footer></div>`,
+    );
+    await shown;
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ positionAnchor: byId('next') }));
+  });
+
   it('without a bottom bar it stays at the bottom edge, with no anchor', async () => {
     shell(`<div class="ion-page"><ion-content></ion-content></div>`);
     await toastInfo('FYI');

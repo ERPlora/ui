@@ -38,12 +38,23 @@ function painted(el: HTMLElement): boolean {
   return typeof el.checkVisibility === 'function' ? el.checkVisibility() : el.getClientRects().length > 0;
 }
 
+/**
+ * The bar of the screen the toast shows on (saas#344): read at the next frame, not when it is asked. A notice is often
+ * asked in the same breath as what changes the screen — a dialog set to close, a page just pushed — and Ionic gives the
+ * page back from behind the dialog (drops the outlet's `aria-hidden`) a few promises later, when the dialog starts to
+ * close; read at once, the page's bar is still hidden and the toast covers it. By the next frame what was asked has run.
+ */
+function anchorOnShow(): Promise<HTMLElement | undefined> {
+  return new Promise((read) => requestAnimationFrame(() => read(toastAnchor())));
+}
+
 /** The toast on screen, and which call asked for it: a call answered late never covers a newer notice. */
 let onScreen: { toast: HTMLIonToastElement; order: number } | undefined;
 let asked = 0;
 
 /**
- * Shows a global toast, above the bottom bar of the screen when it has one ({@link toastAnchor}).
+ * Shows a global toast, above the bottom bar of the screen it shows on when it has one ({@link toastAnchor}, read at
+ * the next frame: {@link anchorOnShow}).
  * `duration` in ms (0 = sticky, closed by its button, labelled in the language of the page:
  * `toast.close` of the shell catalogue). `id` names it so
  * {@link dismissToast} can withdraw it once what it says stops being true. `action` adds a button
@@ -60,7 +71,7 @@ export async function toast(
   position: 'bottom' | 'top' = 'bottom',
 ): Promise<void> {
   const order = ++asked;
-  const anchor = position === 'bottom' ? toastAnchor() : undefined;
+  const anchor = position === 'bottom' ? await anchorOnShow() : undefined;
   const t = await toastController.create({
     message,
     color,
