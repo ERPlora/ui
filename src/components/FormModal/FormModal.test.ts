@@ -1286,6 +1286,63 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     }
   });
 
+  // hub#928: Ionic drops the backdrop and the shadow of a modal opened over another one (`ion-modal.modal-default.show-modal
+  // ~ ion-modal.modal-default` in its core.css), a rule made for windows of one size that cover each other. The card is
+  // narrower than a sheet (600px wide on a tablet) and the phone's sheet is only as tall as its fields, so what was behind
+  // showed around it, neither dimmed nor apart, its words cut at the card's edges. Over another window it keeps both.
+  describe('over another window (hub#928)', () => {
+    const IONIC = readFileSync(join(HERE, '../../../node_modules/@ionic/vue/css/core.css'), 'utf8');
+    const SHADOW = '0 18px 50px rgba(17, 24, 39, 0.18)';
+
+    /** `front` presented after an open sheet (none with `alone`), with Ionic's stylesheet and the dialog's, in a window
+     *  `width` px wide. */
+    async function over(width: number, front: string, dark = false, alone = false) {
+      const win = new Window({ width, height: 844 });
+      if (dark) win.document.documentElement.classList.add('ion-palette-dark');
+      // The dialog's rules first: they must win by what they say, not by coming after Ionic's (the bundle sets the order).
+      win.document.head.innerHTML = `<style>:root { --ep-shadow-modal: ${SHADOW}; }</style><style>${STYLE}</style><style>${IONIC}</style>`;
+      win.document.body.innerHTML = `<ion-app>
+        ${alone ? '' : '<ion-modal class="ios modal-default show-modal" data-testid="sheet"></ion-modal>'}
+        ${front}
+      </ion-app>`;
+      const style = win.getComputedStyle(win.document.querySelector('[data-testid=front]')!);
+      const read = { backdrop: style.getPropertyValue('--backdrop-opacity'), shadow: style.getPropertyValue('--box-shadow') };
+      await win.happyDOM.close();
+      return read;
+    }
+    const dialog = (phoneLayout: string, size = 'md') =>
+      `<ion-modal class="ep-form-modal ios modal-default show-modal" data-testid="front" data-size="${size}" data-phone-layout="${phoneLayout}"></ion-modal>`;
+
+    it.each([
+      [1440, 'sheet', 'md'],
+      [820, 'sheet', 'md'],
+      [1440, 'card', 'sm'],
+      [390, 'sheet', 'md'],
+      [390, 'card', 'sm'],
+    ])('at %ipx (%s, %s) it dims the window behind as Ionic dims a lone modal, and keeps its shadow', async (width, layout, size) => {
+      const { backdrop, shadow } = await over(width, dialog(layout, size));
+      expect(backdrop).toBe('0.4');
+      expect(shadow).toBe(SHADOW);
+    });
+
+    it('dark: the backdrop of a dialog over another window is as deep as the one over a page (UX audit U-90)', async () => {
+      expect((await over(1440, dialog('sheet'), true)).backdrop).toBe('0.6');
+    });
+
+    // Over a page Ionic's own 0.4 (its shadow root's `:host`, which happy-dom does not apply) is what the dialog says now
+    // itself, with the 0.6 of dark: one value per theme for both cases.
+    it('over a page it says Ionic\'s 0.4 itself, and 0.6 in dark (UX audit U-90)', async () => {
+      expect(await over(1440, dialog('sheet'), false, true)).toEqual({ backdrop: '0.4', shadow: SHADOW });
+      expect((await over(1440, dialog('sheet'), true, true)).backdrop).toBe('0.6');
+    });
+
+    it('a window that is not a FormModal keeps Ionic\'s rule: nothing leaks to other modals', async () => {
+      const { backdrop, shadow } = await over(1440, '<ion-modal class="ios modal-default show-modal" data-testid="front"></ion-modal>');
+      expect(backdrop).toBe('0');
+      expect(shadow).toBe('none');
+    });
+  });
+
   it('uses Ionic\'s spacing class and our tokens, nothing of OutfitKit', () => {
     expect(sfc).toMatch(/ion-padding/);
     expect(sfc).not.toMatch(/--ok-|\bok-[a-z]/);

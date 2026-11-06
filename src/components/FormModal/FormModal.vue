@@ -505,14 +505,24 @@ ion-modal.ep-form-modal {
   --max-height: calc(100vh - 32px);
   --border-radius: var(--ep-radius, 14px);
   --box-shadow: var(--ep-shadow-modal);
+  --ep-form-modal-backdrop-opacity: var(--ion-backdrop-opacity, 0.4);
+  --backdrop-opacity: var(--ep-form-modal-backdrop-opacity);
 }
 ion-modal.ep-form-modal[data-size='sm'] {
   --width: 420px;
 }
 /* Dark: the dialog stands out from what is behind it (UX audit U-90). */
 :root.ion-palette-dark ion-modal.ep-form-modal {
-  --backdrop-opacity: 0.6;
+  --ep-form-modal-backdrop-opacity: 0.6;
   --background: var(--ion-color-step-100, #1d2025);
+}
+/* Over another window (a sheet, another dialog) too (hub#928): Ionic drops the backdrop and the shadow of a modal opened
+   over another one (`ion-modal.modal-default.show-modal ~ ion-modal.modal-default`, its core.css), made for windows of one
+   size that cover each other. This card is narrower than a sheet and the phone's sheet only as tall as its fields, so what
+   is behind would show around it, neither dimmed nor apart. */
+ion-modal.modal-default.show-modal ~ ion-modal.ep-form-modal.modal-default {
+  --backdrop-opacity: var(--ep-form-modal-backdrop-opacity);
+  --box-shadow: var(--ep-shadow-modal);
 }
 :root.ion-palette-dark ion-modal.ep-form-modal::part(content) {
   border: 1px solid var(--ion-border-color, #26282e);
