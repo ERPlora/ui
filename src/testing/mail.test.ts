@@ -355,6 +355,7 @@ describe('readMailsSince: the finished mails written from the action on, read wi
   it('answers the mails of the files written from `since` on, oldest first, never one written before', async () => {
     const since = Date.now();
     write([{ body: 'before\n' }], since - 2_000);
+    write([{ body: 'a moment before\n' }], since - 100); // Beyond the clock's last tick: written before the action.
     write([{ body: 'second\n' }], since + 20);
     write([{ to: 'bo@example.com', body: 'first\n' }], since + 10);
     const mails = await readMailsSince({ dir, since });
