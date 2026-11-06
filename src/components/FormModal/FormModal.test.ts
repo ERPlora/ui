@@ -1329,7 +1329,9 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
       expect((await over(1440, dialog('sheet'), true)).backdrop).toBe('0.6');
     });
 
-    it('over a page it is as before: Ionic\'s 0.4, and 0.6 in dark (UX audit U-90)', async () => {
+    // Over a page Ionic's own 0.4 (its shadow root's `:host`, which happy-dom does not apply) is what the dialog says now
+    // itself, with the 0.6 of dark: one value per theme for both cases.
+    it('over a page it says Ionic\'s 0.4 itself, and 0.6 in dark (UX audit U-90)', async () => {
       expect(await over(1440, dialog('sheet'), false, true)).toEqual({ backdrop: '0.4', shadow: SHADOW });
       expect((await over(1440, dialog('sheet'), true, true)).backdrop).toBe('0.6');
     });
