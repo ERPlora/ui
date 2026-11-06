@@ -38,14 +38,47 @@ function painted(el: HTMLElement): boolean {
   return typeof el.checkVisibility === 'function' ? el.checkVisibility() : el.getClientRects().length > 0;
 }
 
+/** A page's dialog to Ionic: opened by its `isOpen`, unless a controller made it. */
+type Dialog = HTMLElement & Pick<HTMLIonModalElement, 'isOpen' | 'hasController' | 'onWillDismiss' | 'onDidDismiss'>;
+
+const DIALOGS = 'ion-modal, ion-popover, ion-alert, ion-action-sheet, ion-loading';
+
+/** The longest a toast waits for a dialog set to close to give the page back: one that never lets go (a `canDismiss`
+ *  that says no) does not keep the notice, which then shows where it can. */
+const CLOSING_DIALOG_WAIT_MS = 2000;
+
+/** The page's dialogs set to close (`isOpen` false) that are still on screen: about to close, or closing. */
+function closingDialogs(): Dialog[] {
+  return [...document.querySelectorAll<Dialog>(DIALOGS)].filter(
+    (dialog) => !dialog.hasController && !dialog.isOpen && !dialog.classList.contains('overlay-hidden'),
+  );
+}
+
+/** Once `dialog` has given the page back: when it starts to close (its `willDismiss`, Ionic drops the outlet's
+ *  `aria-hidden` just before), or when it is gone if it was already closing. */
+function pageBackFrom(dialog: Dialog): Promise<void> {
+  return new Promise((back) => {
+    const done = (): void => {
+      clearTimeout(timer);
+      back();
+    };
+    const timer = setTimeout(done, CLOSING_DIALOG_WAIT_MS);
+    void dialog.onWillDismiss().then(done);
+    void dialog.onDidDismiss().then(done);
+  });
+}
+
 /**
- * The bar of the screen the toast shows on (saas#344): read at the next frame, not when it is asked. A notice is often
- * asked in the same breath as what changes the screen — a dialog set to close, a page just pushed — and Ionic gives the
- * page back from behind the dialog (drops the outlet's `aria-hidden`) a few promises later, when the dialog starts to
- * close; read at once, the page's bar is still hidden and the toast covers it. By the next frame what was asked has run.
+ * The bar of the screen the toast shows on (saas#344), not of the one there when it is asked. A notice is often asked
+ * in the same breath as what changes the screen — a dialog set to close, a page just pushed —, so it is read once that
+ * has run (the next frame) and, when a dialog is closing, once the dialog has given the page back: Ionic lets a dialog
+ * go only when its own lock is free (~300 ms after `open = false` back from a payment), and until then the page and its
+ * bar stay hidden behind it.
  */
-function anchorOnShow(): Promise<HTMLElement | undefined> {
-  return new Promise((read) => requestAnimationFrame(() => read(toastAnchor())));
+async function anchorOnShow(): Promise<HTMLElement | undefined> {
+  await new Promise((frame) => requestAnimationFrame(frame));
+  await Promise.all(closingDialogs().map(pageBackFrom));
+  return toastAnchor();
 }
 
 /** The toast on screen, and which call asked for it: a call answered late never covers a newer notice. */
