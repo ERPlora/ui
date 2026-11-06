@@ -10,7 +10,9 @@
 // read). «Since» is the file's write time: the newest matching mail written from `since` on wins, so a code
 // mailed earlier to the same address (a run before, a test before) is never read. A wait never stops
 // Node: it looks with `node:fs/promises`, and reads only the files written from `since` on that are new
-// or changed since its last look (the folder of a stack keeps every mail of every run).
+// or changed since its last look (the folder of a stack keeps every mail of every run). `readMailsSince`
+// is one such look, for the whole of a mail a wait found; `readMails` reads the folder entire and stops
+// Node meanwhile.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -47,7 +49,10 @@ export interface MailQuery {
   interval?: number;
 }
 
-/** Every finished mail of `dir`, oldest first; none while the folder does not exist yet. */
+/**
+ * Every finished mail of `dir`, oldest first; none while the folder does not exist yet. It reads every file with
+ * Node stopped: in an e2e, `readMailsSince` reads only the mails written from the action on, without stopping it.
+ */
 export function readMails(dir: string): Mail[] {
   let names: string[];
   try {
@@ -112,7 +117,15 @@ function looksAt(dir: string, from: number): () => Promise<Mail[]> {
   };
 }
 
-/** A file or folder that is not there (`ENOENT`) answers `value`; any other error fails the wait as it is. */
+/**
+ * The finished mails, oldest first, of the files of `dir` written from `since` on: one look of a wait, so it never
+ * stops Node and never reads a file written before the action. None while the folder does not exist yet.
+ */
+export function readMailsSince(query: Pick<MailQuery, 'dir' | 'since'>): Promise<Mail[]> {
+  return looksAt(query.dir, query.since - CLOCK_SLACK_MS)();
+}
+
+/** A file or folder that is not there (`ENOENT`) answers `value`; any other error fails the read as it is. */
 function ifMissing<T>(value: T): (error: unknown) => T {
   return (error) => {
     if ((error as NodeJS.ErrnoException | null)?.code === 'ENOENT') return value;
