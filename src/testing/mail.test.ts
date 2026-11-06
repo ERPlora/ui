@@ -1,25 +1,62 @@
+// @vitest-environment node
+// In plain Node, as an e2e runs it (Playwright): no DOM, and `node:fs` is the one it reads with.
 // The mails a Django app writes with its file backend (`django.core.mail.backends.filebased.EmailBackend`),
 // read back as a person reads their inbox: the SaaS writes every mail of development to `saas-next/.mail/`
 // (and its e2e to a folder of its own), and a sign-in there asks for the six-digit code it mailed. The
 // samples below are what Django 6.1 writes: one file per connection named by an id (not by time), each
 // message closed by a line of 79 `-`, its body raw UTF-8 (8bit), quoted-printable, base64 or multipart.
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MAIL_CODE, PASSWORD_RESET_LINK, readMailCode, readMails, readPasswordResetLink, waitForMail } from './mail';
+
+// The file system as it is, watched: which calls a wait makes, and on which files.
+vi.mock('node:fs', async (importOriginal) => {
+  const fs = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...fs,
+    readdirSync: vi.fn(fs.readdirSync),
+    readFileSync: vi.fn(fs.readFileSync),
+    statSync: vi.fn(fs.statSync),
+  };
+});
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const fs = await importOriginal<typeof import('node:fs/promises')>();
+  return { ...fs, readFile: vi.fn(fs.readFile) };
+});
 
 const CLOSE = `\n${'-'.repeat(79)}\n`;
 
 let dir: string;
 let file = 0;
 
+const pending: ReturnType<typeof setTimeout>[] = [];
+
+/** Runs `step` in `ms`, unless its test is over by then: a mail late for one test never lands in the next one's folder. */
+function later(ms: number, step: () => void): void {
+  pending.push(setTimeout(step, ms));
+}
+
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'erplora-mail-'));
+  vi.clearAllMocks();
 });
 
 afterEach(() => {
+  pending.splice(0).forEach(clearTimeout);
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -190,7 +227,7 @@ describe('readMailCode: the code of the newest mail to the address since the act
 
   it('waits for a mail that is still on its way', async () => {
     const since = Date.now();
-    setTimeout(() => write([{ body: '\n777777\n' }]), 150);
+    later(150, () => write([{ body: '\n777777\n' }]));
     await expect(readMailCode({ dir, to: 'ana@example.com', since, timeout: 3_000, interval: 25 })).resolves.toBe('777777');
   });
 
@@ -215,6 +252,88 @@ describe('readPasswordResetLink and waitForMail', () => {
     await expect(waitForMail({ dir, to: 'ana@example.com', since, match: /invitation\?id=(\d+)/ })).resolves.toBe('42');
     await expect(waitForMail({ dir, to: 'ana@example.com', since, match: /https:\/\/\S+/ })).resolves.toBe(
       'https://erplora.com/invitation?id=42',
+    );
+  });
+});
+
+describe('waitForMail: reads only what is new since its last look, without stopping Node', () => {
+  /** How many times `path` was read, in either way. */
+  function readsOf(path: string): number {
+    return [...vi.mocked(readFileSync).mock.calls, ...vi.mocked(readFile).mock.calls].filter(([read]) => read === path)
+      .length;
+  }
+
+  it('finds the mail written after the action among many older ones that match too', async () => {
+    const since = Date.now();
+    for (let at = 1; at <= 20; at += 1) write([{ body: `\n${100_000 + at}\n` }], since - at * 1_000);
+    later(60, () => write([{ body: '\n482913\n' }], Date.now() + 10));
+    await expect(readMailCode({ dir, to: 'ana@example.com', since, timeout: 3_000, interval: 10 })).resolves.toBe(
+      '482913',
+    );
+  });
+
+  it('never reads a file written before the action, though its mail is to the address and matches', async () => {
+    const since = Date.now();
+    const old = write([{ body: '\n111111\n' }], since - 2_000);
+    write([{ body: '\n222222\n' }], since + 10);
+    await expect(readMailCode({ dir, to: 'ana@example.com', since })).resolves.toBe('222222');
+    expect(readsOf(old)).toBe(0);
+  });
+
+  it('reads a file once while it does not change, however many times it looks', async () => {
+    const since = Date.now();
+    const other = write([{ to: 'bo@example.com', body: '\n333333\n' }], since + 10);
+    later(150, () => write([{ body: '\n444444\n' }], Date.now() + 10));
+    await expect(readMailCode({ dir, to: 'ana@example.com', since, timeout: 3_000, interval: 10 })).resolves.toBe(
+      '444444',
+    );
+    expect(readsOf(other)).toBe(1);
+  });
+
+  it('reads again a file that grew since its last look: a mail half written counts once it is closed', async () => {
+    const since = Date.now();
+    const at = (since + 10) / 1000;
+    const path = join(dir, 'open.log');
+    const whole = `${message({ body: 'Your sign-in code is listed below.\n\n123456\n' })}${CLOSE}`;
+    const cut = whole.lastIndexOf('123456') + 2;
+    writeFileSync(path, whole.slice(0, cut));
+    utimesSync(path, at, at);
+    later(150, () => {
+      appendFileSync(path, whole.slice(cut));
+      utimesSync(path, at, at); // Within the same tick of the clock: only its size says it grew.
+    });
+    await expect(readMailCode({ dir, to: 'ana@example.com', since, timeout: 3_000, interval: 10 })).resolves.toBe(
+      '123456',
+    );
+  });
+
+  it('never stops Node to look: no synchronous call on the folder or its files while it waits', async () => {
+    const since = Date.now();
+    write([{ body: '\n111111\n' }], since - 2_000);
+    later(60, () => write([{ body: '\n555555\n' }], Date.now() + 10));
+    await expect(readMailCode({ dir, to: 'ana@example.com', since, timeout: 3_000, interval: 10 })).resolves.toBe(
+      '555555',
+    );
+    expect([readdirSync, statSync, readFileSync].map((sync) => vi.mocked(sync).mock.calls.length)).toEqual([0, 0, 0]);
+  });
+
+  it('answers the same mail to a second wait from the same moment: each wait looks on its own', async () => {
+    const since = Date.now();
+    write([{ body: '\n666666\n' }], since + 10);
+    await expect(readMailCode({ dir, to: 'ana@example.com', since })).resolves.toBe('666666');
+    await expect(readMailCode({ dir, to: 'ana@example.com', since })).resolves.toBe('666666');
+  });
+
+  it('looks again at a file gone between listing the folder and reading it, and fails on any other error', async () => {
+    const since = Date.now();
+    write([{ body: '\n777777\n' }], since + 10);
+    vi.mocked(readFile).mockRejectedValueOnce(Object.assign(new Error('gone'), { code: 'ENOENT' }));
+    await expect(readMailCode({ dir, to: 'ana@example.com', since, timeout: 3_000, interval: 10 })).resolves.toBe(
+      '777777',
+    );
+    vi.mocked(readFile).mockRejectedValueOnce(Object.assign(new Error('permission denied'), { code: 'EACCES' }));
+    await expect(readMailCode({ dir, to: 'ana@example.com', since, timeout: 3_000, interval: 10 })).rejects.toThrow(
+      'permission denied',
     );
   });
 });

@@ -8,8 +8,11 @@
 // What Django 6.1 writes: one file per connection, named by an id (not by time), each message closed by a
 // line of 79 `-`; a body raw UTF-8 (8bit), 7bit, quoted-printable, base64 or multipart (its text part is
 // read). «Since» is the file's write time: the newest matching mail written from `since` on wins, so a code
-// mailed earlier to the same address (a run before, a test before) is never read.
+// mailed earlier to the same address (a run before, a test before) is never read. A wait never stops
+// Node: it looks with `node:fs/promises`, and reads only the files written from `since` on that are new
+// or changed since its last look (the folder of a stack keeps every mail of every run).
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /** The code of the sign-in mail and of the address verification: six digits alone on their line. */
@@ -55,25 +58,73 @@ export function readMails(dir: string): Mail[] {
   const files = names
     .map((name) => join(dir, name))
     .flatMap((path) => {
-      const stat = statSync(path, { throwIfNoEntry: false });
-      return stat?.isFile() ? [{ path, writtenAt: stat.mtimeMs }] : [];
+      const stats = statSync(path, { throwIfNoEntry: false });
+      return stats?.isFile() ? [{ path, writtenAt: stats.mtimeMs }] : [];
     })
-    .sort((a, b) => a.writtenAt - b.writtenAt || a.path.localeCompare(b.path));
-  return files.flatMap(({ path, writtenAt }) =>
-    // What follows the last close is empty, or a message still being written.
-    readFileSync(path, 'utf8')
-      .split(CLOSE)
-      .slice(0, -1)
-      .map((raw) => ({ ...parseMessage(raw), writtenAt })),
-  );
+    .sort(byWrite);
+  return files.flatMap(({ path, writtenAt }) => mailsOf(readFileSync(path, 'utf8'), writtenAt));
 }
 
-/** The value of `match` (its first group, else the whole match) in the newest mail of the query. */
-function newest(query: MailQuery, match: RegExp): string | undefined {
-  const to = query.to.toLowerCase();
-  const from = query.since - CLOCK_SLACK_MS;
-  const found = readMails(query.dir)
-    .filter((mail) => mail.writtenAt >= from && mail.to.includes(to))
+/** The finished mails of a file's text: what follows the last close is empty, or a message still being written. */
+function mailsOf(text: string, writtenAt: number): Mail[] {
+  return text
+    .split(CLOSE)
+    .slice(0, -1)
+    .map((raw) => ({ ...parseMessage(raw), writtenAt }));
+}
+
+/** Oldest first; files of the same instant by name. */
+function byWrite(a: { path: string; writtenAt: number }, b: { path: string; writtenAt: number }): number {
+  return a.writtenAt - b.writtenAt || a.path.localeCompare(b.path);
+}
+
+/**
+ * One wait's looks at `dir`: each answers the finished mails, oldest first, of the files written from `from` on
+ * that are new or changed since the look before (by their time and their size: a file still being written grows
+ * within one tick of the clock). Nothing blocks Node, and a file read once is not read again while it stays as it
+ * was: its mails did not match then, or the wait would be over.
+ */
+function looksAt(dir: string, from: number): () => Promise<Mail[]> {
+  const read = new Map<string, string>();
+  const version = (writtenAt: number, size: number) => `${writtenAt}:${size}`;
+  return async () => {
+    const names = await readdir(dir).catch(ifMissing<string[]>([])); // The backend makes it with its first mail.
+    const listed = await Promise.all(
+      names.map(async (name) => {
+        const path = join(dir, name);
+        const stats = await stat(path).catch(ifMissing(undefined));
+        return stats?.isFile() && stats.mtimeMs >= from ? [{ path, writtenAt: stats.mtimeMs, size: stats.size }] : [];
+      }),
+    );
+    const changed = listed
+      .flat()
+      .filter(({ path, writtenAt, size }) => read.get(path) !== version(writtenAt, size))
+      .sort(byWrite);
+    const mails = await Promise.all(
+      changed.map(async ({ path, writtenAt, size }) => {
+        const text = await readFile(path, 'utf8').catch(ifMissing(undefined));
+        if (text === undefined) return []; // Gone since the listing: the next look sees whether it is back.
+        read.set(path, version(writtenAt, size));
+        return mailsOf(text, writtenAt);
+      }),
+    );
+    return mails.flat();
+  };
+}
+
+/** A file or folder that is not there (`ENOENT`) answers `value`; any other error fails the wait as it is. */
+function ifMissing<T>(value: T): (error: unknown) => T {
+  return (error) => {
+    if ((error as NodeJS.ErrnoException | null)?.code === 'ENOENT') return value;
+    throw error;
+  };
+}
+
+/** The value of `match` (its first group, else the whole match) in the newest of `mails` to `to`. */
+function newest(mails: Mail[], to: string, match: RegExp): string | undefined {
+  const address = to.toLowerCase();
+  const found = mails
+    .filter((mail) => mail.to.includes(address))
     .map((mail) => mail.body.match(match))
     .filter((hit): hit is RegExpMatchArray => hit !== null)
     .at(-1);
@@ -86,8 +137,9 @@ function newest(query: MailQuery, match: RegExp): string | undefined {
  */
 export async function waitForMail(query: MailQuery & { match: RegExp }): Promise<string> {
   const deadline = Date.now() + (query.timeout ?? 15_000);
+  const look = looksAt(query.dir, query.since - CLOCK_SLACK_MS);
   for (;;) {
-    const found = newest(query, query.match);
+    const found = newest(await look(), query.to, query.match);
     if (found !== undefined) return found;
     if (Date.now() >= deadline) {
       throw new Error(
