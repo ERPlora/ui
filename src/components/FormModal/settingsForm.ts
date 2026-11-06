@@ -19,9 +19,10 @@
 //   - A refusal says itself as a FormModal does (`useRefusal`): `set` tells it which field changed, by its
 //     name on the server. What the screen judges before sending (`judge`) goes under its field the same
 //     way and sends nothing.
-//   - `save` sends the changes and paints the answer: nothing is left as typed, and `saved` says so; with
-//     nothing to send it sends nothing and says it too (what is on screen is what is saved). A failed save
-//     keeps what was typed; the command's `error` says why.
+//   - `save` sends the changes and paints the answer: what was sent is left as the server kept it. A field
+//     changed while the save was on its way stays as typed and still to send (hub#914), and `saved` says so
+//     only when nothing is left to send; with nothing to send it sends nothing and says it too (what is on
+//     screen is what is saved). A failed save keeps what was typed; the command's `error` says why.
 import { computed, shallowRef, toValue, watch, type ComputedRef, type MaybeRefOrGetter, type Ref, type ShallowRef } from 'vue';
 
 import { useRefusal } from './refusal';
@@ -135,17 +136,21 @@ export function useSettingsForm<Out, Form extends object, In extends object>(
     ...Object.fromEntries(Object.entries(judged.value).map(([field, message]) => [nameOf(field as Field), message as string])),
   }));
 
+  /** What the server has, with the fields in `keep` as the person has them on screen. */
+  function painted(fresh: Form, keep: ReadonlySet<Field>): Form {
+    const current = form.value;
+    if (!current) return { ...fresh };
+    return Object.fromEntries((Object.keys(fresh) as Field[]).map((key) => [key, keep.has(key) ? current[key] : fresh[key]])) as Form;
+  }
+
   // What the server says repaints every field the person has not touched.
   watch(
     () => toValue(data),
     (settings) => {
       if (!settings) return;
       const fresh = options.toForm(settings);
-      const current = form.value;
       original.value = fresh;
-      form.value = current
-        ? (Object.fromEntries((Object.keys(fresh) as Field[]).map((key) => [key, touched.value.has(key) ? current[key] : fresh[key]])) as Form)
-        : { ...fresh };
+      form.value = painted(fresh, touched.value);
     },
     { immediate: true },
   );
@@ -174,12 +179,16 @@ export function useSettingsForm<Out, Form extends object, In extends object>(
       saved.value = true;
       return;
     }
+    const sentForm = form.value;
     try {
       const answer = await command.run(changes.value);
-      original.value = options.toForm(answer);
-      form.value = options.toForm(answer);
-      touched.value = new Set();
-      saved.value = true;
+      const kept = options.toForm(answer);
+      // What was sent is the server's now; a field the person changed while the save was on its way stays.
+      const still = new Set([...touched.value].filter((field) => form.value?.[field] !== sentForm[field]));
+      original.value = kept;
+      form.value = painted(kept, still);
+      touched.value = still;
+      saved.value = !dirty.value;
     } catch {
       saved.value = false; // The page paints the command's error; what was typed stays.
     }
