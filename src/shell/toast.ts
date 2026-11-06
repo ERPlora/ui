@@ -86,8 +86,8 @@ let onScreen: { toast: HTMLIonToastElement; order: number } | undefined;
 let asked = 0;
 
 /**
- * Shows a global toast, above the bottom bar of the screen it shows on when it has one ({@link toastAnchor}, read at
- * the next frame: {@link anchorOnShow}).
+ * Shows a global toast, above the bottom bar of the screen it shows on when it has one ({@link toastAnchor}, read when
+ * it shows, after a dialog set to close has given the page back: {@link anchorOnShow}).
  * `duration` in ms (0 = sticky, closed by its button, labelled in the language of the page:
  * `toast.close` of the shell catalogue). `id` names it so
  * {@link dismissToast} can withdraw it once what it says stops being true. `action` adds a button
