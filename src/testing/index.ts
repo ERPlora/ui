@@ -5,5 +5,13 @@ export { nameElementClasses } from './elementNames';
 export { fillHappyDomGaps } from './happyDom';
 export { iconReferences, isRegisteredIcon, registerShellIcons, scanIcons } from './icons';
 export type { IconKind, IconReference, ScanIconsOptions, ScanIconsResult, UnregisteredIcon } from './icons';
-export { MAIL_CODE, PASSWORD_RESET_LINK, readMailCode, readMails, readPasswordResetLink, waitForMail } from './mail';
+export {
+  MAIL_CODE,
+  PASSWORD_RESET_LINK,
+  readMailCode,
+  readMails,
+  readMailsSince,
+  readPasswordResetLink,
+  waitForMail,
+} from './mail';
 export type { Mail, MailQuery } from './mail';
