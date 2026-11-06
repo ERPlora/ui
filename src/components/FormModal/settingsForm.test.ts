@@ -210,6 +210,79 @@ describe('useSettingsForm', () => {
     expect([form.touched.value.has('default_duration'), form.saved.value, form.changes.value]).toEqual([true, false, { default_duration: 45 }]);
   });
 
+  // hub#914: a field changed while the save is on its way is the person's still, not the answer's.
+  describe('a change made while a save is on its way', () => {
+    function held() {
+      let release: (answer: ServiceOut) => void = () => {};
+      const s = service(() => new Promise<ServiceOut>((resolve) => (release = resolve)));
+      return { ...s, release: (answer: ServiceOut) => release(answer) };
+    }
+
+    it('stays as typed and to send: only what was sent is saved, and it does not say saved', async () => {
+      const { form, release } = held();
+      form.set('show_prices', false);
+      const saving = form.save();
+      form.set('default_duration', '45');
+      release({ ...SAVED, show_prices: false });
+      await saving;
+      expect([form.form.value, form.dirty.value, form.saved.value]).toEqual([
+        { default_duration: '45', page_title: 'Book with us', show_prices: false, tax: { id: 'general', label: 'General VAT' } },
+        true,
+        false,
+      ]);
+      expect([[...form.touched.value], form.changes.value]).toEqual([['default_duration'], { default_duration: 45 }]);
+    });
+
+    it('the field that was sent, changed again on the way, keeps its new value to send', async () => {
+      const { form, release } = held();
+      form.set('default_duration', '45');
+      const saving = form.save();
+      form.set('default_duration', '50');
+      release({ ...SAVED, default_duration: 45 });
+      await saving;
+      expect([form.form.value?.default_duration, form.original.value?.default_duration]).toEqual(['50', '45']);
+      expect([form.changes.value, form.saved.value]).toEqual([{ default_duration: 50 }, false]);
+    });
+
+    it('saving what is left sends only it, and then says it is saved', async () => {
+      const { form, command, release } = held();
+      form.set('show_prices', false);
+      const first = form.save();
+      form.set('page_title', 'Book now');
+      release({ ...SAVED, show_prices: false });
+      await first;
+      const second = form.save();
+      release({ ...SAVED, show_prices: false, page_title: 'Book now' });
+      await second;
+      expect(command.run.mock.calls).toEqual([[{ show_prices: false }], [{ page_title: 'Book now' }]]);
+      expect([form.touched.value.size, form.dirty.value, form.saved.value]).toEqual([0, false, true]);
+    });
+
+    it('a field changed on the way to what the server ends up with leaves nothing to send: it says saved', async () => {
+      const { form, release } = held();
+      form.set('show_prices', false);
+      const saving = form.save();
+      form.set('page_title', 'Theirs');
+      release({ ...SAVED, show_prices: false, page_title: 'Theirs' });
+      await saving;
+      expect([form.form.value?.page_title, form.dirty.value, form.saved.value]).toEqual(['Theirs', false, true]);
+    });
+
+    it('what someone else saved while it was on its way is not taken as the person’s', async () => {
+      const { data, form, release } = held();
+      form.set('show_prices', false);
+      const saving = form.save();
+      data.value = { ...SAVED, show_prices: false, page_title: 'Theirs' };
+      await nextTick();
+      release({ ...SAVED, show_prices: false, page_title: 'Theirs' });
+      await saving;
+      data.value = { ...SAVED, show_prices: false, page_title: 'Third' };
+      await nextTick();
+      expect(form.form.value?.page_title).toBe('Third');
+      expect([form.touched.value.size, form.dirty.value, form.saved.value]).toEqual([0, false, true]);
+    });
+  });
+
   it('sends nothing while a save is on its way', async () => {
     const { form, pending, command } = service();
     form.set('default_duration', '45');
