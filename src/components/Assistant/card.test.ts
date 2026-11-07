@@ -149,9 +149,10 @@ describe('a datum that is a list', () => {
     expect(fieldText(list([{ quantity: 2, unit_price: { kind: 'money', value: 300 } }], false), spoken(es))).toBe('1 elemento');
     expect(fieldText(list([{}], false), spoken(es))).toBe('1 elemento');
     expect(fieldText(list([['a'], ['b']], false), spoken(en))).toBe('2 items');
-    // Even marked, a line is never said by a bare figure: it counts among the more.
+    // Even marked, a line is never said by a bare figure, nor by one of two texts: it counts among the more.
     expect(fieldText(list(['Caja', { quantity: 2 }]), spoken(es))).toBe('Caja y 1 más');
-    expect(fieldText(list([{ product_id: 'Café', quantity: 2 }]), spoken(es))).toBe('1 elemento');
+    expect(fieldText(list([{ quantity: 2, unit_price: { kind: 'money', value: 300 } }]), spoken(es))).toBe('1 elemento');
+    expect(fieldText(list([{ product_id: 'Café', note: 'frío' }]), spoken(es))).toBe('1 elemento');
     // Nor is an item that is a list said by what it carries.
     expect(fieldText(list(['Caja', ['Cocina']]), spoken(es))).toBe('Caja y 1 más');
   });
@@ -170,6 +171,29 @@ describe('a datum that is a list', () => {
     const beside = [{ service_id: 'Corte de pelo', service: null }, { service: '', service_id: 'Tinte' }];
     expect(fieldText(list(beside), spoken(es))).toBe('Corte de pelo, Tinte');
     expect(fieldText(list([{ service_id: 'Corte de pelo' }, { service: null }]), spoken(es))).toBe('Corte de pelo y 1 más');
+  });
+
+  it('a line that carries its record and figures is said by the record’s name and each figure (a reception of goods, hub#970)', () => {
+    // The server names each product and marks the list: the card said «Productos: 1 elemento».
+    const products = { name: 'items', label: 'Productos', kind: 'list' as const, value: [{ product_id: 'Vino tinto', qty: '6' }], named: true };
+    expect(fieldLines([products], spoken(es))).toEqual(['Productos: Vino tinto · 6']);
+    expect(cardLine(card({ fields: [products] }), spoken(es))).toBe('Vino tinto · 6');
+    // Its name first, wherever the model wrote it; a quantity as the screens write one, an amount as money.
+    expect(fieldText(list([{ qty: '2.500', product_id: 'Harina', unit_cost: { kind: 'money', value: 450 } }]), spoken(es))).toBe(
+      'Harina · 2,5 · 4,50 €',
+    );
+    expect(fieldText(list([{ product_id: 'Agua', qty: 1500 }]), spoken(es))).toBe('Agua · 1.500');
+    expect(fieldText(list([{ product_id: 'Harina', qty: '-0.5' }]), spoken(es))).toBe('Harina · -0,5');
+    expect(fieldText(list([{ product_id: 'Café', quantity: 2 }, { service_id: 'Bono corte', sessions: 5 }]), spoken(en))).toBe(
+      'Café · 2, Bono corte · 5',
+    );
+    // A decimal comma inside a line: a semicolon between lines, as between moments.
+    expect(fieldText(list([{ product_id: 'Harina', qty: '2.5' }, { product_id: 'Sal', qty: 1 }]), spoken(es))).toBe('Harina · 2,5; Sal · 1');
+    // One the server left out: among the more, never by a bare figure.
+    expect(fieldText(list([{ product_id: 'Café', quantity: 2 }, { quantity: 3 }]), spoken(es))).toBe('Café · 2 y 1 más');
+    // A yes or no is no figure; a list the server did not mark still says how many.
+    expect(fieldText(list([{ product_id: 'Café', gift: true }]), spoken(es))).toBe('1 elemento');
+    expect(fieldText(list([{ product_id: 'Vino tinto', qty: '6' }], false), spoken(es))).toBe('1 elemento');
   });
 
   it('a list of texts the server did not name says how many, never its codes (flow.flow.grant’s operations)', () => {
