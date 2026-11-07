@@ -447,6 +447,19 @@ describe('polish.css: the options of a dropdown', () => {
   });
 });
 
+// hub#866, hub#906. Ionic keeps the `part="label"` of an `ion-toggle` on one line; in a settings form's one-column grid
+// that line is the column's least width, and the whole form ran past a phone's screen with «Save» at the end of the
+// spilled row: Tables in Spanish 425 px on a 375 px phone, «Guardar» cut to «Gua»; Reservations in English 382. Three
+// pages had copied their own way out of it (Appointments, Time clock, Online bookings). happy-dom lays nothing out:
+// the boxes are measured by the Hub's e2e (tests/e2e/settings-form-footer.spec.ts), in English and in Spanish.
+describe('polish.css: a switch\'s label', () => {
+  const polish = plain(read('polish.css'));
+
+  it('a long label goes on to the next line between words, so it never widens the form it sits in', () => {
+    expect(blocks(polish, 'ion-toggle::part(label)').map(declarations)).toEqual([['white-space: normal']]);
+  });
+});
+
 // saas#272. Ionic keeps what a select has chosen on one line ending in «…», so with the field closed a person cannot read
 // what is set: «Madrid (Central European …» in a business's settings at 320. happy-dom lays nothing out: the boxes are
 // measured by the panel's e2e (tests/e2e/panel/fix-select-chosen-text-reads-whole.spec.ts).
