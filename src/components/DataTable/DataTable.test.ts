@@ -202,7 +202,7 @@ describe('«still loading» is not «empty» (#268)', () => {
     const t = mountTable({ ...base, title: '', columnPicker: false, total: 50, loading: true });
     await settle();
     expect(t.find('.data-table__bar').exists()).toBe(false);
-    expect(t.find('.data-table__pager select.data-table__pager-size').exists()).toBe(true);
+    expect(t.find('.data-table__pager ion-select.data-table__pager-size').exists()).toBe(true);
     expect(pager(t)).not.toMatch(/records?|Showing/);
     expect(t.find('.data-table__pager-nav').exists()).toBe(false);
   });

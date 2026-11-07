@@ -199,6 +199,8 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
                 :router-link="item.to"
                 router-direction="root"
                 :detail="false"
+                :aria-label="t(item.labelKey)"
+                :title="t(item.labelKey)"
                 :aria-current="isActive(item.to) ? 'page' : undefined"
                 :data-testid="`nav-${item.id}`"
               >
@@ -233,6 +235,8 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
                 :router-link="homePath"
                 router-direction="root"
                 :detail="false"
+                :aria-label="t('home.title')"
+                :title="t('home.title')"
                 :aria-current="route.path === homePath ? 'page' : undefined"
                 data-testid="nav-home"
               >
@@ -271,6 +275,8 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
                 :router-link="item.path"
                 router-direction="root"
                 :detail="false"
+                :aria-label="item.label"
+                :title="item.label"
                 :aria-current="isActive(item.path) ? 'page' : undefined"
               >
                 <HubIcon

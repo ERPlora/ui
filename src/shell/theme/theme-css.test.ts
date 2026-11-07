@@ -64,6 +64,10 @@ describe('theme tokens: ours (--ep-*), none of OutfitKit', () => {
       '--ep-ring-accent': ['inset 0 0 0 1px var(--ion-color-primary)'],
       '--ep-scrim': ['rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.6)'],
       '--ep-on-accent': ['var(--ion-color-primary-contrast)'],
+      '--ep-border': ['var(--ion-border-color)'],
+      '--ep-transition': ['150ms ease'],
+      '--ep-press-scale': ['0.98'],
+      '--ep-focus-ring': ['0 0 0 3px color-mix(in srgb, var(--ion-color-primary) 24%, transparent)'],
     };
     for (const [token, value] of Object.entries(expected)) expect(values(token), token).toEqual(value);
   });

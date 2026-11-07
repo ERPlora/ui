@@ -22,6 +22,7 @@
     "recordPlural": "records",
     "previousPage": "Previous page",
     "nextPage": "Next page",
+    "pageNumber": "Page {page}",
     "loadMore": "Load more",
     "noMatches": "No results match your search or filters",
     "showAll": "Show all",

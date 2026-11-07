@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="T extends object">
-// DataTable — the record list of ERPlora: Vue port of OutfitKit's `ok-data-table` (PLAN §16.11),
-// visually identical. Same DOM structure and CSS (`:host` → `.data-table`, classes renamed to
-// `data-table__*`), Ionic controls inside, no network and no business logic.
+// DataTable — the record list of ERPlora: Vue port of OutfitKit's `ok-data-table` (PLAN §16.11).
+// Same DOM structure and behavior (`:host` → `.data-table`, classes renamed to `data-table__*`),
+// Ionic controls inside, no network and no business logic.
 //
 // Two modes, as the original:
 //   - client (default): `rows` holds every record; search (`searchKeys`), sort and paging in memory;
@@ -838,9 +838,6 @@ function setPageSize(size: number): void {
 function onPageSizeSelect(ev: CustomEvent<{ value?: unknown }>): void {
   setPageSize(Number(ev.detail.value));
 }
-function onPageSizeNative(ev: Event): void {
-  setPageSize(Number((ev.target as HTMLSelectElement).value));
-}
 function loadMore(): void {
   if (props.serverSide) emit('loadMore');
   else mobileShown.value = Math.min((mobileShown.value || pageSizeNow.value) + pageSizeNow.value, pager.value.count);
@@ -1291,9 +1288,10 @@ onUpdated(nameSearchBox);
           class="data-table__selection-bar"
         >
           <strong>{{ label('selected', { n: selection.size }) }}</strong>
-          <button
-            type="button"
+          <ion-button
             class="data-table__selection-clear"
+            fill="clear"
+            size="small"
             @click="setSelection(new Set())"
           >
             <ion-icon
@@ -1301,7 +1299,7 @@ onUpdated(nameSearchBox);
               style="font-size: 14px"
               aria-hidden="true"
             />{{ ` ${label('clear')}` }}
-          </button>
+          </ion-button>
         </div>
       </div>
 
@@ -1787,20 +1785,23 @@ onUpdated(nameSearchBox);
             <template v-if="pager.pages > 1 && !awaitingRows">{{ `${pagerFrom} ` }}</template>
             <template v-if="!awaitingRows"><span class="data-table__pager-count">{{ pager.count }}</span>{{ ` ${recordWord}` }}</template>
           </span>
-          <select
+          <ion-select
             v-if="!hasToolbar && pageSizeSelectable"
             class="data-table__pager-size"
-            @change="onPageSizeNative"
+            interface="popover"
+            :aria-label="label('rowsPerPage')"
+            :value="pageSizeNow"
+            :selected-text="label('perPageShort', { n: pageSizeNow })"
+            @ion-change="onPageSizeSelect"
           >
-            <option
+            <ion-select-option
               v-for="size in pageSizeOptions"
               :key="size"
               :value="size"
-              :selected="size === pageSizeNow"
             >
               {{ label('perPageShort', { n: size }) }}
-            </option>
-          </select>
+            </ion-select-option>
+          </ion-select>
         </div>
         <!-- #78 - On a phone one «Load more» instead of page buttons; past `maxWindow`, previous / next. -->
         <div
@@ -1874,15 +1875,16 @@ onUpdated(nameSearchBox);
               v-if="entry === '…'"
               class="data-table__page-gap"
             >…</span>
-            <button
+            <ion-button
               v-else
-              type="button"
+              fill="clear"
               :class="['data-table__page', { 'data-table__page--current': entry === pager.current + 1 }]"
+              :aria-label="label('pageNumber', { page: entry })"
               :aria-current="entry === pager.current + 1 ? 'page' : undefined"
               @click="goTo(entry - 1)"
             >
               {{ entry }}
-            </button>
+            </ion-button>
           </template>
           <ion-button
             size="small"
@@ -2054,9 +2056,9 @@ onUpdated(nameSearchBox);
 </template>
 
 <style scoped>
-/* Port of the `static styles` of OutfitKit's ok-data-table: same rules, same values; `:host` is
-   `.data-table`, classes are `data-table__*`, and the --ok-* tokens are the --ion-* they mirrored
-   (or our --ep-*, variables.css). Issue numbers are ERPlora/outfitkit's. */
+/* Port of the `static styles` of OutfitKit's ok-data-table: `:host` is `.data-table`, classes are
+   `data-table__*`, and the --ok-* tokens are the --ion-* they mirrored (or our --ep-*, variables.css).
+   Issue numbers are ERPlora/outfitkit's; the final refinement rules use the shared theme. */
 
 /* ── Shell shield ──────────────────────────────────────────────────────────────────────────────
    The Lit table lived in a shadow root, out of reach of the document's CSS. In light DOM a document
@@ -2379,6 +2381,31 @@ ion-card.data-table__card { margin: 0; }
 .data-table__page:hover { background: var(--row-hover); }
 .data-table__page.data-table__page--current { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
 .data-table__page-gap { padding: 0 0.15rem; color: var(--color-muted); }
+
+.data-table > .data-table__surface {
+  border: 1px solid var(--border-color-soft);
+}
+.data-table > .data-table__surface > .data-table__bar,
+.data-table > .data-table__surface > .data-table__pager {
+  background: color-mix(in srgb, var(--header-background) 65%, var(--background));
+}
+.data-table__pager-nav > ion-button.data-table__page {
+  margin: 0;
+  --background: transparent;
+  --color: var(--color);
+  --border-radius: 8px;
+  --padding-start: 0.4rem;
+  --padding-end: 0.4rem;
+}
+.data-table__pager-nav > ion-button.data-table__page.data-table__page--current {
+  --background: color-mix(in srgb, var(--primary) 12%, transparent);
+  --color: var(--primary);
+  --border-color: color-mix(in srgb, var(--primary) 32%, transparent);
+}
+.data-table > .data-table__surface > .data-table__pager > .data-table__pager-info > .data-table__pager-size {
+  min-height: 32px;
+}
+
 ion-button { --box-shadow: none; }
 </style>
 

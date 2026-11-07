@@ -124,6 +124,11 @@ describe('App (shell root)', () => {
       expect((item.element as El).routerDirection).toBe('root');
       expect((item.element as El).detail).toBe(false);
     }
+    expect(items.map((item) => [item.attributes('aria-label'), item.attributes('title')])).toEqual([
+      ['Items', 'Items'],
+      ['Stats', 'Stats'],
+      ['Settings', 'Settings'],
+    ]);
   });
 
   it('paints item icons with ion-icon by Ionicons name (registered with addIcons)', () => {

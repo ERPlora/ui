@@ -361,6 +361,11 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
   margin: 1px 8px;
   font-size: 0.9rem;
   font-weight: 500;
+  transition: background-color var(--ep-transition), color var(--ep-transition), box-shadow var(--ep-transition);
+}
+.nav-item:focus-visible {
+  outline: none;
+  box-shadow: var(--ep-focus-ring);
 }
 .nav-item.selected {
   --background: color-mix(in oklab, var(--ion-color-primary) 13%, transparent);

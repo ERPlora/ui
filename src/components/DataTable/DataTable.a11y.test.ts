@@ -95,7 +95,8 @@ describe('R-03: no unnamed icon and no unnamed button in the DataTable', () => {
     expect(ariaLabel(byTestId(en, 'list-page-prev')[0])).toBe('Previous page');
     expect(ariaLabel(byTestId(en, 'list-page-next')[0])).toBe('Next page');
     const pages = [...en.element.querySelectorAll('.data-table__page')];
-    expect(pages.map((page) => page.getAttribute('aria-current'))).toEqual(['page', null, null]);
+    const current = (page: Element) => page.getAttribute('aria-current') ?? page.shadowRoot?.querySelector('button')?.getAttribute('aria-current');
+    expect(pages.map(current)).toEqual(['page', null, null]);
     en.unmount();
     const es = await fullTable({}, 'es');
     expect(ariaLabel(byTestId(es, 'list-page-prev')[0])).toBe('Página anterior');
@@ -135,6 +136,23 @@ function media(query: string, css: string): string {
   }
   throw new Error('unbalanced @media');
 }
+
+describe('the remaining table controls are Ionic too', () => {
+  it('the numbered pages and clearing the selection are ion-buttons', async () => {
+    const t = await fullTable();
+    const pages = [...t.element.querySelectorAll('.data-table__pager-nav .data-table__page')];
+    expect(pages.length).toBeGreaterThan(0);
+    expect(pages.every((page) => page.tagName.toLowerCase() === 'ion-button')).toBe(true);
+    await ionChange(t.element.querySelector('.data-table__row--data ion-checkbox')!, { checked: true });
+    expect(t.element.querySelector('.data-table__selection-clear')?.tagName.toLowerCase()).toBe('ion-button');
+  });
+
+  it('the page-size control outside the toolbar is an ion-select', async () => {
+    const t = mountTable({ rows: ROWS, columns: COLUMNS, columnPicker: false });
+    await settle();
+    expect(t.element.querySelector('.data-table__pager-size')?.tagName.toLowerCase()).toBe('ion-select');
+  });
+});
 
 describe('R-13: the selection checkboxes are big enough to hit', () => {
   it('the box is 24×24 at every width (Ionic ios paints 22)', () => {

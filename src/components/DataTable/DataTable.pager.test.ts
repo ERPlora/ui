@@ -103,14 +103,13 @@ describe('page size', () => {
     expect(t.emitted('pageSizeChange')).toEqual([[50]]);
   });
 
-  it('without a toolbar the footer carries a compact native select («10 / page»)', async () => {
+  it('without a toolbar the footer carries a compact Ionic select («10 / page»)', async () => {
     const t = mountTable({ rows: rowsOf(30), columns: NAME, columnPicker: false }, { locale: 'es' });
     await settle();
     expect(t.find('.data-table__bar').exists()).toBe(false);
-    const select = t.find('select.data-table__pager-size');
-    expect(select.findAll('option').map((o) => o.text())).toEqual(['10 / pág.', '25 / pág.', '50 / pág.', '100 / pág.']);
-    await select.setValue('25');
-    await settle();
+    const select = t.find('ion-select.data-table__pager-size');
+    expect(select.findAll('ion-select-option').map((o) => o.text())).toEqual(['10 / pág.', '25 / pág.', '50 / pág.', '100 / pág.']);
+    await ionChange(select.element, { value: 25 });
     expect(dataRows(t)).toHaveLength(25);
   });
 

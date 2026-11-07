@@ -299,6 +299,13 @@ const ADDED: Record<string, string> = {
     'UX audit 2, R-13: a 44×44 target on touch, the row as tall as before',
   ':where(.data-table__search) ion-searchbar:focus-within, :where(.data-table__search) ion-searchbar.searchbar-has-focus':
     'UX audit 2, R-12: the focused search box shows it (the Lit box changed 0 pixels)',
+  '.data-table > .data-table__surface': 'PoC: a subtle theme border around the shared table surface',
+  '.data-table > .data-table__surface > .data-table__bar, .data-table > .data-table__surface > .data-table__pager':
+    'PoC: quieter toolbar and footer relief, derived from the current theme',
+  '.data-table__pager-nav > ion-button.data-table__page': 'PoC: numbered pages are Ionic buttons with 44px touch targets',
+  '.data-table__pager-nav > ion-button.data-table__page.data-table__page--current': 'PoC: the current Ionic page button uses the primary tint',
+  '.data-table > .data-table__surface > .data-table__pager > .data-table__pager-info > .data-table__pager-size':
+    'PoC: the standalone rows-per-page control is Ionic too',
 };
 
 /** Declarations a port carries on top of its Lit rule, with why. */
