@@ -173,6 +173,16 @@ ion-select-popover ion-checkbox::part(label) {
   white-space: normal;
 }
 
+/* ── Switches: a long label reads whole and never widens its form ─────────────────────────── */
+/* Ionic keeps the `part="label"` of its `ion-toggle` on one line. In a form's one-column grid that line is the
+   column's least width, and the whole form ran past a phone's screen with «Save» at the end of the spilled row: Tables'
+   settings 425 px wide on a 375 px phone in Spanish, «Guardar» cut to «Gua» (hub#866), Reservations' 382 in English
+   (hub#906), Time clock's before them (hub#94). Said once here, every switch of the Hub and the SaaS goes on to the
+   next line between words; a label that fits keeps its one line, so nothing that fitted moves. */
+ion-toggle::part(label) {
+  white-space: normal;
+}
+
 /* ── Dropdowns: what an outlined field has chosen reads whole with the field closed ───────────── */
 /* Ionic keeps it on one line ending in «…», and a person cannot read what is set: «Madrid (Central European …» in a
    business's settings at 320, a long name in the store at any phone width (saas#272). The outlined field of a form has
