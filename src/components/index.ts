@@ -14,5 +14,6 @@ export * from './UserAvatar';
 export * from './UsageMeter';
 export * from './Combo';
 export * from './ColorInput';
+export * from './MoneyInput';
 export * from './ImageUpload';
 export * from './Assistant';
