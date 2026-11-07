@@ -44,6 +44,7 @@ describe("@erplora/ui/components", () => {
       "ASSISTANT_ICONS",
       "browserVoice",
       "formatMoney",
+      "formatQuantity",
     ]) {
       expect(components, name).toHaveProperty(name);
     }
