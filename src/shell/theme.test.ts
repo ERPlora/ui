@@ -13,11 +13,14 @@ import {
   setThemeContrast,
   setThemeMode,
   setThemePersister,
+  setThemeScale,
   THEME_CONTRASTS,
   THEME_PALETTES,
+  THEME_SCALES,
   themeContrast,
   themeMode,
   themePalette,
+  themeScale,
   toggleTheme,
 } from './theme';
 
@@ -38,6 +41,7 @@ beforeEach(() => {
   document.documentElement.className = '';
   document.documentElement.removeAttribute('data-ep-palette');
   document.documentElement.removeAttribute('data-ep-contrast');
+  document.documentElement.style.zoom = '';
 });
 
 afterEach(() => {
@@ -139,6 +143,47 @@ describe('contrast (brand colours or AA colours)', () => {
     expect(html.hasAttribute('data-ep-contrast')).toBe(false);
     bootTheme({ contrast: 'aa' });
     expect(html.getAttribute('data-ep-contrast')).toBe('aa');
+  });
+});
+
+describe('interface scale', () => {
+  it('offers the five percentages with 100 as the default', () => {
+    expect(THEME_SCALES).toEqual([80, 90, 100, 110, 120]);
+    expect(themeScale.value).toBe(100);
+  });
+
+  it.each(THEME_SCALES)('applies %s%% to the whole document', (scale) => {
+    setThemeScale(scale);
+    expect(themeScale.value).toBe(scale);
+    expect(html.style.zoom).toBe(`${scale}%`);
+  });
+
+  it('an unknown scale falls back to 100', () => {
+    setThemeScale(120);
+    setThemeScale(125 as never);
+    expect(themeScale.value).toBe(100);
+    expect(html.style.zoom).toBe('100%');
+  });
+
+  it('bootTheme paints the current scale', () => {
+    setThemeScale(110);
+    html.style.zoom = '';
+    bootTheme();
+    expect(html.style.zoom).toBe('110%');
+  });
+
+  it('resetUserThemePreferences restores 100', () => {
+    setThemeScale(120);
+    resetUserThemePreferences();
+    expect(themeScale.value).toBe(100);
+    expect(html.style.zoom).toBe('100%');
+  });
+
+  it('applyUserThemePreferences accepts the scale without changing the existing arguments', () => {
+    applyUserThemePreferences('dark', 'forest', 'ocean', 120);
+    expect(html.classList.contains('ion-palette-dark')).toBe(true);
+    expect(html.getAttribute('data-ep-palette')).toBe('forest');
+    expect(html.style.zoom).toBe('120%');
   });
 });
 
