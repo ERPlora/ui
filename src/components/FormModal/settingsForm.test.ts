@@ -358,6 +358,79 @@ describe('useSettingsForm', () => {
       form.set('page_title', 'Other');
       expect(form.showsError.value).toBe(true);
     });
+
+    // hub#894: after a failed save, the field typed back to what is saved and «Save» again. Nothing is
+    // sent and it says saved; the failed save's notice saying otherwise next to it would be a lie.
+    describe('a save with nothing to send is a try', () => {
+      const NO_CONNECTION: FormModalError = { code: 'client_error', message: 'No connection.', status: 0 };
+
+      async function refusedThenTypedBack(refusal: FormModalError) {
+        const s = service();
+        s.form.set('page_title', 'Other');
+        s.error.value = refusal;
+        await nextTick();
+        s.form.set('page_title', SAVED.page_title);
+        return s;
+      }
+
+      it('a refusal that names no field goes, and it says saved', async () => {
+        const { form, command } = await refusedThenTypedBack(NO_CONNECTION);
+        expect(form.showsError.value).toBe(true);
+        await form.save();
+        expect([command.run.mock.calls.length, form.saved.value, form.showsError.value]).toEqual([0, true, false]);
+      });
+
+      it('a refusal of the whole form goes too', async () => {
+        const { form } = await refusedThenTypedBack({ code: 'invalid_payload', message: 'Not now.', status: 422, fields: { __all__: 'Not now.' } });
+        expect(form.showsError.value).toBe(true);
+        await form.save();
+        expect([form.showsError.value, form.fieldErrors.value]).toEqual([false, {}]);
+      });
+
+      it('every refused field’s message goes, not only the one typed back', async () => {
+        const { form } = await refusedThenTypedBack(BY_FIELDS);
+        expect(form.fieldErrors.value).toEqual({ default_duration: 'Ensure this value is at most 480.', default_tax_category_key: 'No such tax.' });
+        await form.save();
+        expect(form.fieldErrors.value).toEqual({});
+      });
+
+      it('changing a field after it brings back nothing of the old refusal', async () => {
+        const { form } = await refusedThenTypedBack(BY_FIELDS);
+        await form.save();
+        form.set('show_prices', false);
+        expect([form.showsError.value, form.fieldErrors.value]).toEqual([false, {}]);
+      });
+
+      it('the next refusal, the same again, says it all again', async () => {
+        const { form, error } = await refusedThenTypedBack(BY_FIELDS);
+        await form.save();
+        error.value = null; // useCommand empties it as a try starts
+        await nextTick();
+        error.value = { ...BY_FIELDS };
+        await nextTick();
+        expect([form.showsError.value, form.fieldErrors.value]).toEqual([true, BY_FIELDS.fields]);
+      });
+
+      it('the next refusal says itself, with useCommand as it is', async () => {
+        const { client, net } = createTestClient({ routes: { 'test.item.detail': { method: 'patch', path: '/api/test/settings' } } });
+        net.onApi(() => Response.json({ error: { code: 'conflict', message: 'Someone else changed it.' } }, { status: 409 }));
+        const scope = effectScope();
+        const form = scope.run(() =>
+          useSettingsForm(shallowRef({ id: 'i1', name: 'Saved' }), useCommand('test.item.detail', { client }), { toForm: (item) => ({ name: item.name }) }),
+        )!;
+        form.set('name', 'Other');
+        await form.save();
+        await nextTick();
+        form.set('name', 'Saved');
+        await form.save();
+        expect([form.saved.value, form.showsError.value]).toEqual([true, false]);
+        form.set('name', 'Other');
+        await form.save();
+        await nextTick();
+        expect([form.saved.value, form.showsError.value]).toEqual([false, true]);
+        scope.stop();
+      });
+    });
   });
 
   // A page like Time clock's (ATTENDANCE-F04): a pair of coordinates, an empty one sent as null, and a

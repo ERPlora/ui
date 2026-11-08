@@ -161,7 +161,8 @@ const usageText = computed(() =>
   note.value
     ? [
         note.value.left > 0
-          ? t('assistant.usage', { left: note.value.left, limit: note.value.limit })
+          ? // By what is left, the singular or the plural of the sentence (ui#117).
+            t('assistant.usage', { left: note.value.left, limit: note.value.limit }, note.value.left)
           : t('assistant.usageSpent', { limit: note.value.limit }),
         renews.value,
       ]

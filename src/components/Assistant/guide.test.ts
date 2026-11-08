@@ -36,7 +36,7 @@ describe('errorView', () => {
     expect(errorView('assistant.too_many_steps')).toEqual({ key: 'assistant.errors.tooManySteps', recovery: 'none' });
     expect(errorView('assistant.rate_limited', { retry_after: 40 })).toEqual({
       key: 'assistant.errors.rateLimited',
-      values: { seconds: 40 },
+      values: { count: 40 },
       recovery: 'retry',
     });
   });
