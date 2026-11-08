@@ -31,7 +31,8 @@ export function errorView(code: string, details: Record<string, unknown> = {}): 
       };
     }
     case 'assistant.rate_limited':
-      return { key: 'assistant.errors.rateLimited', values: { seconds: Number(details.retry_after ?? 60) }, recovery: 'retry' };
+      // `count`, the seconds to wait: vue-i18n picks the sentence's singular or plural by it (ui#117).
+      return { key: 'assistant.errors.rateLimited', values: { count: Number(details.retry_after ?? 60) }, recovery: 'retry' };
     case 'assistant.too_large':
     case 'payload_too_large':
       return { key: 'assistant.errors.tooLarge', recovery: 'new' };

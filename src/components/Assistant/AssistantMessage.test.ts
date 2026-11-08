@@ -175,6 +175,17 @@ describe('AssistantMessage', () => {
     wrapper.unmount();
   });
 
+  it.each([
+    ['es', 1, 'Demasiadas preguntas seguidas: espera 1 segundo y vuelve a intentarlo.'],
+    ['es', 40, 'Demasiadas preguntas seguidas: espera 40 segundos y vuelve a intentarlo.'],
+    ['en', 1, 'Too many questions in a row: wait 1 second and try again.'],
+    ['en', 40, 'Too many questions in a row: wait 40 seconds and try again.'],
+  ] as const)('in %s, too many questions says how long to wait (%i s): the singular for one second, the plural from two (ui#117)', async (locale, wait, said) => {
+    const { wrapper } = await mountBubble(answer({ error: 'assistant.rate_limited', details: { retry_after: wait } }), {}, locale);
+    expect(wrapper.get('[data-testid="assistant-failure"] p').text()).toBe(said);
+    wrapper.unmount();
+  });
+
   it('a spent allowance and when it comes back read as two sentences, in both languages', async () => {
     const spent = answer({ error: 'assistant.quota_exceeded', details: { used: 30, limit: 30, resets_at: '2026-11-01T00:00:00Z' } });
     const es = await mountBubble(spent);

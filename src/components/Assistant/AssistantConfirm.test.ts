@@ -77,6 +77,25 @@ describe('AssistantConfirm', () => {
     expect(wrapper.emitted('decide')).toEqual([[true, '3', false]]);
   });
 
+  it.each([
+    ['es', 1, 'Afecta a 1 registro.'],
+    ['es', 3, 'Afecta a 3 registros.'],
+    ['en', 1, 'It acts on 1 record.'],
+    ['en', 3, 'It acts on 3 records.'],
+  ] as const)('in %s, how many it acts on (%i): the singular for one record, the plural from two (ui#117)', async (locale, count, said) => {
+    const ids: AssistantCard = {
+      ...HIGH,
+      fields: [{ name: 'ids', label: 'Ids', kind: 'list', value: Array.from({ length: count }, () => null) }],
+      count,
+      confirm_word: String(count),
+    };
+    await card(ids, false, locale);
+    const sentences = [...document.querySelectorAll('[data-testid="assistant-confirm"] .assistant-confirm-text')].map((p) =>
+      p.textContent?.trim(),
+    );
+    expect(sentences).toContain(said);
+  });
+
   it('a write outside the old list of verbs names its own, in Spanish and in English, never «Do this»', async () => {
     // FIX-HUB-BASE-ASSISTANT-CARD-RECTIFY-SAYS-DO-THIS-IN-INVOICING: rectifying an invoice said «Hacer esto en Facturación».
     const rectify: AssistantCard = {
