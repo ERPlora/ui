@@ -12,7 +12,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const read = (sheet: string): string => readFileSync(join(HERE, sheet), 'utf8');
 const plain = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 
-const SHEETS = ['variables.css', 'palettes.css', 'erplora-logo.css', 'tabbar.css', 'polish.css', 'global.css', 'print.css'];
+const SHEETS = ['variables.css', 'palettes.css', 'brand.css', 'erplora-logo.css', 'tabbar.css', 'polish.css', 'global.css', 'print.css'];
 const variables = plain(read('variables.css'));
 
 /** Every value `variables.css` gives `name`, in file order (light, then dark). */

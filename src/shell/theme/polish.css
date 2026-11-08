@@ -3,11 +3,6 @@
    density. Self-contained: tokens are --ep-* (variables.css). Does NOT touch logic or markup. */
 
 /* ── Typography ───────────────────────────────────────────────────────────────────────────── */
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
 h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 4px; }
 h2 { font-size: 1.15rem; font-weight: 650; letter-spacing: -0.015em; }
 
@@ -63,34 +58,6 @@ ion-title { font-weight: 650; letter-spacing: -0.01em; font-size: 1.0625rem; }
 /* Secondary text at AA (UX-AUDIT-2 V-03: the 55 % mix it had read 3.74:1 on the canvas). */
 .sidebar-foot-text { color: var(--ep-text-muted); }
 .ml-auto { margin-inline-start: auto; }
-
-/* ── Cards: radius + soft elevation + hover on clickable cards ────────────────────────────── */
-ion-card {
-  border-radius: var(--ep-radius);
-  box-shadow: var(--ep-shadow-sm);
-  border: 1px solid var(--ion-border-color);
-}
-ion-card[button] {
-  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
-}
-ion-card[button]:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--ep-shadow-md);
-  border-color: rgba(var(--ion-color-primary-rgb), 0.35);
-}
-ion-card-header { padding-bottom: 6px; }
-ion-card-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.025em; }
-ion-card-subtitle {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  color: var(--ion-color-medium);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-ion-card-subtitle ion-icon { font-size: 1rem; opacity: 0.7; }
 
 /* ── Surfaced lists (inset): rounded card with shadow, no hard border ─────────────── */
 /* `ion-list` (0,0,1) loses against the vendor rule `.list-md/.list-ios` (0,1,0), which imposes
@@ -197,31 +164,6 @@ ion-select.select-fill-outline::part(text) {
   padding-block: 9.5px;
 }
 
-/* ── Buttons: radius, weight, no uppercase or hard shadow ──────────────────────────────────── */
-ion-button {
-  --border-radius: 10px;
-  --box-shadow: none;
-  font-weight: 600;
-  letter-spacing: 0;
-  text-transform: none;
-  height: 40px;
-}
-ion-button[fill="clear"] { --color: var(--ion-text-color); }
-
-/* ── Badges: refined pill ────────────────────────────────────────────────────────────────── */
-/* These `--padding-*` only paint because global.css un-resets the host's padding from Tailwind's
-   preflight (`ion-badge { padding: revert-layer }` in `@layer base`, PoC issue D). */
-ion-badge {
-  --padding-start: 9px;
-  --padding-end: 9px;
-  --padding-top: 5px;
-  --padding-bottom: 5px;
-  border-radius: var(--ep-radius-pill);
-  font-weight: 600;
-  font-size: 0.72rem;
-  letter-spacing: 0.01em;
-}
-
 /* ── Segment (footer tabs): modern, no uppercase ────────────────────────────────────── */
 /* #278 — reserve the gesture bar/home indicator on iOS/Android: without reserving it the tabs
    (min-height 46px, 2-line labels) end up under it and get clipped. On desktop env()
@@ -263,14 +205,6 @@ ion-footer .tabbar ion-label {
   overflow-wrap: normal;
   word-break: normal;
   line-height: 1.1;
-}
-
-/* ── Ionic inputs ─────────────────────────────────────────────────────────────────────────── */
-ion-input,
-ion-select,
-ion-textarea,
-ion-searchbar {
-  --border-radius: 10px;
 }
 
 /* ── Shell / side menu — same visual language as Cloud's dashboard ────────────────── */

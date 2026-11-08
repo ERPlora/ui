@@ -26,20 +26,14 @@
 //  - `isDark` reads a reactive copy of the system preference, so it cannot go stale.
 import { computed, ref } from 'vue';
 
+import { BRAND_PALETTE_IDS, type BrandPaletteId } from './brandbook';
+
 export type ThemeMode = 'system' | 'light' | 'dark';
 
-/** Valid palettes: mirror 1:1 of `theme/palettes.css` plus the default. */
-export const THEME_PALETTES = [
-  'erplora',
-  'terracotta',
-  'corporate',
-  'minimal',
-  'forest',
-  'ocean',
-  'violet',
-] as const;
+/** Valid palettes, catalogued in brandbook.ts and painted by theme/palettes.css. */
+export const THEME_PALETTES = BRAND_PALETTE_IDS;
 
-export type ThemePalette = (typeof THEME_PALETTES)[number];
+export type ThemePalette = BrandPaletteId;
 
 function prefersDark(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;

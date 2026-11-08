@@ -1,0 +1,105 @@
+/* ERPlora's shared brand primitives. Loaded after the palette and before page styles in the SPA and
+   the public web. Colours always come from the active theme; geometry comes from the --ep-* tokens. */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+ion-card {
+  border: 1px solid var(--ep-border);
+  border-radius: var(--ep-radius);
+  box-shadow: var(--ep-shadow-sm);
+}
+ion-card[button] {
+  transition: transform var(--ep-transition), box-shadow var(--ep-transition), border-color var(--ep-transition);
+}
+ion-card[button]:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--ion-color-primary) 35%, var(--ep-border));
+  box-shadow: var(--ep-shadow-md);
+}
+ion-card-header { padding-bottom: 6px; }
+ion-card-title { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.025em; }
+ion-card-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ion-color-medium);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+ion-card-subtitle ion-icon { font-size: 1rem; opacity: 0.7; }
+
+ion-button {
+  --border-radius: var(--ep-radius-sm);
+  --box-shadow: none;
+  height: 40px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+ion-button[fill='clear'] { --color: var(--ion-text-color); }
+
+ion-badge {
+  --padding-start: 9px;
+  --padding-end: 9px;
+  --padding-top: 5px;
+  --padding-bottom: 5px;
+  border-radius: var(--ep-radius-pill);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+ion-input,
+ion-select,
+ion-textarea,
+ion-searchbar {
+  --border-radius: var(--ep-radius-sm);
+}
+
+.ep-surface {
+  border: 1px solid var(--ep-border);
+  border-radius: var(--ep-radius-lg);
+  background: var(--ion-card-background);
+  box-shadow: var(--ep-shadow-xs);
+}
+.ep-surface--muted { background: var(--ep-surface-muted); }
+
+.ep-icon-tile {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2.375rem;
+  height: 2.375rem;
+  border-radius: var(--ep-radius-sm);
+  color: var(--ep-primary-text);
+  background: var(--ep-primary-tint);
+  font-size: 1.375rem;
+}
+.ep-icon-tile--sm {
+  width: 1.875rem;
+  height: 1.875rem;
+  font-size: 1.125rem;
+}
+
+.ep-clickable {
+  transition: transform var(--ep-transition), box-shadow var(--ep-transition), border-color var(--ep-transition);
+}
+.ep-clickable:focus-visible {
+  outline: none;
+  box-shadow: var(--ep-focus-ring);
+}
+.ep-clickable:active { transform: scale(var(--ep-press-scale)); }
+
+.ep-text-muted { color: var(--ep-text-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  ion-card[button],
+  .ep-clickable { transition: none; }
+  ion-card[button]:hover,
+  .ep-clickable:active { transform: none; }
+}

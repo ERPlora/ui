@@ -32,11 +32,13 @@ import '@ionic/vue/css/flex-utils.css';
 import '@ionic/vue/css/display.css';
 import '@ionic/vue/css/palettes/dark.class.css';
 // Shell theme, in the Hub's order: print rules, brand variables, the optional palettes
-// (`data-ep-palette`, after the variables to win the cascade), logo, footer tabbar, polish, globals.
+// (`data-ep-palette`, after the variables to win the cascade), shared brand primitives, logo, footer
+// tabbar, shell polish and globals.
 // All of it is ours (PLAN §16.11): palettes and tabbar were ported from OutfitKit.
 import './theme/print.css';
 import './theme/variables.css';
 import './theme/palettes.css';
+import './theme/brand.css';
 import './theme/erplora-logo.css';
 import './theme/tabbar.css';
 import './theme/polish.css';
