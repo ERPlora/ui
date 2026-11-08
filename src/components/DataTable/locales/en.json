@@ -4,7 +4,7 @@
     "clearSearch": "Clear search",
     "empty": "No results",
     "clear": "Clear",
-    "selected": "{n} selected",
+    "selected": "{n} selected | {n} selected",
     "add": "Add",
     "moreActions": "More actions",
     "rowsPerPage": "Rows per page",

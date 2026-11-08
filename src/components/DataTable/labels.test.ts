@@ -35,6 +35,14 @@ describe('DataTable catalogues', () => {
     }
   });
 
+  it('a text with singular and plural forms carries the same forms in both languages', () => {
+    const es_ = es.dataTable as Record<string, string>;
+    for (const [key, value] of Object.entries(en.dataTable)) {
+      expect(es_[key].split('|').length, key).toBe(value.split('|').length);
+    }
+    expect(es.dataTable.selected.split('|').length).toBe(2);
+  });
+
   it('keep the texts of the Lit original (en source, es translation)', () => {
     expect(en.dataTable.showing).toBe('Showing {from}–{to} of');
     expect(es.dataTable.showing).toBe('Mostrando {from}–{to} de');
@@ -47,6 +55,24 @@ describe('fillLabel', () => {
     expect(fillLabel('Showing {from}–{to} of', { from: 11, to: 20 })).toBe('Showing 11–20 of');
     expect(fillLabel('{n} selected', {})).toBe('{n} selected');
     expect(fillLabel('Retry')).toBe('Retry');
+  });
+
+  it('picks the form of a `|` text by {n}, as vue-i18n does (two forms: one | the rest; three: none | one | more)', () => {
+    expect(fillLabel('{n} fila | {n} filas', { n: 1 })).toBe('1 fila');
+    expect(fillLabel('{n} fila | {n} filas', { n: 3 })).toBe('3 filas');
+    expect(fillLabel('{n} fila | {n} filas', { n: 0 })).toBe('0 filas');
+    expect(fillLabel('ninguna | una fila | {n} filas', { n: 0 })).toBe('ninguna');
+    expect(fillLabel('ninguna | una fila | {n} filas', { n: 1 })).toBe('una fila');
+    expect(fillLabel('ninguna | una fila | {n} filas', { n: 7 })).toBe('7 filas');
+  });
+
+  it("picks the same form as vue-i18n's t() for any count, and without one", () => {
+    const texts = { two: '{n} fila | {n} filas', three: 'ninguna | una fila | {n} filas', bare: 'una | varias' };
+    const { t } = createShellI18n({ locale: 'es', messages: { es: { probe: texts } } }).global;
+    for (const [key, text] of Object.entries(texts)) {
+      for (const n of [0, 1, 2, 3, 12]) expect(fillLabel(text, { n }), `${key}, n=${n}`).toBe(t(`probe.${key}`, { n }));
+    }
+    expect(fillLabel(texts.bare)).toBe(t('probe.bare'));
   });
 });
 
@@ -82,6 +108,26 @@ describe('useDataTableLabels', () => {
     expect(probe('selected', { params: { n: 3 } }).text()).toBe('3 selected');
     const labels = ref<Partial<DataTableLabels>>({ selected: '{n} marked' });
     expect(probe('selected', { params: { n: 3 }, labels }).text()).toBe('3 marked');
+  });
+
+  it('the selection count: one row in the singular, more in the plural, in en and es, on every path', () => {
+    const count = (n: number, options: Parameters<typeof probe>[1] = {}) =>
+      probe('selected', { ...options, params: { n } }).text();
+    const spanish = [createShellI18n({ locale: 'es' })];
+    expect(count(1, { plugins: spanish })).toBe('1 seleccionado');
+    expect(count(3, { plugins: spanish })).toBe('3 seleccionados');
+    const english = [createShellI18n({ locale: 'en' })];
+    expect(count(1, { plugins: english })).toBe('1 selected');
+    expect(count(3, { plugins: english })).toBe('3 selected');
+    document.documentElement.lang = 'es';
+    expect(count(1)).toBe('1 seleccionado');
+    expect(count(2)).toBe('2 seleccionados');
+    const labels = ref<Partial<DataTableLabels>>({ selected: '{n} fila marcada | {n} filas marcadas' });
+    expect(count(1, { labels })).toBe('1 fila marcada');
+    expect(count(2, { labels })).toBe('2 filas marcadas');
+    const app = [createShellI18n({ locale: 'es', messages: { es: { dataTable: { selected: '{n} elegido | {n} elegidos' } } } })];
+    expect(count(1, { plugins: app })).toBe('1 elegido');
+    expect(count(2, { plugins: app })).toBe('2 elegidos');
   });
 
   it('the `labels` prop wins, only for the keys it carries, and follows its changes', async () => {

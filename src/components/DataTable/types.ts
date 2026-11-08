@@ -209,7 +209,8 @@ export type DataTableEntityLabel = { one: string; many: string } | ((count: numb
 /** Stable key of a row: one of its fields, or a function of it. */
 export type DataTableRowKey<T> = (keyof T & string) | ((row: T) => string);
 
-/** Every human text of the table chrome (`{n}`, `{from}`, `{to}` are filled in by the table). */
+/** Every human text of the table chrome (`{n}`, `{from}`, `{to}` are filled in by the table; a text with
+ *  `|` forms, «{n} row | {n} rows», is singular or plural by `{n}`, as in vue-i18n). */
 export type DataTableLabels = Record<keyof typeof en.dataTable, string>;
 
 export type DataTableLabelKey = keyof DataTableLabels;

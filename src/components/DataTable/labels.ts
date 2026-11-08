@@ -16,9 +16,20 @@ const CATALOGUES: Record<'en' | 'es', DataTableLabels> = { en: en.dataTable, es:
 
 export type LabelParams = Record<string, string | number>;
 
-/** `{name}` tokens filled from `params`; a token without a value is left as written. */
+/** Which of the `|` forms a count picks, by vue-i18n's default rule, so a text reads the same whether
+ *  it comes through `t()` or not: two forms are «one | the rest»; three, «none | one | more». */
+function pluralForm(forms: string[], count: number): string {
+  const choice = Math.trunc(Math.abs(count));
+  const index = forms.length === 2 ? (choice === 1 ? 0 : 1) : Math.min(choice, 2);
+  return (forms[index] ?? forms[forms.length - 1]).trim();
+}
+
+/** `{name}` tokens filled from `params`; a token without a value is left as written. A text with
+ *  `|` forms («{n} row | {n} rows») first picks the one for the count in `params.n`. */
 export function fillLabel(template: string, params: LabelParams = {}): string {
-  return template.replace(/\{(\w+)\}/g, (token: string, name: string) =>
+  const forms = template.split('|');
+  const text = forms.length > 1 ? pluralForm(forms, typeof params.n === 'number' ? params.n : 1) : template;
+  return text.replace(/\{(\w+)\}/g, (token: string, name: string) =>
     name in params ? String(params[name]) : token,
   );
 }

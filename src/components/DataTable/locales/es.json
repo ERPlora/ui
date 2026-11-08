@@ -4,7 +4,7 @@
     "clearSearch": "Borrar búsqueda",
     "empty": "Sin resultados",
     "clear": "Limpiar",
-    "selected": "{n} seleccionados",
+    "selected": "{n} seleccionado | {n} seleccionados",
     "add": "Añadir",
     "moreActions": "Más acciones",
     "rowsPerPage": "Filas por página",
