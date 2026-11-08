@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sistema visual compartido de ERPlora: marca, paletas, componentes y accesibilidad.">
+  <title>ERPlora · Brandbook</title>
+  <link rel="stylesheet" href="../src/shell/theme/variables.css">
+  <link rel="stylesheet" href="../src/shell/theme/palettes.css">
+  <link rel="stylesheet" href="../src/shell/theme/brand.css">
+  <link rel="stylesheet" href="../src/shell/theme/erplora-logo.css">
+  <link rel="stylesheet" href="./brandbook.css">
+  <script src="./brandbook.js" defer></script>
+</head>
+<body>
+  <header class="book-header">
+    <a class="book-brand" href="./brandbook.html" aria-label="Brandbook de ERPlora">
+      <span class="erp-lockup sm">
+        <span class="erp-logo sm" aria-hidden="true">
+          <i class="erp-nw"></i><i class="erp-n"></i><i class="erp-ne"></i>
+          <i class="erp-w"></i><i class="erp-hub"></i><i class="erp-e"></i>
+          <i class="erp-sw"></i><i class="erp-s"></i><i class="erp-se"></i>
+        </span>
+        <span class="erp-wordmark">erplora</span>
+      </span>
+      <span class="book-edition">Brandbook · v1</span>
+    </a>
+    <nav aria-label="Contenido">
+      <a href="#marca">Marca</a><a href="#color">Color</a><a href="#componentes">Componentes</a><a href="#normas">Normas</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="book-hero" id="marca">
+      <p class="book-kicker">UNA PLATAFORMA · SIETE EXPRESIONES</p>
+      <h1>Claridad para trabajar.<br><span>Carácter para elegir.</span></h1>
+      <p class="book-lead">El sistema visual que comparten Hub, SaaS y la web pública. Contenido primero, controles táctiles Ionic y una identidad que se adapta sin perder coherencia.</p>
+      <div class="book-hero-notes" aria-label="Principios">
+        <span>Contenido primero</span><span>Táctil por diseño</span><span>Accesible en cada tema</span>
+      </div>
+    </section>
+
+    <section class="book-section" id="color">
+      <div class="book-heading"><span>01</span><div><h2>Color con un propósito</h2><p>El acento identifica y guía. Los neutros dejan respirar los datos.</p></div></div>
+      <div class="palette-grid">
+        <article class="palette-card" style="--swatch:#1496d6;--swatch-dark:#2aa6e4;--canvas:#f6f7f9;--ink:#1a1c20"><div class="palette-sample"><span></span><span></span><span></span></div><h3>ERPlora</h3><p>Plataforma y claridad</p><code>#1496d6 · #2aa6e4</code></article>
+        <article class="palette-card" style="--swatch:#E8552A;--swatch-dark:#E8552A;--canvas:#FAF8F4;--ink:#1A1612"><div class="palette-sample"><span></span><span></span><span></span></div><h3>Terracotta</h3><p>Cercanía y oficio</p><code>#E8552A</code></article>
+        <article class="palette-card" style="--swatch:#0F3F9C;--swatch-dark:#176EC8;--canvas:#F6F8FB;--ink:#0F1626"><div class="palette-sample"><span></span><span></span><span></span></div><h3>Corporate</h3><p>Confianza empresarial</p><code>#0F3F9C · #176EC8</code></article>
+        <article class="palette-card" style="--swatch:#111111;--swatch-dark:#FAFAFA;--canvas:#ffffff;--ink:#0A0A0A"><div class="palette-sample"><span></span><span></span><span></span></div><h3>Minimal</h3><p>Editorial y monocromo</p><code>#111111 · #FAFAFA</code></article>
+        <article class="palette-card" style="--swatch:#1F542A;--swatch-dark:#3B874A;--canvas:#FAF6EE;--ink:#1B1810"><div class="palette-sample"><span></span><span></span><span></span></div><h3>Forest</h3><p>Naturaleza y estabilidad</p><code>#1F542A · #3B874A</code></article>
+        <article class="palette-card" style="--swatch:#008CBD;--swatch-dark:#00B1DA;--canvas:#F4F8FC;--ink:#0A1626"><div class="palette-sample"><span></span><span></span><span></span></div><h3>Ocean</h3><p>Tecnología y frescura</p><code>#008CBD · #00B1DA</code></article>
+        <article class="palette-card" style="--swatch:#742AD9;--swatch-dark:#7F3BE7;--canvas:#FBF7FA;--ink:#1A1024"><div class="palette-sample"><span></span><span></span><span></span></div><h3>Violet</h3><p>Creatividad y carácter</p><code>#742AD9 · #7F3BE7</code></article>
+      </div>
+      <div class="semantic-grid">
+        <div><span class="semantic-dot" style="--dot:var(--ion-color-success)"></span><strong>Success</strong><small>Correcto y completado</small></div>
+        <div><span class="semantic-dot" style="--dot:var(--ion-color-warning)"></span><strong>Warning</strong><small>Atención necesaria</small></div>
+        <div><span class="semantic-dot" style="--dot:var(--ion-color-danger)"></span><strong>Danger</strong><small>Error o riesgo</small></div>
+        <div><span class="semantic-dot" style="--dot:var(--ion-color-secondary)"></span><strong>Secondary</strong><small>Apoyo e información</small></div>
+      </div>
+    </section>
+
+    <section class="book-section book-playground" id="componentes">
+      <div class="book-heading"><span>02</span><div><h2>Una interfaz, tu tema</h2><p>Prueba las primitivas reales con cualquier combinación.</p></div></div>
+      <div class="theme-controls">
+        <label>Paleta <select id="palette" aria-label="Paleta de la demostración"><option value="erplora">ERPlora</option><option value="terracotta">Terracotta</option><option value="corporate">Corporate</option><option value="minimal">Minimal</option><option value="forest">Forest</option><option value="ocean">Ocean</option><option value="violet">Violet</option></select></label>
+        <div class="mode-buttons" role="group" aria-label="Modo de color"><button type="button" data-mode="light" aria-pressed="true">Claro</button><button type="button" data-mode="dark" aria-pressed="false">Oscuro</button></div>
+      </div>
+      <div class="preview-shell">
+        <div class="preview-topbar"><span class="preview-dot"></span><strong>Panel del negocio</strong><span class="preview-badge">En línea</span></div>
+        <div class="preview-content">
+          <div class="preview-title"><div><small>RESUMEN</small><h3>Buenos días, Martina</h3></div><button class="demo-primary" type="button">Nueva venta</button></div>
+          <div class="preview-cards">
+            <article class="ep-surface demo-stat"><span class="ep-icon-tile">€</span><small>Ventas de hoy</small><strong>1.284,50 €</strong><span class="demo-positive">↑ 12,4 %</span></article>
+            <article class="ep-surface demo-stat"><span class="ep-icon-tile">✓</span><small>Pedidos</small><strong>48</strong><span class="ep-text-muted">32 completados</span></article>
+            <article class="ep-surface demo-stat"><span class="ep-icon-tile">↗</span><small>Ticket medio</small><strong>26,76 €</strong><span class="ep-text-muted">Esta semana</span></article>
+          </div>
+          <div class="preview-bottom">
+            <article class="ep-surface demo-list"><h4>Actividad reciente</h4><div><span class="demo-avatar">LM</span><p><strong>Venta #1048</strong><small>Hace 4 minutos</small></p><b>42,00 €</b></div><div><span class="demo-avatar">CR</span><p><strong>Nuevo cliente</strong><small>Hace 18 minutos</small></p><span class="demo-pill">Completado</span></div></article>
+            <article class="ep-surface demo-action"><span class="ep-icon-tile">＋</span><h4>Todo listo para vender</h4><p>Controles claros, objetivos táctiles y estados que se entienden sin depender del color.</p><button class="demo-secondary" type="button">Abrir TPV</button></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="book-section" id="tipografia">
+      <div class="book-heading"><span>03</span><div><h2>Tipografía y espacio</h2><p>Jerarquía silenciosa, lectura cómoda y números alineados.</p></div></div>
+      <div class="type-grid">
+        <article><small>TÍTULO DE PÁGINA · 24 / 700</small><h3>El negocio, de un vistazo</h3><p>System UI en el Hub · IBM Plex Sans en SaaS y web</p></article>
+        <article><small>CUERPO · 16 / 400</small><p class="type-body">Gestiona ventas, clientes, inventario y facturación desde un mismo lugar.</p><code>1.284,50 € · 48 pedidos</code></article>
+      </div>
+      <div class="token-row"><span><i style="--radius:var(--ep-radius-sm)"></i>10 px<br><small>Controles</small></span><span><i style="--radius:var(--ep-radius)"></i>14 px<br><small>Tarjetas</small></span><span><i style="--radius:var(--ep-radius-lg)"></i>16 px<br><small>Superficies</small></span><span><i style="--radius:var(--ep-radius-pill)"></i>999 px<br><small>Píldoras</small></span></div>
+    </section>
+
+    <section class="book-section" id="normas">
+      <div class="book-heading"><span>04</span><div><h2>Reglas que no cambian</h2><p>La consistencia también se diseña.</p></div></div>
+      <div class="rules-grid">
+        <article class="rule-do"><strong>Sí</strong><ul><li>Ionic para todo control táctil.</li><li>Tokens para color, radios y elevación.</li><li>Una acción primaria por zona.</li><li>Claro, oscuro, móvil, tablet y escritorio.</li><li>Texto e icono además del color.</li></ul></article>
+        <article class="rule-dont"><strong>No</strong><ul><li>Componentes paralelos por página.</li><li>Colores fijos para estados o paletas.</li><li>Botones en mayúsculas o sombras duras.</li><li>Eliminar acciones en móvil.</li><li>Animación sin respetar reduced motion.</li></ul></article>
+      </div>
+      <div class="book-footer-note"><span class="ep-icon-tile">Aa</span><div><h3>Accesible por defecto</h3><p>Objetivos de 48 px, foco visible, contraste medido y contenido que se adapta sin perder acciones.</p></div><a href="./BRANDBOOK.md">Leer la norma completa →</a></div>
+    </section>
+  </main>
+  <footer class="book-footer"><span>ERPlora · Brandbook v1</span><span>@erplora/ui · Hub + SaaS + web pública</span></footer>
+</body>
+</html>

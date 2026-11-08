@@ -19,6 +19,8 @@ export {
 export type { SelectTextProp, SelectTextResolver } from './boot/ionic-select-text';
 export { installTrustedTypesPolicy } from './boot/trusted-types.boot';
 export { ION_ICONS, ionIconSrc, resolveIcon } from './icons';
+export { BRAND_PALETTES, BRAND_PALETTE_IDS } from './brandbook';
+export type { BrandPalette, BrandPaletteId, BrandPaletteMode } from './brandbook';
 export {
   applyUserThemePreferences,
   bootTheme,
