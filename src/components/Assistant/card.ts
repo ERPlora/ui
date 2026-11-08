@@ -157,7 +157,7 @@ export function fieldText(field: AssistantField, format: CardFormat): string {
       return '—';
     case 'money': {
       const text = formatMoney(field.value, format.locale, field.money ?? format.money);
-      return field.signed && Number(field.value) > 0 ? `+${text}` : text;
+      return field.signed && Number(field.value) > 0 && text !== '—' ? `+${text}` : text;
     }
     case 'bool':
       return format.t(field.value ? 'assistant.card.yes' : 'assistant.card.no');
