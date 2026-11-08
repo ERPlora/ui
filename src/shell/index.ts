@@ -34,14 +34,17 @@ export {
   setThemeContrast,
   setThemeMode,
   setThemePersister,
+  setThemeScale,
   THEME_CONTRASTS,
   THEME_PALETTES,
+  THEME_SCALES,
   themeContrast,
   themeMode,
   themePalette,
+  themeScale,
   toggleTheme,
 } from './theme';
-export type { ThemeContrast, ThemeMode, ThemePalette } from './theme';
+export type { ThemeContrast, ThemeMode, ThemePalette, ThemeScale } from './theme';
 export {
   dismissToast,
   toast,

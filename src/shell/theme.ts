@@ -1,4 +1,4 @@
-// Shell theme: light/dark mode + brand PALETTE (ADR-0138). Ported from ERPlora hub
+// Shell theme: light/dark mode + brand PALETTE + interface scale (ADR-0138). Ported from ERPlora hub
 // `apps/web/src/lib/theme.ts`. The mode is applied to <html> with Ionic's `ion-palette-dark` class
 // and the palette with the `data-ep-palette` attribute (theme/palettes.css, ported from OutfitKit;
 // `live/spa.html` sets the same attribute before the SPA boots, so a rename touches both). The
@@ -29,6 +29,19 @@ import { computed, ref } from 'vue';
 import { BRAND_PALETTE_IDS, type BrandPaletteId } from './brandbook';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
+
+export const THEME_SCALES = [80, 90, 100, 110, 120] as const;
+
+export type ThemeScale = (typeof THEME_SCALES)[number];
+
+const _scale = ref<ThemeScale>(100);
+
+export const themeScale = computed<ThemeScale>(() => _scale.value);
+
+export function setThemeScale(scale: number): void {
+  _scale.value = (THEME_SCALES as readonly number[]).includes(scale) ? (scale as ThemeScale) : 100;
+  if (typeof document !== 'undefined') document.documentElement.style.zoom = `${_scale.value}%`;
+}
 
 /** Valid palettes, catalogued in brandbook.ts and painted by theme/palettes.css. */
 export const THEME_PALETTES = BRAND_PALETTE_IDS;
@@ -134,10 +147,12 @@ export function applyUserThemePreferences(
   mode: ThemeMode | null,
   palette: ThemePalette | null,
   hubPalette?: string,
+  scale = 100,
 ): void {
   if (hubPalette) setHubPalette(hubPalette);
   setThemeMode(mode ?? 'system');
   setLocalPalette(palette ?? '');
+  setThemeScale(scale);
 }
 
 /** Clears the state on sign-out so it does not leak to the next user. */
@@ -177,8 +192,8 @@ export function setThemeContrast(contrast: ThemeContrast): void {
 }
 
 /**
- * Boots the theme: applies the mode, the palette and the contrast and, in 'system' mode, subscribes
- * to `prefers-color-scheme` changes to reflect them live. Call once at startup (the global palette
+ * Boots the theme: applies the mode, the palette, the interface scale and the contrast and, in 'system' mode,
+ * subscribes to `prefers-color-scheme` changes to reflect them live. Call once at startup (the global palette
  * arrives later, when hub settings resolve).
  */
 export function bootTheme(options: { contrast?: ThemeContrast } = {}): void {
@@ -190,6 +205,7 @@ export function bootTheme(options: { contrast?: ThemeContrast } = {}): void {
   }
   applyMode(_mode.value);
   applyPalette();
+  setThemeScale(_scale.value);
   setThemeContrast(options.contrast ?? DEFAULT_THEME_CONTRAST);
   if (typeof window !== 'undefined') {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
