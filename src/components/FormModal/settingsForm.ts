@@ -22,7 +22,9 @@
 //   - `save` sends the changes and paints the answer: what was sent is left as the server kept it. A field
 //     changed while the save was on its way stays as typed and still to send (hub#914), and `saved` says so
 //     only when nothing is left to send; with nothing to send it sends nothing and says it too (what is on
-//     screen is what is saved). A failed save keeps what was typed; the command's `error` says why.
+//     screen is what is saved). That is a try as well: the last refusal, which said otherwise, says nothing
+//     more (neither its notice nor its fields' messages) until the next refusal (hub#894). A failed save
+//     keeps what was typed; the command's `error` says why.
 import { computed, shallowRef, toValue, watch, type ComputedRef, type MaybeRefOrGetter, type Ref, type ShallowRef } from 'vue';
 
 import { useRefusal } from './refusal';
@@ -95,7 +97,14 @@ export function useSettingsForm<Out, Form extends object, In extends object>(
   const server = (options.server ?? {}) as Partial<Record<Field, SettingsServerField<unknown>>>;
   const together = options.together ?? [];
 
-  const { fieldErrors: refusedFields, showsError, changed } = useRefusal(command.error);
+  /** A save with nothing to send went through after the last refusal: it has nothing more to say (hub#894). */
+  const outdated = shallowRef(false);
+  const refusal = useRefusal(command.error, {
+    onRefusal: () => {
+      outdated.value = false;
+    },
+  });
+  const showsError = computed(() => !outdated.value && refusal.showsError.value);
 
   // Typed by hand: `shallowRef`'s return type cannot be worked out for a generic `Form`.
   const form = shallowRef(null) as ShallowRef<Form | null>;
@@ -132,7 +141,7 @@ export function useSettingsForm<Out, Form extends object, In extends object>(
   const dirty = computed(() => Object.keys(changes.value).length > 0);
 
   const fieldErrors = computed<Readonly<Record<string, string>>>(() => ({
-    ...refusedFields.value,
+    ...(outdated.value ? {} : refusal.fieldErrors.value),
     ...Object.fromEntries(Object.entries(judged.value).map(([field, message]) => [nameOf(field as Field), message as string])),
   }));
 
@@ -161,7 +170,7 @@ export function useSettingsForm<Out, Form extends object, In extends object>(
     touched.value = new Set([...touched.value, field]);
     saved.value = false;
     const group = groupOf(field);
-    for (const key of group) changed(nameOf(key));
+    for (const key of group) refusal.changed(nameOf(key));
     if (group.some((key) => key in judged.value)) {
       judged.value = Object.fromEntries(Object.entries(judged.value).filter(([key]) => !group.includes(key as Field))) as Partial<Record<Field, string>>;
     }
@@ -176,6 +185,7 @@ export function useSettingsForm<Out, Form extends object, In extends object>(
       return;
     }
     if (!dirty.value) {
+      outdated.value = true;
       saved.value = true;
       return;
     }
