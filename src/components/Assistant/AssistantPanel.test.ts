@@ -314,6 +314,14 @@ describe('AssistantPanel', () => {
     expect(m.usage).toHaveBeenCalledTimes(2);
   });
 
+  it('one message left: the foot says it in the singular in Spanish, and English keeps its sentence (ui#117)', async () => {
+    const m = await panel({ usage: { ...USAGE, used: 29 } });
+    expect(m.wrapper.get('[data-testid="assistant-usage"]').text()).toBe('Te queda 1 de 30 mensajes este mes. Se renuevan el 1 de noviembre.');
+    (m.wrapper.vm as unknown as { $i18n: { locale: string } }).$i18n.locale = 'en';
+    await flush();
+    expect(m.wrapper.get('[data-testid="assistant-usage"]').text()).toBe('You have 1 of 30 messages left this month. They renew on November 1.');
+  });
+
   it('after each turn the foot counts what is left now, with no other reading', async () => {
     script.push([
       { type: 'text', text: 'Hola.' },
