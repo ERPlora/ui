@@ -601,13 +601,14 @@ describe('selection', () => {
     const t = mountTable({ rows: PEOPLE, columns: NAME, selectable: true, selected: ['1'] }, { locale: 'es' });
     await settle();
     expect(dataRows(t)[0].classList.contains('data-table__row--selected')).toBe(true);
-    expect(t.find('.data-table__selection-bar strong').text()).toBe('1 seleccionados');
+    expect(t.find('.data-table__selection-bar strong').text()).toBe('1 seleccionado');
     await ionChange(checkbox(dataRows(t)[1]));
     expect(t.emitted('update:selected')).toEqual([[['1', '2']]]);
     expect(dataRows(t)[1].classList.contains('data-table__row--selected'), 'the parent did not take it').toBe(false);
     await t.setProps({ selected: ['1', '2'] });
     await settle();
     expect(dataRows(t)[1].classList.contains('data-table__row--selected')).toBe(true);
+    expect(t.find('.data-table__selection-bar strong').text()).toBe('2 seleccionados');
   });
 
   it('the row key may be a function', async () => {
