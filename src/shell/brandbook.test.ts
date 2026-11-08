@@ -51,4 +51,10 @@ describe('ERPlora brandbook', () => {
     expect(primitives).not.toMatch(/#[0-9a-f]{3,8}\b/i);
     expect(primitives).not.toMatch(/\.home-|\.pos-|\.widget|\.data-card|\.settings-card/);
   });
+
+  it('sets the button height only on the default size, preserving Ionic small and large', () => {
+    const primitives = plain(read('src/shell/theme/brand.css'));
+    expect(block(primitives, 'ion-button')).not.toContain('height:');
+    expect(block(primitives, 'ion-button:not([size])')).toContain('height: 40px;');
+  });
 });
