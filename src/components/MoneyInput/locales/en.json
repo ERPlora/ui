@@ -1,0 +1,9 @@
+{
+  "moneyInput": {
+    "notAmount": "This is not an amount. Type a figure, for example 12.50.",
+    "notAmountSigned": "This is not an amount. Type a figure, for example 1.50, or -0.50 for a discount.",
+    "negative": "This amount cannot be negative.",
+    "ambiguous": "This amount can be read in two ways: «{typed}» could be {grouped} or {decimal}. Write the decimals so there is no doubt.",
+    "sign": "Change the sign: negative is a discount"
+  }
+}

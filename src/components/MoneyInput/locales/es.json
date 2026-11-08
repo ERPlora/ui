@@ -1,0 +1,9 @@
+{
+  "moneyInput": {
+    "notAmount": "Esto no es un importe. Escribe una cifra, por ejemplo 12,50.",
+    "notAmountSigned": "Esto no es un importe. Escribe una cifra, por ejemplo 1,50, o -0,50 para descontar.",
+    "negative": "Este importe no puede ser negativo.",
+    "ambiguous": "Este importe se puede leer de dos maneras: «{typed}» tanto puede ser {grouped} como {decimal}. Escribe los decimales para que no haya duda.",
+    "sign": "Cambiar el signo: en negativo es un descuento"
+  }
+}
