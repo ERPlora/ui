@@ -15,8 +15,9 @@ acción o un estado, nunca decora por decorar.
   jerarquía, los componentes, los datos ni el significado de las acciones.
 - **Superficies antes que barras.** Lienzo discreto, tarjetas blancas o de tinta, bordes finos y
   sombras suaves. Sin paneles saturados compitiendo con los datos.
-- **Táctil primero.** Ionic aporta los controles y sus gestos; 48 px es el objetivo mínimo de
-  producto y 56 px el grande del TPV. No se sustituyen por botones HTML si Ionic ya los cubre.
+- **Táctil primero.** Ionic aporta los controles y sus gestos; en dispositivos con
+  `@media (pointer: coarse)` los controles miden al menos 44×44 px, 48 px es el objetivo de producto
+  y 56 px el grande del TPV. No se sustituyen por botones HTML si Ionic ya los cubre.
 - **Personal sin perder identidad.** Claro, oscuro o sistema y paleta global o personal componen
   libremente. El modo de contraste `aa` está disponible cuando el sólido de marca no alcanza AA.
 - **Sin sorpresas.** Una página nueva reutiliza primitivas; no inventa otro radio, otra sombra u
@@ -128,7 +129,8 @@ transiciones no esenciales. No usar glass o gradientes como fondo general de una
 - En móvil la navegación se agrupa y las listas pueden ser tarjetas; no se eliminan acciones.
 - Sin desplazamiento horizontal de página. Los scrollers especializados se anuncian y no capturan la
   página entera. Los textos largos parten entre palabras y las acciones no se cortan.
-- Objetivos de 48 px en producto, foco visible, lector de pantalla, teclado y gestos Ionic.
+- Controles de al menos 44×44 px con `@media (pointer: coarse)` y objetivo de 48 px en producto;
+  foco visible, lector de pantalla, teclado y gestos Ionic.
 - Texto normal AA ≥ 4.5:1; texto grande y componentes ≥ 3:1. El modo de marca conserva su color, y
   `data-ep-contrast="aa"` cambia a los sólidos accesibles cuando se necesita.
 - La pantalla respeta safe areas, zoom, orientación y reducción de movimiento.
