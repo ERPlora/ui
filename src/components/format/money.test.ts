@@ -45,5 +45,7 @@ describe('formatMoney', () => {
   it('what is no number stays as it came', () => {
     expect(formatMoney('n/a', 'en', EUR)).toBe('n/a');
     expect(formatMoney(' ', 'en', EUR)).toBe(' ');
+    expect(formatMoney('n/a', 'en')).toBe('n/a');
+    expect(formatMoney(' ', 'en')).toBe(' ');
   });
 });
