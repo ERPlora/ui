@@ -554,6 +554,17 @@ describe('FormModal: the message of a refused field (ui#89)', () => {
     expect(seen.at(-1)).toEqual({});
   });
 
+  it('two Combos refused with the same words: a choice clears only the field named by the refusal', async () => {
+    const options = [{ id: 'ES', label: 'España' }];
+    const { seen, wrapper } = mountFields({ ...REFUSED, fields: { country: 'Required.', city: 'Required.' } }, (errors) => [
+      h(Combo, { name: 'country', label: 'Country', options, testid: 'country', errorText: errors.country }),
+      h(Combo, { name: 'city', label: 'City', options, testid: 'city', errorText: errors.city }),
+    ]);
+    await settle();
+    await fire(wrapper.findAll('.combo')[1].element, typed());
+    expect(seen.at(-1)).toEqual({ country: 'Required.' });
+  });
+
   it('a field named like its key clears its own message, even when another field shows the same words', async () => {
     const { seen } = mountFields({ ...REFUSED, fields: { first_name: 'Required.', last_name: 'Required.' } }, (errors) => [
       h('input', { 'data-testid': 'first', name: 'first_name', 'aria-description': errors.first_name }),

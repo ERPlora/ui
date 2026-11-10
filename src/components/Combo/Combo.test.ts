@@ -98,6 +98,12 @@ describe('Combo: the field', () => {
     expect(input.value).toBe('España');
   });
 
+  it('hands its name to its ion-input, so the form around it can tell which field was corrected', async () => {
+    const w = mountCombo({ name: 'country_code' });
+    await settle();
+    expect((field(w).element as El).name).toBe('country_code');
+  });
+
   it('is a combobox for assistive tech: role, list autocomplete, the listbox it controls, collapsed', async () => {
     const w = mountCombo();
     await settle();
