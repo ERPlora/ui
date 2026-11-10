@@ -1,6 +1,6 @@
 // An amount as the person reads it: the server's minor unit of its currency (1250 is 12,50 €; ¥1,250 has no cents) in
-// the business's currency with the symbol a till of that country prints; without a currency known yet, the amount
-// alone. The Hub's panels and the assistant's card write money alike.
+// the business's currency with the symbol a till of that country prints; without a currency known yet, a dash rather
+// than guessed decimals. The Hub's panels and the assistant's card write money alike.
 import { describe, expect, it } from 'vitest';
 
 import { formatMoney } from './money';
@@ -22,8 +22,10 @@ describe('formatMoney', () => {
     expect(plain(formatMoney('1500', 'es-ES', EUR))).toBe('15,00 €');
   });
 
-  it('without a currency known yet, the amount alone in cents', () => {
-    expect(formatMoney(1250, 'en')).toBe('12.50');
+  it('without a currency known yet, writes a dash instead of guessing two decimals', () => {
+    expect(formatMoney(2250, 'en')).toBe('—');
+    expect(formatMoney('2250', 'en')).toBe('—');
+    expect(formatMoney(123456, 'es')).toBe('—');
   });
 
   it('groups the thousands from four digits on, in every language (Holded, Odoo, Shopify, Excel es_ES)', () => {
@@ -40,13 +42,10 @@ describe('formatMoney', () => {
     expect(plain(formatMoney(99999, 'es', EUR))).toBe('999,99 €');
   });
 
-  it('groups the amount alone too, before the currency is known', () => {
-    expect(formatMoney(123456, 'es')).toBe('1.234,56');
-    expect(formatMoney(123456, 'en')).toBe('1,234.56');
-  });
-
   it('what is no number stays as it came', () => {
     expect(formatMoney('n/a', 'en', EUR)).toBe('n/a');
     expect(formatMoney(' ', 'en', EUR)).toBe(' ');
+    expect(formatMoney('n/a', 'en')).toBe('n/a');
+    expect(formatMoney(' ', 'en')).toBe(' ');
   });
 });
