@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# pre-push of ERPlora/ui: what the removed `test` workflow checked on GitHub runs here, before the
+# push leaves the machine (GitHub Actions is kept for ERPlora/aws only).
+#   1. The machine-wide pre-push runs first, with the same arguments and the same stdin: a repo-local
+#      core.hooksPath replaces the global one, and without this it would stop running unnoticed.
+#   2. Every pushed branch commit is checked out clean in a temporary worktree, outside hub and saas
+#      when ui is their submodule (the CI checked ui out alone, so its own pnpm-workspace.yaml
+#      applies), and the checks run there: what is checked is what is pushed, never the working
+#      tree. The workflow ran on pushes to main and on every pull request, with no path filter, so
+#      every branch push is checked; tags never ran it and are not checked.
+# A red check aborts the push. There is no switch to skip it.
+# Battery: bash .githooks/pre-push.test.sh
+set -u
+
+zero=0000000000000000000000000000000000000000
+hook_dir=$(cd "$(dirname "$0")" && pwd -P)
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/ui-pre-push.XXXXXX") || exit 1
+tree=
+cleanup() {
+  [ -n "$tree" ] && git worktree remove --force "$tree" > /dev/null 2>&1
+  rm -rf "${scratch:?}"
+  git worktree prune > /dev/null 2>&1
+}
+trap cleanup EXIT
+# Kept byte for byte: the global hook and this one read the same refs.
+cat > "$scratch/stdin"
+
+global=$(git config --global --path --get core.hooksPath 2>/dev/null || true)
+if [ -n "$global" ] && [ -x "$global/pre-push" ] && [ "$(cd "$global" 2>/dev/null && pwd -P)" != "$hook_dir" ]; then
+  if ! "$global/pre-push" "$@" < "$scratch/stdin"; then
+    echo "pre-push: the global pre-push hook ($global/pre-push) rejected the push" >&2
+    exit 1
+  fi
+fi
+
+# One step of the workflow: $1 ref, $2 short sha, then the command.
+step() {
+  local ref=$1 short=$2
+  shift 2
+  echo "pre-push: $* ($short)" >&2
+  if ! "$@" >&2; then
+    echo "pre-push: $* failed on $short ($ref): push aborted" >&2
+    return 1
+  fi
+}
+
+# The steps of the test workflow, in its order, in the checkout of the pushed commit. actionlint
+# lints the workflows: it runs only when the commit has one (with none it has nothing to lint).
+# pnpm takes its own version from package.json's packageManager, as the workflow did.
+run_checks() {
+  if [ -n "$3" ]; then
+    step "$1" "$2" actionlint -color || return 1
+  fi
+  step "$1" "$2" pnpm install --frozen-lockfile &&
+    step "$1" "$2" pnpm lint &&
+    step "$1" "$2" pnpm typecheck &&
+    step "$1" "$2" pnpm test
+}
+
+checked=
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -n "${local_sha:-}" ] || continue
+  # Deleting a remote branch uploads nothing: there is nothing to check.
+  [ "$local_sha" = "$zero" ] && continue
+  # Only branches: the workflow ran on pushes to main and on pull requests, never on tags.
+  case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
+  # A new branch (remote_sha all zeros) is checked like an update: no path filter to apply.
+  [ "${remote_sha:-$zero}" = "$zero" ] && local_ref="$local_ref, new branch $remote_ref"
+  case " $checked " in *" $local_sha "*) continue ;; esac
+  checked="$checked $local_sha"
+  short=$(git rev-parse --short "$local_sha")
+  if ! command -v pnpm > /dev/null 2>&1; then
+    echo "pre-push: pnpm is missing, the checks cannot run: push aborted (README, «Comprobaciones antes del push»)" >&2
+    exit 1
+  fi
+  workflows=$(git ls-tree -r --name-only "$local_sha" -- .github/workflows 2>/dev/null | grep -E '\.ya?ml$' || true)
+  if [ -n "$workflows" ] && ! command -v actionlint > /dev/null 2>&1; then
+    echo "pre-push: actionlint is missing and $short has workflows to lint: push aborted (README, «Comprobaciones antes del push»)" >&2
+    exit 1
+  fi
+  tree="$scratch/tree"
+  if ! git worktree add --quiet --detach "$tree" "$local_sha" > /dev/null 2>&1; then
+    echo "pre-push: could not check out $short in a temporary worktree: push aborted" >&2
+    exit 1
+  fi
+  # The checks run as on a fresh clone: no variable of this push points git at another repo.
+  if ! (cd "$tree" && unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR && run_checks "$local_ref" "$short" "$workflows"); then
+    exit 1
+  fi
+  git worktree remove --force "$tree" > /dev/null 2>&1
+  tree=
+done < "$scratch/stdin"
+exit 0
