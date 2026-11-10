@@ -39,8 +39,8 @@ test -x packages/ui/.githooks/pre-push && git -C packages/ui config core.hooksPa
   `actionlint -color` si el commit tiene workflows en `.github/workflows/` (sin ninguno no hay nada que revisar),
   `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck` y `pnpm test`. Pide pnpm, y actionlint solo si vuelve
   un workflow. Usa el Node de la máquina; la CI usaba Node 24.
-- **Cuánto tarda**: unos 45 s en el Mac con la store de pnpm ya llena (instalación 5 s, lint 10 s, typecheck 9 s y
-  Vitest 20 s).
+- **Cuánto tarda**: unos 45 s en el Mac libre y con la store de pnpm ya llena (instalación 5 s, lint 10 s,
+  typecheck 9 s y Vitest 20 s); con la máquina cargada de otras sesiones, de 1,5 a 3 min, casi todo en Vitest.
 - **Cuándo**: en todo push de una rama, `main` o la de una PR, como el workflow, que no filtraba rutas. Un tag no
   comprueba nada (el workflow tampoco corría con tags) y borrar una rama tampoco.
 - **Primero los hooks globales**: un `core.hooksPath` del repo sustituye al global, así que cada hook de `.githooks/`
