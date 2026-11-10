@@ -8,6 +8,8 @@
 // Contract:
 //   - The field is an `ion-input` (md, outline, floating label) showing the chosen option's label;
 //     `v-model` is the chosen `{ id, label, hint? }` or `null`. Clearable while something is chosen.
+//   - `name` is the form's key for the field, handed to its `ion-input`: FormModal tells by it which
+//     refused field a choice corrects, also when another field is refused with the same words (hub#888).
 //   - The options are a listbox in an `ion-popover` beside the field, as wide as it, that never takes
 //     the focus from it. A click or ArrowDown opens every option; typing filters them:
 //       · static `options`: «contains» on the label and the hint, ignoring case and accents;
@@ -44,6 +46,8 @@ const props = withDefaults(
   defineProps<{
     /** The chosen option (`v-model`), or `null`. */
     modelValue?: ComboOption | null;
+    /** The form's key for this field (the refusal's `fields` key), handed to its ion-input. */
+    name?: string;
     /** The options, filtered here while typing. Ignored when `search` is given. */
     options?: ComboOption[];
     /** Asks the server for the options of a text (`''` on opening). */
@@ -69,6 +73,7 @@ const props = withDefaults(
   }>(),
   {
     modelValue: null,
+    name: undefined,
     options: () => [],
     search: undefined,
     label: undefined,
@@ -432,6 +437,7 @@ onBeforeUnmount(() => {
       mode="md"
       fill="outline"
       label-placement="floating"
+      :name="name"
       :label="label"
       :placeholder="placeholder"
       :value="text"
