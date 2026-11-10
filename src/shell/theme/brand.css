@@ -42,6 +42,17 @@ ion-button {
 }
 ion-button:not([size]) { height: 40px; }
 ion-button[fill='clear'] { --color: var(--ion-text-color); }
+.app-topbar ion-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (pointer: coarse) {
+  ion-button[size='small'] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
 
 ion-badge {
   --padding-start: 9px;

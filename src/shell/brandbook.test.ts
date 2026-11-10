@@ -15,6 +15,19 @@ function block(css: string, selector: string): string {
   return new RegExp(`(?:^|})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
 }
 
+function mediaBlock(css: string, query: string): string {
+  const start = css.indexOf(`@media (${query})`);
+  if (start < 0) return '';
+  const open = css.indexOf('{', start);
+  let depth = 0;
+  for (let index = open; index < css.length; index += 1) {
+    if (css[index] === '{') depth += 1;
+    if (css[index] === '}') depth -= 1;
+    if (depth === 0) return css.slice(open + 1, index);
+  }
+  return '';
+}
+
 describe('ERPlora brandbook', () => {
   it('is the catalogue behind the seven theme choices', () => {
     expect(BRAND_PALETTES.map((palette) => palette.id)).toEqual(THEME_PALETTES);
@@ -56,5 +69,20 @@ describe('ERPlora brandbook', () => {
     const primitives = plain(read('src/shell/theme/brand.css'));
     expect(block(primitives, 'ion-button')).not.toContain('height:');
     expect(block(primitives, 'ion-button:not([size])')).toContain('height: 40px;');
+  });
+
+  it('keeps every topbar action at least 44px square', () => {
+    const primitives = plain(read('src/shell/theme/brand.css'));
+    const topbarButton = block(primitives, '.app-topbar ion-button');
+    expect(topbarButton).toContain('min-width: 44px;');
+    expect(topbarButton).toContain('min-height: 44px;');
+  });
+
+  it('enlarges small buttons only on coarse-pointer devices', () => {
+    const primitives = plain(read('src/shell/theme/brand.css'));
+    expect(block(primitives, "ion-button[size='small']")).toBe('');
+    const coarseButton = block(mediaBlock(primitives, 'pointer: coarse'), "ion-button[size='small']");
+    expect(coarseButton).toContain('min-width: 44px;');
+    expect(coarseButton).toContain('min-height: 44px;');
   });
 });
