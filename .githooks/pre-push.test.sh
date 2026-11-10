@@ -42,10 +42,12 @@ EOF
 }
 
 # A tool stub: logs `<tool> <args> @ <commit> <clean|dirty> <dir>` and exits with the code in
-# rc/<tool>-<args, _ for spaces>.rc of the checkout it runs in (0 when the file is missing).
+# rc/<tool>-<args, _ for spaces>.rc of the checkout it runs in (0 when the file is missing). It drains
+# its stdin, as a real tool may: a step that inherited the hook's refs would swallow the next ones.
 write_tool_stub() {
   cat > "$1" <<'EOF'
 #!/usr/bin/env bash
+cat > /dev/null
 tool=$(basename "$0")
 state=clean; [ -n "$(git status --porcelain 2>/dev/null)" ] && state=dirty
 echo "$tool $* @ $(git rev-parse HEAD 2>/dev/null) $state $(pwd -P)" >> "$CALLS"

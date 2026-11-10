@@ -33,12 +33,13 @@ if [ -n "$global" ] && [ -x "$global/pre-push" ] && [ "$(cd "$global" 2>/dev/nul
   fi
 fi
 
-# One step of the workflow: $1 ref, $2 short sha, then the command.
+# One step of the workflow: $1 ref, $2 short sha, then the command. Its stdin is /dev/null: it runs
+# inside the loop that reads the pushed refs, and a tool that drained them would skip the next ones.
 step() {
   local ref=$1 short=$2
   shift 2
   echo "pre-push: $* ($short)" >&2
-  if ! "$@" >&2; then
+  if ! "$@" < /dev/null >&2; then
     echo "pre-push: $* failed on $short ($ref): push aborted" >&2
     return 1
   fi
