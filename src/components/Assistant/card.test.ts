@@ -50,8 +50,8 @@ describe('each datum', () => {
     expect(fieldText(difference(-490), opts)).toBe('-4,90 €');
     expect(fieldText(difference(0), opts)).toBe('0,00 €');
     expect(fieldText(difference(13790), { ...opts, locale: 'en' })).toBe('+€137.90');
-    // Until the business's currency is known, the figure alone, with its sign.
-    expect(fieldText(difference(13790), { locale: 'en', t })).toBe('+137.90');
+    // Until the business's currency is known, a dash has no sign either.
+    expect(fieldText(difference(13790), { locale: 'en', t })).toBe('—');
     // Any other amount, positive as it is, never gets one; nor does a datum that is no amount, whatever it says.
     expect(fieldText(card().fields[1], opts)).toBe('15,00 €');
     expect(fieldText({ name: 'duration', label: 'Duration', kind: 'text', value: 1500, signed: true }, opts)).toBe('1500');
