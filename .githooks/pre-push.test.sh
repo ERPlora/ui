@@ -247,15 +247,51 @@ git -C "$sub" checkout -q -b from-submodule
 echo "from the submodule" > "$sub/README.md"
 git -C "$sub" commit -q -am "edit in the submodule"
 ssha=$(git -C "$sub" rev-parse HEAD)
+# The checkout moves on: git exports the submodule's GIT_DIR to the hook, and a check that leaked it
+# would read this newer HEAD instead of the pushed commit.
+echo "later" > "$sub/README.md"
+git -C "$sub" commit -q -am "later edit in the submodule"
 : > "$W/calls"
-(cd "$sub" && git push origin from-submodule) > "$W/out" 2>&1; rc=$?
+(cd "$sub" && git push origin "$ssha:refs/heads/from-submodule") > "$W/out" 2>&1; rc=$?
 check "a push from the submodule checkout is accepted when the checks pass" \
   test "$rc" -eq 0 -a "$(remote_tip from-submodule)" = "$ssha"
-check "a push from the submodule checkout checks the pushed commit" called "$TEST @ $ssha clean"
+check "a push from the submodule checkout checks the pushed commit, not the checkout's HEAD" called "$TEST @ $ssha clean"
 check "a push from the submodule checkout is checked outside the superproject" \
   bash -c "grep -q . '$W/calls' && ! grep -qF ' $W/super' '$W/calls'"
 check "a push from the submodule checkout leaves no worktree behind" \
   test "$(git -C "$sub" worktree list | wc -l | tr -d ' ')" -eq 1
+
+# From a linked worktree (how a change of ui is made when it is a submodule): git exports that
+# worktree's GIT_DIR to the hook too.
+new_world
+push origin main
+git -C "$W/work" worktree add -q "$W/linked" -b linked
+echo "linked" > "$W/linked/README.md"
+git -C "$W/linked" commit -q -am "edit in the linked worktree"
+lsha=$(git -C "$W/linked" rev-parse HEAD)
+echo "later" > "$W/linked/README.md"
+git -C "$W/linked" commit -q -am "later edit in the linked worktree"
+: > "$W/calls"
+(cd "$W/linked" && git push origin "$lsha:refs/heads/linked") > "$W/out" 2>&1; rc=$?
+check "a push from a linked worktree is accepted when the checks pass" test "$rc" -eq 0 -a "$(remote_tip linked)" = "$lsha"
+check "a push from a linked worktree checks the pushed commit, not the worktree's HEAD" called "$TEST @ $lsha clean"
+
+new_world
+push origin main
+git -C "$W/work" checkout -q -b one
+commit_file README.md one
+one=$(head_sha)
+git -C "$W/work" checkout -q -b two main
+commit_file README.md two
+two=$(head_sha)
+: > "$W/calls"
+push origin one two; rc=$?
+check "two branches with different commits in one push are accepted" \
+  test "$rc" -eq 0 -a "$(remote_tip one)" = "$one" -a "$(remote_tip two)" = "$two"
+check "two branches with different commits in one push are both checked" \
+  bash -c "grep -qF '$TEST @ $one clean' '$W/calls' && grep -qF '$TEST @ $two clean' '$W/calls'"
+check "two branches in one push leave no worktree behind" \
+  test "$(git -C "$W/work" worktree list | wc -l | tr -d ' ')" -eq 1
 
 new_world
 mkdir -p "$W/minbin"
