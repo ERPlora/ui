@@ -5,17 +5,24 @@
 //   - `isOpen` true → `willPresent`, then `didPresent` on the next tick; false → `willDismiss` and
 //     `didDismiss` (detail `{ role }`);
 //   - like Ionic's overlay manager, Escape on the document and a tap on the backdrop dismiss it with
-//     role `backdrop` only when `backdropDismiss` is not false (`tapBackdrop()` is that tap).
+//     role `backdrop` only when `backdropDismiss` is not false (`tapBackdrop()` is that tap);
+//   - like Ionic's `canDismiss`: a function is asked on every dismissal but role `handler` (who calls
+//     with it already asked), the closing of `isOpen` included, and the modal stays while it says
+//     `false`; then the dismissal is a promise of whether it closed. `false` refuses them all.
 // Use it with `vi.mock('@ionic/vue', …)` so every IonModal of the tree (also one rendered outside
 // the test's mount, like `useConfirm`'s) is this one.
 import { defineComponent, h, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from 'vue';
 
 export interface IonModalStubApi {
-  /** Ionic dismissing on its own (backdrop, Escape, hardware back), with that role. */
-  dismiss(role?: string): boolean;
+  /** Ionic dismissing on its own (backdrop, Escape, hardware back), with that role: whether it closed, or the promise
+   *  of it while a `canDismiss` function is asked. */
+  dismiss(role?: string): boolean | Promise<boolean>;
   /** A tap on the backdrop: dismisses with role `backdrop` when `backdropDismiss` allows it. */
-  tapBackdrop(): boolean;
+  tapBackdrop(): boolean | Promise<boolean>;
 }
+
+/** Ionic's `canDismiss` of `ion-modal`. */
+type CanDismiss = boolean | ((data?: unknown, role?: string) => boolean | Promise<boolean>);
 
 const APIS = new WeakMap<Element, IonModalStubApi>();
 
@@ -35,6 +42,7 @@ export const IonModalStub = defineComponent({
   props: {
     isOpen: { type: Boolean, default: false },
     backdropDismiss: { type: Boolean, default: true },
+    canDismiss: { type: [Boolean, Function] as unknown as () => CanDismiss, default: true },
   },
   emits: ['willPresent', 'didPresent', 'willDismiss', 'didDismiss'],
   setup(props, { attrs, slots, emit, expose }) {
@@ -47,7 +55,7 @@ export const IonModalStub = defineComponent({
       void nextTick().then(() => emit('didPresent'));
     }
 
-    function dismiss(role?: string): boolean {
+    function close(role: string | undefined): boolean {
       if (!presented.value) return false;
       presented.value = false;
       emit('willDismiss', dismissEvent('willDismiss', role));
@@ -55,7 +63,16 @@ export const IonModalStub = defineComponent({
       return true;
     }
 
-    const tapBackdrop = (): boolean => props.backdropDismiss && dismiss('backdrop');
+    function dismiss(role?: string): boolean | Promise<boolean> {
+      if (!presented.value) return false;
+      const can = props.canDismiss;
+      if (role === 'handler' || can === true) return close(role);
+      if (typeof can !== 'function') return false;
+      // Ionic awaits whatever it answers.
+      return Promise.resolve(can(undefined, role)).then((answer) => answer && close(role));
+    }
+
+    const tapBackdrop = (): boolean | Promise<boolean> => props.backdropDismiss && dismiss('backdrop');
 
     function onDocumentKeydown(event: KeyboardEvent): void {
       if (event.key === 'Escape') tapBackdrop();
@@ -70,7 +87,7 @@ export const IonModalStub = defineComponent({
     onBeforeUnmount(() => document.removeEventListener('keydown', onDocumentKeydown));
     watch(
       () => props.isOpen,
-      (open) => (open ? present() : dismiss()),
+      (open) => void (open ? present() : dismiss()),
     );
 
     expose({ dismiss, tapBackdrop } satisfies IonModalStubApi);

@@ -1115,6 +1115,146 @@ describe('FormModal: options', () => {
   });
 });
 
+// hub#1023 (Cloudscape «Communicating unsaved changes», Shopify's `leaveConfirmation`, the «Discard changes?» of iOS): a
+// window that holds what the person typed asks before ANY way out throws it away — Cancel, the close button, Escape, a
+// tap on the backdrop and the system Back (Ionic's own dismissal, role `backdrop`) — and stays while the answer is
+// «no». The page gives the question (`canDismiss`); closing from the page (`open = false`, a saved form) never asks.
+describe('FormModal: asks before the person closes it (`canDismiss`, hub#1023)', () => {
+  /** A page's question, answered `answer` (or by hand when `answer` is a promise it resolves). */
+  const asking = (answer: boolean | Promise<boolean>) => vi.fn(() => answer);
+  /** A way out: its name, how the person takes it, and the dialog's options for it. */
+  type Way = [string, (w: VueWrapper) => Promise<void>, Partial<Props>?];
+  const ways: Way[] = [
+    ['Cancel', (w) => click(cancelButton(w))],
+    ['the close button', (w) => click(closeButton(w))],
+    ['Escape', () => key(byTestId('email')!, 'Escape')],
+    ['Escape without backdrop dismissal', () => key(byTestId('email')!, 'Escape'), { dismissOnBackdrop: false }],
+    ['a tap on the backdrop', async (w) => void (await modal(w).tapBackdrop())],
+    ['Ionic’s own dismissal (the system Back)', async (w) => void (await modal(w).dismiss('backdrop'))],
+  ];
+
+  /** The person takes `close` on a dialog whose page answers `answer`: it was asked once. */
+  async function leave(answer: boolean | Promise<boolean>, close: Way[1], options: Partial<Props> = {}): Promise<VueWrapper> {
+    const canDismiss = asking(answer);
+    const wrapper = mountModal({ canDismiss, ...options });
+    await settle();
+    await close(wrapper);
+    await settle();
+    expect(canDismiss).toHaveBeenCalledTimes(1);
+    return wrapper;
+  }
+
+  it.each(ways)('%s asks first, and «no» keeps it open: no `cancel`, still open', async (_way, close, options) => {
+    const wrapper = await leave(false, close, options);
+    expect(wrapper.emitted('cancel')).toBeUndefined();
+    expect(wrapper.emitted('update:open')).toBeUndefined();
+    expect(byTestId('email')).not.toBeNull();
+  });
+
+  it.each(ways)('%s asks first, and «yes» closes it: one `cancel`, open → false, asked once', async (_way, close, options) => {
+    const wrapper = await leave(Promise.resolve(true), close, options);
+    expect(wrapper.emitted('cancel')).toHaveLength(1);
+    expect(wrapper.emitted('update:open')).toEqual([[false]]);
+    expect(byTestId('email')).toBeNull();
+  });
+
+  it('a page that answers at once (`true`, not a promise) closes it the same', async () => {
+    const wrapper = mountModal({ canDismiss: () => true });
+    await settle();
+    await click(cancelButton(wrapper));
+    expect(wrapper.emitted('cancel')).toHaveLength(1);
+    expect(wrapper.emitted('update:open')).toEqual([[false]]);
+  });
+
+  it('it stays open while the question is up, and a second Cancel or × asks nothing more', async () => {
+    let answer!: (value: boolean) => void;
+    const canDismiss = asking(new Promise<boolean>((resolve) => (answer = resolve)));
+    const wrapper = mountModal({ canDismiss });
+    await settle();
+    await click(cancelButton(wrapper));
+    await click(closeButton(wrapper));
+    expect(canDismiss).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('update:open')).toBeUndefined();
+    answer(true);
+    await settle();
+    expect(wrapper.emitted('cancel')).toHaveLength(1);
+    expect(wrapper.emitted('update:open')).toEqual([[false]]);
+  });
+
+  it('asked again on the next way out after a «no»', async () => {
+    const canDismiss = vi.fn<() => boolean>().mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const wrapper = mountModal({ canDismiss });
+    await settle();
+    await click(cancelButton(wrapper));
+    expect(wrapper.emitted('update:open')).toBeUndefined();
+    await key(byTestId('email')!, 'Escape');
+    expect(canDismiss).toHaveBeenCalledTimes(2);
+    expect(wrapper.emitted('update:open')).toEqual([[false]]);
+  });
+
+  it('closing from the page (open → false, a saved form) never asks', async () => {
+    const canDismiss = asking(false);
+    const wrapper = mountModal({ canDismiss });
+    await settle();
+    await click(submitButton(wrapper));
+    await wrapper.setProps({ open: false });
+    await settle();
+    expect(canDismiss).not.toHaveBeenCalled();
+    expect(byTestId('email')).toBeNull();
+    expect(wrapper.emitted('cancel')).toBeUndefined();
+  });
+
+  it('a dismissal by who already asked (role `handler`) is not asked again', async () => {
+    const canDismiss = asking(false);
+    const wrapper = mountModal({ canDismiss });
+    await settle();
+    expect(modal(wrapper).dismiss('handler')).toBe(true);
+    await settle();
+    expect(canDismiss).not.toHaveBeenCalled();
+    expect(wrapper.emitted('cancel')).toHaveLength(1);
+  });
+
+  it('nothing asks while a submit is pending: nothing closes it', async () => {
+    const canDismiss = asking(true);
+    const wrapper = mountModal({ canDismiss, pending: true });
+    await settle();
+    await click(cancelButton(wrapper));
+    await click(closeButton(wrapper));
+    await key(byTestId('email')!, 'Escape');
+    expect(canDismiss).not.toHaveBeenCalled();
+    expect(wrapper.emitted('update:open')).toBeUndefined();
+  });
+
+  it('a question that could not be asked keeps it open and says why in the console', async () => {
+    const failure = new Error('no dialog');
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      for (const close of [(w: VueWrapper) => click(cancelButton(w)), async (w: VueWrapper) => void (await modal(w).tapBackdrop())]) {
+        const wrapper = mountModal({ canDismiss: () => Promise.reject(failure) });
+        await settle();
+        await close(wrapper);
+        await settle();
+        expect(wrapper.emitted('update:open')).toBeUndefined();
+        expect(byTestId('email')).not.toBeNull();
+        wrapper.unmount();
+        mounted.splice(0);
+      }
+      expect(logged).toHaveBeenCalledTimes(2);
+      expect(logged).toHaveBeenCalledWith('ui: could not ask whether to close the dialog', failure);
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
+  it('without `canDismiss` nothing changes: Ionic dismisses it at once', async () => {
+    const wrapper = mountModal();
+    await settle();
+    expect(modal(wrapper).tapBackdrop()).toBe(true);
+    await settle();
+    expect(wrapper.emitted('cancel')).toHaveLength(1);
+  });
+});
+
 describe('FormModal: read only (a window that only shows data, ui#62)', () => {
   // Odoo, Shopify and Business Central: the header's close and ONE «Close» at the foot; never
   // Cancel and Close side by side, which do the same, and nothing to save.

@@ -28,6 +28,11 @@
 //     bottom of a long form would otherwise see nothing happen (hub#833).
 //   - Cancel, the close button, Escape and the backdrop (`dismissOnBackdrop`) emit `cancel` and set
 //     `open` to false; closing from the page is not a cancel.
+//   - `canDismiss`: a window holding what the person typed asks before any of those ways out — and the
+//     system Back, which dismisses it as Ionic does (role `backdrop`) — throws it away (hub#1023; Cloudscape,
+//     Shopify's `leaveConfirmation`, iOS «Discard changes?»). The page's question is asked once at a time; on
+//     «no» (or a question that could not be asked, said in the console) the dialog stays as it was. Closing
+//     from the page (`open = false`) never asks, nor a dismissal by who already asked (Ionic's role `handler`).
 //   - Enter in a single-line field submits; Escape cancels (not while pending). Only Save, Enter and
 //     the footer slot's `submit` submit: the `<form>`'s own submit event is just prevented, so a
 //     native button in a custom footer (type submit by default) never submits twice, nor by mistake.
@@ -93,6 +98,8 @@ const props = withDefaults(
     readonly?: boolean;
     /** Prefix of the `data-testid` hooks (`<testid>`, `-submit`, `-cancel`, `-close`, `-done`, `-error`). */
     testid?: string;
+    /** Asked before the person closes it (Cancel, close, Escape, backdrop, Back): `false` keeps it open. */
+    canDismiss?: () => boolean | Promise<boolean>;
   }>(),
   {
     submitLabel: undefined,
@@ -108,6 +115,7 @@ const props = withDefaults(
     phoneLayout: 'sheet',
     readonly: false,
     testid: undefined,
+    canDismiss: undefined,
   },
 );
 
@@ -190,16 +198,50 @@ function submit(): void {
   emit('submit');
 }
 
-function cancel(): void {
-  if (props.pending) return;
-  emit('cancel');
-  open.value = false;
+/** The page's question while it is up: a second way out waits for the same answer instead of asking again. */
+let asking: Promise<boolean> | null = null;
+
+/** May the person close it? Without a question, yes; a question that fails keeps it open. */
+function mayClose(): Promise<boolean> {
+  const ask = props.canDismiss;
+  if (!ask) return Promise.resolve(true);
+  asking ??= Promise.resolve()
+    .then(ask)
+    .catch((error: unknown) => {
+      console.error('ui: could not ask whether to close the dialog', error);
+      return false;
+    })
+    .finally(() => {
+      asking = null;
+    });
+  return asking;
+}
+
+/** Ionic's own dismissals (backdrop, Escape, the system Back) ask the page first. Closing from the page
+ *  (`open = false`, no role) never asks, and `handler` is Ionic's role for who already asked. */
+const ionCanDismiss = computed(() =>
+  props.canDismiss ? (_data?: unknown, role?: string): Promise<boolean> => (role === undefined ? Promise.resolve(true) : mayClose()) : true,
+);
+
+/** A Cancel already waiting for the page's answer: a second click while it is up closes nothing twice. */
+let cancelling = false;
+
+async function cancel(): Promise<void> {
+  if (props.pending || cancelling) return;
+  cancelling = true;
+  try {
+    if (!(await mayClose()) || props.pending || !open.value) return;
+    emit('cancel');
+    open.value = false;
+  } finally {
+    cancelling = false;
+  }
 }
 
 /** Escape: with backdrop dismissal Ionic dismisses on its own (→ `onDidDismiss`); without it, here. */
 function onEscape(): void {
   if (props.pending || backdropDismiss.value) return;
-  cancel();
+  void cancel();
 }
 
 /** A person changed a field. Typing bubbles up as a native `input` (scoped ion-input and ion-textarea
@@ -369,6 +411,7 @@ function focusFirstField(): void {
     class="ep-form-modal"
     :is-open="open"
     :backdrop-dismiss="backdropDismiss"
+    :can-dismiss="ionCanDismiss"
     :role="role"
     :aria-label="title"
     :aria-labelledby="titleId"
