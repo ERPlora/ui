@@ -329,6 +329,35 @@ describe('«could not load» is not «empty» (ERPlora/pm#530)', () => {
     expect(text(retry(worded))).toBe('Try again');
     expect(retry(worded)?.getAttribute('data-testid')).toBe('customers-retry');
   });
+
+  // hub#1197 - Pages hand the same text as the title (`labels.loadError`) and as the reason (`error`):
+  // the notice said it twice in a row. A reason that only repeats the title is not painted again.
+  it('a reason that repeats the title is said once, with Retry: worded, Spanish, default title, case and full stop aside', async () => {
+    const times = (t: ReturnType<typeof mountTable>, phrase: string) => text(errorBlock(t)).split(phrase).length - 1;
+    const reason = (t: ReturnType<typeof mountTable>) => errorBlock(t)?.querySelector('.data-table__error-reason');
+    const same = mountTable({ ...base, error: 'The tasks could not be loaded.', labels: { loadError: 'The tasks could not be loaded.' } });
+    const es = mountTable({ ...base, error: 'No se han podido cargar las tareas.', labels: { loadError: 'No se han podido cargar las tareas.', retry: 'Reintentar' } }, { locale: 'es' });
+    const fallback = mountTable({ ...base, error: "Couldn't load the data" });
+    const loose = mountTable({ ...base, error: '  could not load  the tickets. ', labels: { loadError: 'Could not load the tickets' } });
+    await settle();
+    expect(times(same, 'The tasks could not be loaded.')).toBe(1);
+    expect(times(es, 'No se han podido cargar las tareas.')).toBe(1);
+    expect(times(fallback, "Couldn't load the data")).toBe(1);
+    expect(times(loose, 'Could not load the tickets')).toBe(1);
+    expect(text(loose.element.querySelector('.data-table__error-title'))).toBe('Could not load the tickets');
+    for (const t of [same, es, fallback, loose]) {
+      expect(reason(t)).toBeNull();
+      expect(errorBlock(t)?.getAttribute('role')).toBe('alert');
+      expect(retry(t)).not.toBeNull();
+    }
+    expect(text(retry(es))).toBe('Reintentar');
+  });
+
+  it('a reason that says more than the title is still painted under it', async () => {
+    const t = mountTable({ ...base, error: 'The tasks could not be loaded. The hub is not responding.', labels: { loadError: 'The tasks could not be loaded.' } });
+    await settle();
+    expect(text(errorBlock(t)?.querySelector('.data-table__error-reason'))).toBe('The tasks could not be loaded. The hub is not responding.');
+  });
 });
 
 describe('«no matches» is not «empty» (#171)', () => {
