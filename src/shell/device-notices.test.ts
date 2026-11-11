@@ -681,6 +681,19 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
   /** Android lets the app notify. */
   const allowing = (command: string) => (command === 'plugin:erplora-android|check_permissions' ? ALLOWED : null);
 
+  /**
+   * Android does not let the app notify until the page asks it to (`request_permissions`), then it does; `granted()`
+   * says whether it was asked.
+   */
+  function grantingOnRequest() {
+    let granted = false;
+    const answer = (command: string) => {
+      if (command === 'plugin:erplora-android|request_permissions') granted = true;
+      return command === 'plugin:erplora-android|check_permissions' ? { [ANDROID_NOTIFICATIONS]: granted } : null;
+    };
+    return Object.assign(answer, { granted: () => granted });
+  }
+
   async function host(rows: ReturnType<typeof ref<DeviceNotice[] | undefined>>, ask: Ref<boolean | undefined> = ref(false)) {
     const router = createRouter({
       history: createMemoryHistory(),
@@ -840,11 +853,7 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
   ])('decides after our sentence, so its answer counts — %s', async (_, role, on) => {
     alerts.created.length = 0;
     alerts.role = role;
-    let granted = false;
-    const page = await listeningPage((command) => {
-      if (command === 'plugin:erplora-android|request_permissions') granted = true;
-      return command === 'plugin:erplora-android|check_permissions' ? { [ANDROID_NOTIFICATIONS]: granted } : null;
-    });
+    const page = await listeningPage(grantingOnRequest());
 
     await vi.waitFor(() => expect(page.asked()).toHaveLength(1));
 
@@ -918,18 +927,15 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
     alerts.created.length = 0;
     alerts.role = 'confirm';
     alerts.held = true;
-    let granted = false;
-    const page = await listeningPage((command) => {
-      if (command === 'plugin:erplora-android|request_permissions') granted = true;
-      return command === 'plugin:erplora-android|check_permissions' ? { [ANDROID_NOTIFICATIONS]: granted } : null;
-    });
+    const android = grantingOnRequest();
+    const page = await listeningPage(android);
     await vi.waitFor(() => expect(alerts.created).toHaveLength(1));
 
     page.wrapper.unmount();
     await vi.waitFor(() => expect(page.asked()).toEqual([{ on: false }]));
     alerts.dismiss?.();
     alerts.held = false;
-    await vi.waitFor(() => expect(granted).toBe(true));
+    await vi.waitFor(() => expect(android.granted()).toBe(true));
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(page.asked().map((args) => args?.on)).toEqual([false, false]);
