@@ -72,13 +72,26 @@ export {
   askToNotify,
   bootNoticeTaps,
   createNoticeDoor,
+  createNoticeListening,
+  isOlderAppRefusal,
+  KEEP_LISTENING_COMMAND,
   nativeBridge,
   NOT_THE_LINKED_HUB,
+  NOTICE_LISTENING_COPY_KEYS,
   PRIMER_ANSWERED_KEY,
+  stopNoticeListening,
   TOLD_KEY,
   useDeviceNotices,
 } from './device-notices';
-export type { AskToNotifyDeps, DeviceNotice, NativeBridge, NoticeDoor, NoticeDoorDeps } from './device-notices';
+export type {
+  AskToNotifyDeps,
+  DeviceNotice,
+  NativeBridge,
+  NoticeDoor,
+  NoticeDoorDeps,
+  NoticeListening,
+  NoticeListeningDeps,
+} from './device-notices';
 export { createDevicePrinter } from './device-printer';
 export type { DevicePrinterDeps } from './device-printer';
 export { createPrintHost, printChannelUrl, usePrintHost } from './print-host';
