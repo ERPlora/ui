@@ -2,8 +2,8 @@
 
 **Versión 1 · 8 de noviembre de 2026.** Esta es la norma visual de Hub, SaaS, web pública y componentes
 compartidos. La fuente técnica es `@erplora/ui`: `src/shell/brandbook.ts` cataloga las paletas,
-`theme/variables.css` define marca y estados, `theme/palettes.css` las variantes y `theme/brand.css`
-las primitivas. La presentación se puede recorrer en [brandbook.html](./brandbook.html).
+`src/shell/theme/variables.css` define marca y estados, `src/shell/theme/palettes.css` las variantes y
+`src/shell/theme/brand.css` las primitivas. La presentación se puede recorrer en [brandbook.html](./brandbook.html).
 
 ## 1. Idea de marca
 
@@ -26,7 +26,7 @@ acción o un estado, nunca decora por decorar.
 ## 2. Logotipo
 
 El símbolo es el hub central azul con ocho módulos rojos, verdes y amarillos. Se implementa una sola
-vez en `theme/erplora-logo.css` mediante `.erp-logo`; el lockup añade `.erp-wordmark` en minúsculas.
+vez en `src/shell/theme/erplora-logo.css` mediante `.erp-logo`; el lockup añade `.erp-wordmark` en minúsculas.
 
 - El centro sigue `--ion-color-primary`; los módulos conservan sus colores de marca.
 - Tamaños: `xs` 16 px, `sm` 32 px, `md` 56 px, `lg` 96 px y `xl` 144 px.
