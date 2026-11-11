@@ -880,13 +880,59 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
   );
 
   it('stopNoticeListening (the sign-out) stops the page\'s listening and waits for the app to say so', async () => {
+    let stopped: (() => void) | undefined;
+    const page = await listeningPage((command, args) =>
+      command === KEEP_LISTENING_COMMAND && args?.on === false
+        ? new Promise<null>((resolve) => (stopped = () => resolve(null)))
+        : allowing(command),
+    );
+    await vi.waitFor(() => expect(page.asked()).toHaveLength(1));
+
+    let left = false;
+    const leaving = stopNoticeListening(60_000).then(() => (left = true));
+    await vi.waitFor(() => expect(stopped).toBeDefined());
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    // The app has not said it yet: the sign-out is still here.
+    expect(left).toBe(false);
+
+    stopped?.();
+    await leaving;
+
+    expect(left).toBe(true);
+    expect(page.asked().map((args) => args?.on)).toEqual([true, false]);
+    page.wrapper.unmount();
+  });
+
+  it('once the page let go, the sign-out has no listening left to stop: the app is asked nothing more', async () => {
     const page = await listeningPage();
     await vi.waitFor(() => expect(page.asked()).toHaveLength(1));
+    page.wrapper.unmount();
+    await vi.waitFor(() => expect(page.asked()).toHaveLength(2));
 
     await stopNoticeListening();
 
     expect(page.asked().map((args) => args?.on)).toEqual([true, false]);
+  });
+
+  it('a page let go while our sentence waits for its answer stays asleep: nothing starts after it', async () => {
+    alerts.created.length = 0;
+    alerts.role = 'confirm';
+    alerts.held = true;
+    let granted = false;
+    const page = await listeningPage((command) => {
+      if (command === 'plugin:erplora-android|request_permissions') granted = true;
+      return command === 'plugin:erplora-android|check_permissions' ? { [ANDROID_NOTIFICATIONS]: granted } : null;
+    });
+    await vi.waitFor(() => expect(alerts.created).toHaveLength(1));
+
     page.wrapper.unmount();
+    await vi.waitFor(() => expect(page.asked()).toEqual([{ on: false }]));
+    alerts.dismiss?.();
+    alerts.held = false;
+    await vi.waitFor(() => expect(granted).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(page.asked().map((args) => args?.on)).toEqual([false, false]);
   });
 
   it('stopNoticeListening never keeps the sign-out waiting: an app that does not answer is let go', async () => {
