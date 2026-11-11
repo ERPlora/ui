@@ -477,6 +477,31 @@ describe('createNoticeListening — the installed app stays listening with the s
   const words = (key: string) => `«${key}»`;
   const now = async () => {};
 
+  /** An app that lets the notices go out and refuses `keep_listening` with `refusal`. */
+  const refusing = (refusal: string) =>
+    app({
+      'plugin:erplora-android|check_permissions': () => ALLOWED,
+      [KEEP_LISTENING_COMMAND]: () => {
+        throw refusal;
+      },
+    });
+
+  /**
+   * `sync` asked with each of `wanted` in turn while Android has not answered yet, then Android allowing the notices:
+   * what the page finally asked the app.
+   */
+  async function raced(wanted: boolean[]) {
+    let answer: (status: unknown) => void = () => {};
+    const bridge = app({
+      'plugin:erplora-android|check_permissions': () => new Promise((resolve) => (answer = resolve)),
+    });
+    const listening = createNoticeListening({ bridge, t: words, wait: now });
+    const asked = wanted.map((one) => listening.sync(one));
+    answer(ALLOWED);
+    await Promise.all(asked);
+    return listened(bridge);
+  }
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -537,12 +562,7 @@ describe('createNoticeListening — the installed app stays listening with the s
 
   it('an app without the command (the 1.1.34) never breaks the page: it is noticed, written down once and not asked again', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const bridge = app({
-      'plugin:erplora-android|check_permissions': () => ALLOWED,
-      [KEEP_LISTENING_COMMAND]: () => {
-        throw NO_SUCH_COMMAND;
-      },
-    });
+    const bridge = refusing(NO_SUCH_COMMAND);
     const listening = createNoticeListening({ bridge, t: words, wait: now });
 
     await expect(listening.sync(true)).resolves.toBeUndefined();
@@ -555,12 +575,7 @@ describe('createNoticeListening — the installed app stays listening with the s
 
   it('a start Android refuses for any other reason is written down, and the next sign-in asks again', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const bridge = app({
-      'plugin:erplora-android|check_permissions': () => ALLOWED,
-      [KEEP_LISTENING_COMMAND]: () => {
-        throw 'ForegroundServiceStartNotAllowedException';
-      },
-    });
+    const bridge = refusing('ForegroundServiceStartNotAllowedException');
     const listening = createNoticeListening({ bridge, t: words, wait: now });
 
     await expect(listening.sync(true)).resolves.toBeUndefined();
@@ -590,33 +605,11 @@ describe('createNoticeListening — the installed app stays listening with the s
   });
 
   it('a session closed while the decision was on its way stays closed: nothing starts after it', async () => {
-    let answer: (status: unknown) => void = () => {};
-    const bridge = app({
-      'plugin:erplora-android|check_permissions': () => new Promise((resolve) => (answer = resolve)),
-    });
-    const listening = createNoticeListening({ bridge, t: words, wait: now });
-
-    const starting = listening.sync(true);
-    const stopping = listening.sync(false);
-    answer(ALLOWED);
-    await Promise.all([starting, stopping]);
-
-    expect(listened(bridge)).toEqual([{ on: false }]);
+    expect(await raced([true, false])).toEqual([{ on: false }]);
   });
 
   it('and the other way round: the session that opened last is the one that listens', async () => {
-    let answer: (status: unknown) => void = () => {};
-    const bridge = app({
-      'plugin:erplora-android|check_permissions': () => new Promise((resolve) => (answer = resolve)),
-    });
-    const listening = createNoticeListening({ bridge, t: words, wait: now });
-
-    const stopping = listening.sync(false);
-    const starting = listening.sync(true);
-    answer(ALLOWED);
-    await Promise.all([stopping, starting]);
-
-    expect(listened(bridge).map((args) => args?.on)).toEqual([false, true]);
+    expect((await raced([false, true])).map((args) => args?.on)).toEqual([false, true]);
   });
 
   it('in a browser there is no app to keep listening', async () => {
@@ -677,6 +670,16 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
     vi.unstubAllGlobals();
     delete win.__TAURI__;
   });
+
+  /** The installed app on the page (`window.__TAURI__`), answering each command with `answer`. */
+  function installApp(answer: (command: string, args?: Record<string, unknown>) => unknown) {
+    const invoke = vi.fn(async (command: string, args?: Record<string, unknown>) => answer(command, args));
+    win.__TAURI__ = { core: { invoke } };
+    return invoke;
+  }
+
+  /** Android lets the app notify. */
+  const allowing = (command: string) => (command === 'plugin:erplora-android|check_permissions' ? ALLOWED : null);
 
   async function host(rows: ReturnType<typeof ref<DeviceNotice[] | undefined>>, ask: Ref<boolean | undefined> = ref(false)) {
     const router = createRouter({
@@ -803,15 +806,21 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
     wrapper.unmount();
   });
 
+  /** The page in the installed app answering with `answer`, while the project says `ask`: what it asked about listening. */
+  async function listeningPage(
+    answer: Parameters<typeof installApp>[0] = allowing,
+    ask: Ref<boolean | undefined> = ref(true),
+  ) {
+    const invoke = installApp(answer);
+    const { wrapper } = await host(ref<DeviceNotice[] | undefined>([]), ask);
+    return { wrapper, asked: () => listened({ invoke }) };
+  }
+
   it('with something to tell and the notices allowed, the device keeps listening in the person\'s language until the page lets go', async () => {
-    const invoke = vi.fn(async (command: string) =>
-      command === 'plugin:erplora-android|check_permissions' ? ALLOWED : null,
-    );
-    win.__TAURI__ = { core: { invoke } };
-    const { wrapper } = await host(ref<DeviceNotice[] | undefined>([]), ref(true));
+    const page = await listeningPage();
 
     await vi.waitFor(() =>
-      expect(listened({ invoke })).toEqual([
+      expect(page.asked()).toEqual([
         {
           on: true,
           title: es.notices.listeningTitle,
@@ -820,116 +829,76 @@ describe('useDeviceNotices — the live rows of the page, told on the device', (
         },
       ]),
     );
-    wrapper.unmount();
+    page.wrapper.unmount();
 
-    await vi.waitFor(() => expect(listened({ invoke }).at(-1)).toEqual({ on: false }));
+    await vi.waitFor(() => expect(page.asked().at(-1)).toEqual({ on: false }));
   });
 
-  it('decides after our sentence: the notices turned on in that very dialog count', async () => {
+  it.each([
+    ['«Turn on notices», and Android lets it: it listens', 'confirm', true],
+    ['«Not now»: the device stays asleep', 'cancel', false],
+  ])('decides after our sentence, so its answer counts — %s', async (_, role, on) => {
     alerts.created.length = 0;
-    alerts.role = 'confirm';
+    alerts.role = role;
     let granted = false;
-    const invoke = vi.fn(async (command: string) => {
+    const page = await listeningPage((command) => {
       if (command === 'plugin:erplora-android|request_permissions') granted = true;
       return command === 'plugin:erplora-android|check_permissions' ? { [ANDROID_NOTIFICATIONS]: granted } : null;
     });
-    win.__TAURI__ = { core: { invoke } };
-    const { wrapper } = await host(ref<DeviceNotice[] | undefined>([]), ref(true));
 
-    await vi.waitFor(() => expect(listened({ invoke })).toHaveLength(1));
+    await vi.waitFor(() => expect(page.asked()).toHaveLength(1));
 
     expect(alerts.created).toHaveLength(1);
-    expect(listened({ invoke })).toEqual([expect.objectContaining({ on: true })]);
-    wrapper.unmount();
-  });
-
-  it('«Not now» to our sentence leaves the device asleep', async () => {
-    alerts.created.length = 0;
-    alerts.role = 'cancel';
-    const invoke = vi.fn(async (command: string) =>
-      command === 'plugin:erplora-android|check_permissions' ? { [ANDROID_NOTIFICATIONS]: false } : null,
-    );
-    win.__TAURI__ = { core: { invoke } };
-    const { wrapper } = await host(ref<DeviceNotice[] | undefined>([]), ref(true));
-
-    await vi.waitFor(() => expect(listened({ invoke })).toHaveLength(1));
-
-    expect(alerts.created).toHaveLength(1);
-    expect(listened({ invoke })).toEqual([{ on: false }]);
-    wrapper.unmount();
+    expect(page.asked()).toEqual([expect.objectContaining({ on })]);
+    page.wrapper.unmount();
   });
 
   it('once nothing is left to tell (the app that told turned off) the device stops listening', async () => {
-    const invoke = vi.fn(async (command: string) =>
-      command === 'plugin:erplora-android|check_permissions' ? ALLOWED : null,
-    );
-    win.__TAURI__ = { core: { invoke } };
-    const ask = ref(true);
-    const { wrapper } = await host(ref<DeviceNotice[] | undefined>([]), ask);
-    await vi.waitFor(() => expect(listened({ invoke })).toEqual([expect.objectContaining({ on: true })]));
+    const ask = ref<boolean | undefined>(true);
+    const page = await listeningPage(allowing, ask);
+    await vi.waitFor(() => expect(page.asked()).toEqual([expect.objectContaining({ on: true })]));
 
     ask.value = false;
 
-    await vi.waitFor(() => expect(listened({ invoke }).map((args) => args?.on)).toEqual([true, false]));
-    wrapper.unmount();
+    await vi.waitFor(() => expect(page.asked().map((args) => args?.on)).toEqual([true, false]));
+    page.wrapper.unmount();
   });
 
-  it('until the hub knows whether there is something to tell, the app is asked nothing: a reload never stops and restarts it', async () => {
-    const invoke = vi.fn(async (command: string) =>
-      command === 'plugin:erplora-android|check_permissions' ? ALLOWED : null,
-    );
-    win.__TAURI__ = { core: { invoke } };
-    const ask = ref<boolean | undefined>(undefined);
-    const { wrapper } = await host(ref<DeviceNotice[] | undefined>(undefined), ask);
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(listened({ invoke })).toEqual([]);
+  it.each([true, false])(
+    'until the hub knows whether there is something to tell the app is asked nothing (a reload never stops and restarts it); then it follows the answer — %s',
+    async (something) => {
+      const ask = ref<boolean | undefined>(undefined);
+      const page = await listeningPage(allowing, ask);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(page.asked()).toEqual([]);
 
-    ask.value = true;
+      ask.value = something;
 
-    await vi.waitFor(() => expect(listened({ invoke })).toEqual([expect.objectContaining({ on: true })]));
-    wrapper.unmount();
-  });
-
-  it('a hub that turns out to have nothing to tell stops what an earlier page left listening', async () => {
-    const invoke = vi.fn(async (command: string) =>
-      command === 'plugin:erplora-android|check_permissions' ? ALLOWED : null,
-    );
-    win.__TAURI__ = { core: { invoke } };
-    const ask = ref<boolean | undefined>(undefined);
-    const { wrapper } = await host(ref<DeviceNotice[] | undefined>(undefined), ask);
-
-    ask.value = false;
-
-    await vi.waitFor(() => expect(listened({ invoke })).toEqual([{ on: false }]));
-    wrapper.unmount();
-  });
-
-  it('stopNoticeListening never keeps the sign-out waiting: an app that does not answer is let go', async () => {
-    const invoke = vi.fn((command: string, args?: Record<string, unknown>) =>
-      command === KEEP_LISTENING_COMMAND && args?.on === false ? new Promise(() => {}) : Promise.resolve(ALLOWED),
-    );
-    win.__TAURI__ = { core: { invoke } };
-    const { wrapper } = await host(ref<DeviceNotice[] | undefined>([]), ref(true));
-    await vi.waitFor(() => expect(listened({ invoke })).toHaveLength(1));
-
-    await expect(stopNoticeListening(10)).resolves.toBeUndefined();
-
-    expect(listened({ invoke }).map((args) => args?.on)).toEqual([true, false]);
-    wrapper.unmount();
-  });
+      await vi.waitFor(() => expect(page.asked()).toEqual([expect.objectContaining({ on: something })]));
+      page.wrapper.unmount();
+    },
+  );
 
   it('stopNoticeListening (the sign-out) stops the page\'s listening and waits for the app to say so', async () => {
-    const invoke = vi.fn(async (command: string) =>
-      command === 'plugin:erplora-android|check_permissions' ? ALLOWED : null,
-    );
-    win.__TAURI__ = { core: { invoke } };
-    const { wrapper } = await host(ref<DeviceNotice[] | undefined>([]), ref(true));
-    await vi.waitFor(() => expect(listened({ invoke })).toHaveLength(1));
+    const page = await listeningPage();
+    await vi.waitFor(() => expect(page.asked()).toHaveLength(1));
 
     await stopNoticeListening();
 
-    expect(listened({ invoke }).map((args) => args?.on)).toEqual([true, false]);
-    wrapper.unmount();
+    expect(page.asked().map((args) => args?.on)).toEqual([true, false]);
+    page.wrapper.unmount();
+  });
+
+  it('stopNoticeListening never keeps the sign-out waiting: an app that does not answer is let go', async () => {
+    const page = await listeningPage((command, args) =>
+      command === KEEP_LISTENING_COMMAND && args?.on === false ? new Promise(() => {}) : allowing(command),
+    );
+    await vi.waitFor(() => expect(page.asked()).toHaveLength(1));
+
+    await expect(stopNoticeListening(10)).resolves.toBeUndefined();
+
+    expect(page.asked().map((args) => args?.on)).toEqual([true, false]);
+    page.wrapper.unmount();
   });
 });
 
