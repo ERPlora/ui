@@ -162,7 +162,8 @@ const props = withDefaults(
     emptyMessage?: string;
     /** Client mode: rows exist but the search hides them all. Default: the «noMatches» label. */
     noMatchesMessage?: string;
-    /** Why the rows could not be loaded: an error state with «Retry» (emits `retry`) instead of rows. */
+    /** Why the rows could not be loaded: an error state with «Retry» (emits `retry`) instead of rows.
+     *  Painted under the `loadError` title unless it only repeats it (hub#1197). */
     error?: string;
     /** The rows are being loaded: an indicator instead of «empty»; rows on screen stay (busy). */
     loading?: boolean;
@@ -629,6 +630,10 @@ const hasError = computed(() => !!props.error?.trim());
 const awaitingRows = computed(() => props.loading && (props.rows.length === 0 || hasError.value));
 /** pm#530 - The last load failed: rows, «empty» and counts would all be claims about missing data. */
 const loadFailed = computed(() => hasError.value && !awaitingRows.value);
+/** A text as it reads aloud: case, spacing and the closing full stop aside. */
+const asRead = (text: string) => text.trim().replace(/\s+/g, ' ').replace(/[.!…]+$/u, '').toLocaleLowerCase();
+/** hub#1197 - The reason under the title, unless it only repeats the title (pages often hand the same text). */
+const errorReason = computed(() => (asRead(props.error ?? '') === asRead(label('loadError')) ? '' : props.error));
 /** The toolbar the props ask for (an empty list may still leave it out: `bareEmpty`). */
 const hasToolbar = computed(
   () =>
@@ -1318,7 +1323,7 @@ onUpdated(nameSearchBox);
         <span>{{ label('loading') }}</span>
       </div>
 
-      <!-- pm#530 - The load failed: says so, gives the reason, offers to retry. -->
+      <!-- pm#530 - The load failed: says so, gives the reason (once: hub#1197), offers to retry. -->
       <div
         v-else-if="loadFailed"
         class="data-table__error"
@@ -1330,7 +1335,10 @@ onUpdated(nameSearchBox);
           aria-hidden="true"
         /></span>
         <strong class="data-table__error-title">{{ label('loadError') }}</strong>
-        <span class="data-table__error-reason">{{ error }}</span>
+        <span
+          v-if="errorReason"
+          class="data-table__error-reason"
+        >{{ errorReason }}</span>
         <ion-button
           size="small"
           data-role="load-error-retry"
