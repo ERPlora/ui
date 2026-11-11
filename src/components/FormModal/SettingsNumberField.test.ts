@@ -6,13 +6,14 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { IonInput } from '@ionic/vue';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
-import { effectScope, ref, shallowRef, type Component, type EffectScope } from 'vue';
+import { ref, shallowRef, type Component } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
 import * as components from '../index';
 import SettingsNumberField, { type SettingsNumberFieldState, type SettingsTextField } from './SettingsNumberField.vue';
-import { useSettingsForm, type SettingsForm } from './settingsForm';
+import type { SettingsForm } from './settingsForm';
 import type { FormModalError } from './types';
+import { settingsFormOn, stopSettingsForms } from './__tests__/settings-form';
 
 interface Form {
   default_duration: string;
@@ -161,32 +162,10 @@ describe('SettingsNumberField', () => {
   });
 
   describe('with useSettingsForm', () => {
-    const scopes: EffectScope[] = [];
-    afterEach(() => {
-      for (const scope of scopes.splice(0)) scope.stop();
-    });
+    afterEach(stopSettingsForms);
 
     type Out = { default_duration: number; slot_interval: number; allow_overlapping: boolean };
     type In = Partial<Out>;
-
-    /** A command as `useCommand` gives it: its error after a refusal. */
-    function command(answer: (input: In) => Promise<Out>) {
-      const pending = ref(false);
-      const error = shallowRef<FormModalError | null>(null);
-      const run = vi.fn(async (input: In): Promise<Out> => {
-        pending.value = true;
-        error.value = null;
-        try {
-          return await answer(input);
-        } catch (err) {
-          error.value = err as FormModalError;
-          throw err;
-        } finally {
-          pending.value = false;
-        }
-      });
-      return { run, pending, error };
-    }
 
     const toForm = (out: Out): Form => ({
       default_duration: String(out.default_duration),
@@ -196,10 +175,7 @@ describe('SettingsNumberField', () => {
 
     function mountPage(answer: (input: In) => Promise<Out>) {
       const data = shallowRef<Out>({ default_duration: 30, slot_interval: 15, allow_overlapping: false });
-      const cmd = command(answer);
-      const scope = effectScope();
-      scopes.push(scope);
-      const settings = scope.run(() => useSettingsForm(data, cmd, { toForm, numbers: ['default_duration', 'slot_interval'] }))!;
+      const { cmd, settings } = settingsFormOn<Out, Form, In>(data, answer, { toForm, numbers: ['default_duration', 'slot_interval'] });
       return { cmd, settings, ...mountField(settings) };
     }
 
