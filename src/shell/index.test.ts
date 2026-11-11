@@ -99,6 +99,13 @@ describe('shell barrel', () => {
     expect(shell.askToNotify).toBeTypeOf('function');
   });
 
+  it('exports the listening with the screen off, so the sign-out stops it (HUB_APP-F26, hub#836)', () => {
+    expect(shell.stopNoticeListening).toBeTypeOf('function');
+    expect(shell.createNoticeListening).toBeTypeOf('function');
+    expect(shell.KEEP_LISTENING_COMMAND).toBe('plugin:erplora-android|keep_listening');
+    expect(shell.isOlderAppRefusal('Command keep_listening not found')).toBe(true);
+  });
+
   it('exports the print host, so an app keeps a device set up to print draining the queue (PRINTING-F18)', () => {
     expect(shell.usePrintHost).toBeTypeOf('function');
     expect(shell.createPrintHost).toBeTypeOf('function');
