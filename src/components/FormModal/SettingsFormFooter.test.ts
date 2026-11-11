@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
-import { defineComponent, effectScope, h, ref, shallowRef, type EffectScope, type PropType } from 'vue';
+import { defineComponent, h, ref, shallowRef, type PropType } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
 import { resolveIcon } from '../../shell/icons';
@@ -16,6 +16,7 @@ import * as components from '../index';
 import SettingsFormFooter, { type SettingsFormFooterState } from './SettingsFormFooter.vue';
 import { useSettingsForm } from './settingsForm';
 import type { FormModalError } from './types';
+import { settingsFormOn, stopSettingsForms } from './__tests__/settings-form';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -229,41 +230,16 @@ describe('SettingsFormFooter', () => {
   });
 
   describe('with useSettingsForm', () => {
-    const scopes: EffectScope[] = [];
-    afterEach(() => {
-      for (const scope of scopes.splice(0)) scope.stop();
-    });
+    afterEach(stopSettingsForms);
 
     interface Out {
       name: string;
     }
     type Form = Out;
 
-    /** A command as `useCommand` gives it: pending while on its way, its error after a refusal. */
-    function command(answer: (input: Partial<Out>) => Promise<Out>) {
-      const pending = ref(false);
-      const error = shallowRef<FormModalError | null>(null);
-      const run = vi.fn(async (input: Partial<Out>): Promise<Out> => {
-        pending.value = true;
-        error.value = null;
-        try {
-          return await answer(input);
-        } catch (err) {
-          error.value = err as FormModalError;
-          throw err;
-        } finally {
-          pending.value = false;
-        }
-      });
-      return { run, pending, error };
-    }
-
     function mountPage(answer: (input: Partial<Out>) => Promise<Out>) {
       const data = shallowRef<Out>({ name: 'Old' });
-      const cmd = command(answer);
-      const scope = effectScope();
-      scopes.push(scope);
-      const settings = scope.run(() => useSettingsForm(data, cmd, { toForm: (out: Out): Form => ({ name: out.name }) }))!;
+      const { cmd, settings } = settingsFormOn<Out, Form, Partial<Out>>(data, answer, { toForm: (out: Out): Form => ({ name: out.name }) });
       const { hook } = mountFooter(settings, { errorHeading: 'The settings were not saved' });
       return { cmd, settings, hook };
     }
