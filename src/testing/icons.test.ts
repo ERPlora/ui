@@ -11,7 +11,7 @@ import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ION_ICONS } from '../shell/icons';
-import { iconReferences, isRegisteredIcon, registerShellIcons, scanIcons } from './icons';
+import { iconReferences, isRegisteredIcon, registerShellIcons, scanIcons, scanIconsAsync, type ScanIconsOptions, type ScanIconsResult } from './icons';
 
 describe('registerShellIcons', () => {
   /** The registry an `ion-icon` reads names from; every copy of Ionicons shares it through `window`. */
@@ -130,7 +130,14 @@ describe('iconReferences / isRegisteredIcon', () => {
   });
 });
 
-describe('scanIcons (a tree of files, by globs relative to root)', () => {
+/** Both readers of a tree: `scanIcons`, synchronous, and `scanIconsAsync`, which lists and reads it at once without
+ *  holding the thread. They find the same. */
+const SCANS: [string, (options: ScanIconsOptions) => Promise<ScanIconsResult>][] = [
+  ['scanIcons', async (options) => scanIcons(options)],
+  ['scanIconsAsync', scanIconsAsync],
+];
+
+describe.each(SCANS)('%s (a tree of files, by globs relative to root)', (_name, scan) => {
   let root: string;
 
   /** Writes `source` at `root/relative`, creating its folders. */
@@ -147,34 +154,58 @@ describe('scanIcons (a tree of files, by globs relative to root)', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('reports each unregistered icon with its file, and every glob that matched nothing', () => {
+  it('reports each unregistered icon with its file, and every glob that matched nothing', async () => {
     put('a/x.vue', '<template><HubIcon name="mdi:no-such" /><HubIcon name="mdi:cart" /></template>');
-    expect(scanIcons({ root, sources: ['a/**/*.vue', 'b/**/*.ts'] })).toEqual({
+    expect(await scan({ root, sources: ['a/**/*.vue', 'b/**/*.ts'] })).toEqual({
       unregistered: [{ file: 'a/x.vue', name: 'mdi:no-such' }],
       emptyGlobs: ['b/**/*.ts'],
     });
   });
 
-  it('is clean when every icon is registered and every glob matches', () => {
+  it('is clean when every icon is registered and every glob matches', async () => {
     put('a/x.vue', '<template><ion-icon name="add-outline" /></template>');
     put('b/menu.ts', "export const menu = { icon: 'ion:flask-outline' };");
-    expect(scanIcons({ root, sources: ['a/**/*.vue', 'b/**/*.ts'] })).toEqual({ unregistered: [], emptyGlobs: [] });
+    expect(await scan({ root, sources: ['a/**/*.vue', 'b/**/*.ts'] })).toEqual({ unregistered: [], emptyGlobs: [] });
   });
 
-  it('skips tests and node_modules; a glob that only finds those is empty', () => {
+  it('skips tests and node_modules; a glob that only finds those is empty', async () => {
     put('a/x.test.ts', "const a = { icon: 'no-such-in-test' };");
     put('a/__tests__/y.ts', "const a = { icon: 'no-such-in-tests-dir' };");
     put('a/node_modules/dep/z.ts', "const a = { icon: 'no-such-in-dep' };");
-    expect(scanIcons({ root, sources: ['a/**/*.ts'] })).toEqual({ unregistered: [], emptyGlobs: ['a/**/*.ts'] });
+    expect(await scan({ root, sources: ['a/**/*.ts'] })).toEqual({ unregistered: [], emptyGlobs: ['a/**/*.ts'] });
   });
 
-  it('lists a file matched by two globs once, sorted by file and name', () => {
+  it('lists a file matched by two globs once, sorted by file and name', async () => {
     put('b/y.vue', '<HubIcon name="mdi:no-such-2" /><HubIcon name="lucide:no-such-1" />');
     put('a/x.vue', '<ion-icon name="no-such-3" />');
-    expect(scanIcons({ root, sources: ['**/*.vue', 'b/*.vue'] }).unregistered).toEqual([
+    expect((await scan({ root, sources: ['**/*.vue', 'b/*.vue'] })).unregistered).toEqual([
       { file: 'a/x.vue', name: 'no-such-3' },
       { file: 'b/y.vue', name: 'lucide:no-such-1' },
       { file: 'b/y.vue', name: 'mdi:no-such-2' },
     ]);
+  });
+});
+
+describe('scanIconsAsync', () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'erplora-scan-icons-'));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  // A Vitest worker answers its run only while its event loop turns, and fails the run after a minute held (hub#1315):
+  // a tree read on a loaded machine, each first open waiting on its own, can take that long.
+  it('lists and reads the tree without holding the thread: what it was given meanwhile runs before the scan ends', async () => {
+    for (let index = 0; index < 30; index += 1) writeFileSync(join(root, `p${index}.vue`), '<ion-icon name="add-outline" />');
+    let turned = false;
+    setImmediate(() => {
+      turned = true;
+    });
+    expect(await scanIconsAsync({ root, sources: ['*.vue'] })).toEqual({ unregistered: [], emptyGlobs: [] });
+    expect(turned).toBe(true);
   });
 });
