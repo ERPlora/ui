@@ -19,6 +19,7 @@ type Control = HTMLElement & { errorText?: string; disabled?: boolean };
 const EUR: Money = { currency: 'EUR', decimals: 2 };
 const PLN: Money = { currency: 'PLN', decimals: 2 };
 const JPY: Money = { currency: 'JPY', decimals: 0 };
+const KWD: Money = { currency: 'KWD', decimals: 3 };
 
 const NOT_AMOUNT = 'This is not an amount. Type a figure, for example 12.50.';
 const NOT_AMOUNT_SIGNED = 'This is not an amount. Type a figure, for example 1.50, or -0.50 for a discount.';
@@ -139,10 +140,25 @@ describe('MoneyInput: once its money is known', () => {
     const s = await setup({ money: JPY }, 'es');
     await s.type('1,5');
     await s.leave();
-    expect(s.errorText()).toBe(NOT_AMOUNT_ES);
+    expect(s.errorText()).toBe('Esto no es un importe. Escribe una cifra, por ejemplo 12.');
     await s.type('¥1500');
     await s.leave();
     expect([s.model.value, s.errorText()]).toEqual(['1500', undefined]);
+  });
+
+  // ui#140: «12,50» is no amount in yen; the example has the decimals of the field's money, and follows it.
+  it('what is not an amount gives an example with the decimals of its money: «12» in yen, «12.500» in dinars', async () => {
+    const s = await setup({ money: JPY, modelValue: 'abc', showError: true });
+    expect(s.errorText()).toBe('This is not an amount. Type a figure, for example 12.');
+    await s.money(KWD);
+    expect(s.errorText()).toBe('This is not an amount. Type a figure, for example 12.500.');
+    await s.money(EUR);
+    expect(s.errorText()).toBe(NOT_AMOUNT);
+  });
+
+  it('…in Spanish too: «12,500» in dinars', async () => {
+    const s = await setup({ money: KWD, modelValue: 'abc', showError: true }, 'es');
+    expect(s.errorText()).toBe('Esto no es un importe. Escribe una cifra, por ejemplo 12,500.');
   });
 
   it('«1.250» gives both readings, in the field’s currency', async () => {
@@ -231,6 +247,14 @@ describe('MoneyInput: a signed amount (a supplement)', () => {
   it('what is not an amount tells how to write a discount', async () => {
     const s = await setup({ money: EUR, signed: true, modelValue: '--2', showError: true });
     expect(s.errorText()).toBe(NOT_AMOUNT_SIGNED);
+  });
+
+  it('…with the decimals of its money, a discount never 0: «1, or -1» in yen, «1,500, o -0,500» in dinars (ui#140)', async () => {
+    const yen = await setup({ money: JPY, signed: true, modelValue: '--2', showError: true });
+    expect(yen.errorText()).toBe('This is not an amount. Type a figure, for example 1, or -1 for a discount.');
+    yen.wrapper.unmount();
+    const dinar = await setup({ money: KWD, signed: true, modelValue: '--2', showError: true }, 'es');
+    expect(dinar.errorText()).toBe('Esto no es un importe. Escribe una cifra, por ejemplo 1,500, o -0,500 para descontar.');
   });
 
   it("a ± button turns a supplement into a discount and back: a phone's decimal keyboard has no minus", async () => {
