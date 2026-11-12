@@ -3,12 +3,10 @@
 // (config tests, e2e helpers), so what it calls has to load and run without a DOM. And `scanIconsAsync` lists and reads
 // a tree without Node's synchronous calls, which would hold the thread that waits for it (hub#1315): watched here, where
 // a module's own `node:fs` is the watched one; the setup loaded icons.ts before the watch, so its test loads it afresh.
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
+import { useTempTree } from './__tests__/tempTree';
+import { scanIconsAsync } from './icons';
 import { registerShellIcons } from './index';
 
 // Node's synchronous listing and reading, watched (see the scanIconsAsync test).
@@ -24,21 +22,25 @@ describe('registerShellIcons without a DOM', () => {
   });
 });
 
-describe('scanIconsAsync in Node’s environment', () => {
-  let root: string;
+describe('scanIconsAsync', () => {
+  const tree = useTempTree('erplora-scan-icons-');
 
-  beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'erplora-scan-icons-'));
+  // A Vitest worker answers its run only while its event loop turns, and fails the run after a minute held: a tree read
+  // file by file on a loaded machine, each first open waiting on its own, can take that long.
+  it('lists and reads the tree without holding the thread: what it was given meanwhile runs before the scan ends', async () => {
+    for (let index = 0; index < 30; index += 1) tree.put(`p${index}.vue`, '<ion-icon name="add-outline" />');
+    let turned = false;
+    setImmediate(() => {
+      turned = true;
+    });
+    expect(await scanIconsAsync({ root: tree.root, sources: ['*.vue'] })).toEqual({ unregistered: [], emptyGlobs: [] });
+    expect(turned).toBe(true);
   });
 
-  afterEach(() => {
-    rmSync(root, { recursive: true, force: true });
-  });
-
-  it('scanIconsAsync lists and reads the tree with neither of the synchronous calls scanIcons makes', async () => {
-    mkdirSync(join(root, 'a'));
-    writeFileSync(join(root, 'a', 'x.vue'), '<HubIcon name="mdi:no-such" />');
-    writeFileSync(join(root, 'a', 'y.vue'), '<ion-icon name="add-outline" />');
+  it('lists and reads the tree with neither of the synchronous calls scanIcons makes', async () => {
+    tree.put('a/x.vue', '<HubIcon name="mdi:no-such" />');
+    tree.put('a/y.vue', '<ion-icon name="add-outline" />');
+    const { root } = tree;
     vi.resetModules();
     const fs = await import('node:fs');
     const icons = await import('./icons');
