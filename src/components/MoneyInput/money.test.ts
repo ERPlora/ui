@@ -8,12 +8,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Money } from '../format';
+import { EUR, JPY, KWD, PLN } from './__tests__/moneys';
 import { moneyExamples, moneyFieldText, normaliseMoneyText, parseMoney } from './money';
-
-const EUR: Money = { currency: 'EUR', decimals: 2 };
-const PLN: Money = { currency: 'PLN', decimals: 2 };
-const JPY: Money = { currency: 'JPY', decimals: 0 };
-const KWD: Money = { currency: 'KWD', decimals: 3 };
 
 describe('parseMoney', () => {
   it('reads the decimal comma and the decimal point', () => {

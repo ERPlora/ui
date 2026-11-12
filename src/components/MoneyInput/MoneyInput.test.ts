@@ -12,14 +12,10 @@ import { nextTick } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
 import { formatMoney, type Money } from '../format';
+import { EUR, JPY, KWD, PLN } from './__tests__/moneys';
 import MoneyInput from './MoneyInput.vue';
 
 type Control = HTMLElement & { errorText?: string; disabled?: boolean };
-
-const EUR: Money = { currency: 'EUR', decimals: 2 };
-const PLN: Money = { currency: 'PLN', decimals: 2 };
-const JPY: Money = { currency: 'JPY', decimals: 0 };
-const KWD: Money = { currency: 'KWD', decimals: 3 };
 
 const NOT_AMOUNT = 'This is not an amount. Type a figure, for example 12.50.';
 const NOT_AMOUNT_SIGNED = 'This is not an amount. Type a figure, for example 1.50, or -0.50 for a discount.';
