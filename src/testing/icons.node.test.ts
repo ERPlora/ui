@@ -1,8 +1,8 @@
 // @vitest-environment node
-// icons.ts in Node's environment. An app's `vitest.setup.ts` also runs before its `@vitest-environment node` files
-// (config tests, e2e helpers), so what it calls has to load and run without a DOM. And `scanIconsAsync` lists and reads
-// a tree without Node's synchronous calls, which would hold the thread that waits for it (hub#1315): watched here, where
-// a module's own `node:fs` is the watched one; the setup loaded icons.ts before the watch, so its test loads it afresh.
+// An app's `vitest.setup.ts` also runs before its `@vitest-environment node` files (config tests, e2e helpers), so
+// what it calls has to load and run without a DOM. `scanIconsAsync` must also avoid Node's synchronous calls, which
+// would hold the thread that waits for it; the setup loaded icons.ts before `node:fs` was watched, so that test loads
+// it afresh.
 import { describe, expect, it, vi } from 'vitest';
 
 import { useTempTree } from './__tests__/tempTree';

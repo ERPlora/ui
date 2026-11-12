@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// The sparkles «Assistant» of the topbar (BASE-G110; the old hub's, before the bell): opens and closes the panel,
-// pressed while open (`aria-pressed`: `ion-button` follows no `aria-expanded` once painted). Only to a person the host
-// lets use the assistant (`AssistantConfig.canUse`; whoever is signed in when it says nothing).
+// Pressed while open with `aria-pressed`, because `ion-button` follows no `aria-expanded` once painted. Shown only to a
+// person the host lets use the assistant (`AssistantConfig.canUse`; whoever is signed in when it says nothing).
 import { IonButton } from '@ionic/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';

@@ -149,7 +149,7 @@ describe("useCommand: without overlays and from components", () => {
     const add = scope.run(() => addLine(t.client)) as UseCommand<"test.item.add_line">;
     await expect(add.run(input("Bread", "c1"))).rejects.toThrow(/unknown operation/);
     expect(add.error.value?.code).toBe("client_error");
-    // What the screen paints is a sentence for a person (hub#2281); the programming error stays for whoever debugs.
+    // What the screen paints is a sentence for a person; the programming error stays for whoever debugs.
     expect(add.error.value?.message).toBe(en.sdk.errors.unexpected);
     expect(add.error.value?.details.reason).toMatch(/unknown operation/);
     expectTypeOf(add.run).parameter(0).toEqualTypeOf<{ id: string; text: string; client_line_id: string }>();

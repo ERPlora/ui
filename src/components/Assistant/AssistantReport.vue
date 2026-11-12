@@ -1,9 +1,7 @@
 <script setup lang="ts">
-// «Report a problem» under a finished answer (BASE-G123; the old hub's HUB_SHELL-F198, the stores' rule for generated
-// content): what is wrong with it — wrong by default, harmful, it did not do what was asked, something else — and an
-// optional comment; the answer goes with the question it answered to the host's review (`AssistantConfig.report`; the
-// Hub's: erplora.com's). Sent: a thank-you and it closes; refused: the dialog stays open with its sentence, the choice
-// and the comment kept. Cancel sends nothing. Only mounted for a host that takes reports (`AssistantPanel`).
+// «Report a problem» under a finished answer, which the app stores require for generated content. The answer goes with
+// the question it answered to the host's review (`AssistantConfig.report`); refused, the dialog stays open with its
+// sentence, the choice and the comment kept.
 import { IonRadio, IonRadioGroup, IonTextarea } from '@ionic/vue';
 import { onMounted, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -64,7 +62,7 @@ async function send(): Promise<void> {
   const note = comment.value.trim();
   if (note) input.comment = note;
   if (bubble.question) input.question = bubble.question;
-  // Only what the chat knows: a `false` it does not know would mail an answer that may quote the web (saas#287).
+  // Only what the chat knows: a `false` it does not know would mail an answer that may quote the web.
   if (bubble.web !== undefined) input.web = bubble.web;
   try {
     await report(client, input);

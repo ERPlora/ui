@@ -1,17 +1,7 @@
-/**
- * A file the API answers as an attachment (an invoice's PDF, the CSV of a list): `api.call` reads JSON only,
- * and a file needs its bytes, so the projects ask for it here and keep the network inside the SDK.
- *
- * - Asked for with its `Accept` and the session cookie (`credentials: "same-origin"`).
- * - Handed back only when the answer IS that file (its `Content-Type`, without parameters): an error of the
- *   API, a proxy's page or JSON with a 200 rejects with the API's error (`parseErrorEnvelope`), never comes
- *   back as the file (audit 2026-10-14, R-05: a link with `download` saved a 503 as `pdf.json`).
- * - A request that never got an answer, or whose file stopped coming halfway, rejects with `network_error`
- *   (status 0) and the SDK's sentence in the person's language (`sdkMessage`, hub#2281), like `api.call`; the
- *   failure's own text in `details.reason`.
- *
- * Saving it is the page's: the bytes and the name the server gave (`''` without one) come back.
- */
+// A file the API answers as an attachment (an invoice's PDF, a list's CSV), which `api.call` cannot read as JSON. It
+// comes back only when the answer IS that file (its `Content-Type`): an API error, a proxy's page or JSON with a 200
+// rejects with the API's error instead, so a 503 is never saved as `pdf.json`. No answer, or a file cut halfway,
+// rejects with `network_error` (status 0) like `api.call`. Saving the file is the page's job.
 import { ApiError, parseErrorEnvelope } from "./errors";
 import { sdkMessage } from "./messages";
 
@@ -64,7 +54,6 @@ export async function fetchFile(
   return { blob, name: attachmentName(res.headers.get("Content-Disposition")) };
 }
 
-/** `network_error` (status 0) with the SDK's sentence; the failure's own text kept in `details.reason`. */
 function lostConnection(err: unknown): ApiError {
   const reason = err instanceof Error ? err.message : String(err);
   return new ApiError(0, "network_error", sdkMessage("network"), undefined, { reason });

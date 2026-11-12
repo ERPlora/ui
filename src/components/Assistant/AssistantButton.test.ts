@@ -1,5 +1,3 @@
-// BASE-G110: the sparkles «Assistant» in the topbar opens and closes the panel and says which; only to a person the
-// host lets use it (`AssistantConfig.canUse`; the Hub's: whoever sees the Home, `base.view_home`).
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { accessibleName, configure, flush, memoryStorage, mountAssistant, OWNER } from './__tests__/mount-assistant';

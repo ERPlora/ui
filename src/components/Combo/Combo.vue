@@ -1,38 +1,10 @@
-<!-- eslint-disable vue/multi-word-component-names -- `<Combo>` is the name the Hub's pages ask for
-     (hub-next apps/tax/UI-REQUESTS.md), the `ok-combo` of today; no HTML element is called that. -->
+<!-- eslint-disable vue/multi-word-component-names -- `<Combo>` is the name the Hub's pages ask for; no HTML
+     element is called that. -->
 <script setup lang="ts">
-// Combo — a field that searches its options while the person types (the `ok-combo` of today; hub-next
-// apps/tax/UI-REQUESTS.md: the 249 countries of a tax rule, the categories the server pages):
-//   <Combo v-model="country" :label="t('rule.country')" :options="countries" :error-text="fieldErrors.country" />
-//   <Combo v-model="category" :label="t('rule.category')" :search="searchCategories" allow-create @create="newCategory" />
-// Contract:
-//   - The field is an `ion-input` (md, outline, floating label) showing the chosen option's label;
-//     `v-model` is the chosen `{ id, label, hint? }` or `null`. Clearable while something is chosen.
-//   - `name` is the form's key for the field, handed to its `ion-input`: FormModal tells by it which
-//     refused field a choice corrects, also when another field is refused with the same words (hub#888).
-//   - The options are a listbox in an `ion-popover` beside the field, as wide as it, that never takes
-//     the focus from it. A click or ArrowDown opens every option; typing filters them:
-//       · static `options`: «contains» on the label and the hint, ignoring case and accents;
-//       · `search(query)`: asked 150 ms after the last key (`debounce`), with loading, empty and
-//         error (with Retry) states; an answer that arrives after a newer question is dropped.
-//   - Keyboard (ARIA combobox, list autocomplete): ArrowDown/ArrowUp move the highlight (wrapping,
-//     `aria-activedescendant`), Enter chooses it, Escape and Tab close and put the chosen label back.
-//     Enter and Escape on an open list stay here: they never submit or close the dialog around it.
-//     With nothing highlighted (the search still loading, no matches, a failed search) Enter does
-//     nothing and the list stays: the answer is never chosen behind the person's back. Closed, Enter
-//     is the form's (FormModal submits on it).
-//   - `allowCreate`: a last option «Create “…”» for a text that names no option; choosing it emits
-//     `create` with the text (trimmed) and leaves the typing in the field: the page creates the
-//     record and sets `v-model`.
-//   - Where the list goes (hub#443): under the field, or over it when the room under it is short
-//     and there is more over it, a small gap away from it (its floating label stays readable); never
-//     past the visible window (the on-screen keyboard leaves it
-//     out), scrolling inside itself when it is taller. Ionic places a popover once, as it presents,
-//     and a searched list then only says «Loading…»: the combo places it itself, on every frame
-//     while it is open, so it follows the list that grows, the field that moves and the window.
-//   - A choice made with a finger or a pen (hub#537) lets go of the focus, so the on-screen keyboard
-//     goes away and the next tap lands where it is aimed (MUI Autocomplete's `blurOnSelect="touch"`);
-//     a mouse or the keyboard keep it in the field, to go on with Tab.
+// A field that searches its options while the person types: static `options` are filtered by «contains» on the label
+// and the hint, ignoring case and accents, and a `search(query)` is asked `debounce` ms after the last key, an answer
+// to an older question dropped. The options are an ARIA combobox listbox in an `ion-popover` that never takes the
+// focus from the field. With the list open, Enter and Escape stay here and never submit or close the dialog around it.
 import { IonButton, IonContent, IonInput, IonItem, IonLabel, IonPopover, IonSpinner } from '@ionic/vue';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useId, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -302,13 +274,15 @@ function dismiss(revert = true): void {
   if (revert) text.value = props.modelValue?.label ?? '';
 }
 
-// ── A choice made with a finger lets go of the focus (hub#537) ───────────────────────────────────
+// ── A choice made with a finger lets go of the focus ──────────────────────────────────────────
 /** How the last option was pressed (`pointerType`: `mouse`, `touch`, `pen`), until its click. */
 let pressedWith = '';
 /** From a choice made with a finger until the list is gone: the field turns the focus away. */
 let lettingGo = false;
 
-/** A click on an option: a finger or a pen let go of the focus once the option is chosen. */
+/** A click on an option: a finger or a pen let go of the focus once the option is chosen, so the on-screen keyboard
+ *  goes away and the next tap lands where it is aimed (MUI Autocomplete's `blurOnSelect="touch"`). A mouse or the
+ *  keyboard keep it in the field, to go on with Tab. */
 function choose(entry: Entry): void {
   const finger = pressedWith === 'touch' || pressedWith === 'pen';
   pressedWith = '';

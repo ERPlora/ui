@@ -20,7 +20,7 @@ function mountNotFound(locale = 'en', homePath?: string) {
   return mount(NotFoundPage, { global: { plugins: [router, createShellI18n({ locale })], provide: provides } });
 }
 
-describe('NotFoundPage (hub#1723: an unknown address says so, inside the shell, with one way out)', () => {
+describe('NotFoundPage: an unknown address says so, inside the shell, with one way out', () => {
   it('is painted inside the shell layout, titled in the user language', () => {
     const page = mountNotFound().findComponent(AppPage);
     expect(page.props('title')).toBe('This page does not exist');

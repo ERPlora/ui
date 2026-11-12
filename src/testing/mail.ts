@@ -1,18 +1,8 @@
-// The mails a Django app writes with its file backend (`django.core.mail.backends.filebased.EmailBackend`),
-// read back as a person reads their inbox. The SaaS writes every mail of development to
-// `saas-next/.mail/` (its panel e2e to a folder of its own), and every sign-in with a password there
-// waits for the six-digit code it mailed: an e2e of the SaaS or of the Hub reads it here. Plain Node
-// (`node:fs`), no browser and no Playwright: import it from `@erplora/ui/testing/mail` in an e2e (the
-// `@erplora/ui/testing` entry also carries the icons Vite bakes, which plain Node cannot load).
-//
-// What Django 6.1 writes: one file per connection, named by an id (not by time), each message closed by a
-// line of 79 `-`; a body raw UTF-8 (8bit), 7bit, quoted-printable, base64 or multipart (its text part is
-// read). «Since» is the file's write time: the newest matching mail written from `since` on wins, so a code
-// mailed earlier to the same address (a run before, a test before) is never read. A wait never stops
-// Node: it looks with `node:fs/promises`, and reads only the files written from `since` on that are new
-// or changed since its last look (the folder of a stack keeps every mail of every run). `readMailsSince`
-// is one such look, for the whole of a mail a wait found; `readMails` reads the folder entire and stops
-// Node meanwhile.
+// The mails a Django app writes with its file backend, read back as a person reads their inbox: a sign-in with a
+// password waits for the six-digit code it mailed, and an e2e of the SaaS or of the Hub reads it here. Plain Node,
+// imported from `@erplora/ui/testing/mail` (the `@erplora/ui/testing` entry carries the icons Vite bakes, which plain
+// Node cannot load). Django 6.1 writes one file per connection, named by an id, each message closed by a line of 79
+// `-`. The newest matching mail written from `since` on wins, so a code mailed earlier is never read.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';

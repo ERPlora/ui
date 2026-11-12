@@ -1,10 +1,8 @@
-// The device that prints for the hub (PRINTING-F18; the old hub's `bootPrintHost`, hub#343 and hub#501): inside the
-// installed app, on a device set up to print, it keeps the hub's `/ws/print` open (the SDK's `print-channel.ts`) and turns every
-// job into paper with the app's commands (`device-printer.ts`). The project says which printers the device's
-// registration has — `null` while it is not set up here, or once it was retired — and the host follows it: it says
-// hello again when they change and closes the channel when there are none. A browser opens nothing: there is no
-// printer it could reach, and a device that took jobs it cannot print would burn their five hand-outs.
-// Refusals and failed prints go to the log (`console.warn`): this runs unattended, and the queue shows the rest.
+// Inside the installed app, on a device set up to print, keeps the hub's `/ws/print` open (`print-channel.ts`) and
+// turns every job into paper with the app's commands (`device-printer.ts`). It follows the printers of the device's
+// registration: it says hello again when they change and closes the channel when there are none. A browser opens
+// nothing: there is no printer it could reach, and a device that took jobs it cannot print would burn their five
+// hand-outs. Refusals and failed prints only go to the log: this runs unattended, and the queue shows the rest.
 import { onBeforeUnmount, type Ref, watch } from 'vue';
 
 import { useLiveClient } from '../sdk/live-client';
@@ -65,8 +63,8 @@ export function createPrintHost(deps: PrintHostDeps): PrintHost {
     update(printers) {
       const ids = [...new Set(printers ?? [])].sort();
       const key = ids.join(',');
-      // A channel the hub refused for good (suspended, printing off…) is let go: the next update opens another, the
-      // same printers too, and never on its own (the old hub's `stoppedForGood`).
+      // A channel the hub refused for good (suspended, printing off…) is let go: the next update opens another, even
+      // for the same printers, and nothing reopens it on its own.
       if (key === current && channel?.running()) return;
       stop();
       if (ids.length === 0) return;

@@ -1,9 +1,5 @@
-// What guides the person in the assistant's panel, as keys of the chat's catalogue (the component translates them):
-// - `errorView` (BASE-G124, G122): the sentence of each failure and its way out (try again, a new conversation, the
-//   plan, sign in again); a spent allowance or a plan without the assistant is no breakdown;
-// - `usageNote` (BASE-G122): from 80 % of the month's messages, what is left of how many;
-// - `screenLabel` (BASE-G114): a screen by the name the person sees — the host's platform's by its catalogue
-//   (`AssistantConfig.screenKey`), an app's by the menu —, never its path.
+// Keys of the chat's catalogue, which the component translates. A spent allowance or a plan without the assistant is no
+// breakdown, and a screen is named as the person sees it, never by its path.
 import type { SessionMenuSection } from '../../shell/session';
 import type { AssistantUsage } from './config';
 

@@ -1,14 +1,6 @@
-// What the shell knows about the person in front of it: the result of the live query
-// `base.session.me` (user, permissions, menu, apps, language) plus the state of the stream that
-// carries it. The shell never fetches it: the entry point hands two refs in — today the JSON that
-// `base/spa.py` embeds in the HTML, from V7 on the `useLive('base.session.me')` of the SDK — and
-// everything here derives from them.
-//
-// The menu comes from the server, already filtered by permission and active app and already
-// translated; `routes.ts` of an app never contributes menu items (it only maps routes → pages).
-//
-// Signing out of the Hub is the server's too: `logout()` hands the browser to the Hub's
-// `/auth/logout`; the hub passes it to `createShell({ userMenu: { logout } })`.
+// The shell never fetches the session: the entry point hands in two refs, the result of the live query
+// `base.session.me` and the state of its stream, and everything here derives from them. The menu comes from the
+// server already filtered by permission and active app and already translated; an app's `routes.ts` never adds to it.
 import {
   type App,
   computed,
@@ -123,7 +115,7 @@ export function useSession(): ShellSession {
 /**
  * Resolves once there is something to decide with: `base.session.me` arrived, or the stream left
  * `loading` (it answered, failed or is reconnecting). The auth gate waits on it, so the first
- * navigation never sends to the login a person whose session simply had not arrived yet (hub#858).
+ * navigation never sends to the login a person whose session simply had not arrived yet.
  */
 export function sessionReady(session: ShellSession): Promise<void> {
   const settled = () => session.me.value !== undefined || session.status.value !== 'loading';

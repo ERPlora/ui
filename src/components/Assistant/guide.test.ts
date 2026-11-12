@@ -1,6 +1,3 @@
-// What guides the person in the panel: the sentence of each failure and its way out (BASE-G124, G122), the footer of
-// the allowance (BASE-G122; gh:hub#1183) and the names of the screens an answer leads to (BASE-G114). The setup's
-// shortcuts (BASE-G121) are the Hub's own (its empty conversation).
 import { describe, expect, it } from 'vitest';
 
 import type { SessionMenuSection } from '../../shell/session';

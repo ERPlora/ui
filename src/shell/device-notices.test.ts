@@ -1,7 +1,3 @@
-// The device's notices (APPOINTMENT-F28; the old hub's HUB_SHELL-F66, HUB_APP-F24 and F25): a new row of what
-// the modules tell goes out once as a system notice of the installed app (`erplora_notify`), never again on
-// this device — not on the next live result, nor after a reload —; nothing without the app or with the
-// Android permission refused; and a tap opens the screen it is about (hub#2305, hub#2360, hub#2658).
 import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick, type Ref, ref } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
@@ -246,9 +242,9 @@ describe('createNoticeDoor — telling the device', () => {
     warn.mockRestore();
   });
 
-  // hub#2658: the first live result of a reopened page often lands before the app has let it drive (page `load` and
-  // some seconds after): the bookings of the night must still ring, not be marked told and lost.
-  it('a notice that arrives while the hub is still landing waits for it, then goes out once (hub#2658)', async () => {
+  // The first live result of a reopened page often lands before the app has let it drive (page `load` and some
+  // seconds after): the bookings of the night must still ring, not be marked told and lost.
+  it('a notice that arrives while the hub is still landing waits for it, then goes out once', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const landing = { check: 2, notify: 2 };
     const shown: unknown[] = [];
@@ -357,7 +353,7 @@ describe('bootNoticeTaps — hearing the taps', () => {
     ]);
   });
 
-  it('asks again while the app says the hub is still landing (hub#2658), and gives up quietly elsewhere', async () => {
+  it('asks again while the app says the hub is still landing, and gives up quietly elsewhere', async () => {
     const bridge = tauri();
     let refusals = 2;
     bridge.addPluginListener = vi.fn(async () => {
@@ -389,7 +385,7 @@ describe('bootNoticeTaps — hearing the taps', () => {
   });
 });
 
-describe('askToNotify — asking Android once, with our sentence first (HUB_APP-F07, hub#1732, hub#2046)', () => {
+describe('askToNotify — asking Android once, with our sentence first', () => {
   const asked = (bridge: { invoke: ReturnType<typeof vi.fn> }) =>
     bridge.invoke.mock.calls.filter(([command]) => command === 'plugin:erplora-android|request_permissions');
 
@@ -444,7 +440,7 @@ describe('askToNotify — asking Android once, with our sentence first (HUB_APP-
     expect(confirm).not.toHaveBeenCalled();
   });
 
-  it('waits while the app says the hub is still landing (hub#2658), then asks', async () => {
+  it('waits while the app says the hub is still landing, then asks', async () => {
     let landing = 2;
     const bridge = app({
       'plugin:erplora-android|check_permissions': () => {
@@ -473,7 +469,7 @@ describe('askToNotify — asking Android once, with our sentence first (HUB_APP-
   });
 });
 
-describe('createNoticeListening — the installed app stays listening with the screen off (HUB_APP-F26, hub#836)', () => {
+describe('createNoticeListening — the installed app stays listening with the screen off', () => {
   const words = (key: string) => `«${key}»`;
   const now = async () => {};
 
@@ -585,7 +581,7 @@ describe('createNoticeListening — the installed app stays listening with the s
     expect(warn).toHaveBeenCalledTimes(2);
   });
 
-  it('asks again while the app says the hub is still landing (hub#2658), then it listens', async () => {
+  it('asks again while the app says the hub is still landing, then it listens', async () => {
     let landing = true;
     const wait = vi.fn(async () => {
       landing = false;

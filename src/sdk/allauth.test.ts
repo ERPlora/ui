@@ -1,8 +1,3 @@
-// The SDK's client of allauth.headless (browser client, `/_allauth/browser/v1`), used by the SaaS's
-// account pages. Same-origin session cookie + Django's CSRF token from the header provider; allauth's
-// `errors[{param, code, message}]` become the SDK's `ApiError` with `fields` per input (an error
-// without `param` goes under `__all__`, as in Django forms); a 401 is not an error but the anonymous
-// state, with the `flows` the visitor can take (a pending one: a further step of the login).
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -913,7 +908,7 @@ describe("createAllauthClient: the password reset by link", () => {
   });
 });
 
-describe("createAllauthClient: what a person reads when the server did not word the failure (hub#2281)", () => {
+describe("createAllauthClient: what a person reads when the server did not word the failure", () => {
   afterEach(() => {
     document.documentElement.lang = "";
   });

@@ -1,5 +1,3 @@
-// The decimal mark a person types a number with («,» in Spanish, «.» in English): the one place a field, a keypad or
-// an edited amount asks for it, instead of each app working it out from Intl on its own (hub#983).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import * as components from '../index';

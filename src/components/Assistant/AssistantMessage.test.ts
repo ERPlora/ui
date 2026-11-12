@@ -1,6 +1,3 @@
-// A bubble of the panel: the person's question as written; the assistant's answer while it is written (dots), with
-// its «Go to …» (BASE-G114), the notices of what it said against what ran (BASE-G117), the receipts of the actions,
-// a failure with its way out (BASE-G124, G122) and «Report a problem» under a finished answer (BASE-G123).
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { configure, mountAssistant } from './__tests__/mount-assistant';
@@ -85,7 +82,6 @@ describe('AssistantMessage', () => {
   });
 
   it('a receipt names the action by its own verb, in Spanish and in English, never «Do this»', async () => {
-    // FIX-HUB-BASE-ASSISTANT-CARD-RECTIFY-SAYS-DO-THIS-IN-INVOICING: «Hecho: Hacer esto en Facturación».
     const executed = [
       { name: 'invoice.invoice.rectify', app: 'invoice', app_name: 'Facturación', outcome: 'ok' },
       { name: 'invoice.invoice.mark_paid', app: 'invoice', app_name: 'Facturación', outcome: 'cancelled' },
@@ -107,7 +103,6 @@ describe('AssistantMessage', () => {
   });
 
   it('a receipt says the verb its card said: emptying a cart «Vaciar», taking a line out «Quitar», a cash count the count', async () => {
-    // FIX-HUB-BASE-ASSISTANT-CARD-SAYS-REMOVE-FOR-EMPTYING-A-CART: «Hecho: Quitar en Carrito y pago» for an emptied cart.
     const executed = [
       { name: 'cart_checkout.cart.clear', app: 'cart_checkout', app_name: 'Carrito y pago', outcome: 'ok' },
       { name: 'cart_checkout.item.remove', app: 'cart_checkout', app_name: 'Carrito y pago', outcome: 'cancelled' },
@@ -131,7 +126,6 @@ describe('AssistantMessage', () => {
   });
 
   it('a receipt names where it happened as the server says it: the platform by its screen, never «base»', async () => {
-    // FIX-HUB-BASE-ASSISTANT-CARD-FIELD-LABELS-IN-ENGLISH: the menu has no section «base», so the receipt said «en base».
     const executed = [{ name: 'base.access.settings_update', app: 'base', app_name: 'Ajustes', outcome: 'cancelled' }];
     const { wrapper } = await mountBubble(answer({ text: 'No lo he hecho.', executed }));
     expect(wrapper.find('[data-testid="assistant-receipt"]').text()).toBe('No se hizo, cancelado: Cambiar en Ajustes');
@@ -139,8 +133,6 @@ describe('AssistantMessage', () => {
   });
 
   it('a receipt kept from a turn in another language is said whole in the screen’s: the app by its menu, the platform by its screen', async () => {
-    // FIX-HUB-BASE-ASSISTANT-CARD-MONEY-IN-BUSINESS-NOT-PREVIEW-CURRENCY (seen on its e2e): asked in English, read once
-    // the person had switched to Spanish, it said «No se hizo, cancelado: Rectificar en Invoicing».
     const executed = [
       { name: 'invoice.invoice.rectify', app: 'invoice', app_name: 'Invoicing', outcome: 'cancelled' },
       { name: 'base.access.settings_update', app: 'base', app_name: 'Settings', screen: 'settings', outcome: 'ok' },
@@ -156,7 +148,7 @@ describe('AssistantMessage', () => {
     wrapper.unmount();
   });
 
-  it('a failure before any word: no empty bubble, the failure in its place (BASE-G124)', async () => {
+  it('a failure before any word: no empty bubble, the failure in its place', async () => {
     const { wrapper } = await mountBubble(answer({ error: 'assistant.unavailable' }));
     expect(wrapper.find('[data-testid="assistant-answer"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="assistant-bubble-assistant"]').exists()).toBe(false);
@@ -200,7 +192,7 @@ describe('AssistantMessage', () => {
     en.wrapper.unmount();
   });
 
-  it('a spent allowance: the numbers, when they come back, and the plan for who may upgrade it (gh:hub#1259)', async () => {
+  it('a spent allowance: the numbers, when they come back, and the plan for who may upgrade it', async () => {
     const spent = answer({ error: 'assistant.quota_exceeded', details: { used: 30, limit: 30, resets_at: '2026-11-01T00:00:00Z' } });
     const owner = await mountBubble(spent, { canUpgrade: true, planUrl: 'https://erplora.com/hubs/a/plan' });
     expect(owner.wrapper.text()).toContain('Has usado todos los mensajes del asistente de este mes (30 de 30).');
@@ -213,7 +205,7 @@ describe('AssistantMessage', () => {
     cashier.wrapper.unmount();
   });
 
-  it('«Upgrade plan» tells the panel of its click, with the event: the host may take it from the link (hub#723)', async () => {
+  it('«Upgrade plan» tells the panel of its click, with the event: the host may take it from the link', async () => {
     const spent = answer({ error: 'assistant.quota_exceeded', details: { used: 30, limit: 30, resets_at: '2026-11-01T00:00:00Z' } });
     const owner = await mountBubble(spent, { canUpgrade: true, planUrl: 'https://erplora.com/hubs/a/plan' });
     const link = owner.wrapper.get('[data-testid="assistant-upgrade"]');

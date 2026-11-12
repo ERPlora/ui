@@ -1,5 +1,3 @@
-// DataTable: the list, its states, search, sort, row click and selection. Cases ported from the Lit
-// tests of OutfitKit's `ok-data-table` (issue numbers are ERPlora/outfitkit unless stated).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -46,7 +44,7 @@ describe('the list (CSS grid, not <table>)', () => {
     expect([...row.querySelectorAll('[role="cell"]')].map((c) => text(c))).toEqual(['Ana', 'Vigo']);
   });
 
-  it('header and every row share the same track list (#121)', async () => {
+  it('header and every row share the same track list', async () => {
     const t = mountTable({ columns: [...NAME, { key: 'n', label: 'N', width: '8rem' }], rows: PEOPLE, selectable: true });
     await settle();
     const head = (t.find('.data-table__row--head').element as HTMLElement).style.gridTemplateColumns;
@@ -108,7 +106,7 @@ describe('the list (CSS grid, not <table>)', () => {
   });
 });
 
-describe('a clipped cell can be read in full (#217)', () => {
+describe('a clipped cell can be read in full', () => {
   const LONG = 'Se consume en el local (servicio de restauración)';
   const ROWS = [
     { id: '1', name: 'Menú del día', mode: LONG, note: '' },
@@ -180,7 +178,7 @@ describe('a clipped cell can be read in full (#217)', () => {
   });
 });
 
-describe('«still loading» is not «empty» (#268)', () => {
+describe('«still loading» is not «empty»', () => {
   const base = { serverSide: true, rows: [], total: 0, columns: NAME, title: 'Customers', emptyMessage: 'No customers.' };
   const loading = (t: ReturnType<typeof mountTable>) => t.element.querySelector('[data-role="loading"]');
   const pager = (t: ReturnType<typeof mountTable>) => text(t.element.querySelector('.data-table__pager'));
@@ -262,7 +260,7 @@ describe('«still loading» is not «empty» (#268)', () => {
   });
 });
 
-describe('«could not load» is not «empty» (ERPlora/pm#530)', () => {
+describe('«could not load» is not «empty»', () => {
   const REASON = 'The hub is not responding. Try again in a moment.';
   const base = { serverSide: true, rows: [], total: 0, columns: NAME, title: 'Customers', emptyMessage: 'No customers.' };
   const errorBlock = (t: ReturnType<typeof mountTable>) => t.element.querySelector('[data-role="load-error"]');
@@ -330,7 +328,7 @@ describe('«could not load» is not «empty» (ERPlora/pm#530)', () => {
     expect(retry(worded)?.getAttribute('data-testid')).toBe('customers-retry');
   });
 
-  // hub#1197 - Pages hand the same text as the title (`labels.loadError`) and as the reason (`error`):
+  // Pages hand the same text as the title (`labels.loadError`) and as the reason (`error`):
   // the notice said it twice in a row. A reason that only repeats the title is not painted again.
   it('a reason that repeats the title is said once, with Retry: worded, Spanish, default title, case and full stop aside', async () => {
     const times = (t: ReturnType<typeof mountTable>, phrase: string) => text(errorBlock(t)).split(phrase).length - 1;
@@ -360,7 +358,7 @@ describe('«could not load» is not «empty» (ERPlora/pm#530)', () => {
   });
 });
 
-describe('«no matches» is not «empty» (#171)', () => {
+describe('«no matches» is not «empty»', () => {
   const ROWS = [{ id: 1, name: 'Restaurant' }, { id: 2, name: 'Hair salon' }];
   const base = { rows: ROWS, columns: NAME, searchKeys: ['name'], emptyMessage: 'No templates published yet' };
   const empty = (t: ReturnType<typeof mountTable>) => text(t.element.querySelector('.data-table__empty'));
@@ -445,7 +443,7 @@ describe('search (client filters in memory; server only tells)', () => {
     expect(t.emitted('update:search')).toEqual([['gar']]);
   });
 
-  it('server mode emits what was typed and leaves the rows alone (#112)', async () => {
+  it('server mode emits what was typed and leaves the rows alone', async () => {
     const t = mountTable({ rows: ROWS, columns: NAME, serverSide: true, searchable: true, total: 2 });
     await settle();
     await type(t, 'Gar');
@@ -550,7 +548,7 @@ describe('sorting', () => {
   });
 });
 
-describe('a row opens its record when the consumer asks for it (#67, #74)', () => {
+describe('a row opens its record when the consumer asks for it', () => {
   const ACTIONS = [{ id: 'open', label: 'Open' }];
 
   it('`rowClickable`: a click on the row emits rowClick with the record; it looks and acts as a control', async () => {
@@ -648,7 +646,7 @@ describe('selection', () => {
   });
 });
 
-describe('data-testid hooks of the chrome (#143)', () => {
+describe('data-testid hooks of the chrome', () => {
   const ROWS = Array.from({ length: 12 }, (_, i) => ({ id: `r${i + 1}`, name: `Producto ${i + 1}` }));
   const props = { columns: NAME, rows: ROWS, actions: [{ id: 'edit', label: 'Editar', icon: 'create-outline' }], searchKeys: ['name'], addable: true };
   const hooks = (t: ReturnType<typeof mountTable>) => [...t.element.querySelectorAll('[data-testid]')].map((el) => el.getAttribute('data-testid'));
@@ -717,7 +715,7 @@ describe('language', () => {
     expect(t.text()).not.toContain('records');
   });
 
-  it('without vue-i18n it reads the document language, like the Lit original', async () => {
+  it('without vue-i18n it reads the document language', async () => {
     document.documentElement.lang = 'es';
     const t = mountTable({ rows: [], columns: NAME }, { i18n: false });
     await settle();

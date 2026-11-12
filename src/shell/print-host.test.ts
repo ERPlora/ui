@@ -1,6 +1,3 @@
-// The device that prints for the hub (PRINTING-F18): inside the installed app and only for a device set up to print
-// (the printers of its registration), it keeps the hub's `/ws/print` open on the page's own host, with the device id the
-// SDK sends, and its jobs go to the app's commands; a browser, or a device not set up, opens nothing.
 import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick, ref, type Ref } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

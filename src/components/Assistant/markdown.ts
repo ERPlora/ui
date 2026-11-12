@@ -1,8 +1,6 @@
-// The answer of the assistant with its format (BASE-G113): a small Markdown reader into a tree that a Vue component
-// paints — never HTML (`v-html`), so nothing the model writes is ever a tag. Bold, italics, inline code, headings,
-// lists, tables, quotes (`> …`, the model's warnings) and rules (`---`, the model's part breaks) are read; a link only to a path of this app
-// (`[label](/settings)` or a bare `/customer/customers`): any other address stays as its label, as text (it never takes
-// the person out of the app). What it does not read (fenced code, images) stays as plain text.
+// A small Markdown reader into a tree that a Vue component paints, never HTML, so nothing the model writes is ever a
+// tag. A link is read only to a path of this app; any other address stays as its label, so it never takes the person
+// out of the app. What it does not read (fenced code, images) stays as plain text.
 
 export type Inline =
   | { kind: 'text'; text: string }

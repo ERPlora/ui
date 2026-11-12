@@ -1,11 +1,8 @@
 /**
- * The single error envelope of the API and the live stream:
- * `{"error": {"code", "message", "fields"?, ...}}`.
- * Any other key of `error` (`limit` and `used` of `hubs.seat_limit`, `retry_after`…) is kept in
- * `ApiError.details`.
- * Errors delivered through the live stream carry `status` 0 (there is no HTTP status per frame).
- * A body that is not the envelope is `unexpected_response`, whose message is the SDK's sentence for a
- * person (`sdkMessage`, hub#2281): its status says which answer it was.
+ * The single error envelope of the API and the live stream: `{"error": {"code", "message", "fields"?, ...}}`. Any
+ * other key of `error` (`retry_after`, `limit` and `used` of `hubs.seat_limit`…) is kept in `ApiError.details`. Live
+ * errors carry `status` 0 (a frame has no HTTP status). A body that is not the envelope is `unexpected_response`,
+ * whose message is the SDK's sentence for a person while its status says which answer it was.
  */
 
 import { sdkMessage } from "./messages";

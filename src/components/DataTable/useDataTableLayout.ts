@@ -1,18 +1,7 @@
-// Layout decisions of the DataTable, ported 1:1 from OutfitKit's `ok-data-table.ts` (issue numbers
-// are ERPlora/outfitkit unless stated otherwise):
-//   - card/table switch: phone breakpoint (#274), `defaultView`, the person's own choice;
-//   - #67  horizontal overflow of the list (shadow of the pinned column);
-//   - #121 the actions track pinned to the MEASURED width of the row buttons;
-//   - #211 the «Actions» header painted only when it fits its column;
-//   - #122 the row actions folded into a «…» menu when the columns leave them no room;
-//   - W-19 (ERPlora UX-AUDIT-3) the same, as a LADDER judged by the table's own box: the `low`
-//     columns go first, then the actions beyond `maxInlineActions`, then all but the pinned ones;
-//   - #267 the list handed over to cards when it does not fit even folded;
-//   - FIX-UI-DATATABLE-EMAIL-COLUMN-834 (erplora-next) each rung of that ladder tried first with every column
-//     holding its content whole, and only then with the widest text cut;
-//   - #218 `fill`: is there content in flow after the table?
-// Everything measured runs after each render and on resize, and only writes a state when it
-// CHANGES, so a measurement never schedules a render loop.
+// What the list gives up when it does not fit its own box, as a ladder: the `low` columns first, then the actions
+// beyond `maxInlineActions`, then all but the pinned ones, and at last the list is handed over to cards; each rung is
+// tried with every column holding its content whole before the widest text is cut. Everything measured runs after
+// each render and on resize, and only writes a state when it CHANGES, so a measurement never schedules a render loop.
 import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, type Ref, ref, watch } from 'vue';
 
 import type { DataTableView } from './types';
@@ -34,7 +23,7 @@ export interface RowActionsFitDecision {
   decidedAtWidth: number;
 }
 
-/** W-19 - What the list gives up, in this order, when it does not fit its box. Only the steps that
+/** What the list gives up, in this order, when it does not fit its box. Only the steps that
  *  change something for the table at hand make its ladder. */
 export type DataTableFitStep = 'hideLow' | 'foldExtra' | 'foldAll';
 
@@ -60,7 +49,7 @@ export interface FitLevelDecision {
 }
 
 /**
- * W-19 - How many steps of the ladder (`DataTableFitStep`) the list needs to fit its box. Decided by
+ * How many steps of the ladder (`DataTableFitStep`) the list needs to fit its box. Decided by
  * MEASURING, one step per measurement of what is on screen: what a step frees is only known once it
  * is painted. PURE, and it never oscillates: while the box keeps its width the level only goes up,
  * and only from a settled measurement (never twice from the same stale one). A box that changes
@@ -81,7 +70,7 @@ export function decideFitLevel(input: FitLevelInput): FitLevelDecision {
 }
 
 /**
- * #122 - Do the row action buttons fit, or do they fold into the «…» menu? The one-step ladder of
+ * Do the row action buttons fit, or do they fold into the «…» menu? The one-step ladder of
  * `decideFitLevel`: folding narrows the grid, which fires the observer again; `decidedAtWidth`
  * makes the state move once at most while the hole keeps its size. A hole that changes size is
  * judged from scratch with the buttons out, in ONE pass when they already are out.
@@ -92,26 +81,26 @@ export function decideRowActionsFit(input: RowActionsFitInput): RowActionsFitDec
   return { collapsed: next.level > 0, decidedAtWidth: next.decidedAtWidth };
 }
 
-/** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - A rung of the ladder: how many of its steps are given up (`base`) and
+/** A rung of the ladder: how many of its steps are given up (`base`) and
  *  whether the columns may cut their text to fit (`clipped`). With `clip` (a column needs more than its floor)
  *  every step is first tried with each column whole, then cut: whole, cut, step 1 whole, step 1 cut… Without
- *  it the ladder is the one of before and nothing is held whole. PURE. */
+ *  it each rung is one step and nothing is held whole. PURE. */
 export function ladderRung(level: number, clip: boolean): { base: number; clipped: boolean } {
   return clip ? { base: Math.floor(level / 2), clipped: level % 2 === 1 } : { base: level, clipped: false };
 }
 
-/** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The top rung of a ladder of `steps` steps (see `ladderRung`). */
+/** The top rung of a ladder of `steps` steps (see `ladderRung`). */
 export function ladderLength(steps: number, clip: boolean): number {
   return clip ? 2 * steps + 1 : steps;
 }
 
-/** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The px a column asks for to hold its content whole: nothing while its
+/** The px a column asks for to hold its content whole: nothing while its
  *  floor holds it; beyond, its measured width rounded up, plus a pixel of slack for subpixel text. PURE. */
 export function columnNeed(natural: number, floor: number): number {
   return natural > floor ? Math.ceil(natural) + 1 : 0;
 }
 
-/** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - Are `next` the needs on screen (`before`)? A text its box cuts reads its
+/** Are `next` the needs on screen (`before`)? A text its box cuts reads its
  *  width rounded (`scrollWidth`) and held whole with its fraction: a pixel or two apart is the same column, or
  *  every rung would start the ladder again. A column that starts or stops asking for more than its floor always
  *  counts. PURE. */
@@ -122,7 +111,7 @@ export function sameNeeds(next: Readonly<Record<string, number>>, before: Readon
   });
 }
 
-/** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The needs after a measurement (`measured`, the columns on screen). With
+/** The needs after a measurement (`measured`, the columns on screen). With
  *  the same rows a need only grows: a text that wraps when its column is cut reads narrower then, and taken as
  *  true the column would flip between whole and cut forever. Other rows are measured afresh. A column the rung
  *  hides keeps what it asked. PURE. */
@@ -157,7 +146,7 @@ export interface CardsForFitDecision {
 }
 
 /**
- * #267 - The list does not fit its hole even with the row actions folded: hand over to the cards.
+ * The list does not fit its hole even with the row actions folded: hand over to the cards.
  * PURE, and it never oscillates: in cards the list cannot be measured, so the width it needs is
  * remembered (host width + overflow) and the list only comes back once the host reaches it.
  */
@@ -174,7 +163,7 @@ export function decideCardsForFit(input: CardsForFitInput): CardsForFitDecision 
 }
 
 export interface DataTableLayoutSource {
-  /** The table's root element (`.data-table`, the host of the Lit original). */
+  /** The table's root element (`.data-table`). */
   root: Ref<HTMLElement | null>;
   /** Phone breakpoint in px: at or below it the table behaves as on a phone. */
   cardBreakpoint: () => number;
@@ -183,20 +172,20 @@ export interface DataTableLayoutSource {
   defaultView: () => DataTableView | undefined;
   /** Is there a row actions column? */
   hasActions: () => boolean;
-  /** W-19 - The table's ladder, in order. Default: `['foldAll']` (the #122 fold alone). */
+  /** The table's ladder, in order. Default: `['foldAll']`, the row actions folded alone. */
   fitSteps?: () => readonly DataTableFitStep[];
-  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The visible columns sized by their content, those a rung hides too: one
+  /** The visible columns sized by their content, those a rung hides too: one
    *  that asks for more than its floor (`contentWidths`) makes every rung be tried whole first (`ladderRung`). */
   clipKeys?: () => readonly string[];
-  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The list's columns in the order they are painted: the key of one sized
+  /** The list's columns in the order they are painted: the key of one sized
    *  by its content, `null` for one with its own width (never measured). */
   columnKeys?: () => readonly (string | null)[];
-  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The rows shown, by identity: the same ones refreshed keep what their
+  /** The rows shown, by identity: the same ones refreshed keep what their
    *  columns asked (`nextNeeds`). */
   rowsKey?: () => string;
   /** Identities whose change invalidates the fold decision (columns, actions, choice, selection). */
   deps: () => unknown[];
-  /** What the list's width depends on, by content (#267): equal shapes keep the cards. */
+  /** What the list's width depends on, by content: equal shapes keep the cards. */
   shape: () => string;
   fill: () => boolean;
 }
@@ -214,17 +203,17 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   const xOverflow = ref(false);
   const actionsTrackPx = ref(0);
   const actionsLabelFits = ref(true);
-  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - px each column sized by its content asks for, by key (`columnNeed`;
+  /** px each column sized by its content asks for, by key (`columnNeed`;
    *  0 = its floor holds it). Kept for a column the rung hides: its text did not change. */
   const contentWidths = ref<Readonly<Record<string, number>>>({});
-  /** W-19 - Rung of the ladder on screen (0 = the whole list; `ladderRung` reads it). */
+  /** Rung of the ladder on screen (0 = the whole list; `ladderRung` reads it). */
   const fitLevel = ref(0);
   const fitSteps = (): readonly DataTableFitStep[] => source.fitSteps?.() ?? ['foldAll'];
   const clip = computed(() => (source.clipKeys?.() ?? []).some((key) => (contentWidths.value[key] ?? 0) > 0));
   const rung = computed(() => ladderRung(fitLevel.value, clip.value));
   /** Is `step` given up right now? */
   const fitApplied = (step: DataTableFitStep): boolean => fitSteps().slice(0, rung.value.base).includes(step);
-  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The columns may cut their text: the rung whole did not fit. */
+  /** The columns may cut their text: the rung whole did not fit. */
   const columnsClipped = computed(() => rung.value.clipped);
   const lowColumnsHidden = computed(() => fitApplied('hideLow'));
   const extraActionsFolded = computed(() => fitApplied('foldExtra'));
@@ -237,9 +226,9 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   let fitDecidedAtWidth = -1;
   let fitCardsWidth = 0;
   let fitShape = source.shape();
-  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The rows `contentWidths` was last measured on. */
+  /** The rows `contentWidths` was last measured on. */
   let measuredRows: string | undefined;
-  /** A state was written that the DOM does not show yet (Lit's `isUpdatePending`). */
+  /** A state was written that the DOM does not show yet. */
   let renderPending = false;
   let settleQueued = false;
 
@@ -250,7 +239,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     settleAfterFlush();
   }
 
-  /** hub#94 - A state the render does not read (the «Actions» label while the actions are folded)
+  /** A state the render does not read (the «Actions» label while the actions are folded)
    *  paints nothing, so no `onUpdated` comes to clear `renderPending`: the ladder waited for that
    *  render forever and a folded list that still did not fit never handed over to the cards (the
    *  pinned «⋮» stayed over its last column). Once Vue has flushed, what was written is on screen,
@@ -264,7 +253,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     });
   }
 
-  // ── Phone breakpoint (#274) ─────────────────────────────────────────────────────────────────
+  // ── Phone breakpoint ────────────────────────────────────────────────────────────────────────
   let media: MediaQueryList | undefined;
   const onMediaChange = (e: MediaQueryListEvent | { matches: boolean }): void => {
     const matches = 'matches' in e ? e.matches : (media?.matches ?? false);
@@ -291,11 +280,11 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     const cards = source.cardViewEnabled();
     if (isMobile.value && cards) viewMode.value = 'cards';
     else if (source.defaultView() === 'cards' && cards) viewMode.value = 'cards';
-    else if (fitCards.value && cards) viewMode.value = 'cards'; // #267
+    else if (fitCards.value && cards) viewMode.value = 'cards';
     else if (source.defaultView() === 'table') viewMode.value = 'table';
   }
 
-  // #122/#267 - Other columns/actions need a new measurement, taken in the list; the same ones in a
+  // Other columns/actions need a new measurement, taken in the list; the same ones in a
   // new array (a parent re-render) keep the cards the list already handed over to.
   watch(source.deps, () => {
     fitDecidedAtWidth = -1;
@@ -322,7 +311,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   const scrollEl = (): HTMLElement | null => source.root.value?.querySelector<HTMLElement>(SCROLL) ?? null;
   const actionBoxes = (): HTMLElement[] => [...(scrollEl()?.querySelectorAll<HTMLElement>(ACTION_BOXES) ?? [])];
 
-  /** #67 - Does the list overflow sideways? Only then is the pinned column's shadow painted. */
+  /** Does the list overflow sideways? Only then is the pinned column's shadow painted. */
   function measureXOverflow(): void {
     const scroll = scrollEl();
     write(xOverflow, !!scroll && scroll.scrollWidth > scroll.clientWidth);
@@ -359,12 +348,12 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     return sum + gap * (laidOut - 1) + (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
   }
 
-  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - Width a cell's content takes on one line: a text its box cuts counts
+  /** Width a cell's content takes on one line: a text its box cuts counts
    *  whole (`scrollWidth`), whatever the column is given right now. */
   const naturalCellWidth = (cell: HTMLElement): number =>
     sideBySide(cell, (child) => outerWidth(child) + Math.max(0, child.scrollWidth - child.getBoundingClientRect().width));
 
-  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - What each column sized by its content asks for: its header and every
+  /** What each column sized by its content asks for: its header and every
    *  row shown, on one line. Written only when it changes, and then the ladder is judged again from the start
    *  (the rung on screen was decided for other columns: shorter rows may fit whole again). */
   function measureContentWidths(): void {
@@ -391,7 +380,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     write(contentWidths, next);
   }
 
-  /** #121 - Natural width of the widest row's buttons (they never shrink: `flex: 0 0 auto`). */
+  /** Natural width of the widest row's buttons (they never shrink: `flex: 0 0 auto`). */
   function measureActionsTrack(): void {
     if (!source.hasActions()) {
       write(actionsTrackPx, 0);
@@ -403,7 +392,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     if (width > 0) write(actionsTrackPx, width);
   }
 
-  /** #211 - Does the «Actions» label fit its column, or would it be painted «ACCI…»? */
+  /** Does the «Actions» label fit its column, or would it be painted «ACCI…»? */
   function measureActionsLabel(): void {
     const cell = scrollEl()?.querySelector<HTMLElement>(HEAD_ACTIONS);
     const label = cell?.querySelector('span');
@@ -415,7 +404,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     write(actionsLabelFits, need <= room);
   }
 
-  /** #267 - Is there a pinned column over the data, and does its track hold what it shows? A track
+  /** Is there a pinned column over the data, and does its track hold what it shows? A track
    *  still pinned to the unfolded buttons is not the folded list's minimum. What a box shows is
    *  its buttons side by side (a folded row may keep a pinned button AND its «⋮»). */
   function pinnedTrackIsHonest(): boolean {
@@ -427,7 +416,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     return natural >= actionsTrackPx.value - 1;
   }
 
-  /** #122/W-19 - Climb or restart the ladder; then #267 on what is on screen. */
+  /** Climbs or restarts the ladder, then hands the list over to cards (or back) from what is on screen. */
   function measureRowActionsFit(): void {
     const scroll = scrollEl();
     if (!scroll) {
@@ -452,7 +441,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     measureCardsFit(foldedOnScreen && next.level >= steps ? { containerWidth, contentWidth } : null);
   }
 
-  /** #267 - Hand the list over to cards when it does not fit even folded, and back. */
+  /** Hand the list over to cards when it does not fit even folded, and back. */
   function measureCardsFit(folded: CardsForFitInput['folded']): void {
     const allowed = source.cardViewEnabled() && !viewChosenByUser && !isMobile.value && source.defaultView() !== 'cards';
     const next = decideCardsForFit({
@@ -469,7 +458,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     else if (allowed) viewMode.value = 'table';
   }
 
-  // ── #218 fill: content in flow after the table ──────────────────────────────────────────────
+  // ── fill: content in flow after the table ───────────────────────────────────────────────────
   let siblingsObserver: MutationObserver | undefined;
 
   /** Marks `contentAfter` while an element in flow follows the table in its parent. */
@@ -511,7 +500,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   let scrollObserver: ResizeObserver | undefined;
 
   /** The scroller changes between views: observe the current one and its grid. Inside
-   *  `ion-content` the hole only gets its width after Ionic hydrates (#67). */
+   *  `ion-content` the hole only gets its width after Ionic hydrates. */
   function observeScroll(): void {
     if (typeof ResizeObserver === 'undefined') return;
     const scroll = scrollEl();
@@ -544,7 +533,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   };
 
   onMounted(() => {
-    // #267 - In cards there is no list to observe: the host's own width says when it fits again.
+    // In cards there is no list to observe: the host's own width says when it fits again.
     if (typeof ResizeObserver !== 'undefined' && source.root.value) {
       hostObserver = new ResizeObserver(() => measureRowActionsFit());
       hostObserver.observe(source.root.value);

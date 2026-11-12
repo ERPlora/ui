@@ -1,6 +1,3 @@
-// The device's end of the Hub's `/ws/print` (PRINTING-F18; the old hub's `print-drain.ts`, hub#343): it says hello with
-// its device and printers, claims each function once, prints what it is handed, confirms or reports the device's error,
-// beats as the hub says, is woken by `wake`, reconnects after a drop with a growing wait and never into a refusal.
 // A fake socket and fake timers stand in for the server here; the e2e drives the real one.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

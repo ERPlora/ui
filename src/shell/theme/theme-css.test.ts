@@ -256,7 +256,7 @@ describe('semantic palette', () => {
     }
   });
 
-  it('the medium chip is legible in both themes: its contrast colour flips to dark text in dark (V-16)', () => {
+  it('the medium chip is legible in both themes: its contrast colour flips to dark text in dark', () => {
     for (const theme of ['light', 'dark'] as const) {
       const solid = resolved(theme, '--ion-color-medium') as string;
       const text = resolved(theme, '--ion-color-medium-contrast') as string;
@@ -337,7 +337,7 @@ describe('AA text tokens (--ep-<colour>-text on --ep-<colour>-tint, --ep-text-mu
     expect(tokenIn(LIGHT, '--ep-primary-accessible')).toBe('#0e78ad');
   });
 
-  it('polish.css paints the secondary text of the menu with --ep-text-muted (V-03: 3.74:1 before)', () => {
+  it('polish.css paints the secondary text of the menu with --ep-text-muted', () => {
     const polish = plain(read('polish.css'));
     expect(blocks(polish, '.sidebar-user-email')[0]).toContain('color: var(--ep-text-muted)');
     expect(blocks(polish, '.sidebar-foot-text')[0]).toContain('color: var(--ep-text-muted)');

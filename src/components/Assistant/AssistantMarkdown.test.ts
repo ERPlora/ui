@@ -1,5 +1,3 @@
-// BASE-G113 and G114: an answer painted with its format — never as HTML —, its links only to screens this app serves,
-// named as the menu names them; a table scrolls inside its own box; a quote (the model's warnings) is set apart.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -69,7 +67,7 @@ describe('AssistantMarkdown', () => {
     wrapper.unmount();
   });
 
-  // QA battery 2026-10-31 (B21, B25): «> ⚠️ …» showed as a literal line; the warning is a quoted block.
+  // «> ⚠️ …» showed as a literal line; the warning is a quoted block.
   it('paints a quote as a quote: its marks read inside it, never a literal «>»', async () => {
     const { wrapper } = await mountText('Confirma el cierre.\n\n> 📌 La sesión cerrada **no** se puede reabrir.\n>\n> - Cuenta el cajón');
     const quote = wrapper.find('blockquote.assistant-quote');
@@ -92,7 +90,7 @@ describe('AssistantMarkdown', () => {
     wrapper.unmount();
   });
 
-  // QA battery 2026-10-31 (B25, ui#55): «---» between the steps and the settings showed as text, not a line.
+  // «---» between the steps and the settings showed as text, not a line.
   it('paints a rule as a line between the parts of an answer, never a literal «---»', async () => {
     const { wrapper } = await mountText('1. Abre la caja\n2. Ciérrala\n\n---\n\n**Ajustes** que afectan');
     const rule = wrapper.find('hr.assistant-rule');

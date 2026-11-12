@@ -1,8 +1,3 @@
-// SettingsNumberField: a number field of a settings page, the one every «Settings» tab of the Hub had copied
-// (hub#982; APPOINTMENT-F19, RESERVATION-F03, ONLINE_BOOKING-F07, STAFF-F22, TABLE-F08, KITCHEN-F26,
-// ATTENDANCE-F04, SERVICE-F11, INVENTORY-F19): an outlined md number box with its floating label, painted from
-// what useSettingsForm gives (the form, the refusal's messages and `set`), the field's name and the page's texts.
-// What is typed goes to the form as text; a refusal of the server for the field is said under it, in red.
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { IonInput } from '@ionic/vue';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';

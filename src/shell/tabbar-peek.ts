@@ -1,16 +1,7 @@
-/**
- * Footer tab strip — make an overflowing strip SHOW that it continues (hub#1830). Ported from ERPlora
- * hub `apps/web/src/lib/tabbar-peek.ts` (origin/develop), with our token `--ep-tabbar-min`.
- *
- * `tabbar.css` paints a fade over the edge that hides tabs and `bindTabbar` hints the gesture once.
- * Neither is enough alone: a tab's icon and label are CENTRED, so when the cut leaves a narrow sliver
- * of the next tab the fade falls on empty background and the strip reads, at rest, exactly like one
- * that ends there (NN/g's illusion of completeness). What the market does on a mobile strip that
- * does not fit is leave the next tab genuinely PEEKING, cut through its own content (Material's
- * scrollable tabs, Apple's partially visible tab, Lightspeed's carousel); the enterprise web's «More»
- * menu is a desktop answer. So: pick the tab width that makes the cut fall past the centre of the
- * first hidden tab, publish it in `--ep-tabbar-min`, and keep scrolling.
- */
+// A tab's icon and label are centred, so a cut that leaves a narrow sliver of the next tab puts the edge fade on empty
+// background, and the strip reads as one that ends there. As Material's scrollable tabs and Apple's tab bars do, the
+// next tab is left peeking, cut through its own content: the tab width that makes the cut fall past the centre of the
+// first hidden tab is published in `--ep-tabbar-min`.
 import { FADE_PX, syncTabbarOverflow } from './tabbar';
 
 /** The token `tabbar.css` reads for the narrowest a tab may be before the strip scrolls. */
@@ -69,8 +60,8 @@ export function hidesTabsSilently(geometry: TabbarGeometry): boolean {
  *     firstTabLeft + whole · (width + gap) + width / 2 = visibleWidth − PEEK_MARGIN_PX
  *
  * and takes the largest `whole` whose answer still respects the width the tabs already had (the
- * floor, per product: 64px in `tabbar.css`). When not even one whole tab and the peek fit at the
- * floor, the floor stands and there is no peek (hub#1841): a squeezed label is worse.
+ * floor: 64px in `tabbar.css`). When not even one whole tab and the peek fit at the
+ * floor, the floor stands and there is no peek: a squeezed label is worse.
  */
 export function peekTabWidth(geometry: TabbarGeometry): number | null {
   if (geometry.contentWidth <= geometry.visibleWidth + EPSILON) return null;
@@ -94,7 +85,7 @@ export function peekTabWidth(geometry: TabbarGeometry): number | null {
   return Number.isFinite(width) && width > 0 ? width : null;
 }
 
-/** What one tab's label needs so that none of its words breaks in two (hub#2414). */
+/** What one tab's label needs so that none of its words breaks in two. */
 export interface TabLabelNeed {
   /** The label may break a line (`white-space` other than `nowrap`/`pre`). */
   wraps: boolean;
@@ -107,7 +98,7 @@ export interface TabLabelNeed {
 /**
  * The narrowest tab that keeps every word of every wrapping label whole, or `null` when there is
  * nothing to hold. Labels wrap BETWEEN words (`polish.css`), but a word longer than the tab breaks by
- * a letter («Disponibilida» / «d», hub#2414); this is the measured answer, for any language, font
+ * a letter («Disponibilida» / «d»); this is the measured answer, for any language, font
  * and system text size. Labels that never wrap are left out; capped at the strip's width.
  */
 export function wholeWordTabWidth(labels: readonly TabLabelNeed[], visibleWidth: number): number | null {
@@ -156,7 +147,7 @@ function readLabelNeeds(segment: HTMLElement): TabLabelNeed[] {
 
 /**
  * Scrolls the strip the least it takes to show its selected tab whole and one fade clear of each
- * edge that still hides tabs (hub#2414, hub#2603). The engine clamps the scroll to the strip, so
+ * edge that still hides tabs. The engine clamps the scroll to the strip, so
  * the last tab takes it to its end, where no fade is painted.
  */
 function keepSelectedTabInView(segment: HTMLElement): void {
@@ -213,7 +204,7 @@ export function bindTabbarPeek(segment: HTMLElement | null): () => void {
     const scrolled = segment.scrollLeft;
     segment.style.removeProperty(PEEK_PROPERTY);
 
-    // hub#2414: the floor a wrapping label needs to keep its words whole; it only RAISES the width.
+    // The floor a wrapping label needs to keep its words whole; it only raises the width.
     const firstTab = segment.querySelector<HTMLElement>('ion-segment-button');
     const wholeWords = wholeWordTabWidth(readLabelNeeds(segment), segment.clientWidth);
     const widened = firstTab !== null && wholeWords !== null && wholeWords > firstTab.offsetWidth;

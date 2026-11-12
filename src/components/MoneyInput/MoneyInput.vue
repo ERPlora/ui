@@ -1,24 +1,9 @@
 <script setup lang="ts">
-// MoneyInput — the one field an amount is typed in (a price, a cost, a supplement, a payment, a rule's amount), the
-// same in every form, the way Square, Shopify and Odoo take one: a text field with the decimal keyboard.
-//   <MoneyInput v-model="form.price" :label="t('pricing.price')" testid="price" :money="money" />
-// Contract:
-//   - `v-model` is the text, as typed («22,50», «1.234,56», «22,50 €» pasted from the screen); the form reads the
-//     minor units with `parseMoney(text, { money, signed })` when it saves and writes a stored amount back with
-//     `moneyFieldText` (both exported next to it).
-//   - `money` is the field's currency with its decimals (the business's, `useBusinessMoney`; a price list's, its own).
-//     Its code or its symbol around the figure is read, another currency's is not; at most its decimals (none in yen).
-//   - On leaving, a readable amount is rewritten in the page format («2.2» → «2,20»). What is not an amount says so
-//     under the field once the person leaves it, or with `showError` (after a save attempt), with an example in the
-//     field's money (`moneyExamples`: «12,50», «12» in yen); «1.250» says both readings. The server's message for the
-//     field (`errorText`) wins.
-//   - Until `money` is known the field neither rewrites nor judges what was typed: «150» is not made «150.00» (the yen
-//     has no decimals) and «¥1500» or «12,50 zł» are not «not an amount» before the business says its currency
-//     (hub#918, hub#921, hub#945). Once it arrives, what was left is read in it.
-//   - A price is never negative; a `signed` amount (a supplement) is read with its sign, and a ± button at the end of
-//     the field turns it into a discount and back, because a phone's decimal keyboard has no minus.
-//   - Outlined (`fill="outline"`, which only paints in `mode="md"`), floating label; `testid` on the ion-input and
-//     `<testid>-sign` on the ± button.
+// The one field an amount is typed in, the way Square, Shopify and Odoo take one: a text field with the decimal
+// keyboard. `v-model` is the text as typed; the form reads it with `parseMoney` when it saves and writes a stored
+// amount back with `moneyFieldText`. On leaving, a readable amount is rewritten in the page format («2.2» → «2,20»);
+// until `money` is known the field neither rewrites nor judges what was typed, and once it arrives what was left is
+// read in it. A `signed` amount has a ± button, because a phone's decimal keyboard has no minus.
 import { IonButton, IonInput } from '@ionic/vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';

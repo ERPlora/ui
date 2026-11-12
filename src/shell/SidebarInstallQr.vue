@@ -1,11 +1,7 @@
 <script setup lang="ts">
-// SidebarInstallQr — hub#1715, the door from this counter to somebody's phone: in the footer of the
-// hub's side menu (`createShell({ sidebar })`), a QR of this hub with «Open on your phone» and how to
-// keep it. Passive on purpose (hub#685): it asks nothing, covers nothing and has nothing to close, and
-// it is there for everyone — no role, no permission, no plan.
-//
-// On the rail (≥lg, folded from the topbar) the menu is 68 px and a readable code needs ~132 px, so its
-// icon stands in for it (polish.css swaps them) and opens the menu back up, where the code fits.
+// Passive on purpose: it asks nothing, covers nothing and has nothing to close, and it is there for everyone, with
+// no role, permission or plan. On the rail (≥lg, folded from the topbar) the menu is 68 px and a readable code needs
+// ~132 px, so its icon stands in for it (polish.css swaps them) and opens the menu back up, where the code fits.
 import { IonButton } from '@ionic/vue';
 import QRCode from 'qrcode';
 import { onMounted, shallowRef } from 'vue';

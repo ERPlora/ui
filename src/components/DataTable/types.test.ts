@@ -66,14 +66,14 @@ describe('DataTable types', () => {
     expect(wrong).toBe('missing');
   });
 
-  it('views, sort and the primary action are the small closed shapes of the Lit original', () => {
+  it('views, sort and the primary action are small closed shapes', () => {
     expectTypeOf<DataTableView>().toEqualTypeOf<'table' | 'cards'>();
     expectTypeOf<DataTableSort>().toEqualTypeOf<{ sort: string; dir: 'asc' | 'desc' }>();
     const primary: DataTablePrimaryAction = { label: 'New order', icon: 'add' };
     expect(primary.label).toBe('New order');
   });
 
-  it('W-19: a column says how much it matters; an action may stay out or live only in «⋮»', () => {
+  it('a column says how much it matters; an action may stay out or live only in «⋮»', () => {
     expectTypeOf<DataTableColumnPriority>().toEqualTypeOf<'high' | 'normal' | 'low'>();
     const column: DataTableColumn<Item> = { key: 'address', label: 'Web address', priority: 'low' };
     const open: DataTableAction<Item> = { id: 'open', label: 'Open', pinned: true };

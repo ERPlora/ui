@@ -1,5 +1,3 @@
-// BASE-G120: the conversation lives only in this tab of the person's browser (sessionStorage), never on a server;
-// another person on the same till starts empty (gh:hub#2538). Cases of the old hub's `assistant-history.test.ts`.
 import { describe, expect, it } from 'vitest';
 
 import { memoryStorage } from './__tests__/mount-assistant';

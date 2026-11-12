@@ -99,7 +99,7 @@ describe("parseErrorEnvelope", () => {
     }
   });
 
-  it("words that generic error for a person, in the language of the page (hub#2281)", () => {
+  it("words that generic error for a person, in the language of the page", () => {
     document.documentElement.lang = "es";
     const err = parseErrorEnvelope(502, "<html><body>502 Bad Gateway</body></html>");
     expect(err).toMatchObject({ status: 502, code: "unexpected_response", message: es.sdk.errors.unexpected });

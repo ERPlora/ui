@@ -1,16 +1,9 @@
 <script setup lang="ts">
-// StatusPill — the status chip of the SaaS panel (mockups `mockups/saas-panel/`): the old
-// `.status-pill .st-*` of `erplora-admin.css` plus the `st-info` tone and the busy pulse of
-// `mock.css`, rebuilt with our tokens. A short label on a tint of its tone, with a dot of the same
-// colour. For the panel's own statuses use the helpers of `statuses.ts`, which give tone and label:
-//   <StatusPill v-bind="businessStatusPill(row.status)" />
-// Colours (WCAG AA on every surface, light and dark; `StatusPill.contrast.test.ts`): one tone per
-// pill; the tint is that tone over the surface and the text is the tone mixed with black (light)
-// or with white (dark), each tone by its own amount.
-//   - default slot → replaces `label` (e.g. a status with a date)
-// It never grows past its box (hub#53: a narrow table cell cut «● Document pending» to «● Document
-// pend»): the label wraps between words, a word that alone does not fit ends in «…», and the label
-// is the pill's `title`, so the whole text is one hover away.
+// A short label on a tint of its tone, with a dot of the same colour; the panel's own statuses get tone and label
+// from the helpers of `statuses.ts` (`<StatusPill v-bind="businessStatusPill(row.status)" />`). The text is the tone
+// mixed with black (light) or white (dark), each tone by its own amount, to read at WCAG AA on every surface. It never
+// grows past its box: the label wraps between words, a word that alone does not fit ends in «…», and the label is the
+// pill's `title`, so the whole text is one hover away.
 import type { StatusPillSize, StatusPillTone } from './types';
 
 withDefaults(
@@ -23,7 +16,7 @@ withDefaults(
     dot?: boolean;
     /** The dot pulses: something is in progress. */
     busy?: boolean;
-    /** `md` is the pill of the mockups; `sm` is tighter, for dense rows. */
+    /** `sm` is tighter, for dense rows. */
     size?: StatusPillSize;
   }>(),
   { label: '', tone: 'neutral', dot: true, busy: false, size: 'md' },

@@ -1,30 +1,7 @@
-// The device's notices (APPOINTMENT-F28; the old hub's HUB_SHELL-F66, HUB_APP-F24 and HUB_APP-F25): what the
-// modules tell — a booking or a cancellation the customer made herself — goes out as a SYSTEM notice of the
-// installed app, so the till hears it with the screen on another view or locked. The shell knows no module:
-// the project hands it the live rows (`base.notice.list` in the hub, which fills in each module's texts) and
-// this door tells each row once on this device.
-//
-// What is pinned:
-// - once per device: a row is told by its key, id and instant (`at`), remembered in the device (`TOLD_KEY`), so
-//   the next live result, a reconnection that brings the last 24 hours back or a reload never repeat it; a
-//   device's first day only learns what is there (no burst of the last 24 hours);
-// - only through the installed app (`erplora_notify`): a browser has the bell, and asks for no permission
-//   (Fresha, Booksy, Square, Toast and Lightspeed warn on their app, not in the browser);
-// - on Android, with the permission refused nothing is sent (HUB_APP-F24): the call would open Android's bare
-//   dialog in the middle of the day; a computer and an Android below 13 have no such permission and send. The
-//   app asks for it only when the page does (HUB_APP-F07, hub#1732): where the person has something to be told,
-//   our sentence goes first («Let us keep you posted»), once per device — «Not now» is never asked again by
-//   itself —, then Android's dialog for notices only (hub#758);
-// - a tap opens the screen it is about (hub#2305): every notice goes out with a number of its own and its
-//   screen, and the tap the page was not there to hear is claimed from the app (hub#2360), retried while the
-//   app says the hub is still landing (hub#2658). Nothing here ever rejects: what it tells already happened;
-// - with the screen off the app keeps listening (HUB_APP-F26, hub#836; the old hub's hub#2307): Android freezes
-//   the page within minutes, so while somebody is signed in, has something to be told and the notices are not
-//   refused, the page asks the app to stay listening with the ongoing notification Android requires («ERPlora
-//   is listening»), as the order-taking apps for merchants do (Uber Eats Orders, Glovo Partners, Deliveroo
-//   Restaurant Hub). It is decided after our sentence, so the answer to it counts, and stopped when the page
-//   lets go or the person signs out (`stopNoticeListening`). An app without the command (the 1.1.34, which
-//   dropped the foreground service, ERPlora/app#25) is noticed, written down once and not asked again.
+// What the modules tell (a booking or a cancellation the customer made herself) goes out as a system notice of the
+// installed app, so the till hears it with the screen on another view or locked. The shell knows no module: the
+// project hands it the live rows (`base.notice.list` in the hub) and each row is told once on this device. Only the
+// installed app notifies; a browser has the bell. Nothing here ever rejects: what it tells already happened.
 import { alertController } from '@ionic/vue';
 import { onBeforeUnmount, onMounted, type Ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -52,9 +29,12 @@ export interface NativeBridge {
   listen?: (event: string, cb: () => void) => Promise<() => void>;
 }
 
-/** Where the device remembers what it told. */
+/**
+ * Where the device remembers what it told, by key, id and instant, so a new live result, a reconnection that brings
+ * the last 24 hours back or a reload never repeat a row. A device's first day only learns what is there.
+ */
 export const TOLD_KEY = 'erplora.notices.told';
-/** Where the device remembers that the person answered our sentence (the old hub's key). */
+/** Where the device remembers that the person answered our sentence; devices already hold this name, so it stays. */
 export const PRIMER_ANSWERED_KEY = 'erplora.notifications.primerAnswered';
 /** How many notices the device remembers: the last 24 hours of a busy salon, with room to spare. */
 export const REMEMBERED_TOLD = 200;
@@ -68,7 +48,10 @@ export const NOT_THE_LINKED_HUB = 'not_the_linked_hub';
 export const NOTICE_TAPPED_EVENT = 'erplora://notice-tapped';
 /** After the page's `load`, how long the app may still be saying `not_the_linked_hub`: about eight seconds. */
 const LANDING_RETRIES_MS = [250, 500, 1000, 2000, 4000];
-/** The app's command that keeps it listening with the screen off (ERPlora/app, HUB_APP-F26). */
+/**
+ * The app's command that keeps it listening with the screen off: Android freezes the page within minutes, so the app
+ * holds the ongoing notification Android requires («ERPlora is listening»), as merchants' order-taking apps do.
+ */
 export const KEEP_LISTENING_COMMAND = 'plugin:erplora-android|keep_listening';
 /** The words of the ongoing notification, in one place so the test checks `en` and `es`. */
 export const NOTICE_LISTENING_COPY_KEYS = [
@@ -145,7 +128,7 @@ function remember(storage: NoticeDoorDeps['storage'], told: string[]): void {
 /**
  * What Android says about the notices: `false` refused, `true` allowed (also where there is no such permission to
  * give: an Android below 13, a computer), `null` unknown (no plugin, a read that failed or said nothing). Asked
- * again while the app says the hub is still landing (hub#2658), so the answer is the linked hub's.
+ * again while the app says the hub is still landing, so the answer is the linked hub's.
  */
 async function noticesAllowed(bridge: NativeBridge, wait: (ms: number) => Promise<void>): Promise<boolean | null> {
   try {
@@ -172,10 +155,11 @@ export function createNoticeDoor(deps: NoticeDoorDeps): NoticeDoor {
       const fresh = notices.filter((notice) => !told?.includes(token(notice)));
       remember(storage, [...(told ?? []), ...fresh.map(token)]);
       if (told === null || fresh.length === 0) return;
-      // The first result of a reopened page often lands before the app lets it drive (hub#2658): the night's
-      // bookings wait for the hub to land, they are not lost.
+      // The first result of a reopened page often lands before the app lets it drive: the night's bookings wait for
+      // the hub to land, they are not lost.
       const wait = deps.wait ?? afterTheLoad;
-      // Only a refusal stops it: anything else (granted, not asked for here, no plugin) lets it go out.
+      // Only a refusal stops it, since the call would open Android's bare dialog in the middle of the day; anything
+      // else (granted, not asked for here, no plugin) lets it go out.
       if ((await noticesAllowed(bridge, wait)) === false) return;
       for (const notice of [...fresh].reverse()) {
         const id = next;
@@ -225,7 +209,7 @@ export function afterTheLoad(ms: number): Promise<void> {
   return loaded.then(() => new Promise<void>((resolve) => setTimeout(resolve, ms)));
 }
 
-/** Asks again while the app answers `not_the_linked_hub` (hub#2658); any other refusal comes back at once. */
+/** Asks again while the app answers `not_the_linked_hub`; any other refusal comes back at once. */
 export async function whileTheHubLands<T>(attempt: () => Promise<T>, wait: (ms: number) => Promise<void>): Promise<T> {
   for (const ms of LANDING_RETRIES_MS) {
     try {

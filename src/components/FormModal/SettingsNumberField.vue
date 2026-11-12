@@ -16,23 +16,9 @@ export interface SettingsNumberFieldState<Form extends object> {
 </script>
 
 <script setup lang="ts" generic="Form extends object, Field extends SettingsTextField<Form>">
-// SettingsNumberField — a number field of a settings page, the one every «Settings» tab of the Hub had copied
-// (hub#982; APPOINTMENT-F19, RESERVATION-F03, ONLINE_BOOKING-F07, STAFF-F22, TABLE-F08, KITCHEN-F26,
-// ATTENDANCE-F04, SERVICE-F11, INVENTORY-F19), painted from what `useSettingsForm` gives:
-//   const settings = useSettingsForm(data, useCommand('app.settings.update'), { toForm, numbers: ['default_duration'] });
-//   <SettingsNumberField :settings="settings" field="default_duration" testid="app-settings-default_duration"
-//                        :label="t('app.settings.defaultDuration')" min="1" />
-// Contract:
-//   - An outlined box (`fill="outline"`, which only paints in `mode="md"`) with its floating label, `type="number"`
-//     and the number keyboard (`inputmode="decimal"` for a figure with decimals, as a coordinate).
-//   - Its value is the form's (`form[field]`, empty until the settings come), so a change saved elsewhere repaints
-//     it; what is typed goes to the form as text (`set(field, text)`, empty when the box is emptied), and
-//     useSettingsForm sends it as a number when it is a whole one.
-//   - A refusal of the server for the field (`fieldErrors[field]`: the field keeps its name on the server) is said
-//     under it, in red, until useSettingsForm takes it away.
-//   - Every text is the page's (`label`, `helperText`): the piece says nothing of its own.
-//   - What differs by page: `min`, `max`, `step`, `inputmode` and `disabled` (whoever may not change the settings).
-//     `testid` is the box's `data-testid`.
+// A number field of a settings page, painted from what `useSettingsForm` gives. Its value is the form's, so a change
+// saved elsewhere repaints it; what is typed goes to the form as text, and `useSettingsForm` sends it as a number when
+// it is a whole one. The server's refusal for the field is said under it, by the field's name on the server.
 import { IonInput } from '@ionic/vue';
 import { computed } from 'vue';
 

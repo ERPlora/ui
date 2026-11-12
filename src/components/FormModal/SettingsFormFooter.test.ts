@@ -1,8 +1,3 @@
-// SettingsFormFooter: the end of a settings page's form, the one every «Settings» tab of the Hub had copied
-// (hub#897; APPOINTMENT-F19, RESERVATION-F03, ONLINE_BOOKING-F07, STAFF-F22, TABLE-F08, KITCHEN-F26,
-// ATTENDANCE-F04, SERVICE-F11): the refusal's red notice, «saved» and «Save», painted from what
-// useSettingsForm gives and from the page's own texts. Its variants are the pages' (Staff and Attendance:
-// a spinner on Save; Attendance: its icon, Save on without changes and only for whoever may change them).
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -158,8 +153,7 @@ describe('SettingsFormFooter', () => {
     expect([...row.children]).toEqual([hook('save').element]);
   });
 
-  // As FormModal's footer, and as Staff and Attendance had it: on a wide page a «Save» as wide as the form (the
-  // other six pages, a grid child stretched) was a bar 1168 px long at 1440x900.
+  // A «Save» stretched as a grid child is as wide as the form: a bar 1168 px long on a 1440x900 page.
   it('«Save» sits at the end of its row, at its own width, as FormModal\'s does', () => {
     const { hook } = mountFooter(state());
     const source = readFileSync(join(HERE, 'SettingsFormFooter.vue'), 'utf8');

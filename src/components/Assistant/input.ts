@@ -1,11 +1,7 @@
-// What the assistant's composer takes (BASE-G111, G112):
-// - `enterSends`: Enter sends on a keyboard (Shift+Enter is a new line, an IME composition is left alone); on a touch
-//   screen Enter is a new line and the send button sends, as the messaging apps do;
-// - `fileProblem`: the files erplora.com reads (assistant/attachments.py of the SaaS: images, PDF, Word, Excel, text,
-//   CSV, Markdown, JSON), at most 8 MB each (its door takes about 9) and 20 MB per question, refused with the key of
-//   the reason; `base64Of` reads one in the browser, nothing is uploaded until the question goes;
-// - `recordVoice`: the dictation with the microphone (`getUserMedia` + `MediaRecorder`), in a type erplora.com
-//   transcribes, at most two minutes (its door takes 2 MB), the microphone freed as soon as it stops.
+// The limits mirror what erplora.com accepts (the SaaS's assistant/attachments.py): files of the types it reads, at
+// most 8 MB each (its door takes about 9) and 20 MB per question; a dictation in a type it transcribes, at most two
+// minutes (its door takes 2 MB). On a touch screen Enter is a new line and the send button sends, as the messaging apps
+// do.
 
 export const MAX_FILE_BYTES = 8 * 1024 * 1024;
 export const MAX_QUESTION_BYTES = 20 * 1024 * 1024;

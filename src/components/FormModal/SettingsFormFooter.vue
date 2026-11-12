@@ -1,26 +1,8 @@
 <script setup lang="ts">
-// SettingsFormFooter — the end of a settings page's form, the one every «Settings» tab of the Hub had
-// copied (hub#897; APPOINTMENT-F19, RESERVATION-F03, ONLINE_BOOKING-F07, STAFF-F22, TABLE-F08,
-// KITCHEN-F26, ATTENDANCE-F04, SERVICE-F11), painted from what `useSettingsForm` gives:
-//   const settings = useSettingsForm(data, useCommand('app.settings.update'), { toForm });
-//   const { form, fieldErrors, set } = settings;
-//   <form @submit.prevent="settings.save()">
-//     …the fields…
-//     <SettingsFormFooter :settings="settings" testid="app-settings" :save-label="t('app.settings.save')"
-//                         :saved-label="t('app.settings.saved')" :error-heading="t('app.settings.saveError')" />
-//   </form>
-// Contract:
-//   - The refusal's red notice (its message, under `errorHeading` if any) while `showsError` says it has
-//     something to say; the green «saved» notice while `saved`; then «Save» (submit), off with nothing to
-//     send or while saving, and a tap on it saves (`settings.save()`).
-//   - Every text is the page's (`saveLabel`, `savedLabel`, `errorHeading`): the piece says nothing of its own.
-//   - The notices are the page form's own children, right before a row that holds «Save» at its end and at
-//     its own width, as FormModal's footer (and Staff's and Attendance's pages) have it: the form spaces them
-//     as it spaces its fields, and a wide page no longer paints «Save» as a bar as long as the form.
-//   - Hooks: `<testid>-save-error`, `<testid>-saved` and `<testid>-save`.
-//   - Variants: `spinner` (Save spins while saving), `saveIcon` (its icon, the spinner replacing it while
-//     saving), `allowUnchanged` (Save stays on with nothing to send: it sends nothing and says «saved»)
-//     and `readonly` (no Save: whoever may not change the settings).
+// The end of a settings page's form, painted from what `useSettingsForm` gives: the refusal's red notice while
+// `showsError`, the green «saved» notice while `saved`, then «Save», off with nothing to send or while saving.
+// The notices are children of the page's form, so it spaces them as it spaces its fields, and «Save» keeps its own
+// width at the end of its row instead of stretching across a wide page. Every text is the page's.
 import { IonButton, IonSpinner } from '@ionic/vue';
 import { computed, type Ref } from 'vue';
 
