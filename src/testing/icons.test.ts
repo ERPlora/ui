@@ -2,16 +2,13 @@
 // spells out, whether each one is registered, and a scan of a tree of files by globs. This package
 // runs it on itself (`src/shell/icons.test.ts`); hub and saas run it on their own apps. And what a
 // test setup calls so an `ion-icon` paints by name, as the shell makes it paint at boot.
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-
 import { IonIcon } from '@ionic/vue';
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ION_ICONS } from '../shell/icons';
-import { iconReferences, isRegisteredIcon, registerShellIcons, scanIcons } from './icons';
+import { useTempTree } from './__tests__/tempTree';
+import { iconReferences, isRegisteredIcon, registerShellIcons, scanIcons, scanIconsAsync, type ScanIconsOptions, type ScanIconsResult } from './icons';
 
 describe('registerShellIcons', () => {
   /** The registry an `ion-icon` reads names from; every copy of Ionicons shares it through `window`. */
@@ -130,48 +127,42 @@ describe('iconReferences / isRegisteredIcon', () => {
   });
 });
 
-describe('scanIcons (a tree of files, by globs relative to root)', () => {
-  let root: string;
+/** Both readers of a tree: `scanIcons`, synchronous, and `scanIconsAsync`, which lists and reads it at once without
+ *  holding the thread. They find the same. */
+const SCANS: [string, (options: ScanIconsOptions) => Promise<ScanIconsResult>][] = [
+  ['scanIcons', async (options) => scanIcons(options)],
+  ['scanIconsAsync', scanIconsAsync],
+];
 
-  /** Writes `source` at `root/relative`, creating its folders. */
-  const put = (relative: string, source: string): void => {
-    mkdirSync(dirname(join(root, relative)), { recursive: true });
-    writeFileSync(join(root, relative), source);
-  };
+describe.each(SCANS)('%s (a tree of files, by globs relative to root)', (_name, scan) => {
+  const tree = useTempTree('erplora-scan-icons-');
+  const { put } = tree;
 
-  beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'erplora-scan-icons-'));
-  });
-
-  afterEach(() => {
-    rmSync(root, { recursive: true, force: true });
-  });
-
-  it('reports each unregistered icon with its file, and every glob that matched nothing', () => {
+  it('reports each unregistered icon with its file, and every glob that matched nothing', async () => {
     put('a/x.vue', '<template><HubIcon name="mdi:no-such" /><HubIcon name="mdi:cart" /></template>');
-    expect(scanIcons({ root, sources: ['a/**/*.vue', 'b/**/*.ts'] })).toEqual({
+    expect(await scan({ root: tree.root, sources: ['a/**/*.vue', 'b/**/*.ts'] })).toEqual({
       unregistered: [{ file: 'a/x.vue', name: 'mdi:no-such' }],
       emptyGlobs: ['b/**/*.ts'],
     });
   });
 
-  it('is clean when every icon is registered and every glob matches', () => {
+  it('is clean when every icon is registered and every glob matches', async () => {
     put('a/x.vue', '<template><ion-icon name="add-outline" /></template>');
     put('b/menu.ts', "export const menu = { icon: 'ion:flask-outline' };");
-    expect(scanIcons({ root, sources: ['a/**/*.vue', 'b/**/*.ts'] })).toEqual({ unregistered: [], emptyGlobs: [] });
+    expect(await scan({ root: tree.root, sources: ['a/**/*.vue', 'b/**/*.ts'] })).toEqual({ unregistered: [], emptyGlobs: [] });
   });
 
-  it('skips tests and node_modules; a glob that only finds those is empty', () => {
+  it('skips tests and node_modules; a glob that only finds those is empty', async () => {
     put('a/x.test.ts', "const a = { icon: 'no-such-in-test' };");
     put('a/__tests__/y.ts', "const a = { icon: 'no-such-in-tests-dir' };");
     put('a/node_modules/dep/z.ts', "const a = { icon: 'no-such-in-dep' };");
-    expect(scanIcons({ root, sources: ['a/**/*.ts'] })).toEqual({ unregistered: [], emptyGlobs: ['a/**/*.ts'] });
+    expect(await scan({ root: tree.root, sources: ['a/**/*.ts'] })).toEqual({ unregistered: [], emptyGlobs: ['a/**/*.ts'] });
   });
 
-  it('lists a file matched by two globs once, sorted by file and name', () => {
+  it('lists a file matched by two globs once, sorted by file and name', async () => {
     put('b/y.vue', '<HubIcon name="mdi:no-such-2" /><HubIcon name="lucide:no-such-1" />');
     put('a/x.vue', '<ion-icon name="no-such-3" />');
-    expect(scanIcons({ root, sources: ['**/*.vue', 'b/*.vue'] }).unregistered).toEqual([
+    expect((await scan({ root: tree.root, sources: ['**/*.vue', 'b/*.vue'] })).unregistered).toEqual([
       { file: 'a/x.vue', name: 'no-such-3' },
       { file: 'b/y.vue', name: 'lucide:no-such-1' },
       { file: 'b/y.vue', name: 'mdi:no-such-2' },
