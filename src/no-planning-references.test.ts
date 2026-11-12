@@ -39,9 +39,6 @@ const INTERNAL_REFERENCE = new RegExp(
 const TEST_CALLEE = /^(?:describe|it|test)(?:\.\w+)*$/;
 const TABLE_TEST_CALLEE = /^(?:describe|it|test)(?:\.\w+)*\.each$/;
 
-// A patch carries its comments as they land in a dependency's code, and the lockfile pins its hash.
-const NOT_READ_FOR_INTERNAL_REFERENCES = /^patches\//;
-
 const REPO_ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 type Note = { line: number; text: string };
@@ -127,7 +124,6 @@ function explanatoryNotes(path: string, text: string): Note[] {
 }
 
 function findInternalReferences(path: string, text: string): number[] {
-  if (NOT_READ_FOR_INTERNAL_REFERENCES.test(path)) return [];
   const lines = explanatoryNotes(path, text).flatMap(({ line, text: note }) =>
     note.split("\n").flatMap((part, index) => (INTERNAL_REFERENCE.test(part) ? [line + index] : [])),
   );
@@ -198,14 +194,14 @@ describe("code reads on its own, without the planning documents", () => {
     expect(
       findInternalReferences("src/X.vue", "<template>\n  <!-- hub#1715: always on -->\n  <div />\n</template>\n<script setup lang=\"ts\">\n// kept (saas#272)\nconst a = 1;\n</script>\n"),
     ).toEqual([2, 6]);
+    expect(findInternalReferences("patches/some-lib@1.0.0.patch", "+const a = 1;\n+ * one page at a time (hub#2242)\n")).toEqual([2]);
   });
 
-  it("leaves test data, external ids and plain prose alone, and does not read a dependency patch", () => {
+  it("leaves test data, external ids and plain prose alone", () => {
     expect(findInternalReferences("src/vite.test.ts", "const importers = ['/repo/hub-next/frontend/main.ts'];")).toEqual([]);
     expect(findInternalReferences("src/x.test.ts", "const rows = [{ code: 'A-1' }, { session: 'S-2' }];")).toEqual([]);
     expect(findInternalReferences("src/x.ts", "// UTF-8, ISO-8601 and WCAG 2.1 AA; the hub's own menu")).toEqual([]);
     expect(findInternalReferences("src/x.ts", "// the ERPlora/ui issue ui#81 explains the key")).toEqual([]);
-    expect(findInternalReferences("patches/@ionic__vue@8.8.9.patch", "+ * ERPlora hub#2242: one page at a time")).toEqual([]);
   });
 
   it("lists the versioned code files, which include this one and leave the Markdown documents out", () => {

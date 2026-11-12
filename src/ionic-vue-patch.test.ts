@@ -8,7 +8,7 @@ describe("@ionic/vue patch", () => {
     const require = createRequire(import.meta.url);
     const pkgDir = dirname(require.resolve("@ionic/vue/package.json"));
     const source = readFileSync(join(pkgDir, "dist/index.js"), "utf8");
-    expect(source).toContain("ERPlora hub#2242");
+    expect(source).toContain("ERPlora patch: page transitions run one at a time");
     expect(source).toContain("pageTransitionTail");
   });
 });
