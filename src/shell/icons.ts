@@ -1,14 +1,13 @@
-// The shell's icon registry (PLAN §16.4). Every icon is baked into the bundle at build time and
-// nothing is fetched at runtime (CSP `connect-src` has no external hosts):
+// Every icon is baked into the bundle at build time and nothing is fetched at runtime (CSP
+// `connect-src` has no external hosts):
 //   - Ionicons (`ion:`, the default set) come from `ionicons/icons`, each one already the
 //     `data:image/svg+xml;utf8,<svg …>` URL that `ion-icon` parses inline. `createShell` registers
 //     them with `addIcons(ION_ICONS)`, so a template's `ion-icon` with a `name` paints offline.
 //   - The other Iconify sets (`lucide:`, `mdi:`, `material-symbols:`) come from `unplugin-icons`
 //     (`~icons/<set>/<name>`, the SVG rendered from the installed `@iconify-json/*` by `erploraVite()`).
-// Only what is listed here exists: an icon that is not registered paints NOTHING. The guardrail in
-// `icons.test.ts` fails when a template, an `ionIconSrc`/`resolveIcon` call, an `icon:` key or a
-// `*_ICONS` table names another one. Adding an icon is one import plus one entry. Paint them with
-// `HubIcon` (any set) or `ion-icon` (Ionicons).
+// Only what is listed here exists: an icon that is not registered paints nothing, and `icons.test.ts`
+// fails when a template, an `ionIconSrc`/`resolveIcon` call, an `icon:` key or a `*_ICONS` table names
+// another one. Adding an icon is one import plus one entry.
 import {
   add,
   addOutline,
@@ -119,7 +118,7 @@ import {
   playCircleOutline,
   checkmarkDoneOutline,
   pricetag,
-  // Employees' tabs (APP-BASE-5, the old hub's): «Roles» and «Approvals».
+  // Employees' tabs: «Roles» and «Approvals».
   shieldCheckmarkOutline,
   fingerPrintOutline,
 } from 'ionicons/icons';

@@ -45,7 +45,7 @@ function mountTopbar(props: Record<string, unknown>, locale = 'en', slots = {}) 
 }
 
 describe('AppTopbar', () => {
-  it('is the flat shell header with the screen title as its level-1 heading (hub#794)', () => {
+  it('is the flat shell header with the screen title as its level-1 heading', () => {
     const wrapper = mountTopbar({});
     expect(wrapper.get('ion-header').classes()).toEqual(expect.arrayContaining(['ion-no-border', 'app-topbar']));
     const title = wrapper.get('ion-title');
@@ -68,7 +68,7 @@ describe('AppTopbar', () => {
     expect(title.attributes('aria-level')).toBeUndefined();
   });
 
-  it('always shows the menu button (auto-hide off, hub#1831), labelled in the user language', () => {
+  it('always shows the menu button (auto-hide off), labelled in the user language', () => {
     const en = mountTopbar({}).get('ion-buttons[slot="start"] ion-menu-button');
     expect(en.classes()).toContain('menu-toggle');
     expect((en.element as HTMLElement & { autoHide?: boolean }).autoHide).toBe(false);
@@ -95,7 +95,6 @@ describe('AppTopbar', () => {
     expect(router.currentRoute.value.path).toBe('/demo/items');
   });
 
-  // R-03 (UX audit 2, 2026-10-14): the arrow was an unnamed `role="img"` inside the named button.
   it('back button: named by the button, its arrow decorative; nothing in the bar goes unnamed', () => {
     const wrapper = mountTopbar({ backHref: '/demo/items' });
     expect(wrapper.get('[data-testid="topbar-back"] ion-icon').attributes('aria-hidden')).toBe('true');
@@ -118,8 +117,8 @@ describe('AppTopbar', () => {
   });
 });
 
-// PoC issue C: at 390 px a long title covered the menu button and «Mark done»/«Delete». In ios
-// Ionic lays the title `position: absolute` across the WHOLE toolbar and keeps it off the buttons
+// At 390 px a long title can cover the menu button and the actions: in ios Ionic lays the title
+// `position: absolute` across the whole toolbar and keeps it off the buttons
 // with `padding: 0 90px`, which Tailwind's preflight wipes. Layout is not computed under happy-dom,
 // so these check the component's own (scoped) rules and that they reach the rendered elements.
 describe('AppTopbar: a long title never covers the buttons', () => {
@@ -155,7 +154,7 @@ describe('AppTopbar: a long title never covers the buttons', () => {
   });
 
   it('on a phone (≤767 px) each button group takes only what its buttons need, both alike, and the title the rest', () => {
-    // At 390 the three thirds left the title 127 px between two groups of two icons (hub#111).
+    // At 390 the three thirds left the title 127 px between two groups of two icons.
     const phone = /@media\s*\(max-width:\s*767px\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     const rule = (selector: string) =>
       (new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(phone)?.[1] ?? '')
@@ -197,10 +196,9 @@ const PopoverStub = defineComponent({
   },
 });
 
-// FIX-SHELL-SPLIT-PANE (PLAN-MIGRATIONS §16, Ioan 2026-10-17): the topbar of the old hub — the drawer
-// button below lg, Back only on a detail (`backHref`: never on the screens of a module), the rail toggle
-// from lg, the title centred and, at the end, the view's actions and the ⠿ «My apps». The person lives
-// at the top of the side menu, not in the bar (hub#146).
+// The topbar with the hub's sidebar: the drawer button below lg, Back only on a detail (`backHref`:
+// never on the screens of a module), the rail toggle from lg, the title centred and, at the end, the
+// view's actions and «My apps». The person lives at the top of the side menu, not in the bar.
 describe("AppTopbar with the hub's sidebar", () => {
   const ME: SessionMe = {
     user: { id: 'u1', label: 'Ana Pérez' },
@@ -265,7 +263,7 @@ describe("AppTopbar with the hub's sidebar", () => {
     expect(startOrder(mountHubTopbar({ title: 'Home' }))).toEqual(['menu', 'topbar-rail']);
   });
 
-  it('Back on a detail (backHref), between the drawer button and the rail toggle, as the old hub', async () => {
+  it('Back on a detail (backHref), between the drawer button and the rail toggle', async () => {
     await hubRouter.push('/demo/items/1');
     const wrapper = mountHubTopbar({ backHref: '/demo/items' });
     expect(startOrder(wrapper)).toEqual(['menu', 'topbar-back', 'topbar-rail']);
@@ -288,7 +286,7 @@ describe("AppTopbar with the hub's sidebar", () => {
     expect(rail.attributes('aria-label')).toBe('Collapse menu');
   });
 
-  it('at the end, the view actions and then the apps; no avatar: the person is in the side menu (hub#146)', () => {
+  it('at the end, the view actions and then the apps; no avatar: the person is in the side menu', () => {
     const wrapper = mountHubTopbar({}, { slots: { actions: '<button class="new-item">New</button>' } });
     const order = end(wrapper)
       .findAll('.new-item, [data-testid="topbar-apps"]')
@@ -311,7 +309,7 @@ describe("AppTopbar with the hub's sidebar", () => {
     expect(es.get('[data-testid="topbar-apps"]').attributes('aria-label')).toBe('Mis apps');
   });
 
-  // hub#925: a screen that asks for credentials, or paints its own frame, shows none of the
+  // A screen that asks for credentials, or paints its own frame, shows none of the
   // authenticated chrome: no apps, and no rail of a menu that is not there (useChromeVisible).
   it('without a person signed in, or on a screen with its own frame, no apps and no rail toggle', async () => {
     const anonymous = mountHubTopbar({}, { me: null });
@@ -323,8 +321,8 @@ describe("AppTopbar with the hub's sidebar", () => {
     expect(framed.find('[data-testid="topbar-rail"]').exists()).toBe(false);
   });
 
-  // APP-BASE-1: the project's piece of the bar (the hub's bell) closes it, after «My apps», as the old
-  // hub's bell did; it is authenticated chrome like the apps (useChromeVisible).
+  // The project's piece of the bar (the hub's bell) closes it, after «My apps»; it is authenticated
+  // chrome like the apps (useChromeVisible).
   const Bell = { name: 'ProjectBell', render: () => h('button', { 'data-testid': 'bell', 'aria-label': 'Bell' }) };
 
   it("ends with the project's piece of the bar, after the view actions and «My apps»", () => {
@@ -359,7 +357,7 @@ describe("AppTopbar with the hub's sidebar", () => {
     expect(wrapper.find('[data-testid="topbar-user"]').exists()).toBe(false);
   });
 
-  // hub#690: on a phone (ios) the icons covered the title. Every button of the bar lives in one of
+  // On a phone (ios) the icons must not cover the title: every button of the bar lives in one of
   // the two `ion-buttons` groups the scoped rules size (see «a long title never covers the buttons»),
   // so the title keeps the room between them and is cut with «…» instead.
   it('every button sits in a scoped button group, so none of them covers the title', async () => {
@@ -375,10 +373,10 @@ describe("AppTopbar with the hub's sidebar", () => {
   });
 });
 
-// FIX of APP-DEMO (hub#111): at 390 a detail with three text actions in the bar («Edit», «Mark done»,
-// «Delete») left its title as «Flo…». On a phone (≤767 px), two or more actions of the view fold into
-// «⋮» («More actions»), which lists them in a popover, as Material's top app bar, Apple's navigation
-// bars and Polaris' page header do; one action, or a wider window, keeps them in the bar.
+// Three text actions in the bar leave a detail's title as «Flo…» at 390 px, so on a phone (≤767 px) two
+// or more actions of the view fold into «⋮» («More actions»), which lists them in a popover, as
+// Material's top app bar, Apple's navigation bars and Polaris' page header do; one action, or a wider
+// window, keeps them in the bar.
 describe('AppTopbar: on a phone, two or more actions fold into «More actions» (⋮)', () => {
   /** A window whose phone query (`max-width: 767px`) answers `phone`, and can be resized. */
   function screenOf(phone: boolean) {

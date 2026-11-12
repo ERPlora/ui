@@ -1,18 +1,8 @@
 <script setup lang="ts">
-// App — root of the shell. Ported from ERPlora hub `apps/web/src/App.vue` (origin/develop): the split
-// pane (`when="lg"`: a drawer on a phone, pinned from 992 px), the side menu and the router outlet. The
-// person at the top opens the user menu (mockups README §3: «usuario arriba, logo abajo»). What the
-// menu lists:
-// - the SaaS: the sections of `base.session.me` (with Home first when the shell's Home is on);
-// - the hub (`createShell({ sidebar })`, PLAN-MIGRATIONS §16): the old hub's — Home and the platform's
-//   entries whose screen exists, in groups, and no module (they open from «My apps» and Home); the QR
-//   «Open on your phone» in the footer, and the rail the topbar folds it to (sidebar.ts).
-// The project's piece of the footer (`createShell({ chrome: { sidebarFooter } })`, the hub's «Upgrade
-// plan») goes between the QR and the brand, as in the old hub. Its background piece (`chrome.background`,
-// the hub's device notices) is mounted once beside the pane while a person is signed in, keyed on them, and so is
-// each app's (`backgrounds`, a route marked `meta.background`: printing's print host).
-// Not ported (phase 1 has none of them, or they come later): switch user, app update, the version, and
-// the overlays mounted next to the pane (assistant, elevation, user switch).
+// The menu lists the sections of `base.session.me` (the SaaS) or the sidebar the project hands to
+// `createShell({ sidebar })` (the hub, sidebar.ts). The project's background piece (`chrome.background`)
+// and each app's (`backgrounds`, a route marked `meta.background`) are mounted once beside the pane while
+// a person is signed in, keyed on them.
 import {
   IonApp,
   IonContent,
@@ -51,10 +41,10 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
-// The one gate of the authenticated chrome (hub#925), shell-config.ts.
+// The one gate of the authenticated chrome (shell-config.ts).
 const showMenu = useChromeVisible();
 
-// Keyed on the person (hub#2539): the next one gets every screen mounted again, never what was read
+// Keyed on the person: the next one gets every screen mounted again, never what was read
 // with the session of the one who left. On the split pane and not on the outlet alone: Ionic wires
 // `ion-split-pane` and `ion-menu` to their `content-id` once, when they connect. The background pieces
 // add a suffix to it: the project's is the pane's sibling, and siblings need keys of their own.
@@ -107,7 +97,7 @@ function openUserMenu(event: Event): void {
 }
 
 // A native button should click on Enter/Space, but the webview does not do it consistently, so the
-// shell normalizes it (ported from the Hub as is): the click is what opens the menu.
+// shell normalizes it: the click is what opens the menu.
 function openUserMenuFromKeyboard(event: KeyboardEvent): void {
   if (event.currentTarget instanceof HTMLButtonElement) event.currentTarget.click();
 }
@@ -171,8 +161,8 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
           </ion-toolbar>
         </ion-header>
 
-        <!-- The hub's sidebar: its groups, each opened by a divider (the old hub's «General» and
-             «Account», without their words): one under the person, one between the two. -->
+        <!-- The hub's sidebar: its groups, each opened by a wordless divider: one under the person,
+             one between the two. -->
         <ion-content
           v-if="sidebar"
           class="sidebar-content"
@@ -293,7 +283,7 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
         </ion-content>
 
         <ion-footer class="ion-no-border sidebar-foot">
-          <!-- hub#1715: unconditional, and NOT inside an ion-menu-toggle — the code is read by a
+          <!-- Unconditional, and not inside an ion-menu-toggle — the code is read by a
                camera, not pressed, and closing the drawer as somebody leans in to scan it is the one
                thing it must not do. -->
           <SidebarInstallQr v-if="sidebar" />

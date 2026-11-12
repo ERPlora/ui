@@ -1,5 +1,3 @@
-// Pure logic of the DataTable, ported from `ok-data-table.ts` (OutfitKit) with the cases of its
-// Lit tests that do not need a DOM.
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -60,7 +58,7 @@ describe('cellText', () => {
   });
 });
 
-describe('client sort follows the value, not the painted text (outfitkit#256)', () => {
+describe('client sort follows the value, not the painted text', () => {
   const SERIES: Row[] = [
     { id: 'a', name: 'Ana', start_date: '2027-01-15', end_date: '2027-01-15', max: null },
     { id: 'b', name: 'Bea', start_date: '2026-12-31', end_date: null, max: null },
@@ -150,7 +148,7 @@ describe('pageList: numbered pager with gaps', () => {
   });
 });
 
-describe('pagerState (hub#1984, #78, hub#2365)', () => {
+describe('pagerState', () => {
   const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ id: String(i + 1) }));
   const base = { serverSide: false, total: 0, page: 0, pageSize: 10, isMobile: false, mobileShown: 0 };
 
@@ -206,7 +204,7 @@ describe('pagerState (hub#1984, #78, hub#2365)', () => {
   });
 });
 
-describe('gridTemplate (#120, #121)', () => {
+describe('gridTemplate', () => {
   const cols = [col({ key: 'a' }), col({ key: 'b', width: '8rem' })];
   it('[checkbox] [columns, floor 5.5rem] [actions: max-content until measured, then px]', () => {
     expect(gridTemplate({ selectable: true, columns: cols, hasActions: true, actionsTrackPx: 0 })).toBe(
@@ -219,13 +217,12 @@ describe('gridTemplate (#120, #121)', () => {
   });
 });
 
-// FIX-UI-DATATABLE-EMAIL-COLUMN-834 (Cart & Checkout › Orders at 834px): every column without its own width
-// took the same share of the row, so «ana@example.c…» was cut beside a half-empty Payment. A column whose
-// content needs more than the floor gets it while the row has room; out of room, it gives its width up first.
-describe('gridTemplate fits a column to what its content needs (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+// Without this, every column without its own width took the same share of the row, so an email address
+// was cut beside a half-empty column.
+describe('gridTemplate fits a column to what its content needs', () => {
   const cols = [col({ key: 'email' }), col({ key: 'n', width: '8rem' }), col({ key: 'total' })];
   const needs = { email: 204, n: 300 };
-  it('with room: the column holds its content whole and still shares what is left, as before', () => {
+  it('with room: the column holds its content whole and still shares what is left', () => {
     expect(gridTemplate({ selectable: false, columns: cols, hasActions: true, actionsTrackPx: 80, contentWidths: needs })).toBe(
       'minmax(204px,1fr) 8rem minmax(5.5rem,1fr) 80px',
     );
@@ -235,7 +232,7 @@ describe('gridTemplate fits a column to what its content needs (FIX-UI-DATATABLE
       gridTemplate({ selectable: true, columns: cols, hasActions: true, actionsTrackPx: 80, contentWidths: needs, clipped: true }),
     ).toBe('2.75rem minmax(5.5rem,204px) 8rem minmax(5.5rem,1fr) 80px');
   });
-  it('a column with its own width, one that fits its floor and one not measured yet keep the share of before', () => {
+  it('a column with its own width keeps it; one that fits its floor or is not measured yet shares the row from its floor', () => {
     expect(gridTemplate({ selectable: false, columns: cols, hasActions: false, actionsTrackPx: 0, contentWidths: { email: 0 } })).toBe(
       'minmax(5.5rem,1fr) 8rem minmax(5.5rem,1fr)',
     );
@@ -245,9 +242,8 @@ describe('gridTemplate fits a column to what its content needs (FIX-UI-DATATABLE
   });
 });
 
-// hub#703 (Inventory › Products on a tablet): cut to the common floor, a status chip said only «Sin …» beside
-// three row actions. A column that must keep some of its text says how much, and never goes under it.
-describe('gridTemplate keeps a column on its own floor (`minWidth`, hub#703)', () => {
+// Cut to the common floor, a status chip showed only its first word beside three row actions.
+describe('gridTemplate keeps a column on its own floor (`minWidth`)', () => {
   const cols = [col({ key: 'status', minWidth: '10.5rem' }), col({ key: 'total' })];
   const template = (extra: { contentWidths?: Record<string, number>; clipped?: boolean }) =>
     gridTemplate({ selectable: false, columns: cols, hasActions: false, actionsTrackPx: 0, ...extra });
@@ -269,7 +265,7 @@ describe('gridTemplate keeps a column on its own floor (`minWidth`, hub#703)', (
   });
 });
 
-describe('cardTitleColumn (outfitkit#205)', () => {
+describe('cardTitleColumn', () => {
   const cols = [col({ key: 'code' }), col({ key: 'name' }), col({ key: 'currency' })];
   const row = { code: 'L1', name: 'Tarifa mayorista 1', currency: 'EUR' };
   it('is the first column whose text reads like the title (trimmed, numbers too)', () => {
@@ -284,7 +280,7 @@ describe('cardTitleColumn (outfitkit#205)', () => {
   });
 });
 
-describe('row actions (hub#2014, #213, #240)', () => {
+describe('row actions', () => {
   const rows: Row[] = [{ id: 'a', update: null }, { id: 'b', update: '2.0' }];
   const open: DataTableAction<Row> = { id: 'open', label: 'Open', icon: 'open-outline' };
   const update: DataTableAction<Row> = { id: 'update', label: 'Update', icon: 'cloud-download-outline', hidden: (r) => !r.update };
@@ -310,7 +306,7 @@ describe('row actions (hub#2014, #213, #240)', () => {
   });
 });
 
-describe('inlineActions: the actions that keep a button at each fold of the row (W-19, §3b)', () => {
+describe('inlineActions: the actions that keep a button at each fold of the row', () => {
   const action = (id: string, extra: Partial<DataTableAction<Row>> = {}): DataTableAction<Row> => ({ id, label: id, icon: 'ellipse', ...extra });
   const open = action('open', { pinned: true });
   const manage = action('manage');
@@ -341,7 +337,7 @@ describe('inlineActions: the actions that keep a button at each fold of the row 
   });
 });
 
-describe('entityWord: the noun of the footer count (§3b «4 negocios»)', () => {
+describe('entityWord: the noun of the footer count', () => {
   it('`{ one, many }` by the count; a function gets the count; nothing gives nothing', () => {
     expect(entityWord(1, { one: 'negocio', many: 'negocios' })).toBe('negocio');
     expect(entityWord(0, { one: 'negocio', many: 'negocios' })).toBe('negocios');
@@ -351,7 +347,7 @@ describe('entityWord: the noun of the footer count (§3b «4 negocios»)', () =>
   });
 });
 
-describe('toneStyle (#162)', () => {
+describe('toneStyle', () => {
   it('paints from the --ion-color token with Ionic’s default hex', () => {
     expect(toneStyle('danger', 'clear')).toBe('--color: var(--ion-color-danger, #c5000f);');
     expect(toneStyle('medium', 'text')).toBe('color: var(--ion-color-medium, #636469);');
@@ -363,7 +359,7 @@ describe('toneStyle (#162)', () => {
   });
 });
 
-describe('sameRecords (hub#2245)', () => {
+describe('sameRecords', () => {
   const key = (r: Row) => String(r.id ?? '');
   it('same keys in the same order; keyless rows are never the same', () => {
     expect(sameRecords([{ id: 1 }, { id: 2 }], [{ id: 1, x: 1 }, { id: 2 }], key)).toBe(true);
@@ -374,9 +370,6 @@ describe('sameRecords (hub#2245)', () => {
   });
 });
 
-// Column filters (hub-next apps/tax/UI-REQUESTS.md). The memory rule of ERPlora (ADR-0125): free
-// text matches by «contains» («Ana» finds «Ana García»), a closed domain by equality (`active` must
-// not match `inactive`).
 describe('filterKeys: the names a column filter takes in `filters`', () => {
   it('its column key, its own key, or a range’s two ends', () => {
     expect(filterKeys(col({ key: 'name', filter: { type: 'text' } }))).toEqual(['name']);
@@ -400,7 +393,7 @@ describe('activeFilters: what actually filters', () => {
   });
 });
 
-describe('declaredFilters: only what the page declared goes to the server (outfitkit#116)', () => {
+describe('declaredFilters: only what the page declared goes to the server', () => {
   const COLUMNS = [
     col({ key: 'name', filter: { type: 'text' } }),
     col({ key: 'category', filter: { type: 'select', key: 'category_id', options: [] } }),
@@ -450,7 +443,7 @@ describe('filterColumnsOf: the filters a table offers, in a stable order', () =>
     warn.mockRestore();
   });
 
-  it('a field filters the rows by its own key, counts on the funnel and is sent (#116)', () => {
+  it('a field filters the rows by its own key, counts on the funnel and is sent', () => {
     const fields = [{ key: 'is_active', label: 'Active', type: 'boolean' as const }];
     const all = filterColumnsOf([col({ key: 'name', filter: { type: 'text' } })], fields);
     const rows: Row[] = [

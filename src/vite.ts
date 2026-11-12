@@ -1,15 +1,6 @@
-// `erploraVite()`: the Vite plugins every ERPlora SPA (hub-next, saas-next) shares. Ported from
-// ERPlora hub `apps/web/vite.config.ts` (origin/develop); what is project-specific there (dev
-// proxy, ports, base, manifest) stays in each project's own `vite.config.ts`.
-//
-//   - `@vitejs/plugin-vue`: every tag is a Vue component (`ion-*` come from `@ionic/vue`; there are
-//     no custom elements of our own since OutfitKit left, PLAN §16.11). Templates compile at build
-//     time: no `eval` at runtime.
-//   - `unplugin-icons`: icons of any Iconify set baked at build time (PLAN §16.4), see `ICONS`.
-//   - `@tailwindcss/vite` (v4): `src/shell/theme/global.css` starts with `@import "tailwindcss"
-//     source(none)`; `erplora:tailwind-sources` adds the project's frontends to it (PoC issue B).
-//   - `erplora:defines`: vue-i18n feature flags (the shell uses its Composition API only).
-//   - `erplora:chunks`: bundle splitting (hub#798, plan §4.3), see `chunksPlugin()`.
+// The Vite plugins the hub and the SaaS share; what is project-specific (dev proxy, ports, base,
+// manifest) stays in each project's own `vite.config.ts`. Every tag is a Vue component (`ion-*` come
+// from `@ionic/vue`) and templates compile at build time, so there is no `eval` at runtime.
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -66,8 +57,8 @@ function vendorOf(pkg: string): string | undefined {
  *     chunk; grouping it would load every lazy component on the first one.
  *   - Stylesheets stay in the entry CSS: in a vendor chunk they would be linked after it, and
  *     `createShell` orders the theme sheets (variables, palettes, tabbar, polish) on purpose.
- *   - Ionic (`@ionic/vue`, `@ionic/core`, `@ionic/vue-router`, `ionicons`) is NOT grouped, as in
- *     hub#798: a manual chunk keeps every export of the `@ionic/vue` barrel, so the components the
+ *   - Ionic (`@ionic/vue`, `@ionic/core`, `@ionic/vue-router`, `ionicons`) is not grouped: a
+ *     manual chunk keeps every export of the `@ionic/vue` barrel, so the components the
  *     tree-shaking dropped come back (measured here: 137 `ion-*` instead of 85, +390 kB raw,
  *     +74 kB gzip, and Ionic's lazy chunks swallowed). Ionic stays in the entry, tree-shaken.
  */
@@ -80,8 +71,7 @@ const manualChunks: Rollup.GetManualChunk = (id, { getModuleInfo }) => {
 };
 
 /**
- * hub#798 (ERPlora hub `apps/web/vite.config.ts`, origin/develop): Stencil's `@ionic/core`
- * component modules open with unannotated top-level calls (`proxyCustomElement(…)`), so Rollup
+ * Stencil's `@ionic/core` component modules open with unannotated top-level calls (`proxyCustomElement(…)`), so Rollup
  * keeps all 140+ components `@ionic/vue` re-exports (~400 kB never used). Their only real side
  * effect is the exported `defineCustomElement()`, called explicitly (by `@ionic/vue` when a wrapper
  * mounts or a controller is used): nothing registers at import time, so the registered elements do
@@ -108,15 +98,15 @@ const SHELL_GLOBAL_CSS = slash(join(dirname(fileURLToPath(import.meta.url)), 'sh
 
 /**
  * Where Tailwind reads class names in a project, from its Vite `root`, unless the project names its
- * own (`frontendSources`): the entry's `frontend/` and the modules' `apps/<id>/frontend/` (hub-next).
+ * own (`frontendSources`): the entry's `frontend/` and the modules' `apps/<id>/frontend/` (the hub).
  */
 const PROJECT_SOURCES = ['frontend/**/*.{vue,ts}', 'apps/*/frontend/**/*.{vue,ts}'];
 const PROJECT_EXCLUDED = ['**/*.test.ts'];
 
 /**
- * PoC issue B: Tailwind's automatic source detection scanned the whole project, so a `.py` change
- * made `@tailwindcss/vite` send `full-reload` to every open tab, and the comments of
- * `tests/e2e/*.ts` turned into classes. `global.css` scans only the UI package; this appends the
+ * Tailwind's automatic source detection scans the whole project, so a `.py` change makes
+ * `@tailwindcss/vite` send `full-reload` to every open tab, and the comments of `tests/e2e/*.ts`
+ * turn into classes. `global.css` scans only the UI package; this appends the
  * project's own frontends to it, relative to the Vite `root`, before Tailwind compiles it (a
  * separate stylesheet cannot do it: every stylesheet is its own Tailwind compilation).
  */
@@ -144,8 +134,8 @@ function tailwindSourcesPlugin(frontendSources: readonly string[]): Plugin {
 export interface ErploraViteOptions {
   /**
    * Globs of the project's frontends, relative to its Vite `root`, where Tailwind reads class names
-   * (`*.test.ts` always excluded). Default: `frontend/` and `apps/<id>/frontend/`. saas-next has no
-   * `apps/` (PLAN §20.2) and names its root apps (`accounts/frontend/…`).
+   * (`*.test.ts` always excluded). Default: `frontend/` and `apps/<id>/frontend/`. The SaaS has no
+   * `apps/` and names its root apps (`accounts/frontend/…`).
    */
   frontendSources?: readonly string[];
 }

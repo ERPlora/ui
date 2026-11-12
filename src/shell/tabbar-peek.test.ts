@@ -1,12 +1,7 @@
-// The footer strip SHOWS that it continues (hub#1830): ported from ERPlora hub
-// `apps/web/src/lib/tabbar-peek.test.ts` and its regression tests hub#1841, hub#2414 and hub#2603
-// (origin/develop), with our token `--ep-tabbar-min` (OutfitKit's `--ok-tabbar-min`, PLAN §16.11).
-//
-// What is on screen (measured on `/settings` at 390px, 11/09): the strip is 382px wide and needs
-// 464px, so two tabs are hidden. The fifth tab starts at x=372, a 10px sliver of an 88px tab whose
-// centred icon and label start off screen: the fade has no ink to fade and the strip looks like it
-// ends there. The fix sizes the tabs so the cut always falls PAST the centre of the first hidden
-// tab — the market's peek (Material scrollable tabs, Apple's partial tab, Lightspeed's carousel).
+// The footer strip must show that it continues. A 10px sliver of a tab whose centred icon and label
+// start off screen gives the fade no ink, and the strip looks like it ends there, so the tabs are sized
+// for the cut to fall past the centre of the first hidden tab (the market's peek: Material scrollable
+// tabs, Apple's partial tab, Lightspeed's carousel).
 // happy-dom lays nothing out, so every geometry below is pinned by hand.
 import { describe, expect, it } from 'vitest';
 
@@ -30,7 +25,7 @@ const SETTINGS_390: TabbarGeometry = {
   tabCount: 5,
 };
 
-/** A module screen at 390px: same strip, but `ModuleView` raises the floor to 116px (hub#1830). */
+/** A module screen at 390px: same strip, but `ModuleView` raises the floor to 116px. */
 const MODULE_390: TabbarGeometry = {
   visibleWidth: 382,
   contentWidth: 604,
@@ -208,13 +203,13 @@ function fakeSegment(geometry: TabbarGeometry): HTMLElement {
   return fakeStrip(geometry).segment;
 }
 
-// ── hub#1841 — the two promises the fix makes, pinned ───────────────────────────────────────
+// ── The two promises of the peek, pinned ───────────────────────────────────────
 
-describe('peekTabWidth — the floor is a contract, not a hope (hub#1841)', () => {
+describe('peekTabWidth — the floor is a contract, not a hope', () => {
   it('never answers a width below the floor, even on a strip too narrow for a tab and a peek', () => {
-    // 140px: one whole 88px tab plus half of the next plus the margin does not fit. The search used
-    // to fall back to one whole tab and return (140 - 12 - 4 - 4) / 1.5 = 80px — squeezing the label
-    // it promises never to squeeze. Unreachable with the phones served today (the narrowest strip is
+    // 140px: one whole 88px tab plus half of the next plus the margin does not fit. Falling back to
+    // one whole tab would return (140 - 12 - 4 - 4) / 1.5 = 80px, squeezing the label it promises never
+    // to squeeze. Unreachable with the phones served today (the narrowest strip is
     // 312px); the invariant is what the next person who raises the floor relies on.
     const narrow: TabbarGeometry = { ...SETTINGS_390, visibleWidth: 140 };
     const width = peekTabWidth(narrow);
@@ -228,7 +223,7 @@ describe('peekTabWidth — the floor is a contract, not a hope (hub#1841)', () =
   });
 });
 
-describe('peekTabWidth — a pixel of rounding is not an overflow (hub#1841)', () => {
+describe('peekTabWidth — a pixel of rounding is not an overflow', () => {
   it('leaves alone a strip whose content exceeds the visible width only by the engine rounding', () => {
     // `scrollWidth` and `clientWidth` are rounded differently: a strip that fits reads one pixel wider
     // than it shows. Resizing its tabs over that would move the whole strip for nothing.
@@ -317,7 +312,7 @@ describe('bindTabbarPeek — wiring it to a live strip', () => {
   });
 });
 
-// ── hub#2414 — a footer tab never splits a word across two lines ────────────────────────────
+// ── A footer tab never splits a word across two lines ────────────────────────────
 
 /** Reservations' «Disponibilidad» at 375px in `md`, measured on the bench: 14px, 16px of padding a side. */
 const DISPONIBILIDAD_MD: TabLabelNeed = { wraps: true, wordWidth: 95.3, chromeWidth: 32 };
@@ -351,7 +346,7 @@ describe('wholeWordTabWidth — the tab a wrapping label needs to keep its words
   });
 });
 
-// ── hub#2603 — on a phone, the chosen tab is left clear of the edge fade ────────────────────
+// ── On a phone, the chosen tab is left clear of the edge fade ────────────────────
 // After a pass that widens the tabs, the chosen tab is whole and no fade falls on it: it sits at
 // least FADE_PX away from an edge that still hides tabs, or the strip is scrolled to its end there.
 
@@ -450,7 +445,7 @@ function underFade(segment: HTMLElement): { start: number; end: number; whole: b
   };
 }
 
-describe('bindTabbarPeek leaves the chosen tab clear of the edge fade (hub#2603)', () => {
+describe('bindTabbarPeek leaves the chosen tab clear of the edge fade', () => {
   it('ios: the LAST tab takes the strip to its end, so no fade is left over it', () => {
     const segment = strip(IOS_SETTINGS);
     const unbind = bindTabbarPeek(segment);

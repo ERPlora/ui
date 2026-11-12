@@ -1,14 +1,9 @@
 <script setup lang="ts">
-// HubIcon: the ONE icon component (PLAN §16.4). `<HubIcon name="ion:cart-outline" />`,
-// `name="lucide:panel-left"`, `name="mdi:cart"`… The name carries its set. Every set paints through
-// `ion-icon`, so the box (1em, currentColor), `color="primary"` and `slot="start|end|icon-only"`
-// inside ion-button/ion-item are exactly Ionic's. Only icons registered in `icons.ts` exist: an
-// unknown one throws in dev and tests; in production it is reported and paints nothing.
-// Accessibility: an icon is DECORATIVE by default (`aria-hidden="true"`, no role, no name) — the
-// common case, next to a text that already says what it is (menu entry, button, notice). Give it a
-// `label` only when the icon alone carries the meaning: `<HubIcon name="ion:warning" label="Overdue" />`
-// → `role="img"` + `aria-label`. A raw `aria-label` attribute counts as a label; `decorative` hides it
-// even with one. An icon-only button is named on the BUTTON (`aria-label`), its icon stays decorative.
+// Every set paints through `ion-icon`, so the box (1em, currentColor), `color` and `slot` inside
+// ion-button/ion-item are exactly Ionic's. Only icons registered in `icons.ts` exist: an unknown one
+// throws in dev and tests; in production it is reported and paints nothing.
+// An icon is decorative by default, next to a text that already says what it is; give it a `label`
+// only when the icon alone carries the meaning. An icon-only button is named on the button.
 import { IonIcon } from '@ionic/vue';
 import { computed, useAttrs } from 'vue';
 

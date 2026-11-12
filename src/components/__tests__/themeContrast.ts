@@ -1,8 +1,7 @@
-// Test helper: the shell's theme, read from its real stylesheets, to measure the contrast of a
-// component's colours (working rules §2.4). CSS is not applied under happy-dom, so this reads the
-// custom properties from the stylesheets themselves — Ionic's defaults, then `variables.css` and
-// `palettes.css`, in the cascade order `createShell` loads them — and composites colours as the
-// browser does with `color-mix(in srgb, …)`. Same method as `StatusPill.contrast.test.ts`.
+// Test helper: the shell's theme, read from its real stylesheets, to measure the contrast of a component's colours.
+// happy-dom applies no CSS, so this reads the custom properties from the stylesheets themselves (Ionic's defaults, then
+// `variables.css` and `palettes.css`, in the cascade order `createShell` loads them) and composites colours as the
+// browser does with `color-mix(in srgb, …)`.
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';

@@ -1,6 +1,4 @@
-// The shell theme's own stylesheets (PLAN §16.11): our tokens are `--ep-*` with the values OutfitKit's
-// tokens had, and the optional palettes and the footer tabbar that came from OutfitKit live here,
-// with the same values. CSS is not applied under happy-dom, so these read the rules themselves.
+// CSS is not applied under happy-dom, so these read the rules themselves.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +23,6 @@ function blocks(css: string, selector: string): string[] {
   return [...css.matchAll(new RegExp(`(?:^|})\\s*${escaped}\\s*\\{([^}]*)\\}`, 'g'))].map((m) => m[1]);
 }
 
-/** Custom properties a block declares. */
 const declared = (body: string): string[] => [...body.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]);
 
 describe('theme tokens: ours (--ep-*), none of OutfitKit', () => {
@@ -39,7 +36,7 @@ describe('theme tokens: ours (--ep-*), none of OutfitKit', () => {
     }
   });
 
-  it('keeps every value the OutfitKit tokens had, light then dark', () => {
+  it('pins the value of every --ep-* token, light then dark', () => {
     const expected: Record<string, string[]> = {
       '--ep-radius': ['14px'],
       '--ep-radius-sm': ['10px'],
@@ -81,7 +78,7 @@ describe('theme tokens: ours (--ep-*), none of OutfitKit', () => {
   });
 });
 
-describe('palettes.css (the optional brand palettes, ported from OutfitKit with the same values)', () => {
+describe('palettes.css (the optional brand palettes)', () => {
   const palettes = plain(read('palettes.css'));
   const optional = THEME_PALETTES.filter((palette) => palette !== 'erplora');
 
@@ -129,7 +126,7 @@ function mediaBlocks(css: string, query: string, selector: string): string[] {
   );
 }
 
-describe('tabbar.css (the footer ion-segment as navigation, ported from OutfitKit)', () => {
+describe('tabbar.css (the footer ion-segment as navigation)', () => {
   const tabbar = plain(read('tabbar.css'));
 
   it('fills the footer, with a minimum tab width before it scrolls (--ep-tabbar-min, 64px)', () => {
@@ -148,7 +145,7 @@ describe('tabbar.css (the footer ion-segment as navigation, ported from OutfitKi
     );
   });
 
-  // FIX-UI-TABBAR-375: a phone's bottom bar shows four or five tabs whole (iOS tab bar, Material's
+  // A phone's bottom bar shows four or five tabs whole (iOS tab bar, Material's
   // navigation bar). Ionic's iOS segment button brings `min-width: 70px` and 13px of side padding, made
   // for the compact segmented control: five of them need 374px, more than a 375px phone's strip (367px).
   it('lets a footer tab shrink to the floor and keeps its label 4px off its edges', () => {
@@ -178,8 +175,7 @@ describe('tabbar.css (the footer ion-segment as navigation, ported from OutfitKi
   });
 });
 
-// ── Semantic palette, step aliases and contrast (L0-C; mockups README §6.9 and §6.15, UX-AUDIT-2
-// V-01..V-03, V-16) ──────────────────────────────────────────────────────────────────────────────
+// ── Semantic palette, step aliases and contrast ─────────────────────────────────────────────────
 
 /** WCAG 2.x relative luminance of `#rrggbb`. */
 function luminance(hex: string): number {
@@ -224,7 +220,7 @@ const resolved = (theme: keyof typeof SURFACES, name: string): string | undefine
 
 const VARIANTS = ['', '-rgb', '-contrast', '-contrast-rgb', '-shade', '-tint'];
 
-describe('semantic palette (ported from the old SaaS ionic-theme.css, saas origin/develop)', () => {
+describe('semantic palette', () => {
   it('sets secondary, success, warning, danger and medium with all six Ionic variants', () => {
     for (const colour of ['primary', 'secondary', 'success', 'warning', 'danger', 'medium']) {
       for (const variant of VARIANTS) {
@@ -233,7 +229,7 @@ describe('semantic palette (ported from the old SaaS ionic-theme.css, saas origi
     }
   });
 
-  it('keeps the brand values of the old SaaS', () => {
+  it('keeps the brand values shared by the Hub and the SaaS', () => {
     const brand: Record<string, string> = {
       '--ion-color-primary': '#1496d6',
       '--ion-color-secondary': '#6366f1',
@@ -246,7 +242,7 @@ describe('semantic palette (ported from the old SaaS ionic-theme.css, saas origi
     for (const [token, value] of Object.entries(brand)) expect(tokenIn(LIGHT, token), token).toBe(value);
   });
 
-  it('leaves tertiary, light and dark to Ionic (its defaults equal the old SaaS, and its dark palette inverts them)', () => {
+  it('leaves tertiary, light and dark to Ionic (its dark palette inverts them)', () => {
     for (const colour of ['tertiary', 'light', 'dark']) expect(tokenIn(LIGHT, `--ion-color-${colour}`), colour).toBeUndefined();
   });
 
@@ -269,7 +265,7 @@ describe('semantic palette (ported from the old SaaS ionic-theme.css, saas origi
   });
 });
 
-describe('step ramp: Ionic 8 names with the legacy ones aliased (old SaaS ionic-theme.css)', () => {
+describe('step ramp: Ionic 8 names with the legacy ones aliased', () => {
   const STEPS = [50, 100, 150, 200, 250, 300, 500, 700, 850];
 
   it('the --ion-background-color-step-* ramp is literal in both themes, and --ion-color-step-* reads it', () => {
@@ -289,7 +285,7 @@ describe('step ramp: Ionic 8 names with the legacy ones aliased (old SaaS ionic-
     expect(tokenIn(DARK, '--ion-background-color-step-850')).toBe('#d7dae0');
   });
 
-  it('dark defines --ion-color-step-600, the body text of ion-card, at AA on the card and the canvas (README §6.9)', () => {
+  it('dark defines --ion-color-step-600, the body text of ion-card, at AA on the card and the canvas', () => {
     // Without it ion-card falls back to Ionic's grey: #666 on #16181c is about 3:1.
     const text = tokenIn(DARK, '--ion-color-step-600') as string;
     expect(text).toBe('#8b919d');
@@ -316,7 +312,7 @@ describe('AA text tokens (--ep-<colour>-text on --ep-<colour>-tint, --ep-text-mu
     }
   });
 
-  it('the primary text on tints is the deep shade #0b5f8a (UX-AUDIT-2 V-02)', () => {
+  it('the primary text on tints is the deep shade #0b5f8a', () => {
     expect(tokenIn(LIGHT, '--ep-primary-text')).toBe('#0b5f8a');
   });
 
@@ -355,7 +351,7 @@ describe('AA text tokens (--ep-<colour>-text on --ep-<colour>-tint, --ep-text-mu
 });
 
 // The switch (theme.ts `setThemeContrast('aa')`, createShell `{ contrast: 'aa' }`): the AA solids for
-// the ERPlora palette. Default: the brand colours, until Ioan decides (README §6.15).
+// the ERPlora palette. Default: the brand colours.
 describe("the 'aa' contrast (data-ep-contrast='aa'): AA solids for primary, success, warning and danger", () => {
   const COLOURS = ['primary', 'success', 'warning', 'danger'];
 
@@ -410,7 +406,7 @@ describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA
     expect(blocks(polish, 'ion-menu.dash-menu')[0]).toContain('--width: 280px');
   });
 
-  // FIX-SHELL-SPLIT-PANE: the rail is folded at ≥lg; a tablet turned to portrait with it folded gets the
+  // The rail is folded at ≥lg; a tablet turned to portrait with it folded gets the
   // drawer, which must keep its labels, the person and the QR (the rail toggle is not there to undo it).
   it('the rail is a desktop state: what it hides inside the menu, it hides only from lg', () => {
     const desktop = /@media \(min-width: 992px\)\s*\{((?:[^{}]*\{[^}]*\})*)\s*\}/g;
@@ -421,7 +417,7 @@ describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA
     );
   });
 
-  // The code is drawn at 264 px for a dense screen and painted at 132 (hub#1715: readable by a phone,
+  // The code is drawn at 264 px for a dense screen and painted at 132 (readable by a phone,
   // and it fits the 280 px drawer); its box keeps those 132 px while it is drawn.
   it('the sidebar QR is painted at 132 px, centred, whatever size it was drawn at', () => {
     expect(declarations(blocks(polish, '.sidebar-install-qr-code')[0])).toEqual([
@@ -439,7 +435,7 @@ describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA
   });
 });
 
-// hub#775. `ion-select-popover` paints in `ion-app`, out of reach of a form's own styles, and Ionic keeps the
+// `ion-select-popover` paints in `ion-app`, out of reach of a form's own styles, and Ionic keeps the
 // `part="label"` of its `ion-radio` and `ion-checkbox` on one line ending in «…». happy-dom lays nothing out: the boxes
 // are measured by the Hub's e2e (tests/e2e/fix-ui-select-long-option-reads-whole.spec.ts) and the panel's.
 describe('polish.css: the options of a dropdown', () => {
@@ -451,10 +447,9 @@ describe('polish.css: the options of a dropdown', () => {
   });
 });
 
-// hub#866, hub#906. Ionic keeps the `part="label"` of an `ion-toggle` on one line; in a settings form's one-column grid
-// that line is the column's least width, and the whole form ran past a phone's screen with «Save» at the end of the
-// spilled row: Tables in Spanish 425 px on a 375 px phone, «Guardar» cut to «Gua»; Reservations in English 382. Three
-// pages had copied their own way out of it (Appointments, Time clock, Online bookings). happy-dom lays nothing out:
+// Ionic keeps the `part="label"` of an `ion-toggle` on one line; in a settings form's one-column grid that line is
+// the column's least width, so the whole form runs past a phone's screen with «Save» at the end of the spilled row.
+// happy-dom lays nothing out:
 // the boxes are measured by the Hub's e2e (tests/e2e/settings-form-footer.spec.ts), in English and in Spanish.
 describe('polish.css: a switch\'s label', () => {
   const polish = plain(read('polish.css'));
@@ -464,7 +459,7 @@ describe('polish.css: a switch\'s label', () => {
   });
 });
 
-// saas#272. Ionic keeps what a select has chosen on one line ending in «…», so with the field closed a person cannot read
+// Ionic keeps what a select has chosen on one line ending in «…», so with the field closed a person cannot read
 // what is set: «Madrid (Central European …» in a business's settings at 320. happy-dom lays nothing out: the boxes are
 // measured by the panel's e2e (tests/e2e/panel/fix-select-chosen-text-reads-whole.spec.ts).
 describe('polish.css: what a select has chosen', () => {

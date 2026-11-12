@@ -1,12 +1,11 @@
-// `createShell()`: boots the Ionic Vue shell in the order of ERPlora hub `apps/web/src/main.ts`
-// (origin/develop) and returns the app WITHOUT mounting it; the project's entry mounts after
+// `createShell()` returns the app without mounting it; the project's entry mounts after
 // `router.isReady()`:
 //
 //   const { app, router } = await createShell({ routes, session, status });
 //   await router.isReady();
 //   app.mount('#app');
 //
-// 🔴 The three boot hooks are the FIRST imports, and the order is the fix (hub#1060): they hook
+// The three boot hooks must be the first imports: they hook
 // `customElements.define` before `@ionic/vue` registers its `ion-*` on import, and the spec
 // freezes a custom element's callbacks inside `define`. A call in this module's body would run
 // after every import below, too late. Guard: `createShell.test.ts`.
@@ -31,10 +30,7 @@ import '@ionic/vue/css/text-transformation.css';
 import '@ionic/vue/css/flex-utils.css';
 import '@ionic/vue/css/display.css';
 import '@ionic/vue/css/palettes/dark.class.css';
-// Shell theme, in the Hub's order: print rules, brand variables, the optional palettes
-// (`data-ep-palette`, after the variables to win the cascade), shared brand primitives, logo, footer
-// tabbar, shell polish and globals.
-// All of it is ours (PLAN §16.11): palettes and tabbar were ported from OutfitKit.
+// The optional palettes go after the variables to win the cascade.
 import './theme/print.css';
 import './theme/variables.css';
 import './theme/palettes.css';
@@ -62,7 +58,7 @@ export interface CreateShellOptions {
    * `meta.background` is no screen: its component is the app's piece that runs on every screen, mounted beside the pane.
    */
   routes: RouteRecordRaw[];
-  /** `base.session.me` (embedded JSON first, the live query from V7 on). */
+  /** `base.session.me`. */
   session: Ref<SessionMe | undefined>;
   /** State of the stream that carries it. */
   status: Ref<SessionStatus>;
@@ -76,7 +72,7 @@ export interface CreateShellOptions {
    */
   home?: boolean;
   /**
-   * The hub's side menu (`sidebar.ts`, the old hub's): the platform's entries whose screen exists
+   * The hub's side menu (`sidebar.ts`): the platform's entries whose screen exists
    * instead of the session's menu, the QR «Open on your phone» in its footer, and in the topbar the
    * rail toggle and «My apps» (the modules are not in the menu). Default none: the SaaS's menu is
    * the one of its session.
@@ -92,7 +88,7 @@ export interface CreateShellOptions {
   /** Router history. Default `createWebHistory()`. */
   history?: RouterHistory;
   /**
-   * The surface, when the entry knows it (the server's `spa-config`, PLAN-SAAS §3.6 point 5).
+   * The surface, when the entry knows it (the server's `spa-config`).
    * Default: detected (`surface.ts`: the Tauri bridge, the app user agent, `?surface=`,
    * `<html data-surface>`). It lands on `<html data-surface>` and, off the web, `html.in-app-shell`.
    */

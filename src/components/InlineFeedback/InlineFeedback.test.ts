@@ -1,7 +1,3 @@
-// Behaviour spec of InlineFeedback, the Vue port of OutfitKit's `ok-inline-feedback`
-// (ERPlora/outfitkit origin/main `src/components/ok-inline-feedback/ok-inline-feedback.ts`, which
-// had no tests of its own): a persistent banner in the flow of the content, with a tone, an
-// optional heading, a body (default slot), actions (`actions` slot) and an optional close button.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -41,7 +37,7 @@ describe('InlineFeedback', () => {
     expect(barrel.InlineFeedback).toBe(InlineFeedback);
   });
 
-  it('renders the same DOM as ok-inline-feedback: root, status box, tone icon, body', () => {
+  it('renders its root, the status box, the tone icon and the body', () => {
     const wrapper = mountFeedback();
     const root = wrapper.get('.inline-feedback');
     expect(root.element).toBe(wrapper.element);
@@ -111,7 +107,7 @@ describe('InlineFeedback', () => {
 
   it('the close button is labelled in the user language and has the close icon', () => {
     const close = mountFeedback({ dismissible: true }).get('.box > button.close');
-    // Light DOM now: inside a <form> (the demo's item modal) a default button would submit it.
+    // Inside a <form>, a button of the default type would submit it.
     expect(close.attributes('type')).toBe('button');
     expect(close.attributes('aria-label')).toBe('Dismiss');
     const icon = close.get('ion-icon');
@@ -143,7 +139,7 @@ describe('InlineFeedback', () => {
     expect(wrapper.get('.inline-feedback').attributes('hidden')).toBeUndefined();
   });
 
-  it('passes attributes such as data-testid to its root, like the host element did', () => {
+  it('passes attributes such as data-testid to its root', () => {
     const wrapper = mount(InlineFeedback, {
       attrs: { 'data-testid': 'demo-items-error' },
       global: { plugins: [createShellI18n()] },
@@ -159,18 +155,17 @@ describe('InlineFeedback styles', () => {
   const values = (name: string): string[] =>
     [...theme.matchAll(new RegExp(`${name}:\\s*([^;]+);`, 'g'))].map((m) => m[1].trim());
 
-  it('are scoped and read our --ep-* tokens, never OutfitKit --ok-* ones', () => {
+  it('are scoped and read our --ep-* tokens, never --ok-* ones', () => {
     expect(style).toContain('.inline-feedback');
     expect(style).not.toMatch(/--ok-/);
     expect(style).toMatch(/var\(--ep-radius,/);
   });
 
-  it('reads the theme value of the --ep-* tokens the shell defines and falls back for the rest (same look)', () => {
+  it('reads the theme value of the --ep-* tokens the shell defines and falls back for the rest', () => {
     const tokens = new Set([...style.matchAll(/var\((--ep-[a-z0-9-]+)/g)].map((m) => m[1]));
     for (const token of tokens) {
       if (!values(token).length) expect(style, `${token} has no theme value: it needs its fallback`).toContain(`var(${token},`);
     }
-    // The 14px radius the shell gave OutfitKit's element (PLAN §16.11: --ep-* keep those values).
     expect(values('--ep-radius')).toEqual(['14px']);
   });
 });

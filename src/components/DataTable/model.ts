@@ -1,6 +1,4 @@
-// Pure logic of the DataTable, ported 1:1 from OutfitKit's `ok-data-table.ts` (the issue numbers in
-// the comments are of ERPlora/outfitkit unless they say otherwise). No DOM, no Vue: what can be
-// proved without a layout engine lives here.
+// Pure logic of the DataTable, with no DOM and no Vue: what can be proved without a layout engine.
 import type {
   DataTableAction,
   DataTableColumn,
@@ -31,7 +29,6 @@ export const DATA_TABLE_ICONS = {
   add: 'add',
 } as const;
 
-/** The fields of a row, for the reads the column API declares by key. */
 function fields(row: object): Fields {
   return row as Fields;
 }
@@ -52,12 +49,12 @@ export function cellText<T extends object>(column: DataTableColumn<T>, row: T): 
   return value === null || value === undefined ? '' : String(value);
 }
 
-/** #256 - A field that holds a number as text: the hub decodes NUMERIC (money) to «100.00». */
+/** A field that holds a number as text: the server sends NUMERIC (money) as «100.00». */
 const NUMERIC_TEXT = /^-?\d+(\.\d+)?$/;
-/** #256 - A field that holds an ISO date, datetime or time («2026-12-31», «09:30:00»). */
+/** A field that holds an ISO date, datetime or time («2026-12-31», «09:30:00»). */
 const ISO_DATE_OR_TIME = /^(\d{4}-\d{2}-\d{2}|\d{2}:\d{2})/;
 
-/** #256 - What a client-side sort compares: `sortValue`, else the field itself when it is DATA (a
+/** What a client-side sort compares: `sortValue`, else the field itself when it is DATA (a
  *  number, boolean, `Date`, ISO date/time or NUMERIC string), so «15/01/2027» sorts after
  *  «31/12/2026» and «9,50 €» before «100,00 €». Any other field (words, a code, a missing field, an
  *  object) sorts by the text the person reads. A null field sorts last. */
@@ -73,7 +70,6 @@ export function sortKey<T extends object>(column: DataTableColumn<T>, row: T): u
   return cellText(column, row);
 }
 
-/** Rows sorted by a column, in a new array (the rows given are never mutated). */
 export function sortRows<T extends object>(rows: readonly T[], column: DataTableColumn<T>, dir: DataTableSortDir): T[] {
   const sign = dir === 'asc' ? 1 : -1;
   return [...rows].sort((a, b) => {
@@ -87,16 +83,12 @@ export function sortRows<T extends object>(rows: readonly T[], column: DataTable
   });
 }
 
-/** Client-side search: rows whose `keys` contain the needle (case-insensitive). */
 export function searchRows<T extends object>(rows: readonly T[], keys: readonly string[], needle: string): readonly T[] {
   const wanted = needle.trim().toLowerCase();
   if (!wanted || !keys.length) return rows;
   return rows.filter((row) => keys.some((key) => String(fields(row)[key] ?? '').toLowerCase().includes(wanted)));
 }
 
-/** Pages of the numbered pager (1-based): first, last, neighbours of the current one and «…» in
- *  the jumps. Page 1 of 52 → [1, 2, 3, '…', 52]. */
-// ── Column filters ──────────────────────────────────────────────────────────────────────────
 /** The filters a table offers, as columns: the columns' own, in column order, then each of the page's
  *  `filterFields` as a column of its own (its key, its label, the field itself as its filter). A field
  *  whose key or names in `filters` a column's filter or an earlier field already takes is left out with
@@ -122,7 +114,6 @@ export function filterColumnsOf<T>(
   return [...own, ...extra];
 }
 
-/** The names a column's filter takes in `filters` (none without a filter). */
 export function filterKeys<T>(column: DataTableColumn<T>): string[] {
   const filter = column.filter;
   if (!filter) return [];
@@ -136,7 +127,7 @@ export function activeFilters(filters: DataTableFilters): DataTableFilters {
   return Object.fromEntries(Object.entries(filters).filter(([, value]) => value.trim() !== ''));
 }
 
-/** outfitkit#116 - The active filters the columns declare, by the name each filter takes: a name no
+/** The active filters the columns declare, by the name each filter takes: a name no
  *  column declares (a stale one from the address, a page's own parameter) never reaches the server,
  *  which answers 422 `unknown_filter` to it; a blank value is no filter. */
 export function declaredFilters<T>(columns: readonly DataTableColumn<T>[], filters: DataTableFilters): DataTableFilters {
@@ -161,7 +152,6 @@ function dayOf(value: unknown): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-/** A number of a range end or a row field; `undefined` when there is none. */
 function numberOf(value: unknown): number | undefined {
   if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) return undefined;
   const n = Number(value);
@@ -173,7 +163,6 @@ function endOf(value: string | undefined, amount: boolean): number | undefined {
   return numberOf(amount && value ? value.replace(',', '.') : value);
 }
 
-/** A yes/no field: on when `true`, `'true'`, `1` or `'1'`. */
 const isOn = (value: unknown): boolean => value === true || value === 'true' || value === 1 || value === '1';
 
 function matchesFilter<T extends object>(column: DataTableColumn<T>, row: T, filters: DataTableFilters): boolean {
@@ -220,6 +209,8 @@ export function filterRows<T extends object>(
   return rows.filter((row) => filtering.every((column) => matchesFilter(column, row, active)));
 }
 
+/** Pages of the numbered pager (1-based): first, last, neighbours of the current one and «…» in
+ *  the jumps. Page 1 of 52 → [1, 2, 3, '…', 52]. */
 export function pageList(current: number, total: number): (number | '…')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   const want = new Set<number>([1, total, current, current - 1, current + 1]);
@@ -246,7 +237,7 @@ export interface PagerInput<T> {
   page: number;
   pageSize: number;
   isMobile: boolean;
-  /** #78 - Client mode on a phone: rows «Load more» has accumulated (0 = one page). */
+  /** Client mode on a phone: rows «Load more» has accumulated (0 = one page). */
   mobileShown: number;
   /** Server mode on a phone: the most rows the parent can hold in one window; a longer query pages. */
   maxWindow?: number;
@@ -262,12 +253,12 @@ export interface PagerState<T> {
   canLoadMore: boolean;
 }
 
-/** What the page shows and what the footer says, for both modes and both viewports. */
 /** Server mode on a phone, a query longer than the window the parent can hold: it pages as on a desk. */
 export function phonePages(input: Pick<PagerInput<unknown>, 'serverSide' | 'isMobile' | 'total' | 'maxWindow'>): boolean {
   return input.serverSide && input.isMobile && input.maxWindow !== undefined && input.total > input.maxWindow;
 }
 
+/** What the page shows and what the footer says, for both modes and both viewports. */
 export function pagerState<T>(input: PagerInput<T>): PagerState<T> {
   const { serverSide, rows, total, page, pageSize: ps, isMobile, mobileShown } = input;
   const count = serverSide ? total : rows.length;
@@ -278,7 +269,7 @@ export function pagerState<T>(input: PagerInput<T>): PagerState<T> {
     return { visible: rows.slice(0, ps), pages, current, count, rangeFrom: current * ps + 1, rangeTo: Math.min((current + 1) * ps, count), canLoadMore: false };
   }
   if (serverSide && isMobile) {
-    // #78 - Server mode on a phone: `rows` is the WINDOW the parent keeps live, from the row of
+    // Server mode on a phone: `rows` is the WINDOW the parent keeps live, from the row of
     // `page` (0 on a phone) and grown one page per «Load more» (`loadMore`). The footer and «Load
     // more» follow the rows shown against the total; an empty window keeps that page's range.
     const from = current * ps + 1;
@@ -287,15 +278,14 @@ export function pagerState<T>(input: PagerInput<T>): PagerState<T> {
   }
   let visible: readonly T[];
   if (serverSide) visible = rows;
-  // #78 - On a phone the footer accumulates instead of paging.
+  // On a phone the footer accumulates instead of paging.
   else if (isMobile) visible = rows.slice(0, Math.min(mobileShown || ps, count));
   else visible = rows.slice(current * ps, current * ps + ps);
-  // #78 - How many rows a phone (client) has been served, and whether anything is left.
   const served = Math.min(mobileShown || ps, count);
   const canLoadMore = isMobile && served < count;
-  // hub#1984 - On a phone «to» is what has been served; on desktop, the end of the page.
+  // On a phone «to» is what has been served; on desktop, the end of the page.
   const rangeTo = isMobile ? served : Math.min((current + 1) * ps, count);
-  // hub#2365 - A phone counts from row 1.
+  // A phone counts from row 1.
   const rangeFrom = isMobile ? 1 : current * ps + 1;
   return { visible, pages, current, count, rangeFrom, rangeTo, canLoadMore };
 }
@@ -306,28 +296,28 @@ export function gridTemplate<T>(input: {
   columns: readonly DataTableColumn<T>[];
   hasActions: boolean;
   actionsTrackPx: number;
-  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - px a column without its own width asks for to hold its content whole,
-   *  by key (0 or missing = its floor holds it, or not measured yet). */
+  /** px a column without its own width asks for to hold its content whole, by key (0 or missing = its
+   *  floor holds it, or not measured yet). */
   contentWidths?: Readonly<Record<string, number>>;
-  /** FIX-UI-DATATABLE-EMAIL-COLUMN-834 - The row has no room for every column whole: they may cut their text. */
+  /** The row has no room for every column whole: they may cut their text. */
   clipped?: boolean;
 }): string {
   const track = (c: DataTableColumn<T>): string => {
     if (c.width != null) return c.width;
     const need = input.contentWidths?.[c.key] ?? 0;
-    // #120 - 5.5rem (88px) is the narrowest a data column stays readable; hub#703 - unless the column asks for more.
+    // 5.5rem (88px) is the narrowest a data column stays readable, unless the column asks for more.
     const floor = c.minWidth ?? '5.5rem';
     if (!(need > 0)) return `minmax(${floor},1fr)`;
-    // FIX-UI-DATATABLE-EMAIL-COLUMN-834 - Whole while the row has room, sharing what is left as before; cut,
-    // down to the floor and never past its content (the widest text gives its width up first).
+    // Whole while the row has room, sharing what is left; when cut, down to the floor and never past
+    // its content (the widest text gives its width up first).
     if (input.clipped) return `minmax(${floor},${need}px)`;
-    // hub#703 - `need` is measured against the common floor: content narrower than the column's own stays on its own.
+    // `need` is measured against the common floor: content narrower than the column's own floor keeps that floor.
     return c.minWidth ? `minmax(max(${c.minWidth},${need}px),1fr)` : `minmax(${need}px,1fr)`;
   };
   return [
     input.selectable ? '2.75rem' : null,
     ...input.columns.map(track),
-    // #121 - A LENGTH, not `max-content`: header and rows are separate grids sharing this string, and
+    // A LENGTH, not `max-content`: header and rows are separate grids sharing this string, and
     // a content-sized track resolves against each one's content (the header slid off its columns).
     // `max-content` only until the first measurement of the buttons lands.
     input.hasActions ? (input.actionsTrackPx > 0 ? `${input.actionsTrackPx}px` : 'max-content') : null,
@@ -336,7 +326,7 @@ export function gridTemplate<T>(input: {
     .join(' ');
 }
 
-/** #205 - The column a card title already shows, so the default card body does not repeat it: the
+/** The column a card title already shows, so the default card body does not repeat it: the
  *  first visible column whose text reads exactly like the title. Only text titles; a column painted
  *  by a slot is never matched (the table cannot tell what it paints). */
 export function cardTitleColumn<T extends object>(
@@ -350,32 +340,30 @@ export function cardTitleColumn<T extends object>(
   return columns.find((c) => !c.cell && cellText(c, row).trim() === text);
 }
 
-/** hub#2014 - The row actions that exist for THIS row (`hidden` filtered out), in order. */
 export function visibleActions<T>(actions: readonly DataTableAction<T>[], row: T): DataTableAction<T>[] {
   return actions.filter((a) => a.hidden?.(row) !== true);
 }
 
-/** #240 - The actions that get a column in the list: those at least one row shows. */
+/** The actions that get a column in the list: those at least one row shows. */
 export function slotActions<T>(actions: readonly DataTableAction<T>[], rows: readonly T[]): DataTableAction<T>[] {
   return actions.filter((a) => rows.some((row) => a.hidden?.(row) !== true));
 }
 
-/** §6.16 - An icon action that also paints its label (`showLabel`). */
 export function iconWithLabel<T>(action: DataTableAction<T>): boolean {
   return !!action.icon && action.showLabel === true;
 }
 
-/** #213 - Are these row actions folded into the «…» menu? Only when the list folds (#122) AND there
- *  is more than one, or a single action with text (wider than the «…» button itself). */
+/** Are these row actions folded into the «…» menu? Only when the list folds AND there is more than
+ *  one, or a single action with text (wider than the «…» button itself). */
 export function rowActionsFolded<T>(collapsed: boolean, actions: readonly DataTableAction<T>[]): boolean {
   return collapsed && (actions.length > 1 || (actions.length === 1 && (!actions[0].icon || iconWithLabel(actions[0]))));
 }
 
-/** W-19 - How far the row actions are folded into «⋮»: not at all, beyond `maxInlineActions`, or all
- *  but the pinned ones. */
+/** How far the row actions are folded into «⋮»: not at all, beyond `maxInlineActions`, or all but
+ *  the pinned ones. */
 export type RowActionsFold = 'none' | 'extra' | 'all';
 
-/** W-19 - The actions that keep a button at a fold, in their order. A `menuOnly` one never does; a
+/** The actions that keep a button at a fold, in their order. A `menuOnly` one never does; a
  *  `pinned` one always does (and takes one of the `maxInline` places first). */
 export function inlineActions<T>(actions: readonly DataTableAction<T>[], fold: RowActionsFold, maxInline: number): DataTableAction<T>[] {
   const candidates = actions.filter((a) => a.menuOnly !== true);
@@ -385,14 +373,13 @@ export function inlineActions<T>(actions: readonly DataTableAction<T>[], fold: R
   return candidates.filter((a) => a.pinned === true || room-- > 0);
 }
 
-/** §3b - The noun the footer counts with («negocios»); `undefined` = the table's own «records». */
+/** The noun the footer counts with («businesses»); `undefined` = the table's own «records». */
 export function entityWord(count: number, entity: DataTableEntityLabel | undefined): string | undefined {
   if (!entity) return undefined;
   if (typeof entity === 'function') return entity(count);
   return count === 1 ? entity.one : entity.many;
 }
 
-/** The text of a row action for a row. */
 export function actionLabel<T>(action: DataTableAction<T>, row: T): string {
   return typeof action.label === 'function' ? action.label(row) : action.label;
 }
@@ -413,7 +400,7 @@ const DEFAULT_HEX: Record<string, string> = {
 /** A theme colour name: lowercase, digits and dashes. Anything else is refused (it goes into CSS). */
 const TONE_NAME = /^[a-z][a-z0-9-]*$/;
 
-/** #162 - Inline style that paints a control with a theme tone: `clear` for an `ion-button`
+/** Inline style that paints a control with a theme tone: `clear` for an `ion-button`
  *  `fill="clear"` (its `--color`), `text` for an `ion-icon`/`ion-label` (`color`). Inline, because
  *  the row menu popover is teleported out of the table. `undefined` for an empty or unsafe tone. */
 export function toneStyle(tone: string | undefined, variant: 'clear' | 'text'): string | undefined {
@@ -423,7 +410,7 @@ export function toneStyle(tone: string | undefined, variant: 'clear' | 'text'): 
   return variant === 'clear' ? `--color: ${value};` : `color: ${value};`;
 }
 
-/** hub#2245 - Same records in the same order, told apart by their key. Keyless rows never match. */
+/** Same records in the same order, told apart by their key. Keyless rows never match. */
 export function sameRecords<T>(before: readonly T[] | undefined, after: readonly T[], keyOf: (row: T) => string): boolean {
   if (!before || before.length !== after.length) return false;
   return after.every((row, i) => {

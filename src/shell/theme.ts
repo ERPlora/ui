@@ -1,29 +1,11 @@
-// Shell theme: light/dark mode + brand PALETTE + interface scale (ADR-0138). Ported from ERPlora hub
-// `apps/web/src/lib/theme.ts`. The mode is applied to <html> with Ionic's `ion-palette-dark` class
-// and the palette with the `data-ep-palette` attribute (theme/palettes.css, ported from OutfitKit;
-// `live/spa.html` sets the same attribute before the SPA boots, so a rename touches both). The
-// palette painted last is remembered in the `ep_palette` cookie, which `live/spa.py` reads to paint
-// that attribute on the next load (no flash of the default palette).
-// The mode is chosen in the user menu (App.vue: light, dark, system); the palette picker in settings.
+// The mode goes on <html> as Ionic's `ion-palette-dark` class and the palette as the `data-ep-palette`
+// attribute, which `live/spa.html` also sets before the SPA boots, so a rename touches both. The palette
+// painted last is remembered in the `ep_palette` cookie, which `live/spa.py` reads to paint that
+// attribute on the next load (no flash of the default palette).
 //
-// Contrast, ONE switch: `brand` paints the brand colours of today (primary #1496d6, 3.3:1 with white);
-// `aa` paints the AA solids of primary, success, warning and danger (`data-ep-contrast="aa"` on
-// <html>, theme/variables.css; mockups README §6.15, UX-AUDIT-2 V-01). Which one is the default is
-// Ioan's decision: `DEFAULT_THEME_CONTRAST`, below; a project can also pass `createShell({ contrast })`.
-//
-// Modes:
-//  - 'system' -> follows `prefers-color-scheme` (and reacts live to its changes).
-//  - 'light' / 'dark' -> force the mode, ignoring the system.
-//
-// Palette, TWO layers:
-//  - the GLOBAL palette of the hub (set by an admin; arrives through `setHubPalette`).
-//  - a PER-USER override; '' = no override (follow the global one).
-//
-// The source persisted nothing here (personal preferences live in the user profile API) and only
-// cleaned two legacy localStorage keys; the port keeps that. Differences from the source:
-//  - `toggleTheme()` no longer imports the user-profile module; the app registers
-//    `setThemePersister(fn)` and gets the new mode.
-//  - `isDark` reads a reactive copy of the system preference, so it cannot go stale.
+// The palette has two layers: the hub's global one (set by an admin, through `setHubPalette`) and a
+// per-user override ('' follows the global one). Nothing is persisted here: personal preferences live
+// in the user profile API, and the app registers `setThemePersister(fn)` to save the person's mode.
 import { computed, ref } from 'vue';
 
 import { BRAND_PALETTE_IDS, type BrandPaletteId } from './brandbook';
@@ -55,7 +37,6 @@ function prefersDark(): boolean {
 const _mode = ref<ThemeMode>('system');
 const _systemDark = ref(false);
 
-/** Theme mode selected by the user ('system' | 'light' | 'dark'). */
 export const themeMode = computed<ThemeMode>(() => _mode.value);
 
 /** Is the shell painting dark RIGHT NOW (resolving 'system')? */
@@ -63,7 +44,7 @@ export const isDark = computed<boolean>(
   () => _mode.value === 'dark' || (_mode.value === 'system' && _systemDark.value),
 );
 
-/** Applies the effective mode to <html> (Ionic class). No eval; direct DOM manipulation. */
+/** Applies the effective mode to <html> (Ionic class). */
 function applyMode(mode: ThemeMode): void {
   if (typeof document === 'undefined') return;
   _systemDark.value = prefersDark();
@@ -71,7 +52,7 @@ function applyMode(mode: ThemeMode): void {
   document.documentElement.classList.toggle('ion-palette-dark', dark);
 }
 
-/** Sets the mode in memory. Personal persistence lives in the profile API. */
+/** Sets the mode in memory only. */
 export function setThemeMode(mode: ThemeMode): void {
   _mode.value = mode;
   applyMode(mode);
@@ -174,12 +155,11 @@ export const THEME_CONTRASTS = ['brand', 'aa'] as const;
 
 export type ThemeContrast = (typeof THEME_CONTRASTS)[number];
 
-/** 🔵 The one-line switch (README §6.15, pending Ioan's decision): `'aa'` makes the accessible colours the default. */
+/** `'aa'` makes the accessible colours the default. */
 export const DEFAULT_THEME_CONTRAST: ThemeContrast = 'brand';
 
 const _contrast = ref<ThemeContrast>(DEFAULT_THEME_CONTRAST);
 
-/** The contrast the shell paints. */
 export const themeContrast = computed<ThemeContrast>(() => _contrast.value);
 
 /** Applies the contrast to <html>: `aa` sets `data-ep-contrast="aa"`, `brand` removes it. Unknown → brand. */

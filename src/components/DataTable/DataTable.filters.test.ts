@@ -1,8 +1,3 @@
-// DataTable column filters (hub-next apps/tax/UI-REQUESTS.md; the inline filters of `ok-data-table`):
-// a column declares `filter` and the table paints a filter row under its toolbar, one Ionic control
-// per filtered column (free text «contains», a closed domain by equality, a day, a numeric range),
-// with «Clear filters» while any filters. Client mode filters `rows`; server mode emits
-// `filtersChange` with `{ name: value }`; both keep `v-model:filters`.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { byTestId, cards, click, crossBreakpoint, dataRows, ionChange, mountTable, settle, text, type, viewport } from './__tests__/harness';
@@ -135,9 +130,9 @@ describe('the filter row', () => {
     expect(to.closest('.data-table__filter-range')).toBe(group);
   });
 
-  it('FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER: a date range’s ends are date boxes, a numeric range’s stay short boxes, their hooks unchanged', async () => {
-    // In the row each end of a date range was as narrow as a number box: the calendar icon covered the last
-    // character of «dd/mm/yyyy» (Hub: Payments › Date at 1440 px). Its group is marked for the date width.
+  it('a date range’s ends are date boxes and a numeric range’s stay short boxes, with the same hooks', async () => {
+    // As narrow as a number box, a date end lets its calendar icon cover the last character of
+    // «dd/mm/yyyy»: its group is marked for the date width.
     const columns = [
       { key: 'issued', label: 'Issued', filter: { type: 'daterange' } },
       { key: 'rate', label: 'Rate', filter: { type: 'range' } },
@@ -313,12 +308,8 @@ describe('server mode asks for the filtered rows', () => {
   });
 });
 
-// ── In the cards the column filters fold behind the funnel: an open row of controls under the toolbar took
-// half a phone before the first card, where the old table kept them behind its funnel
-// (docs/reference/old-hub/cart_checkout-carts-390.png). Whenever the table paints cards (picked, the default
-// or forced by `cardBreakpoint`) they behave as with `filterable`: the same funnel and count, the same panel
-// (the modal sheet below 834 px, outfitkit#75), the same `filters` and `filtersChange`. The table view keeps
-// its row as before, and a filter in use survives every switch.
+// An open row of filter controls under the toolbar would take half a phone before the first card, so
+// whenever the table paints cards the column filters behave as with `filterable`.
 describe('in the card view the column filters fold behind the funnel', () => {
   const funnel = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-toggle')[0] as HTMLElement | undefined;
   const panel = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-panel')[0] as HTMLElement | undefined;
@@ -328,7 +319,7 @@ describe('in the card view the column filters fold behind the funnel', () => {
   const pick = (t: ReturnType<typeof mountTable>, view: 'table' | 'cards') =>
     ionChange(t.element.querySelector('.data-table__view-segment') as HTMLElement, { value: view });
 
-  it('cards by default, without `filterable`: no filter row, a funnel whose panel filters the cards and closes on «Apply» (outfitkit#207)', async () => {
+  it('cards by default, without `filterable`: no filter row, a funnel whose panel filters the cards and closes on «Apply»', async () => {
     const t = mountTable({ ...base, views: true, defaultView: 'cards' }, { attachTo: document.body });
     await settle();
     expect(cards(t)).toHaveLength(3);
@@ -359,7 +350,7 @@ describe('in the card view the column filters fold behind the funnel', () => {
     expect(funnel(t)).toBeUndefined();
   });
 
-  it('on a phone (cards forced by `cardBreakpoint`) the funnel opens the modal sheet (outfitkit#75)', async () => {
+  it('on a phone (cards forced by `cardBreakpoint`) the funnel opens the modal sheet', async () => {
     viewport(true);
     const t = mountTable({ ...base, views: true }, { attachTo: document.body });
     await settle();
@@ -369,7 +360,7 @@ describe('in the card view the column filters fold behind the funnel', () => {
     expect(panel(t)?.getAttribute('aria-modal')).toBe('true');
   });
 
-  it('the table view, wide, without `filterable`: the filter row stays open and there is no funnel, as today', async () => {
+  it('the table view, wide, without `filterable`: the filter row stays open and there is no funnel', async () => {
     const t = mountTable({ ...base, views: true, defaultView: 'table' });
     await settle();
     expect(dataRows(t)).toHaveLength(3);
@@ -418,7 +409,7 @@ describe('in the card view the column filters fold behind the funnel', () => {
     expect(control(t, 'status').value).toBe('inactive');
   });
 
-  it('`filterable` stays behind the funnel in both views, as before', async () => {
+  it('`filterable` stays behind the funnel in both views', async () => {
     const t = mountTable({ ...base, views: true, filterable: true });
     await settle();
     expect(filterRow(t)).toHaveLength(0);
@@ -437,10 +428,6 @@ describe('in the card view the column filters fold behind the funnel', () => {
   });
 });
 
-// ── The filters panel (`filterable`): the old table's funnel, with the count of filters in use, opening a
-// panel INSIDE the table (PLAN-MIGRATIONS §13, 2026-10-15; outfitkit's `.drawer`): two columns from 834 px
-// (the list narrows, nothing is covered), a sheet over the content area below. The panel edits a draft:
-// «Apply» applies it and closes, «Clear» lifts every filter at once, Close and Escape drop the draft.
 describe('the filters panel (`filterable`)', () => {
   const panelBase = { ...base, filterable: true, views: true, addable: true };
   const funnel = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-toggle')[0] as HTMLElement & { fill?: string };
@@ -474,7 +461,7 @@ describe('the filters panel (`filterable`)', () => {
     expect(panel(t)).toBeUndefined();
   });
 
-  it('without `filterable` the column filters keep their row and there is no funnel (the lists that use it today)', async () => {
+  it('without `filterable` the column filters keep their row and there is no funnel', async () => {
     const t = mountTable(base);
     await settle();
     expect(byTestId(t, 'rules-filters')).toHaveLength(1);
@@ -626,7 +613,7 @@ describe('the filters panel (`filterable`)', () => {
     expect(panel(t)).toBeDefined();
   });
 
-  it('outfitkit#106: server mode with filters from outside (the address) paints them on the funnel and in the panel', async () => {
+  it('server mode with filters from outside (the address) paints them on the funnel and in the panel', async () => {
     const t = mountTable({ ...panelBase, serverSide: true, total: 3, pageSizeOptions: [10], filters: { status: 'active', rate_from: '5', day: '2026-10-14' } });
     await settle();
     expect(text(count(t))).toBe('3');
@@ -642,7 +629,7 @@ describe('the filters panel (`filterable`)', () => {
     expect(text(count(t))).toBe('2');
   });
 
-  it('outfitkit#116: a name no column declares (a stale address parameter) is never sent nor counted', async () => {
+  it('a name no column declares (a stale address parameter) is never sent nor counted', async () => {
     const t = mountTable({ ...panelBase, serverSide: true, total: 3, pageSizeOptions: [10], filters: { status: 'active', city: 'Madrid', name: ' ' } });
     await settle();
     expect(text(count(t))).toBe('1');
@@ -696,7 +683,7 @@ describe('the filters panel (`filterable`)', () => {
     expect((control(t, 'rate_to') as HTMLElement & { placeholder?: string }).placeholder).toBe('Hasta');
   });
 
-  it('outfitkit#197: while open, the table publishes where the content area begins and ends (the phone sheet’s insets)', async () => {
+  it('while open, the table publishes where the content area begins and ends (the phone sheet’s insets)', async () => {
     const ionPage = document.createElement('div');
     ionPage.className = 'ion-page';
     ionPage.getBoundingClientRect = () => ({ top: 0, bottom: 844 }) as DOMRect;
@@ -714,7 +701,7 @@ describe('the filters panel (`filterable`)', () => {
   });
 });
 
-describe('the filter row sends only what the columns declare (outfitkit#116)', () => {
+describe('the filter row sends only what the columns declare', () => {
   it('a name no column declares, passed in by the parent, is not sent again nor offers «Clear filters»', async () => {
     const t = mountTable({ ...base, serverSide: true, total: 3, pageSizeOptions: [10], filters: { city: 'Madrid' } });
     await settle();
@@ -724,9 +711,7 @@ describe('the filter row sends only what the columns declare (outfitkit#116)', (
   });
 });
 
-// ── The other filter types and the server's refusals (FIX-DATATABLE round 2: every Hub FilterPanel fits the
-// table): a text with its longest length, a date range, a range with bounds or an amount as typed, a yes/no,
-// a lookup that asks the server, and `filterErrors` (a 422's fieldErrors) under their controls.
+// `filterErrors` are the `fieldErrors` of the server's 422, painted under their controls.
 describe('the other filter types', () => {
   const PEOPLE = [
     { value: '7', label: 'Ana García' },
@@ -854,9 +839,6 @@ describe('the other filter types', () => {
   });
 });
 
-// ── Filters with no column of their own (`filterFields`, FIX-DATATABLE round 3): the Hub filters by fields it
-// does not paint (customer `is_active`, dates, amounts). After the columns' own filters, in their order; they
-// count, are sent (#116) and take `filterErrors`, and the column chooser never offers them.
 describe('`filterFields`: filters with no column', () => {
   const FIELDS = [
     { key: 'is_active', label: 'Active', type: 'boolean' },
@@ -881,7 +863,7 @@ describe('`filterFields`: filters with no column', () => {
     expect(control(t, 'spent_from').value).toBe('5');
   });
 
-  it('client mode filters the rows by the field; server mode sends it, and nothing undeclared (#116)', async () => {
+  it('client mode filters the rows by the field; server mode sends it, and nothing undeclared', async () => {
     const t = mountTable({ ...withFields, filterable: true }, { attachTo: document.body });
     await settle();
     await click(byTestId(t, 'rules-filters-toggle')[0]);
@@ -923,12 +905,10 @@ describe('`filterFields`: filters with no column', () => {
   });
 });
 
-// ── FIX-UI-DATATABLE-RANGE-FILTER-LABELS: in the filter row the other filters read as their column («Order»,
-// «Status»), but a range's two ends only said «From» / «To»: nobody could tell what they filter, and two ranges in
-// one list (an invoice's Total and Date) looked the same. The column now heads its pair on screen, in a range and in
-// a date range (whose date boxes paint «dd/mm/yyyy», never a placeholder), as Shopify and Odoo name a range filter
-// by its field. The panel already titles each range with its column: «From» / «To» stay there, said once.
-describe('FIX-UI-DATATABLE-RANGE-FILTER-LABELS: a range says its column on screen', () => {
+// A range's two ends only say «From» / «To», so in the filter row its column heads the pair on screen:
+// otherwise two ranges in one list (an invoice's Total and Date) read the same. The panel already titles
+// each range with its column.
+describe('a range says its column on screen', () => {
   const RANGES = [
     { key: 'order', label: 'Order', filter: { type: 'text' } },
     { key: 'total', label: 'Total', filter: { type: 'range', amount: true } },
@@ -953,7 +933,7 @@ describe('FIX-UI-DATATABLE-RANGE-FILTER-LABELS: a range says its column on scree
       expect(hint(t, from)).toBe('From');
       expect(hint(t, to)).toBe('To');
     }
-    // Two ranges in one list no longer read the same.
+    // Two ranges in one list do not read the same.
     expect(text(group(t, 'total_from'))).not.toBe(text(group(t, 'issued_from')));
   });
 
@@ -973,7 +953,7 @@ describe('FIX-UI-DATATABLE-RANGE-FILTER-LABELS: a range says its column on scree
     const [label] = heading(t, 'issued_from');
     expect(label?.localName).not.toBe('ion-input');
     expect(text(label)).toBe('Issued');
-    // The date width of ui#29 and the hooks stay.
+    // The date width and the hooks stay.
     expect(group(t, 'issued_from').classList.contains('data-table__filter-range--date')).toBe(true);
     expect(byTestId(t, 'rules-filter-issued_from')).toHaveLength(1);
     expect(byTestId(t, 'rules-filter-issued_to')).toHaveLength(1);

@@ -1,15 +1,8 @@
-// The device's voice, the system's first (round 2026-11-04a). In the installed app the system's own voice reads: the
-// app's `tts_*` commands (Android's TextToSpeech, with the voices the person has in the system settings), because the
-// Android webview has no `speechSynthesis`. Else the browser's (`deviceVoice.ts`): on the web, in the PWA and in the
-// Windows app, whose WebView2 reads with Windows' own voices (the app answers there that it has no system voice).
-// - The app is asked once per language whether its voice reads it (`tts_available`); an app without the commands
-//   (older than this round) or one that does not answer has none.
-// - A reading the system voice cannot do (no voice, the engine broke) is read by the browser's voice when there is
-//   one; else it fails, for the panel to say so under the answer.
-// - With no app, the browser's voice is asked at once, in the click: iOS only lets the first utterance start inside
-//   the gesture.
-// - One reading at a time. A new one is sent to the app only once the stop of the one before was answered: sent in
-//   the other order, the stop would silence the new one.
+// The device's voice. In the installed Android app the system's own voice reads, through the app's `tts_*` commands
+// (Android's TextToSpeech), because the Android webview has no `speechSynthesis`. Everywhere else the browser's voice
+// reads (`deviceVoice.ts`), the Windows app included: its WebView2 reads with Windows' voices, and the app answers that
+// it has no system voice. A reading the system voice cannot do (no voice, the engine broke) falls back to the browser's
+// voice when there is one; else it fails, for the panel to say so under the answer.
 import type { NativeBridge } from '../../shell/device-notices';
 import { DEVICE_LANGS, type DeviceReader, type DeviceReading } from './deviceVoice';
 import type { AssistantLanguage } from './voices';
@@ -45,10 +38,11 @@ const isAvailable = (answer: unknown): boolean =>
 /** The device's voice, or none when it has nothing to read with. */
 export function createDeviceVoice({ invoke, browser }: DeviceVoiceDeps): DeviceVoice | null {
   if (!invoke && !browser) return null;
-  /** What the app answered for each language. */
+  /** What the app answered for each language (`tts_available`), asked once. */
   const known = new Map<AssistantLanguage, boolean>();
   let current: DeviceReading | null = null;
-  /** The last stop sent to the app, answered (or refused) before the next reading is sent. */
+  /** The last stop sent to the app, answered (or refused) before the next reading is sent: sent in the other order,
+   *  the stop would silence the new reading. */
   let stopping: Promise<void> = Promise.resolve();
 
   async function systemReads(language: AssistantLanguage): Promise<boolean> {
@@ -134,6 +128,8 @@ export function createDeviceVoice({ invoke, browser }: DeviceVoiceDeps): DeviceV
 
   function read(text: string, language: AssistantLanguage): DeviceReading {
     current?.cancel();
+    // Without the app the browser's voice is asked at once, inside the click: iOS only lets the first utterance start
+    // in the gesture.
     current = invoke ? readWithApp(invoke, text, language) : browser!.read(text, language);
     return current;
   }

@@ -1,9 +1,6 @@
 <script setup lang="ts">
-// UserMenuPopover — the user menu (mockups README §3; PLAN-SAAS §3.6, point 1): an ion-popover
-// (role=dialog) with the project's entries, Help, the theme (light, dark, system) and Sign out, under
-// the person's card at the top of the side menu (App.vue; in the hub too, hub#146: never an avatar in
-// the topbar). The parent owns whether it is open; picking an entry, signing out or Ionic dismissing it
-// (backdrop, Escape) emits `dismiss`.
+// The parent owns whether it is open; picking an entry, signing out or Ionic dismissing it (backdrop,
+// Escape) emits `dismiss`.
 import { IonContent, IonItem, IonLabel, IonList, IonPopover, IonSegment, IonSegmentButton } from '@ionic/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';

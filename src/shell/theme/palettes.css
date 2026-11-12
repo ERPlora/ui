@@ -1,6 +1,4 @@
-/* OPTIONAL brand palettes over the shell theme (variables.css): ported 1:1 from OutfitKit's
- * `palettes.css` (0.1.136; PLAN §16.11), which brought them from the ERPlora/ux showcase
- * (lib/templates/*.css, manifest 2.1.0), translated from --ux-* to --ion-* tokens.
+/* Optional brand palettes over the shell theme (variables.css).
  *
  * Mechanism: `data-ep-palette="<id>"` on <html> (theme.ts writes it; live/spa.html reads it before
  * the SPA boots). NO attribute = the ERPlora brand (the blue of variables.css). Dark is still
@@ -25,7 +23,7 @@
   --ep-primary-text: color-mix(in srgb, var(--ion-color-primary) 60%, var(--ion-text-color));
 }
 
-/* ═══════════════ TERRACOTTA — the warm default of the ux showcase ═══════════════ */
+/* ═══════════════ TERRACOTTA — warm ═══════════════ */
 
 :root[data-ep-palette='terracotta'] {
   --ion-color-primary: #E8552A;
@@ -126,8 +124,8 @@
 }
 
 :root.ion-palette-dark[data-ep-palette='corporate'] {
-  /* In dark the navy rises to a brighter blue (the ux "focus ring") so that
-   * buttons and links do not sink into the slate canvas. */
+  /* In dark the navy rises to a brighter blue so that buttons and links do not sink into the
+   * slate canvas. */
   --ion-color-primary: #176EC8;
   --ion-color-primary-rgb: 23, 110, 200;
   --ion-color-primary-contrast: #ffffff;
@@ -194,7 +192,7 @@
 }
 
 :root.ion-palette-dark[data-ep-palette='minimal'] {
-  /* INVERTED mono: the ux brand #0A0A0A would be invisible on a black canvas;
+  /* Inverted mono: the brand #0A0A0A would be invisible on a black canvas;
    * in dark the primary is the ink (white), as in a classic mono theme. */
   --ion-color-primary: #FAFAFA;
   --ion-color-primary-rgb: 250, 250, 250;
@@ -329,7 +327,7 @@
 }
 
 :root.ion-palette-dark[data-ep-palette='ocean'] {
-  /* The bright ux cyan carries DARK text on top (correct contrast). */
+  /* The bright cyan carries dark text on top, for contrast. */
   --ion-color-primary: #00B1DA;
   --ion-color-primary-rgb: 0, 177, 218;
   --ion-color-primary-contrast: #06141C;

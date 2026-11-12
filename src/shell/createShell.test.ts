@@ -57,7 +57,7 @@ afterEach(() => {
 });
 
 describe('createShell', () => {
-  it('boots in the order of the Hub main.ts (hub#1060): policy, icons, Ionic, theme', async () => {
+  it('boots in order: policy, icons, Ionic, theme', async () => {
     await boot();
     expect(calls.map(([name]) => name)).toEqual(['installTrustedTypesPolicy', 'addIcons', 'IonicVue', 'bootTheme']);
   });
@@ -76,7 +76,7 @@ describe('createShell', () => {
     expect(calls.find(([name]) => name === 'addIcons')?.[1]).toBe(ION_ICONS);
   });
 
-  it('pins IonicVue to ios mode with swipe-back off (ADR-0143)', async () => {
+  it('pins IonicVue to ios mode with swipe-back off', async () => {
     await boot();
     expect(calls.find(([name]) => name === 'IonicVue')?.[1]).toEqual({ mode: 'ios', swipeBackEnabled: false });
   });
@@ -159,8 +159,8 @@ describe('createShell: home', () => {
   });
 });
 
-// FIX-SHELL-SPLIT-PANE (PLAN-MIGRATIONS §16): the hub's side menu is the old hub's (`sidebar`: the
-// platform's entries, the QR in the footer, the rail); the SaaS keeps the menu of its session.
+// The hub hands its own side menu (`sidebar`: the platform's entries, the QR in the footer, the rail);
+// the SaaS keeps the menu of its session.
 describe('createShell: sidebar', () => {
   const SIDEBAR = { groups: [[{ id: 'employees', labelKey: 'sidebar.employees', icon: 'ion:people-outline', to: '/employees' }]] };
 
@@ -175,8 +175,8 @@ describe('createShell: sidebar', () => {
   });
 });
 
-// APP-BASE-1: the project's pieces of the chrome (the hub's bell, «Upgrade plan» and blocking strip),
-// mounted by the shell where the old hub had them; none by default, so the SaaS does not change.
+// The project's own pieces of the chrome (the hub's bell, «Upgrade plan» and blocking strip), mounted
+// by the shell; none by default.
 describe('createShell: chrome', () => {
   const Piece = { name: 'ProjectPiece', render: () => h('span') };
 
@@ -192,7 +192,7 @@ describe('createShell: chrome', () => {
   });
 });
 
-// An app's piece that runs on every screen (printing's print host, PRINTING-F18): a route of its `routes.ts` marked
+// An app's piece that runs on every screen (the printing app's print host): a route of its `routes.ts` marked
 // `background`, which is no screen. The shell keeps it out of the router and mounts its piece beside the pane.
 describe("createShell: the apps' background pieces", () => {
   const Piece = { name: 'AppBackground', render: () => h('span') };
@@ -220,7 +220,7 @@ describe("createShell: the apps' background pieces", () => {
 });
 
 describe('createShell.ts import order', () => {
-  it('loads the theme in cascade order, every sheet our own or Ionic: nothing from OutfitKit (PLAN §16.11)', () => {
+  it('loads the theme in cascade order, every sheet our own or Ionic', () => {
     const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'createShell.ts'), 'utf8');
     const sheets = [...source.matchAll(/^import '([^']+\.css)';$/gm)].map((m) => m[1]);
     expect(sheets.length).toBeGreaterThan(10);
@@ -232,7 +232,7 @@ describe('createShell.ts import order', () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it('imports the boot hooks before anything that registers Ionic elements (hub#1060)', () => {
+  it('imports the boot hooks before anything that registers Ionic elements', () => {
     const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'createShell.ts'), 'utf8');
     const ionic = source.indexOf("from '@ionic/vue'");
     const app = source.indexOf("from './App.vue'");

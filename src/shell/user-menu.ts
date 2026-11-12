@@ -1,8 +1,5 @@
-// The user menu (App.vue): the person at the top of the side menu opens an ion-popover with the
-// project's entries, Help, the theme (light, dark, system) and Sign out (mockups README §3; PLAN-SAAS
-// §3.6, point 1). The theme is the shell's; the rest is what the project hands to
-// `createShell({ userMenu })`: an entry the project cannot honour (no help page, no way to sign out)
-// is simply not offered.
+// The theme entry is the shell's; the rest is what the project hands to `createShell({ userMenu })`:
+// an entry the project cannot honour (no help page, no way to sign out) is simply not offered.
 import { type App, inject, type InjectionKey } from 'vue';
 
 interface ShellUserMenuEntry {

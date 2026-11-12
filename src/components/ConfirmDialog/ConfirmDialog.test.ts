@@ -1,8 +1,3 @@
-// Behaviour spec of ConfirmDialog: the confirmation of a destructive or consequential action
-// (remove a member, transfer ownership, delete a business; mockups `business.html`, README §3b),
-// our own `ion-modal` (FormModal) rather than `ion-alert`, so it looks like every other dialog of
-// the panel: title, message (or slot), consequences, an optional «type the name to confirm», and
-// Cancel / the action in the tone of what it does.
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { h, nextTick } from 'vue';
@@ -81,9 +76,9 @@ describe('ConfirmDialog', () => {
     expect(el.getAttribute('aria-describedby')).toBe(message.attributes('id'));
   });
 
-  // R-29 (UX audit 2, 2026-10-14): Material 3 and iOS confirm in a centred dialog; a sheet is for
-  // tasks. Two lines of text in a full-height sheet left ~600px of nothing at 390px.
-  it('is the centred card at every width, also on a phone: never a sheet (R-29)', async () => {
+  // Material 3 and iOS confirm in a centred dialog; a sheet is for tasks, and two lines of text in a full-height sheet
+  // leave most of a phone's screen empty.
+  it('is the centred card at every width, also on a phone: never a sheet', async () => {
     const wrapper = mountDialog();
     await settle();
     expect(modalEl(wrapper).getAttribute('data-phone-layout')).toBe('card');

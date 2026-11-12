@@ -1,7 +1,6 @@
-// Storybook-free visual guard of the DataTable. The look of the Lit original lives in its CSS, which
-// happy-dom does not lay out, so this pins (1) the class names the template paints and (2) the rules
-// and custom properties of the ported stylesheet that carry the look. A later CSS clean-up cannot
-// silently change the table: each assertion names the OutfitKit issue whose look it keeps.
+// happy-dom does not lay out CSS, so this pins (1) the class names the template paints and (2) the
+// rules and custom properties of the stylesheet that carry the look: a later CSS clean-up cannot
+// silently change the table.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,7 +17,7 @@ const VARIABLES = readFileSync(join(HERE, '../../shell/theme/variables.css'), 'u
 
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const STYLE = stripComments(source.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\s+/g, ' ');
-/** The unscoped block: rules that must stay as weak as they were in the Lit shadow root. */
+/** The unscoped block: rules that must stay weaker than Ionic's own classes (a scoped copy carries Vue's attribute). */
 const WEAK = stripComments(source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\s+/g, ' ');
 const TEMPLATE = (source.match(/<template>([\s\S]*)<\/template>/)?.[1] ?? '').replace(/<!--[\s\S]*?-->/g, '');
 
@@ -44,7 +43,7 @@ function media(query: string): string {
   throw new Error('unbalanced @media');
 }
 
-/** FIX-UI-DATATABLE-CELL-NO-WRAP-SQUEEZES-CHIP-BESIDE-BADGE - The cells of a data row that wrap (the pinned actions cell keeps its line). */
+/** The cells of a data row that wrap (the pinned actions cell keeps its line). */
 const DATA_CELL = '.data-table__row--data > .data-table__cell:not(.data-table__cell--actions)';
 /** The selectors of every rule that lets a table cell wrap its things (outside @media). */
 const WRAPPING_CELLS = [...STYLE.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
@@ -144,9 +143,6 @@ describe('the painted structure (class names the stylesheet hangs on)', () => {
   });
 });
 
-// Ioan, 2026-10-13: the list/cards switch is Ionic's own segment, not the Lit original's bordered
-// white box of two square buttons (`.viewseg` / `.toolbtn`). Same place in the toolbar, same API
-// (`views`, `defaultView`, `viewChange`).
 describe('the list/cards switch is an ion-segment', () => {
   const segmentOf = (t: ReturnType<typeof mountTable>) =>
     t.element.querySelector('.data-table__bar-main > ion-segment') as (HTMLElement & { value?: string }) | null;
@@ -203,12 +199,11 @@ describe('the list/cards switch is an ion-segment', () => {
   });
 });
 
-// APP-BASE-1: a wrapping row breaks its lines with each item's flex basis, not its minimum, so the search's 22rem
-// sent the funnel alone to a second line at 834px (the old hub's kept it on one) and at 820px (the fleet's
-// tablet) before the search shrank a pixel: search 352 + columns 144 + rows 88 + switch 112 + funnel 44 + gaps
-// = 772px in a 770px row (measured in the Hub's e2e). Where the
-// spacer is gone (≤1024px) the search breaks the line at its 12rem minimum and grows back up to 22rem: the same
-// width wherever the row fits, and the row stays one line down to about 660px of toolbar.
+// A wrapping row breaks its lines with each item's flex basis, not its minimum, so at its 22rem the search
+// sends the funnel alone to a second line on a tablet (820–834px) before it shrinks a pixel: search 352 +
+// columns 144 + rows 88 + switch 112 + funnel 44 + gaps = 772px in a 770px row. Where the spacer is gone
+// (≤1024px) the search breaks the line at its 12rem minimum and grows back up to 22rem: the same width
+// wherever the row fits, and the row stays one line down to about 660px of toolbar.
 describe('the toolbar keeps one line on a tablet', () => {
   it('without the spacer, the search shrinks before anything wraps and grows back to its 22rem', () => {
     expect(rule('.data-table__spacer', media('(max-width: 1024px)'))).toContain('display: none');
@@ -228,27 +223,27 @@ describe('icons', () => {
   });
 });
 
-describe('our names only: nothing of OutfitKit in tags, classes or tokens', () => {
+describe('our names only: no ok-* tags, classes or tokens', () => {
   it('no ok-* tag or class and no --ok-* token in the template or the stylesheet', () => {
     expect(TEMPLATE).not.toMatch(/<ok-|class="[^"]*\bok-|--ok-/);
     expect(`${STYLE} ${WEAK}`).not.toMatch(/--ok-|\.ok-|\bok-[a-z]/);
   });
 
-  it('every token the stylesheet reads is its own, an --ion-*, or an --ep-* (theme value or Lit fallback)', () => {
+  it('every token the stylesheet reads is its own, an --ion-*, or an --ep-* (theme value or fallback)', () => {
     const own = new Set([...STYLE.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
     const read = new Set([...`${STYLE} ${WEAK}`.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]));
     for (const token of read) {
       if (own.has(token) || token.startsWith('--ion-')) continue;
       expect(token.startsWith('--ep-'), token).toBe(true);
-      // The theme's --ok-* tokens are gone (PLAN §16.11): an --ep-* it defines is pinned by value
-      // below (the frame shadow); any other is read with the Lit fallback, so the look holds.
+      // An --ep-* the theme defines is pinned by value below (the frame shadow); any other is read
+      // with its fallback, so the look holds.
       if (!values(token).length) expect(STYLE, `${token} has no value in the theme: it needs its fallback`).not.toMatch(new RegExp(`var\\(${escape(token)}\\)`));
     }
   });
 });
 
-describe('tokens of the table (the Lit `:host`, now `.data-table`)', () => {
-  it('declares the overridable vars with the same chains, --ok-* replaced by the --ion-* it mirrored', () => {
+describe('tokens of the table (`.data-table`)', () => {
+  it('declares the overridable vars with their fallback chains', () => {
     const root = rule('.data-table');
     for (const declaration of [
       '--background: var(--ion-card-background, var(--ion-background-color, #ffffff))',
@@ -269,7 +264,7 @@ describe('tokens of the table (the Lit `:host`, now `.data-table`)', () => {
     }
   });
 
-  it('keeps the shell frame the Lit host had (shadow, clip) and the 16px radius it painted (the shell’s --ok-radius was a cycle)', () => {
+  it('has the shell frame (shadow, clip) and a fixed 16px radius', () => {
     const root = rule('.data-table');
     expect(root).toContain('display: block');
     expect(root).toContain('box-shadow: var(--ep-shadow-sm)');
@@ -279,21 +274,21 @@ describe('tokens of the table (the Lit `:host`, now `.data-table`)', () => {
     expect(rule('.data-table__surface')).toContain('border-radius: var(--border-radius)');
   });
 
-  it('the frame shadow is --ep-shadow-sm, with the light and dark values the --ok-shadow-sm it replaced had', () => {
+  it('the frame shadow is --ep-shadow-sm, with its light and dark values', () => {
     expect(values('--ep-shadow-sm')).toEqual([
       '0 1px 3px rgba(17, 24, 39, 0.06), 0 1px 2px rgba(17, 24, 39, 0.04)',
       '0 1px 3px rgba(0, 0, 0, 0.5)',
     ]);
   });
 
-  it('the touch floor and the transition keep the Lit fallbacks (the shell never gave --ok-* values to them)', () => {
+  it('the touch floor and the transition keep their fallbacks', () => {
     expect(STYLE).toContain('var(--ep-tap-min, 44px)');
     expect(STYLE).toContain('var(--ep-transition, 150ms ease)');
   });
 });
 
-describe('the rules that carry the look (one per Lit regression)', () => {
-  it('#67/#120: the pinned column is sticky, opaque, shadowed only on overflow; the scrollbar stays', () => {
+describe('the rules that carry the look', () => {
+  it('the pinned column is sticky, opaque, shadowed only on overflow; the scrollbar stays', () => {
     const pinned = rule('.data-table__cell--pinned');
     expect(pinned).toMatch(/position: sticky; right: 0; z-index: 1; background: inherit/);
     expect(rule('.data-table__scroll--overflow .data-table__cell--pinned')).toContain('box-shadow:');
@@ -301,35 +296,35 @@ describe('the rules that carry the look (one per Lit regression)', () => {
     expect(rule('.data-table__scroll::-webkit-scrollbar')).toContain('height: 10px');
   });
 
-  it('#120/#121: the grid floor is the sum of the column minimums; row buttons never shrink', () => {
+  it('the grid floor is the sum of the column minimums; row buttons never shrink', () => {
     expect(rule('.data-table__grid')).toMatch(/min-width: min-content/);
     expect(rule('.data-table__actions ion-button')).toMatch(/flex: 0 0 auto/);
     expect(rule('.data-table__actions')).not.toContain('flex-wrap');
     expect(rule('.data-table__card-actions .data-table__actions')).toContain('flex-wrap: wrap');
   });
 
-  it('a selected row and the current page out-rank :hover, as in Lit (Vue’s scope attribute raises :hover)', () => {
+  it('a selected row and the current page out-rank :hover (Vue’s scope attribute raises :hover)', () => {
     expect(rule('.data-table__row--data.data-table__row--selected')).toContain('color-mix(in srgb, var(--primary) 10%, transparent)');
     expect(rule('.data-table__page.data-table__page--current')).toContain('color: var(--primary)');
     expect(STYLE.indexOf('.data-table__row--data.data-table__row--selected')).toBeGreaterThan(STYLE.indexOf('.data-table__row--data:hover'));
     expect(STYLE.indexOf('.data-table__page.data-table__page--current')).toBeGreaterThan(STYLE.indexOf('.data-table__page:hover'));
   });
 
-  it('#211/#217: the hidden-but-named label, and the one-line clip a tap unfolds', () => {
+  it('the hidden-but-named label, and the one-line clip a tap unfolds', () => {
     expect(rule('.data-table__sr-only')).toMatch(/position: absolute; width: 1px; height: 1px;.*clip-path: inset\(50%\)/);
     expect(rule('.data-table__cell > :deep(span)')).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap/);
-    // More specific than the clip, as `span.unfolded` was over `.gcell > span` in Lit.
+    // More specific than the clip, so the unfolded text wins.
     expect(rule('.data-table__cell > .data-table__text--unfolded')).toContain('white-space: normal');
   });
 
-  it('#74/#79: clickable rows and cards afford it; the card head is one row in ios', () => {
+  it('clickable rows and cards afford it; the card head is one row in ios', () => {
     expect(rule('.data-table__row--clickable')).toContain('cursor: pointer');
     expect(rule('.data-table__card--clickable')).toContain('cursor: pointer');
     expect(rule('.data-table__card--clickable:focus-visible')).toContain('outline:');
     expect(rule('.data-table__card-head')).toMatch(/display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center/);
   });
 
-  it('#92/#113/#78/pm#530: tap targets — 36px create button on a desk, 44px on touch', () => {
+  it('tap targets — 36px create button on a desk, 44px on touch', () => {
     expect(rule('.data-table__add-button')).toContain('min-height: 36px');
     expect(rule('.data-table__primary-button')).toContain('--background: var(--primary)');
     expect(rule('.data-table__load-more')).toContain('min-height: 44px');
@@ -358,20 +353,20 @@ describe('the rules that carry the look (one per Lit regression)', () => {
     }
   });
 
-  it('#218/#268/pm#530: fill stretches the states; on a phone the list grows with the page', () => {
+  it('fill stretches the states; on a phone the list grows with the page', () => {
     expect(rule('.data-table--fill')).toMatch(/display: flex; flex-direction: column; height: 100%; min-height: 0/);
     expect(rule('.data-table--fill .data-table__empty, .data-table--fill .data-table__error, .data-table--fill .data-table__loading')).toContain('flex: 1 1 auto');
     const phone = media('(max-width: 640px)');
     expect(rule('.data-table--fill .data-table__cards', phone)).toContain('overflow: visible');
     expect(rule('.data-table--fill.data-table--content-after', phone)).toContain('flex-shrink: 0 !important');
-    // Measured in Chrome at 390px (AppPage detail-fill, 60 rows): with nothing after it the box kept
-    // the container's height and, `overflow: hidden`, clipped every row and the pager below the fold;
-    // the page had nothing to scroll. On a phone it grows with its rows, at least the container's height.
+    // With nothing after it, a box at the container's height with `overflow: hidden` clips every row and
+    // the pager below the fold and leaves the page nothing to scroll (measured in Chrome at 390px). On a
+    // phone it grows with its rows, at least the container's height.
     expect(rule('.data-table--fill:not(.data-table--content-after)', phone)).toBe('height: auto; min-height: 100%;');
     expect(rule('.data-table__error .data-table__state-icon')).toContain('var(--ion-color-danger, #c5000f)');
   });
 
-  it('document rules that never reached the Lit shadow root are held off the table’s own controls (measured in Chromium)', () => {
+  it('the document’s global rules are held off the table’s own controls (measured in Chromium)', () => {
     // A document rule beats an Ionic `:host` rule, even Tailwind's layered preflight: Ionic's ios
     // host values come back, and polish.css's restyling of ion-button/ion-card/ion-card-header goes.
     expect(rule(':where(.data-table) ion-button')).toMatch(/height: auto; margin: 4px 2px; text-transform: inherit; font-weight: 500; --border-radius: 6px/);
@@ -379,14 +374,14 @@ describe('the rules that carry the look (one per Lit regression)', () => {
     expect(rule(':where(.data-table) ion-button > ion-icon[slot="start"]')).toBe('margin-inline-start: -0.3em;');
     expect(rule(':where(.data-table) ion-card')).toMatch(/border: initial; border-radius: 8px; box-shadow: 0 4px 16px rgba\(0, 0, 0, 0.12\)/);
     expect(rule(':where(.data-table) ion-card-header')).toBe('padding: 20px 20px 16px;');
-    // In the shadow root an ion-select inherited the table's --border-radius (16px).
+    // The table's ion-selects take its --border-radius (16px).
     expect(rule(':where(.data-table) ion-select')).toBe('--border-radius: inherit;');
     expect(rule('.data-table__title')).toContain('letter-spacing: inherit');
     expect(rule('.data-table__selection-clear')).toContain('padding: revert');
     expect(rule('.data-table :deep(*)')).toBe('scrollbar-width: auto;');
   });
 
-  it('the searchbar rules stay WEAKER than Ionic’s own classes, as in Lit (60px box, Ionic’s grey field)', () => {
+  it('the searchbar rules stay WEAKER than Ionic’s own classes (60px box, Ionic’s grey field)', () => {
     expect(STYLE, 'a scoped copy carries Vue’s attribute and outweighs Ionic').not.toMatch(/ion-searchbar\s*[.{]/);
     expect(rule(':where(.data-table__search) ion-searchbar', WEAK)).toBe('--background: var(--background); --border-radius: 10px; padding: 0; min-height: 36px;');
     expect(rule(':where(.data-table__search) ion-searchbar.ion-no-border', WEAK)).toBe('--box-shadow: none;');
@@ -405,7 +400,7 @@ describe('the filters panel (`filterable`): pushes the list from 834 px, a sheet
     expect(rule('.data-table__surface--panel > .data-table__drawer', desk)).toMatch(/^position: static; grid-column: 2; grid-row: 1 \/ -1;/);
   });
 
-  it('< 834px (outfitkit#197): a fixed sheet between the measured top and bottom of the content area, its footer over the safe area', () => {
+  it('< 834px: a fixed sheet between the measured top and bottom of the content area, its footer over the safe area', () => {
     const sheet = media('(max-width: 833.98px)');
     expect(rule('.data-table__drawer', sheet)).toMatch(
       /^position: fixed; inset: 0; top: var\(--data-table-sheet-top, 0px\); bottom: var\(--data-table-sheet-bottom, 0px\); width: 100%;/,
@@ -420,34 +415,34 @@ describe('the filters panel (`filterable`): pushes the list from 834 px, a sheet
 
   it('the funnel is a 36px tool button (44px on touch) with its count in a pill on its corner', () => {
     expect(rule('.data-table__filter-button')).toMatch(/width: 36px; height: 36px/);
-    // Ionic clips its native button (`--overflow: hidden`): the pill on the corner was cut in half
-    // (measured in Chromium at 390, 834 and 1440 px, FIX-DATATABLE).
+    // Ionic clips its native button (`--overflow: hidden`), which cuts the pill on the corner in half
+    // (measured in Chromium at 390, 834 and 1440 px).
     expect(rule('.data-table__filter-button')).toContain('--overflow: visible');
     expect(rule('.data-table__filter-button', media('(pointer: coarse), (max-width: 834px)'))).toBe('width: 44px; height: 44px;');
     expect(rule('.data-table__filter-button .data-table__filter-count')).toMatch(/^position: absolute; top: -5px; right: -5px;/);
   });
 });
 
-describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Chromium by the Hub e2e)', () => {
+describe('nothing of the table is cut off (measured in Chromium)', () => {
   it('a range shares the panel width: its two ends may shrink below the date field’s own width', () => {
     // A flex item never shrinks below its content (`min-width: auto`): two date fields side by side
-    // reached 21px past the 360px panel and «To» lost its border (Hub: Staff «Hire date», 834 and 1440 px).
+    // reach 21px past the 360px panel and «To» loses its border.
     expect(rule('.data-table__drawer-range > ion-input')).toBe('flex: 1 1 0; min-width: 0;');
   });
 
-  it('FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER: in the filter row a date range’s end is as wide as a date field, a numeric end keeps its short box', () => {
-    // At 13px a free date field («dd/mm/yyyy» and its calendar icon) is 116px wide; the 7rem number box gave the
-    // native field 91px and the icon covered the last «y» (measured in Chromium, Hub: Payments › Date at 1440 and
-    // 834 px). 8.75rem minus its padding and border leaves the field 119px.
+  it('in the filter row a date range’s end is as wide as a date field, a numeric end keeps its short box', () => {
+    // At 13px a free date field («dd/mm/yyyy» and its calendar icon) is 116px wide; the 7rem number box gives the
+    // native field 91px and the icon covers the last «y» (measured in Chromium). 8.75rem minus its padding and
+    // border leaves the field 119px.
     expect(rule('.data-table__filter-range--date .data-table__filter')).toBe('min-width: 8.75rem; max-width: 8.75rem;');
     expect(rule('.data-table__filter-range .data-table__filter')).toBe('min-width: 5.5rem; max-width: 7rem;');
     // After the short box, with the same weight: the later rule wins.
     expect(STYLE.indexOf('.data-table__filter-range--date .data-table__filter {')).toBeGreaterThan(STYLE.indexOf('.data-table__filter-range .data-table__filter {'));
   });
 
-  it('FIX-UI-DATATABLE-RANGE-FILTER-LABELS: the column that heads a range in the filter row stays on one line, ends in «…» if it must, and leaves its ends as they were', () => {
+  it('the column that heads a range in the filter row stays on one line, ends in «…» if it must, and leaves the widths of its ends alone', () => {
     // A longer column name may push the pair to a line of its own (the row wraps), never split it nor cut it with no
-    // sign; the widths of the ends (ui#29) do not move.
+    // sign; the widths of the ends do not move.
     expect(rule('.data-table__filter-range-label')).toBe(
       'flex: 0 1 auto; min-width: 0; max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--color-muted);',
     );
@@ -455,31 +450,29 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
     expect(rule('.data-table__filter-range .data-table__filter')).toBe('min-width: 5.5rem; max-width: 7rem;');
   });
 
-  it('FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER (rv-ui-29): the search box’s example text ends in «…» where the box is short of it; its widths stay', () => {
-    // From 641 to 1024 px the box shrinks to leave room for the toolbar: at 820 px «Search reference or
-    // beneficiary…» (251px) had 206px and was cut with no sign, «…benefic» (measured in Chromium, Hub: Payments).
+  it('the search box’s example text ends in «…» where the box is short of it; its widths stay', () => {
+    // From 641 to 1024 px the box shrinks to leave room for the toolbar: at 820 px a 251px example text gets
+    // 206px and, without the ellipsis, is cut with no sign (measured in Chromium).
     expect(rule('.data-table__search :deep(.searchbar-input)')).toBe('text-overflow: ellipsis;');
     // The base rule by its text: `rule()` finds the phone's one first (its @media comes earlier in the file).
     expect(STYLE).toContain('.data-table__search { flex: 0 1 22rem; min-width: 12rem; max-width: 24rem; }');
     expect(rule('.data-table__search', media('(min-width: 641px) and (max-width: 1024px)'))).toBe('flex: 1 1 12rem; max-width: 22rem;');
   });
 
-  it('FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP: a card value never runs past its card; a word too long for it ends in «…»', () => {
-    // A flex item never shrinks below its longest word (`min-width: auto`): a 54-character email ran
-    // past the card's right edge and ion-card cut it with no «…» (Hub: Staff › Members at 375 px). The
-    // value may shrink; its default text wraps between words as before and clips a word that does not
-    // fit with «…»; a tap unfolds it, breaking the word anywhere (the table's #217). Its own
-    // `overflow-wrap`: Ionic's `body` breaks a long word at the box edge, which split the email into
-    // «…clips.e2» / «e@example.com» with no sign (measured in Chromium, as StatusPill's label).
+  it('a card value never runs past its card; a word too long for it ends in «…»', () => {
+    // A flex item never shrinks below its longest word (`min-width: auto`): a 54-character email runs
+    // past the card's right edge and ion-card cuts it with no «…». The value may shrink; its default text
+    // wraps between words and clips a word that does not fit with «…»; a tap unfolds it, breaking the
+    // word anywhere. Its own `overflow-wrap`: Ionic's `body` breaks a long word at the box edge, which
+    // splits an email in two with no sign (measured in Chromium).
     expect(rule('.data-table__field-value')).toBe('font-weight: 500; text-align: right; color: var(--color); min-width: 0;');
     expect(rule('.data-table__field-text')).toBe('display: block; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal;');
     expect(rule('.data-table__field-text--unfolded')).toBe('overflow-wrap: anywhere;');
   });
 
-  it('FIX-UI-DATATABLE-CELL-NO-WRAP-SQUEEZES-CHIP-BESIDE-BADGE: in a data row a cell that cannot hold its things side by side drops the next one under, never squeezing one', () => {
-    // The cell is a one-line flex box: a «Not configured» chip and a «Sold out» badge (which never shrinks) in one
-    // Status cell squeezed the chip to 29–36px, its icon cut and no text (Hub: Inventory › Products at 820 and 834 px,
-    // measured in Chromium). In a data row the cell wraps, 4px between its lines, as Shopify, Odoo and Square stack
+  it('in a data row a cell that cannot hold its things side by side drops the next one under, never squeezing one', () => {
+    // On one line, a «Not configured» chip and a «Sold out» badge (which never shrinks) in one Status cell squeeze
+    // the chip to 29–36px, its icon cut and no text (measured in Chromium). In a data row the cell wraps, 4px between its lines, as Shopify, Odoo and Square stack
     // status badges; a lone text has its line to itself and still ends in «…».
     expect(rule(DATA_CELL)).toBe('flex-wrap: wrap; gap: 0.25rem;');
     // The base rule stays one line: the header (its name and the sort caret) never wraps.
@@ -487,10 +480,9 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
     expect(rule('.data-table__cell > :deep(span)')).toBe('overflow: hidden; text-overflow: ellipsis; white-space: nowrap;');
   });
 
-  it('hub#865: side by side, a data cell keeps its things as far apart as one under the other (4px), never touching', () => {
-    // A flex box drops the text space a slot puts between its things: «Rejected» and «Corrected» side by side in the
-    // Status cell touched, 0px apart (Hub: VeriFactu › Records at 1920 px, measured in Chromium), while one under the
-    // other they were 4px apart. The page had kept them apart with a sheet of its own around them.
+  it('side by side, a data cell keeps its things as far apart as one under the other (4px), never touching', () => {
+    // A flex box drops the text space a slot puts between its things: without a column gap two status pills
+    // side by side touch, 0px apart (measured in Chromium), while one under the other they are 4px apart.
     const declared = Object.fromEntries(
       rule(DATA_CELL)
         .split(';')
@@ -502,7 +494,7 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
     expect({ rowGap, columnGap }).toEqual({ rowGap: '0.25rem', columnGap: '0.25rem' });
   });
 
-  it('FIX-UI-DATATABLE-CELL-NO-WRAP-SQUEEZES-CHIP-BESIDE-BADGE: that rule holds every data cell, a slot’s two things its direct children, and no header nor actions cell', async () => {
+  it('that rule holds every data cell, a slot’s two things its direct children, and no header nor actions cell', async () => {
     const t = mountTable(
       {
         rows: ROWS,
@@ -524,7 +516,7 @@ describe('FIX-UI-DATATABLE-CLIP: nothing of the table is cut off (measured in Ch
   });
 
   it('a card title wraps (two lines at most, the whole text in the page), never «…» on one line', () => {
-    // The whole rule: as an addition the Lit parity no longer checks it, so its weight, its share of
+    // The whole rule: as an addition the Lit parity test does not check it, so its weight, its share of
     // the head and the clamp's box are pinned here (no `white-space: nowrap`, no `text-overflow: ellipsis`).
     expect(rule('.data-table__card-title')).toBe(
       'flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-weight: 600;',

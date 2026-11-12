@@ -1,21 +1,10 @@
 <script setup lang="ts">
-// AppTopbar — the shared topbar of the shell. Ported from ERPlora hub
-// `apps/web/src/components/AppTopbar.vue` (origin/develop): on the left the menu button (the drawer,
-// below lg) and Back only on a detail view (`backHref`), the screen title in the middle as its heading
-// (with the section on screen after it, «Billing · Invoices», mockups README §3), and the view's own
-// actions on the right. With the hub's sidebar (`createShell({ sidebar })`, PLAN-MIGRATIONS §16, the
-// old hub's shell) also the rail toggle after Back (≥lg: folds the pinned menu to its icons) and, after
-// the actions, the ⠿ «My apps» sheet (AppsLauncher): the modules are not in the menu. Both are the
-// authenticated chrome: only behind its gate (useChromeVisible, hub#925). The person is not here but
-// at the top of the side menu (hub#146).
-// On a phone (≤767 px) two or more actions of the view fold into «⋮» («More actions»), which lists
-// them in a popover: three text actions left the title as «Flo…» at 390 (hub#111). One action, or a
-// wider window, keeps them in the bar. Material's top app bar, Apple's navigation bars and Polaris'
-// page header roll them up the same way.
-// The project's piece of the bar (`createShell({ chrome: { topbar } })`, the hub's bell) closes the end
-// group, after «My apps» as in the old hub, behind the same gate.
-// The old hub's management link (erplora.com), assistant and bell are the hub's piece (`chrome.topbar`), which folds
-// them into its own «⋮» on a phone. Not ported (phase 1 has none of them): change hub and the progress bar.
+// With the hub's sidebar the bar also carries the rail toggle and «My apps» (the modules are not in the
+// menu); both, and the project's piece of the bar (`chrome.topbar`), are authenticated chrome, only
+// behind its gate (useChromeVisible).
+// On a phone (≤767 px) two or more actions of the view fold into «⋮» («More actions»): three text
+// actions leave the title as «Flo…» at 390 px. Material's top app bar, Apple's navigation bars and
+// Polaris' page header roll them up the same way.
 import { IonButton, IonButtons, IonHeader, IonMenuButton, IonPopover, IonTitle, IonToolbar } from '@ionic/vue';
 import { Comment, computed, Fragment, onBeforeUnmount, ref, Text, useSlots, type VNode } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -34,11 +23,11 @@ const props = withDefaults(
     section?: string;
     /**
      * Passing it makes the view a detail one and shows Back; it is where Back goes on a deep link (no
-     * history inside the app). A screen of a module (its root) has none, as in the old hub.
+     * history inside the app). A screen of a module (its root) has none.
      */
     backHref?: string;
     /**
-     * Is this title the main HEADING of the screen? (hub#794). `true` by default: a screen opts
+     * Is this title the main heading of the screen? `true` by default: a screen opts
      * OUT only when it already paints its own `<h1>`; two level-1 headings is the twin defect.
      */
     titleIsHeading?: boolean;
@@ -95,7 +84,7 @@ function goBack(): void {
   <ion-header class="ion-no-border app-topbar">
     <ion-toolbar>
       <ion-buttons slot="start">
-        <!-- hub#1831: `auto-hide` off — Ionic hides the button until its `ion-menu` registers, which
+        <!-- `auto-hide` off: Ionic hides the button until its `ion-menu` registers, which
              happens after the screen is painted, so a phone showed the page with no way out of it.
              Hiding it where the menu is pinned (≥lg) is the stylesheet's job: `polish.css`. -->
         <ion-menu-button
@@ -116,7 +105,7 @@ function goBack(): void {
             name="ion:arrow-back-outline"
           />
         </ion-button>
-        <!-- The old hub's panel-left, after Back: folds the pinned menu to a rail of icons and opens it
+        <!-- After Back: folds the pinned menu to a rail of icons and opens it
              again. Desktop only (polish.css hides .rail-toggle below lg, where the drawer rules). -->
         <ion-button
           v-if="hubChrome"
@@ -134,7 +123,7 @@ function goBack(): void {
         </ion-button>
       </ion-buttons>
 
-      <!-- The name of the screen, and its HEADING (hub#794): `role`/`aria-level` on the host rather
+      <!-- The name of the screen, and its heading: `role`/`aria-level` on the host rather
            than a separate `<h1>`, so the ear reads exactly what the eye reads. -->
       <ion-title
         :role="titleIsHeading ? 'heading' : undefined"
@@ -193,8 +182,7 @@ function goBack(): void {
 </template>
 
 <style scoped>
-/* A long title never covers the buttons (PoC issue C: at 390 px it ran over the menu button and
-   «Mark done»/«Delete»). In ios Ionic lays the title `position: absolute` across the WHOLE toolbar
+/* A long title never covers the buttons. In ios Ionic lays the title `position: absolute` across the WHOLE toolbar
    and keeps it off the buttons with `padding: 0 90px`, which Tailwind's preflight wipes (and 90px
    would not clear two actions anyway). So, as for sheets (global.css), the title goes back into
    the toolbar's row, between the button groups, where its own `.toolbar-title` cuts it with «…».
@@ -214,7 +202,7 @@ function goBack(): void {
   padding-inline: 4px;
 }
 
-/* On a phone the three equal thirds left the title 127 px between two groups of two icons (hub#111):
+/* On a phone the three equal thirds left the title 127 px between two groups of two icons:
    there each group takes only what its buttons need, both at least two buttons wide so the title
    stays centred, and the title takes the rest — about what Ionic's own ios bar gives it. */
 @media (max-width: 767px) {

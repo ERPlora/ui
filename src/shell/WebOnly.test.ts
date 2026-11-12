@@ -1,6 +1,3 @@
-// `<WebOnly>`: what sells (the Store, prices, «Change plan», «Pay») is rendered on the web only; on
-// the app surfaces it is not even in the DOM, and the `#app` slot says, without a link, how to do it
-// from a browser (PLAN-SAAS §3.6, point 5; mockups README §4).
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import { afterEach, describe, expect, it } from 'vitest';

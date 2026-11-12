@@ -1,5 +1,3 @@
-// DataTable footer: the range it reports (hub#1984, hub#2365), the numbered pager on a desk, «Load
-// more» on a phone (#78, hub#2245) and the page size. Cases ported from the Lit tests.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { byTestId, click, crossBreakpoint, dataRows, ionChange, mountTable, settle, text, type, viewport } from './__tests__/harness';
@@ -36,7 +34,7 @@ describe('desk: the numbered pager', () => {
     expect(page(t, 3).classList.contains('data-table__page--current')).toBe(true);
   });
 
-  it('the last partial page says 11–14, never 11–10 (hub#1984)', async () => {
+  it('the last partial page says 11–14, never 11–10', async () => {
     const t = mountTable({ rows: rowsOf(14), columns: NAME, pageSize: 10 });
     await settle();
     await click(page(t, 2));
@@ -121,7 +119,7 @@ describe('page size', () => {
   });
 });
 
-describe('`pageSizeChooser: false`: no «rows per page», the footer still counts (mockups/saas-panel §3b)', () => {
+describe('`pageSizeChooser: false`: no «rows per page», the footer still counts', () => {
   const BUSINESSES = { one: 'business', many: 'businesses' };
 
   it('no rows-per-page select in the toolbar; the column chooser is its own switch; the footer counts and pages', async () => {
@@ -154,7 +152,7 @@ describe('`pageSizeChooser: false`: no «rows per page», the footer still count
   });
 });
 
-describe('phone: «Load more» instead of the numbered pager (#78)', () => {
+describe('phone: «Load more» instead of the numbered pager', () => {
   beforeEach(() => {
     viewport(true);
   });
@@ -181,7 +179,7 @@ describe('phone: «Load more» instead of the numbered pager (#78)', () => {
     expect(dataRows(t)).toHaveLength(10);
   });
 
-  it('a different result set starts again; the same records refreshed keep the window (hub#2245)', async () => {
+  it('a different result set starts again; the same records refreshed keep the window', async () => {
     const t = mountTable({ rows: rowsOf(25), columns: NAME });
     await settle();
     await click(loadMore(t));
@@ -280,7 +278,7 @@ describe('phone: «Load more» instead of the numbered pager (#78)', () => {
 
 // A parent that keeps its rows live can only hold so many in one window (the server's longest page):
 // past it, «Load more» would stay on screen and bring nothing. With `maxWindow`, a query longer than that
-// pages on a phone too (previous / next, the page out of the pages); without it nothing changes.
+// pages on a phone too (previous / next, the page out of the pages).
 describe('phone: a query longer than the parent can hold pages instead (`maxWindow`)', () => {
   beforeEach(() => {
     viewport(true);
@@ -372,7 +370,7 @@ describe('phone: a query longer than the parent can hold pages instead (`maxWind
   });
 });
 
-describe('the footer names what it counts: `entityLabel` (§3b: «4 negocios», «12 facturas»)', () => {
+describe('the footer names what it counts: `entityLabel`', () => {
   it('`{ one, many }`: the right one for the count, in the count and in the range', async () => {
     const entityLabel = { one: 'negocio', many: 'negocios' };
     const four = mountTable({ rows: rowsOf(4), columns: NAME, entityLabel }, { locale: 'es' });

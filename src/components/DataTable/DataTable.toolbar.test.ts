@@ -1,6 +1,3 @@
-// DataTable toolbar: fixed order (search · filters slot · spacer · selectors · buttons · own slot), the create
-// button that says what it adds (#113, #216), the primary action, the title with its count, the
-// column chooser, and the search box's accessible name (#182). Cases ported from the Lit tests.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { click, ionChange, mountTable, settle, text, type, viewport } from './__tests__/harness';
@@ -87,7 +84,7 @@ describe('the title, with the record count', () => {
   });
 });
 
-describe('the create button says what it adds (#113, #216)', () => {
+describe('the create button says what it adds', () => {
   for (const mobile of [false, true]) {
     const vp = mobile ? 'phone' : 'desk';
     it(`${vp}: a labelled primary button (not an anonymous «+»), named by \`labels.add\``, async () => {
@@ -136,7 +133,7 @@ describe('the primary action', () => {
   });
 });
 
-describe('the two toolbar selects are there BY DEFAULT on a desk, as in the Lit toolbar', () => {
+describe('the two toolbar selects are there BY DEFAULT on a desk', () => {
   it('with nothing but rows and columns: «Columns» chooser, then rows per page showing 10, after the spacer', async () => {
     const t = mountTable({ rows: ROWS, columns: [...NAME, { key: 'city', label: 'City' }] });
     await settle();
@@ -145,7 +142,6 @@ describe('the two toolbar selects are there BY DEFAULT on a desk, as in the Lit 
     const pageSize = bar.querySelector(':scope > .data-table__page-size-select') as HTMLElement & Record<string, unknown>;
     expect(columns, 'the column chooser is not painted').not.toBeNull();
     expect(pageSize, 'the rows-per-page select is not painted').not.toBeNull();
-    // Same element, text and position as the Lit `.tk-cols` / `.tk-psize`.
     expect(columns.tagName).toBe('ION-SELECT');
     expect([columns.interface, columns.multiple, columns.selectedText]).toEqual(['popover', true, 'Columns']);
     expect(columns.getAttribute('aria-label')).toBe('Visible columns');
@@ -160,7 +156,7 @@ describe('the two toolbar selects are there BY DEFAULT on a desk, as in the Lit 
     expect(order.indexOf(columns)).toBeLessThan(order.indexOf(pageSize));
   });
 
-  it('a page size outside the options shows no value — exactly what the Lit select does', async () => {
+  it('a page size outside the options shows no value', async () => {
     const t = mountTable({ rows: ROWS, columns: NAME, pageSize: 5 });
     await settle();
     const pageSize = t.element.querySelector('.data-table__page-size-select') as HTMLElement & { value?: unknown };
@@ -190,7 +186,7 @@ describe('the column chooser (on by default)', () => {
   });
 });
 
-describe('the search box is named after its hint (#182)', () => {
+describe('the search box is named after its hint', () => {
   it('names it after each render, with the placeholder in force', async () => {
     const t = mountTable({ rows: ROWS, columns: NAME, searchable: true, searchPlaceholder: 'Search users…' });
     await settle();
@@ -218,7 +214,7 @@ describe('the search box is named after its hint (#182)', () => {
   });
 });
 
-describe('`hideToolbarWhenEmpty`: an empty list paints only its empty state (mockups/saas-panel §6.16)', () => {
+describe('`hideToolbarWhenEmpty`: an empty list paints only its empty state', () => {
   const props = { columns: NAME, searchable: true, addable: true, title: 'Businesses', hideToolbarWhenEmpty: true };
 
   it('no record at all: neither toolbar nor footer, only the empty state (its slot offers the create action)', async () => {

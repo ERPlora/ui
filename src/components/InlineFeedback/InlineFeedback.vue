@@ -1,12 +1,6 @@
 <script setup lang="ts">
-// InlineFeedback — a banner/callout that stays in the flow of the content (the gap Ionic leaves:
-// ion-toast and ion-alert are ephemeral or modal, not a persistent embedded notice). Bootstrap
-// "alert" / Tailwind "callout" style. Vue port of OutfitKit's `ok-inline-feedback` (PLAN §16.11),
-// same DOM and same look; the light DOM replaces the shadow root.
-//   - default slot     → the message
-//   - `actions` slot   → action buttons (to the right; they drop below the text on a phone)
-// Layout: [icon] | (heading + message + actions) [· close]. Closing hides it and emits `dismiss`;
-// `v-model:hidden` lets the parent show it again.
+// A notice that stays in the flow of the content, which Ionic lacks: ion-toast and ion-alert are ephemeral or modal.
+// The `actions` slot sits to the right of the text and drops below it on a phone.
 import { IonIcon } from '@ionic/vue';
 import { Comment, computed, Fragment, Text, type VNode } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -19,7 +13,6 @@ const props = withDefaults(
   defineProps<{
     /** Tone of the banner: sets its colour and its default icon. */
     tone?: InlineFeedbackTone;
-    /** Bold title (optional). */
     heading?: string;
     /** Icon (`ion:` by default, any baked set, or inline SVG) replacing the tone's one. */
     icon?: string;
@@ -132,7 +125,6 @@ function dismiss(): void {
   --accent-width: 4px;
   --font: var(--ep-font, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
 
-  /* Responsive: the banner takes the width of its container. */
   display: block;
   width: 100%;
   font-family: var(--font);
@@ -154,7 +146,6 @@ function dismiss(): void {
   padding: var(--padding);
   border-radius: var(--border-radius);
   border-inline-start: var(--accent-width) solid var(--tone-color);
-  /* Tonal background: the tone colour at low opacity. */
   background: color-mix(in srgb, var(--tone-color) calc(var(--background-opacity) * 100%), transparent);
   color: var(--color);
 }
@@ -201,7 +192,6 @@ function dismiss(): void {
   align-items: center;
   gap: 0.5rem;
 }
-/* With nothing in the actions slot, the container takes no room. */
 .actions.empty { display: none; }
 
 .close {
@@ -225,7 +215,6 @@ function dismiss(): void {
 }
 .close:active { transform: scale(var(--ep-press-scale, 0.97)); }
 
-/* Phone: the actions drop below the text (stacked, full width). */
 @media (max-width: 640px) {
   .row { flex-direction: column; align-items: stretch; }
   .actions { width: 100%; }

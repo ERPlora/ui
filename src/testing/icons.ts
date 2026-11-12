@@ -1,9 +1,6 @@
-// The icon guardrail (PLAN §16.4), shared by this package and the apps that use it: an icon that
-// is not registered in `src/shell/icons.ts` paints NOTHING (no network for icons, by CSP), so a
-// template that names one must fail a test, not a till. `iconReferences` reads the icon names a
-// source spells out, `isRegisteredIcon` checks one, and `scanIcons` runs both over a tree of files
-// (`scanIconsAsync`, the same without holding the thread that waits for it).
-// `registerShellIcons` is the other half, for a test setup: the icons of a mounted component.
+// Shared by this package and the apps that use it: an icon that is not registered in
+// `src/shell/icons.ts` paints nothing (no network for icons, by CSP), so a template that names one
+// must fail a test, not a till.
 // Node only (it reads the disk): import it from tests, never from app code.
 import { globSync, readFileSync } from 'node:fs';
 import { glob, readFile } from 'node:fs/promises';
@@ -131,7 +128,7 @@ export function scanIcons({ root, sources }: ScanIconsOptions): ScanIconsResult 
 /**
  * `scanIcons`, its folders listed and its files read at once by Node's own pool of threads, without
  * holding the thread that waits for it. A Vitest worker answers its run only while its event loop
- * turns, and the run fails once one is held past a minute (hub#1315): an app's whole tree, read
+ * turns, and the run fails once one is held past a minute: an app's whole tree, read
  * file by file on a loaded machine, each first open waiting on its own, can take that long.
  */
 export async function scanIconsAsync({ root, sources }: ScanIconsOptions): Promise<ScanIconsResult> {

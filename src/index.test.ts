@@ -12,7 +12,7 @@ describe("index", () => {
     expect(VERSION).toBe("0.1.0");
   });
 
-  it("exports our own Vue components (PLAN §16.11)", () => {
+  it("re-exports the Vue components from the root entry", () => {
     expect(RootInlineFeedback).toBe(InlineFeedback);
     expect(RootEmptyState).toBe(EmptyState);
   });

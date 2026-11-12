@@ -1,6 +1,3 @@
-// The device's voice, the system's first (round 2026-11-04a): in the installed app the system's own voice through the
-// app's `tts_*` commands (the Android webview has no `speechSynthesis`), else the browser's; a reading the system voice
-// cannot do is read by the browser's voice when there is one, else it fails for the panel to say so.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { DeviceReader, DeviceReading } from './deviceVoice';
@@ -111,7 +108,7 @@ describe('createDeviceVoice: the system voice first, the browser’s after it', 
     await expect(reading.done).resolves.toBeUndefined();
   });
 
-  it('an app without the commands (older than this round) reads with the browser’s voice', async () => {
+  it('an app without the commands reads with the browser’s voice', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const app = fakeApp({ availableFails: true });
     const browser = fakeBrowser();

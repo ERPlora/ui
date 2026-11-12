@@ -1,7 +1,3 @@
-// The shell's icon registry (PLAN §16.4): Ionicons from `ionicons/icons`, the other Iconify sets
-// baked at build time by `unplugin-icons`; nothing is fetched at runtime. And the guardrail: every
-// icon a template or a call of this package names is registered (`scanIcons` of
-// `@erplora/ui/testing`; hub and saas run it on their own apps).
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,12 +25,12 @@ describe('ION_ICONS (registered with addIcons by createShell)', () => {
       'chevron-forward',
       'backspace-outline',
       'cloud-offline-outline',
-      // The demo (PoC issue A): its menu icon, «New item», «Back» and the empty state.
+      // The demo app: its menu icon, «New item», «Back» and the empty state.
       'flask-outline',
       'add-outline',
       'arrow-back-outline',
       'cube-outline',
-      // The hub's sidebar (PLAN-MIGRATIONS §16): its entries and the QR on the rail.
+      // The hub's sidebar: its entries and the QR on the rail.
       'people-outline',
       'folder-outline',
       'card-outline',
@@ -42,7 +38,7 @@ describe('ION_ICONS (registered with addIcons by createShell)', () => {
       'hardware-chip-outline',
       'settings-outline',
       'qr-code-outline',
-      // Employees' tabs (APP-BASE-5, the old hub's): «Roles» and «Approvals».
+      // Employees' tabs: «Roles» and «Approvals».
       'shield-checkmark-outline',
       'finger-print-outline',
     ]) {
@@ -128,7 +124,7 @@ describe('resolveIcon', () => {
     expect(src).toContain('currentColor');
   });
 
-  it("resolves the lucide icons of the SaaS panel's menu (saas-next base/navigation.py)", () => {
+  it("resolves the lucide icons of the SaaS panel's menu (the SaaS's base/navigation.py)", () => {
     for (const name of ['lucide:store', 'lucide:shopping-bag', 'lucide:receipt', 'lucide:circle-user']) {
       const src = resolveIcon(name);
       expect(src, name).toMatch(SVG_URL);
@@ -136,7 +132,7 @@ describe('resolveIcon', () => {
     }
   });
 
-  it("resolves the icons of the Hub's staff app and the account pages (hub-next apps/staff)", () => {
+  it("resolves the icons of the Hub's staff app and the account pages", () => {
     for (const name of [
       'lucide:user',
       'lucide:sliders-horizontal',
@@ -203,8 +199,8 @@ describe('ionIconSrc (value for the `icon` property of ion-icon, any set, no net
   });
 });
 
-// Guardrail (replaces the generated list): an icon that is not registered paints NOTHING (no network
-// for icons, by CSP), so a template that names one must fail a test, not a till. The reader and its
+// An icon that is not registered paints nothing (no network for icons, by CSP), so a template that
+// names one must fail a test, not a till. The reader and its
 // positive controls live in `src/testing/icons.test.ts`.
 describe('guardrail: every icon a template or a call of this package names is registered', () => {
   /** The root of this package: the globs below are relative to it. */
@@ -235,8 +231,8 @@ describe('ION_ICONS: layers, sparkles, arrow-down, pricetag and ticket (SaaS pan
   });
 });
 
-// Ionicons the Hub modules ask for (hub-next apps/{tax,customer}/UI-REQUESTS.md): Categories and
-// Tags (pricetags), Aliases (swap-horizontal) and «Reactivate» a tax rule (arrow-undo).
+// Ionicons the Hub's tax and customer apps ask for: Categories and Tags (pricetags), Aliases
+// (swap-horizontal) and «Reactivate» a tax rule (arrow-undo).
 describe('ION_ICONS: pricetags, swap-horizontal and arrow-undo (Hub tax and customer)', () => {
   it('registers them by their kebab-case Ionicons name, as ion: names resolve', async () => {
     const ionicons = await import('ionicons/icons');
@@ -253,8 +249,7 @@ describe('ION_ICONS: pricetags, swap-horizontal and arrow-undo (Hub tax and cust
   });
 });
 
-// Ionicons the Hub's Services, Tasks and Price lists ask for (hub-next apps/{service,task,pricing}/
-// UI-REQUESTS.md), the ones of the old modules: Services (briefcase), Packages (gift), «Archive»
+// Ionicons the Hub's Services, Tasks and Price lists ask for: Services (briefcase), Packages (gift), «Archive»
 // (archive), the «Main service» star (star / star-outline), Tasks (checkbox), «Details» and «Open»
 // (open), «Start» (play-circle), «Complete» (checkmark-done) and Price lists (pricetag).
 describe('ION_ICONS: briefcase, gift, archive, star, checkbox, open, play-circle, checkmark-done and pricetag (Hub service, task and pricing)', () => {
@@ -279,7 +274,7 @@ describe('ION_ICONS: briefcase, gift, archive, star, checkbox, open, play-circle
   });
 });
 
-// Ionicons the Hub's till asks for (hub apps/sale/UI-REQUESTS.md): the line's «Comp» button shows
+// Ionicons the Hub's till asks for: the line's «Comp» button shows
 // the gift outline, and the filled gift once the line is comped; the two change together.
 describe('ION_ICONS: gift and gift-outline (Hub sale, comp a till line)', () => {
   it('registers the filled gift next to the outline, as ion: names resolve', async () => {

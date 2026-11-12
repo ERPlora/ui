@@ -35,7 +35,7 @@ function me(overrides: Partial<SessionMe> = {}): SessionMe {
 }
 
 let router: Router;
-/** The lazy page of `/sale/tickets`: a chunk that may fail to load (hub#2489). */
+/** The lazy page of `/sale/tickets`: a chunk that may fail to load. */
 let ticketsChunk: ReturnType<typeof vi.fn>;
 
 beforeEach(async () => {
@@ -125,7 +125,7 @@ describe('AppsLauncher (the topbar door to the apps: «My apps» sheet, nav laun
     wrapper.unmount();
   });
 
-  // hub#1106 / outfitkit#104: a long name is cut on the tile; the full one is still there to read.
+  // A long name is cut on the tile; the full one is still there to read.
   it('every tile carries the full name of its app, to the eye (title) and to the ear', async () => {
     const { wrapper } = mountLauncher();
     await open(wrapper);
@@ -205,11 +205,10 @@ describe('AppsLauncher (the topbar door to the apps: «My apps» sheet, nav laun
   });
 });
 
-// hub#2489 / hub#2325: with a flaky network, tapping an app opened nothing and said nothing (its page
-// is a lazy chunk; the failed import left the screen where it was). gh:hub#438: a chunk that did not arrive is the
-// shell router's (`view-load.ts`, installed by `createShellRouter`) for every way of opening a screen, so the
-// launcher adds nothing of its own to it; what it still says is a page that fails for any other reason.
-describe('AppsLauncher: an app whose page fails to load (hub#2489, gh:hub#438)', () => {
+// An app's page is a lazy chunk. One that did not arrive is handled by the shell router (`view-load.ts`,
+// installed by `createShellRouter`) for every way of opening a screen, so the launcher adds nothing of its
+// own to it; what it still says is a page that fails for any other reason.
+describe('AppsLauncher: an app whose page fails to load', () => {
   const lostChunk = () => new TypeError('Failed to fetch dynamically imported module');
   let reopen: ReturnType<typeof vi.fn>;
 
@@ -224,7 +223,7 @@ describe('AppsLauncher: an app whose page fails to load (hub#2489, gh:hub#438)',
     vi.unstubAllGlobals();
   });
 
-  it('a flaky network the browser still calls online (hub#2489): the screen stays and one notice says which app', async () => {
+  it('a flaky network the browser still calls online: the screen stays and one notice says which app', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))));
     ticketsChunk.mockRejectedValue(lostChunk());
@@ -301,9 +300,8 @@ describe('AppsLauncher: an app whose page fails to load (hub#2489, gh:hub#438)',
   });
 });
 
-// FIX-HUB-BASE-APPS-BUTTON-AND-ANDROID-BACK-FROM-APP-ROOT (BASE-F05): a screen of an app has no Back (PLAN-MIGRATIONS
-// §16), so the way out of an app is this sheet; with the shell's Home on (the hub) its first entry is «Home», before
-// the apps and whatever state the list is in, so the way out is never missing.
+// A screen of an app has no Back, so the way out of an app is this sheet; with the shell's Home on (the
+// hub) its first entry is «Home», before the apps and whatever state the list is in.
 describe('AppsLauncher: «Home» first, the way out of an app (the hub)', () => {
   const HUB: ShellConfig = { homePath: '/', home: true };
   const home = (wrapper: Wrapper) => sheet(wrapper).find('[data-testid="apps-launcher-home"]');

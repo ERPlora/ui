@@ -1,9 +1,5 @@
-// W-19 (mockups/saas-panel/README.md §3b, UX-AUDIT-3): what fits is decided by the table's OWN box
-// (a `ResizeObserver` on it), never by the viewport. As the box narrows the list gives up, in this
-// order: the `priority: 'low'` columns → the row actions beyond `maxInlineActions` (into «⋮») →
-// every action that is not `pinned` → the list itself, for cards. happy-dom lays nothing out: a
-// fake layout engine sizes the grid from what is painted, and the ResizeObserver mock plays the
-// box's resizes back.
+// happy-dom lays nothing out: a fake layout engine sizes the grid from what is painted, and the
+// ResizeObserver mock plays the box's resizes back.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { byTestId, cards, click, dataRows, ionChange, mockResizeObserver, mountTable, settle, text, viewport } from './__tests__/harness';
@@ -11,7 +7,6 @@ import { byTestId, cards, click, dataRows, ionChange, mockResizeObserver, mountT
 type Row = Record<string, unknown>;
 type Table = ReturnType<typeof mountTable>;
 
-// ── Fake layout engine ────────────────────────────────────────────────────────────────────────
 const PAD = 32; // side padding of a row
 const COLUMN = 100; // a data column at its floor
 const BUTTON = 40; // a button of the actions cell (a stand-in and «⋮» too)
@@ -67,7 +62,6 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-// ── The businesses of the SaaS panel ──────────────────────────────────────────────────────────
 const COLUMNS = [
   { key: 'name', label: 'Business', priority: 'high' },
   { key: 'status', label: 'Status' },
@@ -121,7 +115,7 @@ async function mountAt(width: number, extra: Record<string, unknown> = {}): Prom
   return t;
 }
 
-describe('the list fits its BOX: low columns → extra actions → all but pinned → cards (W-19)', () => {
+describe('the list fits its BOX: low columns → extra actions → all but pinned → cards', () => {
   it('gives up one thing at a time as the box narrows, and takes it all back when it widens', async () => {
     const t = await mountAt(900);
     expect(headers(t), '900: everything fits').toEqual(['Business', 'Status', 'Plan', 'Web address', 'Role', 'Last used']);
@@ -187,11 +181,10 @@ describe('the list fits its BOX: low columns → extra actions → all but pinne
   });
 });
 
-// hub#94 (Time clock › Records at 834px): folded into «⋮», the list still did not fit, yet it stayed a
-// list scrolled sideways, with the pinned «⋮» over its last column, instead of handing over to the
-// cards. The «Actions» header no longer fitting its narrower track was written while the actions were
-// folded, a state the render does not read: no render followed, and the ladder waited for one forever.
-describe('a measurement that paints nothing never stalls the ladder (hub#94)', () => {
+// The «Actions» header no longer fitting its narrower track is written while the actions are folded, a
+// state the render does not read: no render follows, and a ladder waiting for one would leave the list
+// scrolled sideways under «⋮» instead of handing over to the cards.
+describe('a measurement that paints nothing never stalls the ladder', () => {
   const LABEL = 60; // the «Actions» header label, wider than «⋮» alone
   const COLUMNS_4 = COLUMNS.filter((c) => c.priority !== 'low');
   const LABELLED = [
@@ -258,7 +251,7 @@ describe('a measurement that paints nothing never stalls the ladder (hub#94)', (
 
 });
 
-describe('a refresh of the rows keeps what the box decided (W-19)', () => {
+describe('a refresh of the rows keeps what the box decided', () => {
   it('the same rows again (a live update) do not paint the hidden columns back, not even for a moment', async () => {
     const address = vi.fn((value: unknown) => String(value));
     const columns = COLUMNS.map((c) => (c.key === 'address' ? { ...c, format: address } : c));
@@ -273,7 +266,7 @@ describe('a refresh of the rows keeps what the box decided (W-19)', () => {
   });
 });
 
-describe('the person’s own view is never overridden by the fit (W-19)', () => {
+describe('the person’s own view is never overridden by the fit', () => {
   it('the list picked by hand in a box too narrow stays a list (scrolling inside), at any width', async () => {
     const t = await mountAt(480);
     expect(isCards(t)).toBe(true);
@@ -294,7 +287,7 @@ describe('the person’s own view is never overridden by the fit (W-19)', () => 
   });
 });
 
-describe('`pinned` and `menuOnly` row actions (§3b: the main action stays, the delicate ones live in «⋮»)', () => {
+describe('`pinned` and `menuOnly` row actions: the main action stays, the delicate ones live in «⋮»', () => {
   it('a `menuOnly` action never gets a button: «⋮» offers it, hooked, and emits for that row', async () => {
     const t = await mountAt(900);
     expect(byTestId(t, 'biz-row-b2-transfer')).toHaveLength(0);
@@ -360,8 +353,8 @@ describe('the column chooser and the low columns the box hid', () => {
   });
 });
 
-describe('no regression: server mode and selection while folded', () => {
-  it('sorts, selects and runs a folded action exactly as before', async () => {
+describe('server mode and selection while folded', () => {
+  it('sorts, selects and runs a folded action', async () => {
     const columns = COLUMNS.map((c) => (c.key === 'name' ? { ...c, sortable: true } : c));
     // With the checkbox column: 4 columns, the pinned one and «⋮» = 556.
     const t = await mountAt(560, { columns, serverSide: true, total: 30, pageSize: 2, selectable: true });
@@ -377,12 +370,11 @@ describe('no regression: server mode and selection while folded', () => {
   });
 });
 
-// FIX-UI-DATATABLE-EMAIL-COLUMN-834 (Cart & Checkout › Orders at 834px): every column without its own width took the
-// same share of the row, so a long email was cut («ana@example.c…») beside a half-empty Payment. Each rung of the
-// ladder is now first tried with every column holding its content whole (and sharing what is left, as before); only
-// when that does not fit is the widest text cut, down to the floor, before the ladder gives anything else up. This
-// fake engine sizes the grid from the TEMPLATE the head paints (each track's minimum) and a text from its length.
-describe('a column holds its content whole while the row has room (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+// Each rung of the ladder is first tried with every column holding its content whole (and sharing what
+// is left); only when that does not fit is the widest text cut, down to the floor, before the ladder gives
+// anything else up. This fake engine sizes the grid from the TEMPLATE the head paints (each track's
+// minimum) and a text from its length.
+describe('a column holds its content whole while the row has room', () => {
   const CHAR = 8; // px per character of a text
   const FLOOR = 88; // 5.5rem
   const EMAIL = 'ana.garcia.lopez@example.com'; // 28 characters: 224px of text, a 225px column
@@ -435,7 +427,7 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
         const tracks = (head?.style.gridTemplateColumns ?? '').split(' ').filter(Boolean);
         return Math.max(PAD + tracks.reduce((sum, track) => sum + trackMin(track, this), 0), box);
       }
-      // #217 - An unfolded text wraps to its column: on one line it would be wider than it now says.
+      // An unfolded text wraps to its column: on one line it would be wider than it now says.
       if (this.classList.contains('data-table__text--unfolded')) return FLOOR;
       // A text of a data cell or of a header: as wide as its characters, whatever its box.
       if (this.tagName === 'SPAN' && this.parentElement?.matches('.data-table__cell:not(.data-table__cell--actions)')) {
@@ -445,7 +437,7 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     });
   });
 
-  it('with room, the long email keeps its 225px and the rest share what is left, as before', async () => {
+  it('with room, the long email keeps its 225px and the rest share what is left', async () => {
     const t = await mountAt(720, props834);
     expect(template(t)).toBe('minmax(225px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
     expect(headers(t)).toEqual(['Email', 'Status', 'Total', 'Note']);
@@ -453,7 +445,7 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
   });
 
-  it('out of room, the email gives its width up first; the ladder of before follows, each rung tried whole first', async () => {
+  it('out of room, the email gives its width up first; then the ladder follows, each rung tried whole first', async () => {
     const t = await mountAt(720, props834);
 
     await resize(600);
@@ -482,7 +474,7 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     expect(rowButtons(t)).toEqual(['pay', 'fail']);
   });
 
-  it('a cut email unfolded by a tap (#217) leaves its column as it was: wrapped, it no longer tells its width', async () => {
+  it('a cut email unfolded by a tap leaves its column as it was: wrapped, it no longer tells its width', async () => {
     const t = await mountAt(600, props834);
     const cut = 'minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px';
     expect(template(t)).toBe(cut);
@@ -508,7 +500,7 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     expect(template(t)).toBe('minmax(121px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
   });
 
-  // hub#703: the row gives up what comes next on its ladder before it cuts this column under its own floor.
+  // The row gives up what comes next on its ladder before it cuts this column under its own floor.
   describe('a column on its own floor (`minWidth`)', () => {
     /** The columns of this table with `minWidth` on one of them. */
     const flooredOn = (key: string) => COLUMNS_834.map((c) => (c.key === key ? { ...c, minWidth: '10.5rem' } : c));

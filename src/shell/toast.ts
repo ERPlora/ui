@@ -1,17 +1,13 @@
-// Ported from ERPlora hub apps/web/src/lib/toast.ts, without its `bootActionFeedback`: that hook
-// listened on `window` for the CSV events of OutfitKit's Web Components table, which is gone
-// (PLAN §16.11).
-// Global action feedback (success / error / info). Centralises what every page used to reinvent
-// with its own `<ion-toast>` (Apps/Files/System). It uses Ionic's imperative `toastController`, no
-// `<ion-toast>` in any template. One notice at a time, like Material's snackbar: Ionic paints every toast
-// at the same place, so a new one closes the one on screen first and two never cover each other.
+// Global action feedback through Ionic's imperative `toastController`, so no template carries its own
+// `<ion-toast>`. One notice at a time, like Material's snackbar: Ionic paints every toast at the same
+// place, so a new one closes the one on screen first and two never cover each other.
 import { toastController } from '@ionic/vue';
 
 import { shellText } from './i18n';
 
 export type ToastColor = 'success' | 'danger' | 'medium' | 'primary' | 'warning';
 
-/** A button that does something, shown before the close button (e.g. «Retry», hub#2494). */
+/** A button that does something, shown before the close button (e.g. «Retry»). */
 export interface ToastAction {
   text: string;
   handler: () => void;
@@ -22,7 +18,7 @@ export interface ToastAction {
 const NOT_ON_VIEW = '.ion-page-hidden, .overlay-hidden, ion-menu, [aria-hidden="true"], [inert]';
 
 /**
- * What a toast sits above (S-04, UX audit 2): the bottom bar of the screen on view — the section
+ * What a toast sits above: the bottom bar of the screen on view — the section
  * tabbar of AppPage or a view's own `ion-footer` — so it never covers it. `undefined` when the
  * screen has none: the toast keeps the bottom edge.
  */
@@ -69,7 +65,7 @@ function pageBackFrom(dialog: Dialog): Promise<void> {
 }
 
 /**
- * The bar of the screen the toast shows on (saas#344), not of the one there when it is asked. A notice is often asked
+ * The bar of the screen the toast shows on, not of the one there when it is asked. A notice is often asked
  * in the same breath as what changes the screen — a dialog set to close, a page just pushed —, so it is read once that
  * has run (the next frame) and, when a dialog is closing, once the dialog has given the page back: Ionic lets a dialog
  * go only when its own lock is free (~300 ms after `open = false` back from a payment), and until then the page and its
@@ -92,7 +88,7 @@ let asked = 0;
  * `toast.close` of the shell catalogue). `id` names it so
  * {@link dismissToast} can withdraw it once what it says stops being true. `action` adds a button
  * that runs its handler (and closes the toast). `position: 'top'` is for a notice that shares the screen with a
- * sheet's keys at the bottom edge (hub#732); it takes no anchor, because Ionic would set it under the bottom bar.
+ * sheet's keys at the bottom edge; it takes no anchor, because Ionic would set it under the bottom bar.
  * The toast on screen, if any, is closed first (one at a time).
  */
 export async function toast(
