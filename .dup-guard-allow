@@ -1,0 +1,11 @@
+duplicados src/shell/theme/palettes.css:113-127 Every optional palette redeclares the same color-mix step scale, because each of its blocks must set the same tokens as the base theme to win the cascade.
+duplicados src/shell/theme/palettes.css:214-229 Every optional palette redeclares the same color-mix step scale, because each of its blocks must set the same tokens as the base theme to win the cascade.
+duplicados src/shell/theme/palettes.css:348-363 Every optional palette redeclares the same color-mix step scale, because each of its blocks must set the same tokens as the base theme to win the cascade.
+duplicados src/shell/icons.test.ts:225-235 Each block pins the Ionicons one consumer app asks for with the same three assertions per icon, kept apart so a failure names the app that needs the icon.
+duplicados src/shell/icons.test.ts:243-252 Each block pins the Ionicons one consumer app asks for with the same three assertions per icon, kept apart so a failure names the app that needs the icon.
+duplicados src/shell/icons.test.ts:268-277 Each block pins the Ionicons one consumer app asks for with the same three assertions per icon, kept apart so a failure names the app that needs the icon.
+duplicados src/shell/icons.test.ts:284-290 Each block pins the Ionicons one consumer app asks for with the same three assertions per icon, kept apart so a failure names the app that needs the icon.
+duplicados src/shell/App.test.ts:25-32 Both shell test files stub ion-popover the same way, because Ionic presents a popover only in a real browser; the topbar's stub also takes `alignment`.
+duplicados src/shell/AppTopbar.test.ts:192-199 Both shell test files stub ion-popover the same way, because Ionic presents a popover only in a real browser; the topbar's stub also takes `alignment`.
+duplicados src/components/Assistant/AssistantPanel.test.ts:333-338 Two tests start from the same refused turn of a spent month: a quota error scripted, the panel mounted with 25 of 30 messages used and one question asked.
+duplicados src/components/Assistant/AssistantPanel.test.ts:431-436 Two tests start from the same refused turn of a spent month: a quota error scripted, the panel mounted with 25 of 30 messages used and one question asked.
