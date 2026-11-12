@@ -1,9 +1,5 @@
-// Accessibility of the DataTable chrome, from the second UX audit of the SaaS panel (2026-10-14):
-//   - R-03: 392 of the 740 unnamed icons were this table's. Ionic paints `ion-icon` as `role="img"`,
-//     so every icon is decorative (`aria-hidden="true"`) and every icon-only button carries its name
-//     (`aria-label`): the toolbar, the sort carets, the row actions, the cards, the states, the pager.
-//   - R-13: the selection checkboxes are 24×24 (Ionic's ios box is 22) with a 44px target on touch.
-//   - R-12: the search box shows where the focus is (the theme's accent ring).
+// Ionic paints `ion-icon` as `role="img"`, so every icon of the table must be decorative (`aria-hidden="true"`)
+// and every icon-only button must carry its name (`aria-label`).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { unnamedButtons, unnamedIcons } from '../../testing/a11y';
@@ -60,7 +56,7 @@ const ariaLabel = (el: Element): string | null | undefined =>
 const describeAll = (els: Element[]): string[] =>
   els.map((el) => `${el.tagName.toLowerCase()}.${el.className} ${el.outerHTML.slice(0, 120)}`);
 
-describe('R-03: no unnamed icon and no unnamed button in the DataTable', () => {
+describe('no unnamed icon and no unnamed button in the DataTable', () => {
   it('the list with its whole chrome: toolbar, selection bar, sort caret, row actions, «⋮» menu, pager', async () => {
     const t = await fullTable();
     await click(t.element.querySelector('.data-table__cell--sortable'));
@@ -114,7 +110,7 @@ describe('R-03: no unnamed icon and no unnamed button in the DataTable', () => {
   });
 });
 
-// The stylesheet carries R-12 and R-13: happy-dom lays nothing out, so the rules are read from it.
+// happy-dom lays nothing out, so the checkbox size and the focus ring are read from the stylesheet.
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const SCOPED = stripComments(source.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\s+/g, ' ');
 const WEAK = stripComments(source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\s+/g, ' ');
@@ -154,7 +150,7 @@ describe('the remaining table controls are Ionic too', () => {
   });
 });
 
-describe('R-13: the selection checkboxes are big enough to hit', () => {
+describe('the selection checkboxes are big enough to hit', () => {
   it('the box is 24×24 at every width (Ionic ios paints 22)', () => {
     expect(rule('.data-table ion-checkbox', SCOPED).body).toMatch(/--size:\s*24px/);
   });
@@ -170,7 +166,7 @@ describe('R-13: the selection checkboxes are big enough to hit', () => {
   });
 });
 
-describe('R-12: the search box shows where the focus is', () => {
+describe('the search box shows where the focus is', () => {
   const FOCUS = ':where(.data-table__search) ion-searchbar:focus-within, :where(.data-table__search) ion-searchbar.searchbar-has-focus';
 
   it('focused (with the keyboard or not), its field takes the accent ring of the theme', () => {

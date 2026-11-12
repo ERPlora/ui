@@ -1,9 +1,8 @@
-// outfitkit#182/#184 — Ionic 8's `ion-searchbar` renders its inner <input> with a constant
-// `aria-label="search text"`, so screen readers announce «search text» instead of the visible hint.
-// Its clear button is another constant of the same render, `aria-label="reset"`, in English whatever
-// the person's language (FIX-UI-SEARCHBAR-CLEAR-BUTTON-SAYS-RESET). Stencil only rewrites an attribute
-// when its vdom value changes (never: they are constants), so setting them survives re-renders. Call it
-// after every render, so it follows a change of the hint or the language and a searchbar created again.
+// Ionic 8's `ion-searchbar` renders its inner <input> with a constant `aria-label="search text"`, so screen
+// readers announce «search text» instead of the visible hint, and its clear button with a constant
+// `aria-label="reset"`, in English whatever the person's language. Stencil only rewrites an attribute when
+// its vdom value changes (never: they are constants), so setting them survives re-renders. Call it after
+// every render, so it follows a change of the hint or the language and a searchbar created again.
 import { pageLabel } from './labels';
 
 type Searchbar = HTMLElement & { getInputElement?: () => Promise<HTMLInputElement> };
@@ -28,7 +27,7 @@ export function syncSearchbarInputName(
     .catch((error: unknown) => {
       // A searchbar torn down while this was in flight has nothing left to name; one still on
       // screen keeps announcing «search text», and that is a defect to see.
-      if (bar.isConnected) console.error('[DataTable] could not name the search box (outfitkit#182).', error);
+      if (bar.isConnected) console.error('[DataTable] could not name the search box.', error);
     });
 }
 

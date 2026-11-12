@@ -1,6 +1,3 @@
-// Behaviour spec of StatusPill: the status chip of the SaaS panel mockups (`.status-pill .st-*` of
-// the old `erplora-admin.css` plus the `st-info` tone and the busy pulse of `mock.css`): a short
-// label on a tinted pill with a dot of its own colour, in five tones and two sizes.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -85,11 +82,10 @@ describe('StatusPill', () => {
     expect(pill.attributes('title')).toBe('Since 1 Oct');
   });
 
-  // hub#53 - In a narrow table cell (Sales at 834 px) «● Document pending» came out «● Document pend»:
-  // the pill never got narrower than its text, and the cell clips what overflows it. Now the pill is
-  // never wider than its box, and its label wraps between words; a word that alone does not fit ends
-  // in «…» (the whole text stays in the DOM and in `title`). happy-dom does not lay out: the geometry
-  // is the e2e of the Hub (`tests/e2e/fix-ui-statuspill.spec.ts`); this pins the rules that carry it.
+  // A table cell clips what overflows it, so a pill as wide as its text came out «● Document pend» in a narrow
+  // one. The pill is never wider than its box, its label wraps between words and a word that alone does not fit
+  // ends in «…» (the whole text stays in the DOM and in `title`). happy-dom does not lay out, so this pins the
+  // rules that carry it; the Hub's e2e (`tests/e2e/fix-ui-statuspill.spec.ts`) checks the geometry.
   describe('fits its box, never cut mid-word', () => {
     const sfc = readFileSync(join(HERE, 'StatusPill.vue'), 'utf8');
     const style = (sfc.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\/\*[\s\S]*?\*\//g, '');

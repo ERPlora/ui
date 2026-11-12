@@ -1,8 +1,3 @@
-// ImageUpload — one image of a form (a website's logo, its cover): the current image as a thumbnail
-// (or an empty placeholder), «Choose image» that opens the file picker, «Remove» while there is one.
-// The file is checked here (type and size) before the page's `upload(file)` is called; while it runs
-// a spinner shows and the buttons wait; what it answers (`{ id, url }`) is the new `v-model`, and a
-// rejection paints its message.
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
@@ -301,9 +296,9 @@ function rule(selector: string): string {
 }
 
 describe('ImageUpload: its look', () => {
-  // FIX-UI-IMAGEUPLOAD-THUMBNAIL-TOUCHES-TEXT: Tailwind's preflight (`margin: 0`, a document rule)
-  // beats ion-item's `::slotted([slot=start])` margin, so the thumbnail sat against the title. The
-  // component gives it back Ionic's 16px (md and ios) as a token, in an unlayered rule that wins.
+  // Tailwind's preflight (`margin: 0`, a document rule) beats ion-item's `::slotted([slot=start])` margin, so the
+  // thumbnail sat against the title. The component gives it back Ionic's 16px (md and ios) as a token, in an
+  // unlayered rule that wins.
   it('the thumbnail keeps a gap to the text, from a token with Ionic’s 16px as its fallback', () => {
     expect(rule('.image-upload__thumb')).toContain('margin-inline-end: var(--ep-spacing, var(--ion-padding, 16px));');
   });

@@ -1,8 +1,3 @@
-// The assistant's dictation (BASE-F94), the one for every screen that dictates to the assistant (the composer's
-// «Dictate by voice», the Hub's till's «Speak»): a tap records — one recording per tap, also while the browser still
-// asks for the microphone —, the next one stops; the host transcribes up to 2 MB (`AssistantConfig.transcribe`); the
-// words land in the assistant's box after what was written and its panel opens; nothing is sent. What stops a
-// dictation is said by its reason.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h } from 'vue';
 
@@ -169,7 +164,7 @@ describe('useDictation', () => {
     expect(assistant.state.draft).toBe('dos cafés');
   });
 
-  // FIX-HUB-BASE-ASSISTANT-MIC-DOUBLE-TAP-OPENS-TWO-RECORDINGS: one recording per tap.
+  // One recording per tap.
   it('while the browser asks for the microphone, another tap opens no second recording', async () => {
     const mic = askingMicrophone();
     await host(mic);

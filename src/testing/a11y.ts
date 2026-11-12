@@ -1,19 +1,13 @@
-// The accessible-name guardrail (UX audit 2, R-03), shared by this package and the apps that use it:
-// what axe's `role-img-alt` and `button-name` rules check, on a DOM happy-dom can build (it lays
-// nothing out and runs no Ionic, so the rules are read on the elements and attributes we render).
-// Ionic paints every `ion-icon` as `role="img"`: an icon is either decorative (`aria-hidden="true"`,
-// next to a text or inside a button named by its own `aria-label`) or named (`HubIcon`'s `label`).
-//   - `unnamedIcons` / `unnamedButtons`: on a rendered tree (a mounted component);
-//   - `bareIonIcons`: on a source, the static twin for a whole tree of templates.
+// What axe's `role-img-alt` and `button-name` rules check, on a DOM happy-dom can build: it lays nothing out and
+// runs no Ionic, so the rules are read on the elements and attributes we render. Ionic paints every `ion-icon` as
+// `role="img"`, so an icon is either decorative (`aria-hidden="true"`, next to a text or inside a named button) or
+// named (`HubIcon`'s `label`). Shared by this package and the apps that use it.
 
-/** Hidden from assistive tech by itself or an ancestor. */
 const HIDDEN = '[aria-hidden="true"], [inert]';
-/** What a screen reader announces as a button. */
 const BUTTONS = 'button, ion-button, ion-segment-button, ion-menu-button, ion-back-button, [role="button"]';
 
 const hidden = (el: Element): boolean => el.closest(HIDDEN) !== null;
 
-/** `aria-label` (not blank) or `aria-labelledby`: a name of its own. */
 const named = (el: Element): boolean =>
   !!el.getAttribute('aria-label')?.trim() || !!el.getAttribute('aria-labelledby')?.trim();
 
@@ -23,7 +17,6 @@ const ownName = (el: Element): boolean => {
   return named(el) || (!!native && named(native));
 };
 
-/** The text a screen reader reads inside `el`: what its hidden parts say does not count. */
 function readableText(el: Element): string {
   let text = '';
   for (const node of el.childNodes) {

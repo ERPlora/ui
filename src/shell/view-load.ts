@@ -1,18 +1,8 @@
-// A screen whose file never arrives (gh:hub#438; the old hub's hub#1518 and hub#2312). Every screen is a lazy chunk
-// with a hashed name (`/static/spa/assets/<Page>-<hash>.js`, served immutable), so opening one is a fetch. After a
-// deploy the new image no longer serves the names an open tab knows: its `import()` fails, the router aborts the
-// navigation, and with no `onError` anywhere the tap did nothing and said nothing until the app was restarted.
-//
-// A retry inside the SPA cannot work: per the HTML module map, a module URL that failed is remembered as failed for
-// the life of the document. Only a fresh document clears it, and the fresh document's HTML (never cached, `render_spa`)
-// names the new chunks. So, as Nuxt, Next.js, Remix and Gatsby do for a chunk lost on navigation, the screen asked for
-// opens in a fresh document — but only once the server answers for that file (any status: a 404 is the deploy).
-// Without an answer (offline, or a flaky network the browser still calls online, hub#2489) the fresh document would be
-// the browser's error page or a blank first screen, with no way back to the till: there the person keeps the screen
-// they are on and a toast says so, naming the app as «My apps» did, with a Retry that asks again.
-//
-// Not here: the first screen of a document (the project's entry decides what an unmounted page does) and a screen
-// whose own code throws (a fresh document runs the same code: it stays as loud as vue-router left it).
+// After a deploy an open tab still asks for the old hashed chunks, so a screen's `import()` fails, and per the HTML
+// module map a failed module URL stays failed for the life of the document. As Nuxt, Next.js and Remix do, the screen
+// asked for opens in a fresh document, once the server answers for that file (a 404 is the deploy). Without an answer
+// the fresh document would be the browser's error page, so the person keeps the screen and a toast with Retry says so.
+// Not handled here: a document's first screen (the project's entry decides) and a screen whose own code throws.
 import type { Router } from 'vue-router';
 
 import { serverAnswers } from '../sdk/reachability';

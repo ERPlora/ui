@@ -1,10 +1,6 @@
-// The card of a write the assistant wants to run (BASE-G115, G116), as the server describes it (the turn's `confirm`
-// frame; the Hub's base/assistant.py `card`): its action by its verb (the host's catalogue, `AssistantConfig.verbKey`)
-// and its app by its name, never the operation's id; each
-// datum in words — an amount its schema marks (`money`), in the business's currency (gh:hub#1045) or, in a preview,
-// the one its read answers, and, when it says it is signed (a difference), with its sign as Cash register writes it, a
-// yes or no, a dash for nothing, a list by its items in words or else by how many. A normal write is one line; a
-// dangerous one, every datum and what to type.
+// The card of a write as the server describes it (the turn's `confirm` frame, built by the Hub's base/assistant.py
+// `card`): its action by its verb (`AssistantConfig.verbKey`) and its app by its name, never the operation's id, and
+// each datum in words.
 import { formatMoney, type Money } from '../format/money';
 import { formatQuantity } from '../format/quantity';
 
@@ -37,9 +33,9 @@ export interface AssistantCard {
   count: number | null;
   confirm_word: string;
   blocked: boolean;
-  /** The business's currency for its amounts (gh:hub#1045). */
+  /** The business's currency for its amounts. */
   money?: Money | null;
-  /** What a dangerous write will do, as the read its app declares answers it for this person (BASE-F98); none when
+  /** What a dangerous write will do, as the read its app declares answers it for this person; none when
    *  its app declares no preview. */
   preview?: AssistantField[] | null;
 }
@@ -84,7 +80,7 @@ function isAmount(value: unknown): value is AssistantAmount {
   return shape.kind === 'money' && typeof shape.value === 'number' && Object.keys(shape).every((key) => AMOUNT_KEYS.has(key));
 }
 
-/** An object datum in words (FIX-HUB-BASE-ASSISTANT-CARD-OBJECT-SHOWS-INNER-KEYS-IN-ENGLISH): by its values, as a
+/** An object datum in words: by its values, as a
  *  summary says an address or a ticket a variant, never by its keys — but a figure's —; its empty data left out, a
  *  yes or no in words, an amount as one on top (`isAmount`), a list's items one after another. Empty: '' (the caller
  *  writes the dash). */
@@ -113,8 +109,8 @@ function isFigure(value: unknown): boolean {
   return (typeof value === 'number' && Number.isFinite(value)) || (typeof value === 'string' && DECIMAL.test(value));
 }
 
-/** A line in words — the name the server gave its only record (a booking's services, `{service_id}`: hub#835) or that
- *  name and, after it, the figures beside it (a reception's product and quantity, «Vino tinto · 6»: hub#970), a
+/** A line in words — the name the server gave its only record (a booking's services, `{service_id}`) or that
+ *  name and, after it, the figures beside it (a reception's product and quantity, «Vino tinto · 6»), a
  *  quantity as the screens write one (`formatQuantity`) and an amount as money —; none for any other line: a bare
  *  figure (its record left out), two texts or a yes or no. Its empty data (a name the model wrote as null beside the
  *  id) do not count: an empty datum does not show. */
@@ -138,7 +134,7 @@ function listItem(item: unknown, format: CardFormat): string {
   return value ? compact(item, format) : (lineText(item, format) ?? '');
 }
 
-/** A list in words (FIX-HUB-PRINTING-ASSISTANT-CARD-LEAVES-OUT-ITS-RECORDS), when the server said its items in words
+/** A list in words, when the server said its items in words
  *  (`named`): one after another, the ones it cannot say among the more; else, or none it can say, how many it carries.
  *  Items that carry a comma themselves (a moment in Spanish, «2 nov 2026, 10:00») are told apart by a semicolon, as the
  *  RAE and English style guides separate a series whose items have commas. */

@@ -1,7 +1,6 @@
-// Public surface of the shell (V4 pieces + the V5 shell). The three `boot/*.boot.ts` side-effect
-// modules come FIRST: an entry that imports this barrel must hook `customElements.define` before
-// `./toast`, `./createShell` or the pages load `@ionic/vue`, which registers its elements on
-// import (hub#1060). Guard: `index.test.ts`.
+// The three `boot/*.boot.ts` side-effect modules come first: an entry that imports this barrel must hook
+// `customElements.define` before `./toast`, `./createShell` or the pages load `@ionic/vue`, which registers its
+// elements on import. `index.test.ts` guards the order.
 import './boot/ionic-fill.boot';
 import './boot/ionic-select-text.boot';
 import './boot/ionic-select-interface.boot';

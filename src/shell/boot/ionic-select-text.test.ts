@@ -7,8 +7,6 @@ import {
   type SelectTextProp,
 } from './ionic-select-text';
 
-// hub#1736 / hub#2226: the Cancel/OK buttons of select dialogs speak the language active
-// when the dialog OPENS.
 class FakeSelect extends HTMLElement {
   cancelText = 'Cancel';
   okText = 'OK';

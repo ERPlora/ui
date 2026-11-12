@@ -1,5 +1,3 @@
-// gh:hub#438: before the shell leaves a screen for a fresh document, it asks whether the server answers at all. A
-// flaky network can leave the browser «online» (hub#2489), and a fresh document there is the browser's error page.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { serverAnswers } from "./reachability";
@@ -14,7 +12,6 @@ describe("serverAnswers", () => {
     const check = vi.fn(async () => ({ status: 404 }) as Response);
     vi.stubGlobal("fetch", check);
     await expect(serverAnswers("/static/spa/assets/A-1.js", 5000)).resolves.toBe(true);
-    // `no-cors`: an opaque answer is still an answer, so the dev server's other origin needs no CORS headers.
     expect(check).toHaveBeenCalledWith("/static/spa/assets/A-1.js", { method: "HEAD", cache: "no-store", mode: "no-cors" });
   });
 

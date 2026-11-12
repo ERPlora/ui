@@ -1,7 +1,4 @@
-// gh:hub#438 — after a deploy, a tap on a screen not opened yet in that tab did nothing and said nothing. Every screen
-// is a lazy chunk with a hashed name (`/static/spa/assets/<Page>-<hash>.js`); the new image no longer serves the old
-// tab's names, its `import()` fails, and the router aborted the navigation in silence (no `onError` anywhere). Through
-// the REAL shell router, at the place where the tap went nowhere.
+// Through the real shell router: after a deploy, a tap on a screen whose hashed chunk is gone must never do nothing.
 import { flushPromises } from '@vue/test-utils';
 import { ref } from 'vue';
 import { createMemoryHistory, type RouteRecordRaw } from 'vue-router';
@@ -77,7 +74,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
+describe('a screen whose file is gone after a deploy', () => {
   it('opens in a fresh document, which gets the new names, instead of doing nothing', async () => {
     const { router, redirect } = setup();
     await router.push('/');
@@ -122,7 +119,7 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     expect(redirect).toHaveBeenCalledWith('/verifactu');
   });
 
-  // hub#2489: a flaky network leaves the browser «online». A fresh document there would be the browser's error page,
+  // A flaky network leaves the browser «online». A fresh document there would be the browser's error page,
   // or a blank first screen, with no way back to the till.
   it('a flaky network the browser still calls online: keeps the screen and says so, never a fresh document', async () => {
     vi.stubGlobal('fetch', noAnswer());
@@ -172,7 +169,7 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     expect(redirect).toHaveBeenCalledWith('/verifactu');
   });
 
-  it('names the app when the screen is one of its apps, as «My apps» did (hub#2489)', async () => {
+  it('names the app when the screen is one of its apps, as «My apps» names it', async () => {
     vi.stubGlobal('fetch', noAnswer());
     const { router } = setup(lostChunk, [], withVerifactu());
     await router.push('/');

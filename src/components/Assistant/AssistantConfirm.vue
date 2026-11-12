@@ -1,13 +1,9 @@
 <script setup lang="ts">
-// The card of a write the assistant wants to run (BASE-G115, G116, G119), over everything: the platform's
-// ConfirmDialog. A normal write says its action (by the host's verb, `AssistantConfig.verbKey`), its app and its first data in one line, and runs with one click; a
-// dangerous one (`risk="high"`) lists every datum by its name and, before it runs, asks to type the word in the
-// person's language — or, over records named one by one, how many (the dialog compares it, and the server again with
-// what was typed). When its app declares one, it first says what will happen (BASE-F98: the preview, as the app's read
-// answers it for this person). «Cancel all» stops this action and the rest of the turn when more wait behind it.
-// Nothing runs on Cancel or Escape.
-// Mounted with the panel: it opens when a card arrives (after mounting: Ionic presents a modal only once it is in the
-// page) and closes when the card goes; the last card stays painted while the dialog closes.
+// A normal write says its action (by the host's verb, `AssistantConfig.verbKey`), its app and its first data in one
+// line, and runs with one click; a dangerous one (`risk="high"`) lists every datum by its name and asks to type the
+// word in the person's language, or how many records, before it runs (the server checks what was typed again). When its
+// app declares a preview, it first says what will happen. Nothing runs on Cancel or Escape. It opens after mounting,
+// because Ionic presents a modal only once it is in the page, and the last card stays painted while the dialog closes.
 import { IonButton } from '@ionic/vue';
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -24,7 +20,7 @@ const { t, locale } = useI18n({ useScope: 'global' });
 const config = assistantConfig();
 const open = ref(false);
 const shown = shallowRef<AssistantCard | null>(null);
-/** What the person typed on a dangerous card, as typed: the server checks it again (BASE-G116). */
+/** What the person typed on a dangerous card, as typed: the server checks it again. */
 const typed = ref('');
 
 function follow(card: AssistantCard | null): void {

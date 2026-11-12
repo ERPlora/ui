@@ -1,7 +1,3 @@
-// useSettingsForm: a settings page's form, said once for every page (hub#867). It paints what the server
-// has; what the person touched and changed is all that is sent, with the server's names and values (the
-// numbers as numbers, a renamed field under its name there); a change saved elsewhere repaints every field
-// not touched; a refusal says itself as a FormModal does (useRefusal); the screen can judge before sending.
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { effectScope, nextTick, ref, shallowRef } from 'vue';
 
@@ -12,7 +8,7 @@ import * as components from '../index';
 import { useSettingsForm, type SettingsFormOptions } from './settingsForm';
 import type { FormModalError } from './types';
 
-// A page like Services' (SERVICE-F11): numbers, a text, a switch and a field the server names otherwise.
+// A page like Services': numbers, a text, a switch and a field the server names otherwise.
 interface ServiceOut {
   default_duration: number;
   page_title: string;
@@ -210,7 +206,7 @@ describe('useSettingsForm', () => {
     expect([form.touched.value.has('default_duration'), form.saved.value, form.changes.value]).toEqual([true, false, { default_duration: 45 }]);
   });
 
-  // hub#914: a field changed while the save is on its way is the person's still, not the answer's.
+  // A field changed while the save is on its way is the person's still, not the answer's.
   describe('a change made while a save is on its way', () => {
     function held() {
       let release: (answer: ServiceOut) => void = () => {};
@@ -359,8 +355,8 @@ describe('useSettingsForm', () => {
       expect(form.showsError.value).toBe(true);
     });
 
-    // hub#894: after a failed save, the field typed back to what is saved and «Save» again. Nothing is
-    // sent and it says saved; the failed save's notice saying otherwise next to it would be a lie.
+    // After a failed save, the field typed back to what is saved and «Save» again: nothing is sent and it
+    // says saved, so the failed save's notice saying otherwise next to it would be a lie.
     describe('a save with nothing to send is a try', () => {
       const NO_CONNECTION: FormModalError = { code: 'client_error', message: 'No connection.', status: 0 };
 
@@ -433,7 +429,7 @@ describe('useSettingsForm', () => {
     });
   });
 
-  // A page like Time clock's (ATTENDANCE-F04): a pair of coordinates, an empty one sent as null, and a
+  // A page like Time clock's: a pair of coordinates, an empty one sent as null, and a
   // screen that judges what it can before sending.
   interface ClockOut {
     require_location: boolean;

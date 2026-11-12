@@ -1,15 +1,8 @@
-// A job of the hub's print queue becoming paper in the installed app (PRINTING-F18; the old hub's `print-host.ts`,
-// hub#501): the `print` that `print-channel.ts` takes. Each kind goes to the app's command for it (ERPlora/app,
-// `src-tauri/src/lib.rs`, through Tauri's global bridge), with the printer as the app names it (`target`):
-// - `document`: `erplora_print` once per copy — the first with the document, every other one with the copy the hub
-//   sent (a receipt or an invoice marked duplicate, RD 1619/2012 art. 14.4) — or `print_document` with its page for an
-//   A4 job (the system's print);
-// - `test_page`: `erplora_test_print` with what the hub filled in (the business's name, the language), or the A4 page;
-// - `drawer`: `erplora_open_drawer` (a cash sale with the receipt switched off).
-// A job that says `openDrawer` opens the drawer after its paper (PRINTING-F13). There is no fallback: this runs
-// unattended, so every refusal of the app comes back as the job's failure, which the channel reports and the hub keeps
-// in the queue. A drawer that does not open after the paper came out does not fail the job (the hub would print the
-// ticket again): it is told (`onDrawerFailed`, hub#2724), as a drawer-only job that fails is.
+// The `print` that `print-channel.ts` takes: each kind of job goes to the installed app's command for it, with the
+// printer as the app names it (`target`). Every copy after the first prints the duplicate the hub sent, if it sent one
+// (RD 1619/2012 art. 14.4). There is no fallback: this runs unattended, so every refusal of the app fails the job and
+// the hub keeps it in the queue. A drawer that does not open after the paper came out does not fail the job, since
+// the hub would print the ticket again; it is reported through `onDrawerFailed`, like a drawer-only job that fails.
 import type { PrintJob } from '../sdk/print-channel';
 import { afterTheLoad, type NativeBridge, whileTheHubLands } from './device-notices';
 
@@ -23,7 +16,7 @@ export interface DevicePrinterDeps {
 
 export function createDevicePrinter(deps: DevicePrinterDeps): (job: PrintJob) => Promise<void> {
   const wait = deps.wait ?? afterTheLoad;
-  // The first job of a reopened page can arrive before the app lets it drive (hub#2658): asked again while it lands.
+  // The first job of a reopened page can arrive before the app lets it drive, so it is asked again while it lands.
   const run = (command: string, args: Record<string, unknown>) => whileTheHubLands(() => deps.invoke(command, args), wait);
 
   function drawerFailed(job: PrintJob, error: unknown): void {

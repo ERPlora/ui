@@ -163,7 +163,7 @@ describe("createApiClient: responses and errors", () => {
     });
   });
 
-  describe("in the language of the page, never an English internal text (hub#2281)", () => {
+  describe("in the language of the page, never an English internal text", () => {
     afterEach(() => {
       document.documentElement.lang = "";
     });

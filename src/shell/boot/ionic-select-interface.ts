@@ -1,41 +1,7 @@
-// Ported from ERPlora hub apps/web/src/lib/ionic-select-interface.ts. Fixes ERPlora/hub#2223 (and #2237).
-// hub#2223 — a single-choice select closes the moment an option is picked.
-//
-// `<ion-select>` opens an `alert` unless told otherwise (`@ionic/core`, select.js:
-// `this.interface = 'alert'`), and the alert only commits the choice in the handler of its OK
-// button: tapping an option just marks a radio. Picking one category, one status or one
-// professional costs a second tap, and whoever taps outside instead believes they chose and loses
-// the value. The `popover` interface dismisses on the click of the option itself
-// (`select-popover.js` → `dismissParentPopover()`), which is how every dropdown behaves in the
-// tools a merchant already knows — and it is what the shell's own views and the modules that do
-// declare an interface already use.
-//
-// Ionic has no global config key for the default interface, and the selects a merchant uses live
-// in module Web Components shipped from 27 separate repos (and tomorrow from marketplace authors we
-// never review). So the shell fixes the DEFAULT once, for everyone, through the same registry hook
-// as `fill` → `mode="md"` (hub#1060, `./ionic-fill`) and the localized dialog buttons (hub#1736).
-//
-// WHY AT `open()` AND NOT AT CONNECT TIME:
-//   · Stencil strips every own property of the element when it connects (its «upgrade» of props
-//     set before the definition), so a per-instance accessor installed there is gone before the
-//     first render — measured against the real `ion-select`, not assumed.
-//   · Ionic reads `this.interface` only when the dialog opens (`open()` → `createOverlay()`), and a
-//     module can toggle `multiple` on a select that is already mounted. Deciding at open time
-//     follows it for free.
-//   · `open` is a plain prototype method, not a lifecycle callback, so wrapping it works even on a
-//     tag that was registered before this booted.
-//
-// Only SINGLE choice changes. A `multiple` select keeps the alert: choosing several things needs a
-// confirm button, and the popover has none. A popover also needs the click to anchor to; a
-// programmatic `open()` with no event makes Ionic fall back to the alert by itself (with its own
-// warning), so nothing ends up worse than before.
-//
-// The same wrapper also tells the popover WHERE to open (hub#2237, `anchoredTo` below): inside a
-// module's shadow roots Ionic would otherwise pin the list to the top of the module, not the field.
-//
-// What counts as the author's choice: any `interface` attribute (`alert` included), and any value
-// written from JS other than Ionic's default. The one case that cannot be told apart is a module
-// writing `.interface = 'alert'` from JS — letter for letter the default — and no module does.
+// A single-choice `ion-select` opens a popover, which closes on the click of the option, instead of Ionic's default
+// alert, which only commits the choice on OK. Ionic has no global config key for the default interface, so the shell
+// sets it for every select, shadow roots included, by wrapping `open()`. A `multiple` select keeps the alert: choosing
+// several things needs a confirm button. A programmatic `open()` with no event makes Ionic fall back to the alert.
 import { patchIonicOnDefine } from './ionic-registry-hook';
 
 /** The Ionic control whose default interface needs a confirm tap for a single choice. */
@@ -43,7 +9,6 @@ export const SELECT_INTERFACE_CONTROLS = ['ion-select'] as const;
 
 /** Ionic's own default, assigned in the `ion-select` constructor. */
 const IONIC_DEFAULT = 'alert';
-/** Closes on pick for a single choice. */
 const SINGLE_CHOICE = 'popover';
 
 /** Marks a prototype we already patched, so a second boot is a no-op instead of a double wrap. */
@@ -58,7 +23,10 @@ type SelectControl = HTMLElement & {
   open?: (ev?: Event) => Promise<unknown>;
 };
 
-/** Points the element at the right interface for what it is about to open, unless its author chose. */
+/**
+ * Points the element at the right interface for what it is about to open, unless its author chose. The one choice
+ * that cannot be told apart is `.interface = 'alert'` written from JS, letter for letter Ionic's default.
+ */
 function applyDefaultInterface(el: SelectControl): void {
   if (el.hasAttribute('interface')) return; // chosen in markup, `alert` included
   const current = el.interface;
@@ -76,11 +44,13 @@ function patchConstructor(ctor: CustomElementConstructor): void {
   const original = proto.open;
   if (typeof original !== 'function') {
     // Not the `ion-select` this was written against: say so instead of guessing.
-    console.error('[ionic-select-interface] the element has no `open()` to wrap (hub#2223).');
+    console.error('[ionic-select-interface] the element has no `open()` to wrap.');
     return;
   }
   Object.defineProperty(proto, PATCHED, { value: true, enumerable: false });
 
+  // Decided at `open()`, not at connect time: Stencil strips every own property of the element when it connects,
+  // Ionic reads `interface` only when the dialog opens, and a module can toggle `multiple` on a mounted select.
   proto.open = function patchedOpen(this: SelectControl, ev?: Event): Promise<unknown> {
     try {
       applyDefaultInterface(this);
@@ -95,15 +65,10 @@ function patchConstructor(ctor: CustomElementConstructor): void {
 type AnchorDetail = { ionShadowTarget?: EventTarget };
 
 /**
- * hub#2237 — the click, naming the select as the element its list opens against.
- *
- * With a stacked/floating label (or `md` with `fill`) Ionic hands the click to the popover untouched
- * (`size: 'cover'`), and the popover anchors to `ev.detail?.ionShadowTarget || ev.target`. It reads
- * that after the click has left the module's shadow roots, when `target` is already the module HOST:
- * the list lands on top of the module, 150-300 px from the field. Ionic's other branch names the
- * anchor the same way, with a copy of the event — `Object.assign` skips the getters of an `Event`, so
- * what the popover also reads (`target`, and the point for `reference: 'event'`) is carried over by
- * hand. An anchor the event already names is kept.
+ * The click, naming the select as the element its list opens against. The popover anchors to
+ * `ev.detail?.ionShadowTarget || ev.target`, read after the click has left the module's shadow roots, when `target`
+ * is already the module host, so the list would land on top of the module instead of the field. `Object.assign` skips
+ * the getters of an `Event`, so what the popover also reads (`target`, the point) is carried over by hand.
  */
 function anchoredTo(el: SelectControl, ev?: Event): Event | undefined {
   if (!ev) return ev;
@@ -119,11 +84,8 @@ function anchoredTo(el: SelectControl, ev?: Event): Event | undefined {
 }
 
 /**
- * Makes every single-choice select of the app — the shell's own views and the Web Components of
- * every installed module, shadow roots included — close on pick.
- *
- * Imported from the shell entry point next to its twins (`./ionic-select-interface.boot`). Unlike them it also
- * works on a tag that is already registered: it wraps a method, not a lifecycle callback.
+ * Unlike the other boot hooks, this one also works on a tag that is already registered: it wraps a method, not a
+ * lifecycle callback.
  */
 export function bootIonicSelectInterface(tags: readonly string[] = SELECT_INTERFACE_CONTROLS): void {
   const registered = patchIonicOnDefine(tags, patchConstructor);

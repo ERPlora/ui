@@ -1,10 +1,3 @@
-// MoneyInput — the one money field of every form (a price, a cost, a supplement, a payment, a rule's amount): an
-// outlined md text field with the decimal keyboard, in the field's `money`. It hands the page what is typed and, on
-// leaving it, rewrites a readable amount in the page format; what is not an amount says so under the field (or both
-// readings of «1.250») once the person leaves it or tries to save, and the server's message for the field wins. Until
-// its money is known the field neither rewrites nor judges what was typed: «150» is not made «150.00» and «¥1500» or
-// «12,50 zł» are not called «not an amount» before the business says its currency (hub#918, hub#921, hub#945). A
-// `signed` amount (a supplement) may be negative, with a ± button for a phone's decimal keyboard, which has no minus.
 import { flushPromises, mount } from '@vue/test-utils';
 import { IonInput } from '@ionic/vue';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -142,7 +135,7 @@ describe('MoneyInput: once its money is known', () => {
     expect([s.model.value, s.errorText()]).toEqual(['1500', undefined]);
   });
 
-  // ui#140: «12,50» is no amount in yen; the example has the decimals of the field's money, and follows it.
+  // «12,50» is no amount in yen: the example has the decimals of the field's money, and follows it (ui#140).
   it('what is not an amount gives an example with the decimals of its money: «12» in yen, «12.500» in dinars', async () => {
     const s = await setup({ money: JPY, modelValue: 'abc', showError: true });
     expect(s.errorText()).toBe('This is not an amount. Type a figure, for example 12.');
@@ -189,8 +182,8 @@ describe('MoneyInput: once its money is known', () => {
   });
 });
 
-// hub#918, hub#921, hub#945: the field's money (the business's, or a list's) may still be on its way. Its decimals and
-// its sign are unknown until it arrives, so leaving the field keeps what was typed and nothing is judged: «¥1500»
+// The field's money (the business's, or a list's) may still be on its way. Its decimals and its sign are unknown
+// until it arrives, so leaving the field keeps what was typed and nothing is judged: «¥1500»
 // cannot be read without the yen. Once it arrives, what was left is read in it.
 describe('MoneyInput: until its money is known', () => {
   it('leaving keeps what was typed: no decimals invented, and «150» left before the yen is still 150', async () => {

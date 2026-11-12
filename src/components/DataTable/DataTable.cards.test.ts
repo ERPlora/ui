@@ -1,5 +1,3 @@
-// DataTable card view: the card opens its record (#74), its head is one row in ios (#79), the title
-// is not repeated in the body (#205), the `card` slot replaces the body. Cases ported from Lit.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { cards, click, ionChange, mountTable, settle, text, viewport } from './__tests__/harness';
@@ -23,7 +21,7 @@ const fields = (t: ReturnType<typeof mountTable>) =>
   );
 const titles = (t: ReturnType<typeof mountTable>) => [...t.element.querySelectorAll('.data-table__card-title')].map((e) => text(e));
 
-describe('a card shows its name once: as the title, not again as a field (#205)', () => {
+describe('a card shows its name once: as the title, not again as a field', () => {
   const COLUMNS = [{ key: 'code', label: 'Código' }, { key: 'name', label: 'Nombre' }, { key: 'currency', label: 'Divisa' }];
   const base = {
     rows: [{ id: '1', code: 'L1', name: 'Tarifa mayorista 1', currency: 'EUR' }],
@@ -92,7 +90,7 @@ describe('a card shows its name once: as the title, not again as a field (#205)'
   });
 });
 
-describe('the card head is ONE row, in ios too (#79)', () => {
+describe('the card head is ONE row, in ios too', () => {
   it('[icon] [title] [checkbox], in that order', async () => {
     const t = mountTable({
       rows: [{ id: '1', name: 'Menú del día', price: '13,50 €' }],
@@ -119,7 +117,7 @@ describe('the card head is ONE row, in ios too (#79)', () => {
   });
 });
 
-describe('the card opens the record like the row (#74)', () => {
+describe('the card opens the record like the row', () => {
   const ROWS = [{ id: '1', name: 'Menú del día' }, { id: '2', name: 'Menú degustación' }];
   const base = { rows: ROWS, columns: [{ key: 'name', label: 'Nombre' }], actions: [{ id: 'edit', label: 'Editar' }], views: true, defaultView: 'cards' };
 
@@ -170,10 +168,9 @@ describe('the card opens the record like the row (#74)', () => {
   });
 });
 
-// FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP (hub#91): on a phone a 54-character email ran past the right
-// edge of its card, cut with no «…». The default text is its own box, which clips with «…» (the rules
-// are in the visual test) and, as a table cell does (#217), carries its whole text: the title, and a
-// tap that unfolds it in place when the card opens nothing.
+// On a phone a 54-character email ran past the right edge of its card, cut with no «…». The default text
+// is its own box, which clips with «…» (the rules are in the visual test) and, as a table cell does,
+// carries its whole text: the title, and a tap that unfolds it in place when the card opens nothing.
 describe('a card value too long for its card can be read in full', () => {
   const EMAIL = 'e2e.card.value.with.a.long.address.no.spaces@example.com';
   const ROWS = [
@@ -242,8 +239,8 @@ describe('a card value too long for its card can be read in full', () => {
   });
 });
 
-// hub-next apps/tax/UI-REQUESTS.md: in Rules the card title is the category's NAME and the column is
-// its KEY, so the text match of #205 cannot find it and the key was repeated in the body.
+// A card title may name a column by another field: a tax rule's title is the category's NAME and the
+// column its KEY, so matching the title's text cannot find the column and the key was repeated in the body.
 describe('cardTitleColumn: the column the card title stands for', () => {
   const COLUMNS = [
     { key: 'category', label: 'Category' },
@@ -279,7 +276,7 @@ describe('cardTitleColumn: the column the card title stands for', () => {
     expect(fields(t)).toEqual([['Rate=21 %', 'Region=Standard VAT']]);
   });
 
-  it('a key that is not a column changes nothing (the #205 text match still applies)', async () => {
+  it('a key that is not a column changes nothing (the title\'s text match still applies)', async () => {
     const t = mountTable({ ...base, rows: [{ ...ROW, region: 'Standard VAT' }], cardTitle: (r: Row) => r.category_name, cardTitleColumn: 'nope' });
     await settle();
     expect(fields(t)).toEqual([['Category=VAT_STD', 'Rate=21 %']]);

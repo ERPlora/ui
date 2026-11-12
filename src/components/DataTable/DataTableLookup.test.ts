@@ -1,9 +1,3 @@
-// DataTableLookup — the `lookup` column filter (FIX-DATATABLE, the Hub's SearchSelect filters: staff, roles,
-// accounts…): one choice among more than a list can hold, inside the table's filters panel (no dialog of its
-// own). The current choice is named (with a clear button); a search box asks the page's `load` for what is
-// typed (the first matches on focus) and lists them; loading, empty and failed answers are said, a failure
-// with «Retry»; the server's refusal (`filterErrors`) is painted under the field. The search box is an ARIA
-// combobox over a listbox (WAI-ARIA APG): arrows move the active option, Enter picks it, Escape folds the list.
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,7 +1,3 @@
-// Behaviour spec of ReportProblemModal: «Report a problem» in a dialog (the hub's user menu, without leaving the hub;
-// ACCOUNTS-F38 is the SaaS's page with the same texts and limits): «Subject» and «What happened?», what goes with the
-// report, «Send report» while it runs, a refusal that keeps what was typed and can be sent again, and «Report sent»
-// with the address support answers to. The sending is the page's (`send`): the dialog knows no operation.
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';

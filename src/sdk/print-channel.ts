@@ -1,28 +1,11 @@
-// The device's end of the Hub's `/ws/print` (PRINTING-F18; the old hub's `print-drain.ts`, hub#343): the loop that takes
-// the paper out of the hub's queue on the device next to the printers. It connects, says hello with its device and the
-// printers of its registration, claims each function the hub says it prints, hands each job to `print` (the part that
-// touches hardware, injected: the shell's `device-printer.ts` in the installed app), confirms it (`done`) or reports the device's
-// error (`failed`), beats as often as the hub says, claims again when woken (`wake`) and reconnects after a drop with a
-// growing wait. The protocol is the server's (`base/ws_print.py`): its frames, fields and close codes as they are.
-//
-// What is pinned:
-// - one claim per function at a time: a `wake` while a claim or a print of that function is in flight claims nothing,
-//   the claim after the job picks it up. The hub answers every frame once and in order, and every answer but `error`
-//   names what it answers (`job`/`idle` its function, `ack` a confirmation, `beat`, `ready`); an `error` may also be
-//   nobody's (a wake the hub failed), so it frees nothing by itself: the next named answer shows which frames before it
-//   errors answered, and a claim among them frees its function (claiming again if it was woken meanwhile). An error
-//   while a claim is in flight asks a `beat`, whose answer comes right after the claim's;
-// - a failed print stops pulling that function until the next wake or reconnect: a printer out of paper would otherwise
-//   spin claim→fail→claim and burn the job's five hand-outs in a moment (the server does not wake a device for the job
-//   it sent back itself);
-// - a printed job whose `done` was not acknowledged is confirmed again after the next `ready`, before any claim: losing
-//   the confirmation of a socket blip would cost a duplicate ticket (`done` is idempotent by `jobId` on the hub);
-// - it never reconnects into a refusal: a close in 4400–4499 (session ended, device not set up, hub gone, suspended,
-//   printing off…) or a beat that says the device prints for nothing stops it for good; anything else (a network drop,
-//   a redeploy, 4503 «still being prepared», 1011) reconnects, from 1 s doubling up to 30 s.
+// The device's end of the Hub's `/ws/print`, whose protocol is the server's (`base/ws_print.py`): it says hello with
+// its device and printers, claims each function the hub says it prints, hands each job to `print`, confirms it or
+// reports the device's error, beats as often as the hub says, claims again on `wake` and reconnects after a drop, from
+// 1 s doubling up to 30 s. It never reconnects into a refusal: a close in 4400–4499 (session ended, device not set up,
+// printing off…) or a beat that says the device prints for nothing stops it for good.
 import { backoffDelay } from './backoff';
 
-/** A job as the hub hands it (`job` frame: the old fields and printing's hand-out, camelCased). */
+/** A job as the hub hands it in a `job` frame, camelCased. */
 export interface PrintJob {
   jobId: string;
   role: string;
@@ -153,11 +136,14 @@ export function createPrintChannel(options: PrintChannelOptions): PrintChannel {
   let reconnect: ReturnType<typeof setTimeout> | null = null;
   /** The frames sent and not answered yet, oldest first (the hub answers in order; `wake` answers nothing). */
   let asked: Asked[] = [];
-  /** Functions with a claim or a print in flight. */
+  /** Functions with a claim or a print in flight: a `wake` meanwhile claims nothing, the claim after the job does. */
   const busy = new Set<string>();
   /** Functions woken while busy: claimed again if their claim turns out to have been refused. */
   const woken = new Set<string>();
-  /** Printed, and the hub has not acknowledged it yet. */
+  /**
+   * Printed, and the hub has not acknowledged it yet: confirmed again after the next `ready`, since a lost confirmation
+   * would print the ticket twice (`done` is idempotent by `jobId` on the hub).
+   */
   const unconfirmed = new Set<string>();
 
   function send(frame: Record<string, unknown>, ask?: Asked): void {
@@ -249,6 +235,8 @@ export function createPrintChannel(options: PrintChannelOptions): PrintChannel {
       if (socket !== on) return;
       busy.delete(job.role);
       send({ type: 'failed', jobId: job.jobId, error: message }, { type: 'failed' });
+      // Not claimed again until the next wake or reconnect: a printer out of paper would otherwise spin
+      // claim → fail → claim and burn the job's five hand-outs in a moment.
       return;
     }
     // The paper is out: from here what matters is that the hub hears it, or the lease runs out and it prints again.

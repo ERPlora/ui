@@ -127,10 +127,6 @@ describe('UserMenuPopover (the user menu, under the person at the top of the sid
   });
 });
 
-// An entry that leaves the app (`href`): another project's page, as the hub's «My account» and «Report a
-// problem» on erplora.com (APP-BASE-1). A browser opens it in a new tab, like «Upgrade plan»; the installed app
-// opens nothing on `target=_blank`, so it hands the address to the system browser (`open_external_url`, which
-// checks it is ours) and a refusal is said, never a button that does nothing.
 describe('UserMenuPopover: an entry that leaves the app', () => {
   const REPORT = 'https://erplora.com/report-a-problem';
   const OUT: ShellUserMenu = {
@@ -182,9 +178,7 @@ describe('UserMenuPopover: an entry that leaves the app', () => {
   });
 });
 
-// An entry that does something here (`run`): the hub's «Report a problem» opens its dialog without leaving the hub
-// (FIX-HUB-BASE-REPORT-PROBLEM-MODAL). It is a button, never a link, and the menu closes before the action runs, so the
-// dialog never opens under the popover.
+// The menu closes before the action runs, so a dialog the action opens never lands under the popover.
 describe('UserMenuPopover: an entry that runs an action', () => {
   it('is a button that asks to close the menu, then runs its action once, without moving', async () => {
     const order: string[] = [];
@@ -217,14 +211,14 @@ describe('polish.css: the user menu and its card read whole', () => {
   }
 
   it('the theme buttons share a fixed 7.5rem, so «Theme» keeps its line in the 248px menu', () => {
-    // `width: auto` let Ionic's buttons grow to 50px each (166px), leaving the label 18px: «Th/e/m/e».
-    // The end slot is the only lever: a min-width on ion-label does not hold (hub#1733).
+    // With `width: auto` Ionic's buttons grow to 50px each and leave the label 18px («Th/e/m/e»).
+    // The end slot is the only lever: a min-width on ion-label does not hold.
     expect(rule('.user-menu-theme ion-segment')).toBe('flex: none; width: 7.5rem;');
     expect(rule('.user-menu-theme ion-segment-button')).toBe('min-width: 0;');
   });
 
   it("the card's name and email are blocks, so a long one ends in «…» before the chevron", () => {
-    // Inline spans ignore text-overflow: the address ran under the chevron and out of the menu.
+    // Inline spans ignore text-overflow, so the address would run under the chevron and out of the menu.
     for (const line of ['.sidebar-user-name', '.sidebar-user-email']) {
       const declarations = rule(line);
       expect(declarations, line).toContain('display: block;');

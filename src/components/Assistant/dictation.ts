@@ -1,17 +1,9 @@
-// The assistant's dictation (BASE-F94), the one for every screen that dictates to the assistant: the composer's
-// «Dictate by voice» and an app's key that opens the assistant by dictating (the Hub's till's «Speak», SALE-F01).
-// - `toggle`: a tap records (the browser asks for the microphone first), the next one stops; at two minutes it stops
-//   by itself. While the browser asks, another tap opens no second recording: one recording per tap.
-// - The host transcribes up to 2 MB (`AssistantConfig.transcribe`; the Hub, through erplora.com); without it there is
-//   no dictation. The words land in the
-//   assistant's box after what was written and its panel opens. Nothing is sent by itself: the person reads what was
-//   understood and sends it.
-// - What stops a dictation reaches `onProblem` with its reason, and each screen says it its own way (a line, a toast):
-//   the microphone refused (inside the installed app, which has no browser bar, `deniedInApp`), a recording too long,
-//   nothing heard, or a failure.
-// - `cancel` throws the recording away untranscribed; leaving the screen does too, also one the browser was still
-//   starting (its microphone is freed as soon as it arrives). A transcription already on its way still lands in the
-//   box, without opening the panel.
+// One dictation for every screen that dictates to the assistant: the composer's «Dictate by voice» and an app's key
+// that opens the assistant by dictating. While the browser asks for the microphone another tap opens no second
+// recording. The words land in the assistant's box after what was written and are never sent by themselves: the person
+// reads what was understood and sends it. Leaving the screen throws away a recording the browser was still starting too
+// (its microphone is freed as soon as it arrives); a transcription already on its way still lands, without opening the
+// panel.
 import { computed, type MaybeRefOrGetter, onBeforeUnmount, ref, shallowRef, toValue } from 'vue';
 import { useI18n } from 'vue-i18n';
 

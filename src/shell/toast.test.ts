@@ -134,7 +134,7 @@ describe('toast', () => {
 
 // At 390px a toast at the bottom covers the section tabbar (y=762–834 over a bar from y=786); Ionic's
 // `positionAnchor` sets it above the screen's bottom bar instead.
-describe('the toast sits above the bottom bar of the screen on view (S-04)', () => {
+describe('the toast sits above the bottom bar of the screen on view', () => {
   /** What Ionic renders: the menu, the stack of pages (hidden ones marked) and a page's footer. */
   function shell(pages: string): void {
     document.body.innerHTML = `

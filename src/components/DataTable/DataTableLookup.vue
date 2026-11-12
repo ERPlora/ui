@@ -1,19 +1,9 @@
 <script setup lang="ts">
-// DataTableLookup — the `lookup` column filter: one choice among more than a list can hold (staff, roles,
-// accounts…), inside the table's filters panel or filter row, with no dialog of its own (the Hub's
-// SearchSelect filters, FIX-DATATABLE). It names the current choice, with a button that clears it; a search
-// box asks the page's `load` for the first matches when the person comes to it and for what they type
-// (`debounce` ms after the last key), and lists them; a pick emits the value with its label and folds the
-// list. A load in flight says so, an empty answer says nothing matched, a failure says so with «Retry» (the
-// same text again); a late answer to an older text never replaces a newer one. `errorText` (what the server
-// refused, a 422) is painted under the field and tied to the search box.
-// Keyboard and assistive tech (WAI-ARIA APG «combobox with listbox popup»): the search box is a native
-// input with `role="combobox"` (an Ionic field would keep a changing aria-expanded/-activedescendant on its
-// host), expanded while options are listed; ArrowDown/ArrowUp move the active option, Enter picks it,
-// Escape folds an open list and stops there (a folded list leaves Escape to the panel, which closes).
-// The active option is brought into view: the list scrolls past 15rem.
-// Hooks (`testid`): the group itself, `-chosen`, `-clear`, `-search`, `-option` (`data-value`),
-// `-loading`, `-empty`, `-error`, `-retry`, `-field-error`.
+// The `lookup` column filter: one choice among more than a list can hold (staff, roles, accounts…), inside the
+// table's filters panel, with no dialog of its own. A late answer of the page's `load` to an older text never
+// replaces a newer one. The search box is a native input with `role="combobox"` (WAI-ARIA APG «combobox with listbox
+// popup»), because an Ionic field would keep a changing aria-expanded or aria-activedescendant on its host. Escape
+// folds an open list and stops there; with the list folded it is left to the panel, which closes.
 import { IonButton, IonIcon, IonSpinner } from '@ionic/vue';
 import { computed, nextTick, onBeforeUnmount, ref, shallowRef, useId } from 'vue';
 
@@ -38,7 +28,8 @@ const props = withDefaults(
     debounce?: number;
     /** The table's own text overrides. */
     labels?: Partial<DataTableLabels>;
-    /** Prefix of the hooks. */
+    /** Prefix of the hooks: the group itself, `-chosen`, `-clear`, `-search`, `-option` (`data-value`), `-loading`,
+     *  `-empty`, `-error`, `-retry` and `-field-error`. */
     testid?: string;
   }>(),
   { display: undefined, errorText: undefined, debounce: 300, labels: undefined, testid: undefined },

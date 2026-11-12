@@ -1,9 +1,7 @@
-// The way out of the app (the old hub's `open-external.ts`, gh:hub#475): a link to another project's page — the
-// hub's «My account», «Report a problem» and «erplora.com» of the bar — is a real link (`target="_blank"`,
-// `rel="noopener"`), and a browser opens it in a new tab by itself. The installed app opens nothing on
-// `target=_blank` (the webview spawns no window), so there the click hands the address to the system browser
-// through the shell's `open_external_url`, which only takes our own addresses, and a refusal is said: a button
-// that does nothing when pressed is the defect this exists to end.
+// A link to a page outside the app («My account», «Report a problem», «erplora.com») is a real link
+// (`target="_blank"`, `rel="noopener"`) that a browser opens in a new tab by itself. The installed app's webview opens
+// no window for `target=_blank`, so there the click hands the address to the system browser through the app's
+// `open_external_url`, which only takes our own addresses, and a refusal is shown, never a button that does nothing.
 import { shellText } from './i18n';
 import { toastError } from './toast';
 

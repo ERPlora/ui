@@ -1,16 +1,8 @@
 <script setup lang="ts">
-// ReportProblemModal — «Report a problem» in a dialog, so the person never leaves the app (the hub's user menu; the
-// SaaS's page `/dashboard/report-a-problem`, ACCOUNTS-F38, has the same texts and limits): «Subject» (150) and «What
-// happened?» (5000), what goes with the report, and «Send report». The page sends it (`send`): this knows no operation.
-//   <ReportProblemModal v-model:open="reporting" :send="send" />
-// Contract:
-//   - «Send report» stays off until both fields say something; while `send` runs it is FormModal's pending (a
-//     spinner; nothing sends twice or closes the dialog).
-//   - A refusal keeps what was typed and «Send report» sends it again: a field's (422) goes under that field, its
-//     message on top (FormModal's error). A failure that is no answer (no `status`: a bug, never the network, which
-//     the SDK answers with status 0) says the report did not leave, and is logged.
-//   - Sent: «Report sent» with the address support answers to and a single «Close»; the next opening starts empty.
-//     Closing it without sending keeps the draft for the next opening.
+// «Report a problem» in a dialog, so the person never leaves the app; the SaaS's page `/dashboard/report-a-problem`
+// has the same texts and limits. The page sends it (`send`): this knows no operation. A refusal keeps what was typed;
+// a failure with no `status` is a bug, not the network (the SDK answers that with status 0), so it says the report
+// did not leave and is logged. Closing the dialog without sending keeps the draft for the next opening.
 import { IonButton, IonInput, IonTextarea } from '@ionic/vue';
 import { computed, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';

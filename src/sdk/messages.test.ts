@@ -1,5 +1,3 @@
-// The sentences the SDK writes itself, for a failure the server did not word (hub#2281): in the person's
-// language, saying what happened and what to do — never «Unexpected response (HTTP 502)».
 import { afterEach, describe, expect, it } from "vitest";
 import en from "./locales/en.json";
 import es from "./locales/es.json";

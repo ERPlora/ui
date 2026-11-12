@@ -1,6 +1,4 @@
-// The DataTable's layout decisions. The two deciders are PURE on purpose (happy-dom lays nothing
-// out): their cases are the ones of OutfitKit's narrow-tablet-row-actions (#122) and
-// cards-when-table-does-not-fit (#267) tests, verbatim. The card/table switch is driven through a
+// The deciders are PURE on purpose, because happy-dom lays nothing out. The card/table switch is driven through a
 // probe component and a stubbed `matchMedia`; the measured parts are covered with the real table in
 // DataTable.layout.test.ts.
 import { mount } from '@vue/test-utils';
@@ -20,7 +18,7 @@ import {
   useDataTableLayout,
 } from './useDataTableLayout';
 
-// ── decideRowActionsFit (#122) ────────────────────────────────────────────────────────────────
+// ── decideRowActionsFit ───────────────────────────────────────────────────────────────────────
 
 /** Six bookings columns at their 88px floor + gaps + padding: 6x88 + 6x8 + 32. */
 const COLUMNS_MIN = 608;
@@ -47,7 +45,7 @@ function settle(containerWidth: number, from = { collapsed: false, decidedAtWidt
   return { ...state, steps };
 }
 
-describe('decideRowActionsFit: on a narrow tablet the row actions do not eat a column (#122)', () => {
+describe('decideRowActionsFit: on a narrow tablet the row actions do not eat a column', () => {
   it('collapses exactly at the widths where the six columns do not fit', () => {
     for (const width of [640, 700, 720, 768, 795]) expect(settle(width).collapsed, `${width}px`).toBe(true);
   });
@@ -103,9 +101,9 @@ describe('decideRowActionsFit: on a narrow tablet the row actions do not eat a c
   });
 });
 
-// ── decideFitLevel (W-19) ─────────────────────────────────────────────────────────────────────
+// ── decideFitLevel ────────────────────────────────────────────────────────────────────────────
 
-describe('decideFitLevel: the list gives up one step at a time, judged by its box (W-19)', () => {
+describe('decideFitLevel: the list gives up one step at a time, judged by its box', () => {
   /** A ladder of 3 steps; the box needs `need[level]` px at each level. */
   function run(containerWidth: number, need: number[], from = { level: 0, decidedAtWidth: -1 }) {
     let state = from;
@@ -159,7 +157,7 @@ describe('decideFitLevel: the list gives up one step at a time, judged by its bo
     });
   });
 
-  it('a one-step ladder is exactly decideRowActionsFit (#122)', () => {
+  it('a one-step ladder is exactly decideRowActionsFit', () => {
     for (const [containerWidth, contentWidth, collapsed, decidedAtWidth] of [
       [700, 748, false, -1],
       [700, 796, false, 900],
@@ -176,15 +174,15 @@ describe('decideFitLevel: the list gives up one step at a time, judged by its bo
   });
 });
 
-// ── decideCardsForFit (#267) ──────────────────────────────────────────────────────────────────
+// ── decideCardsForFit ─────────────────────────────────────────────────────────────────────────
 
 const FOLDED_MIN = 748;
 const idle = { fitCards: false, fitWidth: 0 };
 
-// ── ladderRung / columnNeed (FIX-UI-DATATABLE-EMAIL-COLUMN-834) ─────────────────────────────────
+// ── ladderRung / columnNeed ─────────────────────────────────────────────────────────────────────
 // Cart & Checkout › Orders at 834px cut «ana@example.c…» beside a half-empty Payment: before giving anything up,
 // each step of the ladder is tried with every column whole, and only then with the widest text cut.
-describe('ladderRung: each step of the ladder is first tried with every column whole (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+describe('ladderRung: each step of the ladder is first tried with every column whole', () => {
   it('no column needs more than its floor: the ladder of before, nothing cut', () => {
     expect([0, 1, 2, 3].map((level) => ladderRung(level, false))).toEqual([
       { base: 0, clipped: false },
@@ -209,7 +207,7 @@ describe('ladderRung: each step of the ladder is first tried with every column w
   });
 });
 
-describe('columnNeed: what a column asks beyond its floor (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+describe('columnNeed: what a column asks beyond its floor', () => {
   it('content within the floor asks nothing; wider, its width rounded up plus a pixel of slack', () => {
     expect(columnNeed(0, 88)).toBe(0);
     expect(columnNeed(80, 88)).toBe(0);
@@ -222,7 +220,7 @@ describe('columnNeed: what a column asks beyond its floor (FIX-UI-DATATABLE-EMAI
 // Measured in Chrome (Cart & Checkout › Orders at 834px): a text its box cuts reads its whole width rounded
 // (`scrollWidth`, 448) and the same text held whole reads it with its fraction (448.4): 449 one rung, 450 the
 // next. Taken as a change, each rung started the ladder again and the list never settled.
-describe('sameNeeds: a pixel of subpixel text is the same column (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+describe('sameNeeds: a pixel of subpixel text is the same column', () => {
   it('needs within 2px of the ones on screen change nothing', () => {
     expect(sameNeeds({ email: 450, name: 0 }, { email: 449, name: 0 })).toBe(true);
     expect(sameNeeds({ email: 447 }, { email: 449 })).toBe(true);
@@ -238,7 +236,7 @@ describe('sameNeeds: a pixel of subpixel text is the same column (FIX-UI-DATATAB
 // Measured in Chrome (Time clock › Records at 834px): «Worked» paints its time in a box that wraps when the
 // column is cut, so cut it read 88px (asks nothing) and whole 94px: each reading started the ladder again, Vue
 // stopped the loop («Maximum recursive updates») and the list stayed scrolled sideways under its actions.
-describe('nextNeeds: with the same rows a need only grows (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+describe('nextNeeds: with the same rows a need only grows', () => {
   it('the same rows: what a cut column reads is never taken over what it read whole', () => {
     expect(nextNeeds({ worked: 94, email: 205 }, { worked: 0, email: 205 }, true)).toEqual({ worked: 94, email: 205 });
     expect(nextNeeds({ worked: 94 }, { worked: 120 }, true)).toEqual({ worked: 120 });
@@ -249,7 +247,7 @@ describe('nextNeeds: with the same rows a need only grows (FIX-UI-DATATABLE-EMAI
   });
 });
 
-describe('decideCardsForFit: the list hands over to cards only when it cannot fit (#267)', () => {
+describe('decideCardsForFit: the list hands over to cards only when it cannot fit', () => {
   it('folded and still overflowing -> cards, remembering the width the list needs (host extras included)', () => {
     expect(
       decideCardsForFit({ allowed: true, hostWidth: 720, folded: { containerWidth: 720, contentWidth: FOLDED_MIN }, ...idle }),
@@ -297,7 +295,7 @@ describe('decideCardsForFit: the list hands over to cards only when it cannot fi
   });
 });
 
-// ── The card/table switch (#274) ──────────────────────────────────────────────────────────────
+// ── The card/table switch ─────────────────────────────────────────────────────────────────────
 
 type MediaListener = (e: { matches: boolean }) => void;
 let mediaListener: MediaListener | undefined;
@@ -345,7 +343,7 @@ function probe(options: { cards?: boolean; defaultView?: DataTableView; breakpoi
   return { wrapper: mount(Probe), cards, exposed };
 }
 
-describe('useDataTableLayout: the table turns into cards on a phone (#274)', () => {
+describe('useDataTableLayout: the table turns into cards on a phone', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     mediaListener = undefined;
@@ -361,7 +359,7 @@ describe('useDataTableLayout: the table turns into cards on a phone (#274)', () 
     expect(probe({ cards: false }).wrapper.text(), 'no cards declared: nothing to switch to').toBe('table');
   });
 
-  it('the phone is `cardBreakpoint` px wide or less (640 by default, as the Lit original)', () => {
+  it('the phone is `cardBreakpoint` px wide or less (640 by default)', () => {
     viewport(false);
     probe();
     probe({ breakpoint: 900 });
