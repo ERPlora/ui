@@ -1,12 +1,8 @@
 <script setup lang="ts">
-// AppsLauncher — the topbar's door to the apps (with the hub's sidebar, the old hub's ⠿): a button that
-// opens the «My apps» sheet, one tile per app of `useMyApps` (the same list as the Home grid). A
-// tile opens its app and closes the sheet; an app that is not on yet says so and opens nothing.
-// With the shell's Home on (the hub) «Home» goes first, whatever state the list is in: a screen of an app has no
-// Back (PLAN-MIGRATIONS §16), so this sheet is the way out of an app and that way is never missing.
-// The app's page is a lazy chunk: one that did not arrive (a deploy, a flaky network: gh:hub#438, hub#2489) is
-// the shell router's (`view-load.ts`), for every way of opening a screen; a page that fails for any other reason
-// is said here, naming the app, with a Retry that loads its page afresh. Never silent.
+// The «My apps» sheet lists the same apps as the Home grid (`useMyApps`). With the shell's Home on (the
+// hub) «Home» goes first whatever state the list is in, because a screen of an app has no Back and this
+// sheet is the way out of it. An app's page is a lazy chunk: one that did not arrive is handled by the
+// shell router (`view-load.ts`); a page that fails for any other reason is said here, naming the app.
 import {
   IonButton,
   IonButtons,
@@ -213,7 +209,7 @@ async function open(app: MyApp): Promise<void> {
   padding: 4px 12px calc(16px + var(--ion-safe-area-bottom, 0px));
 }
 
-/* The old hub's «My apps»: a filled tile with the icon, the name under it, three per row on a phone. */
+/* A filled tile with the icon and the name under it, three per row on a phone. */
 .apps-launcher-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
@@ -264,7 +260,7 @@ async function open(app: MyApp): Promise<void> {
   font-size: 26px;
 }
 
-/* A long name is cut at two lines; the whole of it is the tile's title and accessible name (hub#1106). */
+/* A long name is cut at two lines; the whole of it is the tile's title and accessible name. */
 .apps-launcher-name {
   display: -webkit-box;
   max-width: 100%;

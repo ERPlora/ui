@@ -1,8 +1,3 @@
-// Contract of the footer TABBAR (an `ion-segment` used as navigation), ported from OutfitKit's
-// `src/tabbar/tabbar.test.ts` (origin/main; PLAN §16.11) with the class names of our `tabbar.css`
-// (`.tabbar`, `.tabbar-dragging`). It fills a real gap of Ionic: `ion-segment` does not bring the
-// checked tab into view and cannot tell whether it overflows nor where its scroll is.
-//
 // happy-dom lays nothing out: offsetLeft/offsetWidth/clientWidth/scrollWidth are 0 and read-only,
 // so they are pinned per instance with defineProperty.
 import { readFileSync } from 'node:fs';
@@ -185,7 +180,7 @@ describe('bindTabbar', () => {
   });
 });
 
-// hub#1734: landing on a deep link, on `back` or on the last tab left the CHECKED tab off screen.
+// Landing on a deep link, on `back` or on the last tab must not leave the checked tab off screen.
 describe('bindTabbar - reveals the active tab', () => {
   it('on mount, brings a route-selected tab into view and moves the fade after revealing', () => {
     const seg = segmentWith(6, 5, 382);

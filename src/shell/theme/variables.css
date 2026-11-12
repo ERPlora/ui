@@ -1,6 +1,5 @@
-/* ERPlora brand theme — Ionic's official API (--ion-*). Dark via .ion-palette-dark.
-   Linear/Vercel/Notion look: neutral canvas, white surfaces separated by soft elevation,
-   brand used only as an accent. Per-component refinements live in polish.css. */
+/* Neutral canvas, white surfaces separated by soft elevation, brand used only as an accent.
+   Dark via .ion-palette-dark; per-component refinements live in polish.css. */
 
 :root {
   /* ── Brand (primary) ── */
@@ -17,9 +16,8 @@
   --ion-text-color: #1a1c20;
   --ion-text-color-rgb: 26, 28, 32;
 
-  /* ── Semantic palette of the old SaaS (static/css/ionic-theme.css, saas origin/develop), so
-     `color="success|warning|danger|…"` paints the same in Hub and SaaS. tertiary, light and dark
-     stay Ionic's: its defaults are the old SaaS values, and its dark palette inverts light/dark. ── */
+  /* ── Semantic palette, so `color="success|warning|danger|…"` paints the same in Hub and SaaS.
+     tertiary, light and dark stay Ionic's (its dark palette inverts light/dark). ── */
   --ion-color-secondary: #6366f1;
   --ion-color-secondary-rgb: 99, 102, 241;
   --ion-color-secondary-contrast: #ffffff;
@@ -62,10 +60,9 @@
   --ion-card-background: #ffffff;
   --ion-border-color: #e7e9ee;
 
-  /* System stack on purpose: the Hub ships no web font (it runs offline, under CSP). Naming
-     one that nothing loads is exactly hub#1166 — the theme promised "Inter" and the screen
-     painted system-ui. A brand typeface may be added here only together with the @font-face
-     that serves it; font-family-promise.hub1166.test.ts enforces that. */
+  /* System stack on purpose: the Hub ships no web font (it runs offline, under CSP), and a font
+     that nothing loads paints system-ui anyway. A brand typeface may be added here only together
+     with the @font-face that serves it. */
   --ion-font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   /* Step scale (greys), for consistent shadows/surfaces. Ionic 8 names it
@@ -91,9 +88,9 @@
   --ion-color-step-700: var(--ion-background-color-step-700);
   --ion-color-step-850: var(--ion-background-color-step-850);
 
-  /* ── Our design tokens (--ep-*; PLAN §16.11): read by polish.css and the Vue components of
-     src/components/ (--ep-shadow-sm is the DataTable frame). Same values as the OutfitKit tokens
-     they replace; a token without a value here is read with the component's own fallback. ── */
+  /* ── Design tokens (--ep-*), read by polish.css and the Vue components of src/components/
+     (--ep-shadow-sm is the DataTable frame); a token without a value here is read with the
+     component's own fallback. ── */
   --ep-radius: 14px;
   --ep-radius-sm: 10px;
   --ep-radius-pill: 999px;
@@ -118,19 +115,18 @@
   --ep-touch-min: 48px;
   --ep-touch-lg: 56px;
 
-  /* Floor of a shell WORK SURFACE (hub#1730, hub#1745). A surface pinned to
-     `height: 100%` cannot overflow the shell's scroller, so in a short window —the
-     counter's landscape tablet— the page does not scroll and the screen is worked through a slit.
-     The floor lets it grow and gives the scroll back to the page.
-     The number comes from measuring, not inheriting (banco-pre, 952x426, 10/09): the content box
-     is 268px with the tabbar and 334px without it, the BOUNDED content of these screens fits in 319px, and
-     on mobile (390x844) the box is 686px. 480px is above the three short boxes and
-     below the mobile one, so it only acts where the window is short. In px and not rem because
-     the boxes it has to clear are px (header 60, tabbar 66, padding 16). */
+  /* Floor of a shell work surface. A surface pinned to `height: 100%` cannot overflow the
+     shell's scroller, so in a short window (a landscape tablet at the counter) the page does not
+     scroll and the screen is worked through a slit; the floor lets it grow and gives the scroll
+     back to the page. Measured on a 952x426 tablet, the content box is 268px with the tabbar and
+     334px without it, the bounded content of these screens fits in 319px, and on mobile (390x844)
+     the box is 686px: 480px is above the short boxes and below the mobile one, so it only acts
+     where the window is short. In px and not rem because the boxes it has to clear are px
+     (header 60, tabbar 66, padding 16). */
   --ep-work-surface-min: 480px;
 
-  /* Selection ring with the brand accent (cat-segment, pm-btn). Unified scrim
-     for backdrops (there used to be loose .45/.5/.6). On-accent = text on brand color. */
+  /* Selection ring with the brand accent, one scrim for every backdrop, and the text colour on the
+     brand colour. */
   --ep-ring-accent: inset 0 0 0 1px var(--ion-color-primary);
   --ep-scrim: rgba(0, 0, 0, 0.5);
   --ep-on-accent: var(--ion-color-primary-contrast);
@@ -169,7 +165,7 @@
 
   --ion-color-medium: #9aa0ac;
   --ion-color-medium-rgb: 154, 160, 172;
-  /* Dark text on the light grey chip: white on #9aa0ac is 2.6:1 (UX-AUDIT-2 V-16). */
+  /* Dark text on the light grey chip: white on #9aa0ac is 2.6:1. */
   --ion-color-medium-contrast: #0b0c0e;
   --ion-color-medium-contrast-rgb: 11, 12, 14;
   --ion-color-medium-shade: #888d97;
@@ -189,8 +185,7 @@
   --ion-background-color-step-500: #6b7280;
   --ion-background-color-step-700: #aab0bc;
   --ion-background-color-step-850: #d7dae0;
-  /* Body text of ion-card in ios: without it Ionic falls back to #666 on #16181c, about 3:1
-     (mockups README §6.9). */
+  /* Body text of ion-card in ios: without it Ionic falls back to #666 on #16181c, about 3:1. */
   --ion-color-step-600: #8b919d;
 
   --ion-color-primary: #2aa6e4;
@@ -221,7 +216,7 @@
 }
 
 /* ── Contrast 'aa' (theme.ts `setThemeContrast('aa')`; createShell `{ contrast: 'aa' }`) ──────────
-   The AA solids of the ERPlora palette (mockups README §6.15, UX-AUDIT-2 V-01): the contrast colour
+   The AA solids of the ERPlora palette: the contrast colour
    reads ≥ 4.5:1 on the solid, the shade (pressed) and the tint (hover). Light keeps white text on
    deeper colours; dark keeps bright colours with dark text, as Material 3 and iOS do. Warning
    already passed (dark text) and is declared for the dark block to override. The optional palettes

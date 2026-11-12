@@ -1,7 +1,3 @@
-// The assistant's panel (BASE-G110 open and close, G111 the conversation, G114 go to a screen, G115 the card, G120 the
-// person's conversation, the host's empty conversation, G122 the allowance, G123 report, G124 offline and without a
-// plan): on the right, docked beside the screen from 768 px and over it on a phone; closed with ×, Escape, the veil or
-// «Go to …»; the allowance read once per opening, as the host reads it.
 import { afterEach, beforeEach, describe, expect, it, type Mock, type MockInstance, vi } from 'vitest';
 import { h } from 'vue';
 
@@ -62,7 +58,6 @@ interface PanelOptions {
   usage?: AssistantUsage | Error;
   session?: typeof OWNER;
   open?: boolean;
-  /** The pieces of the host's configuration a test changes. */
   config?: Partial<AssistantConfig>;
   slots?: Record<string, unknown>;
 }
@@ -335,9 +330,8 @@ describe('AssistantPanel', () => {
     expect(m.usage).toHaveBeenCalledTimes(1);
   });
 
-  it('a turn refused for a spent month: the foot says the same as the answer, without a second «Upgrade plan» (gh:hub#1183)', async () => {
+  it('a turn refused for a spent month: the foot says the same as the answer, without a second «Upgrade plan»', async () => {
     script.push([{ type: 'error', code: 'assistant.quota_exceeded', used: 30, limit: 30, resets_at: '2026-11-01T00:00:00Z', demo: false }]);
-    // The host's plan page: the answer's «Upgrade plan» goes there.
     const m = await panel({ usage: { ...USAGE, used: 25 } });
     await assistant.ask('Hola');
     await flush();
@@ -379,7 +373,7 @@ describe('AssistantPanel', () => {
     expect(employee.wrapper.find('[data-testid="assistant-no-plan-upgrade"]').exists()).toBe(false);
   });
 
-  describe('«Upgrade plan» and the host that takes its click (`openPlan`, hub#723)', () => {
+  describe('«Upgrade plan» and the host that takes its click (`openPlan`)', () => {
     /** A click as a browser sees it: `defaultPrevented` says whether the link still opens its address by itself. */
     function click(link: Element): MouseEvent {
       const event = new MouseEvent('click', { bubbles: true, cancelable: true });
@@ -650,7 +644,7 @@ describe('AssistantPanel', () => {
       },
     );
 
-    describe('in the installed app, in the system’s voice (round 2026-11-04a)', () => {
+    describe('in the installed app, in the system’s voice', () => {
       type TauriWindow = { __TAURI__?: unknown };
       /** What the app has a voice for, and its readings, left to end by hand. */
       let voices: Record<string, boolean>;
@@ -713,7 +707,7 @@ describe('AssistantPanel', () => {
         );
       });
 
-      it('an app with no voice for the language (or older than this round): no «Read aloud»', async () => {
+      it('an app with no voice for the language: no «Read aloud»', async () => {
         voices = {};
         const m = await answered();
         expect(m.wrapper.find('[data-testid="assistant-listen"]').exists()).toBe(false);
@@ -760,7 +754,7 @@ describe('AssistantPanel', () => {
       });
     });
 
-    describe('in a server voice, when the host has one (`speak`, round 2026-11-03m)', () => {
+    describe('in a server voice, when the host has one (`speak`)', () => {
       const MP3 = new Blob(['mp3'], { type: 'audio/mpeg' });
 
       /** The page's audio player: each one made, as the panel plays it. */

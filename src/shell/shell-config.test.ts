@@ -28,8 +28,8 @@ describe('shell config', () => {
     app.unmount();
   });
 
-  // createShell passes every option it has, set or not: an unset one keeps its default. The hub left
-  // `homePath` unset and got `undefined`: its topbar's Back went nowhere and showed on Home.
+  // createShell passes every option it has, set or not, so an unset one must keep its default: an
+  // `undefined` `homePath` sends the topbar's Back nowhere and shows it on Home.
   it('keeps the default of an option passed unset', () => {
     const app = createApp(Probe);
     provideShellConfig({ homePath: undefined, home: true }, app);
@@ -40,8 +40,8 @@ describe('shell config', () => {
   });
 });
 
-// FIX-SHELL-SPLIT-PANE (PLAN-MIGRATIONS §16): the hub paints the old hub's side menu (`sidebar`); the
-// SaaS keeps the menu of its session, which is what leaving it unset means.
+// The hub hands its own side menu (`sidebar`); the SaaS keeps the menu of its session, which is what
+// leaving it unset means.
 describe('shell config: sidebar', () => {
   const SIDEBAR = { groups: [[{ id: 'employees', labelKey: 'sidebar.employees', icon: 'ion:people-outline', to: '/employees' }]] };
 
@@ -65,7 +65,7 @@ function useShellConfigIn(app: ReturnType<typeof createApp>) {
   return config as ReturnType<typeof useShellConfig>;
 }
 
-// The one gate of the authenticated chrome (hub#925), shared by the side menu (App.vue) and the
+// The one gate of the authenticated chrome, shared by the side menu (App.vue) and the
 // topbar's apps and rail buttons (the hub's sidebar): a session REQUIRED by the route and PRESENT, and a
 // screen that does not paint its own frame.
 describe('shell config: useChromeVisible', () => {

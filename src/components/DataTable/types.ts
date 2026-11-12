@@ -1,12 +1,7 @@
-// Public types of `DataTable`, the Vue port of OutfitKit's `ok-data-table` (PLAN §16.11).
-// Same surface as the Lit original, in Vue idioms: `header` is `label`, `format` also receives the
-// cell value, `render`/`renderCard` are slots (`cell`, `card`) and events are Vue emits.
 import type en from './locales/en.json';
 
-/** How the rows are presented: a list (CSS grid) or cards. */
 export type DataTableView = 'table' | 'cards';
 
-/** Direction of a sort. */
 export type DataTableSortDir = 'asc' | 'desc';
 
 /** Payload of `sortChange` (server mode). */
@@ -16,7 +11,7 @@ export interface DataTableSort {
 }
 
 /**
- * How much a column matters when the table's box is narrow (W-19). `low` (a secondary column: a web
+ * How much a column matters when the table's box is narrow. `low` (a secondary column: a web
  * address, a role, a last access) is the first thing the list gives up when it does not fit its box;
  * it stays offered in the column chooser and is still a field of the cards. `high` (the column that
  * names the row) and `normal` are never given up for width.
@@ -24,8 +19,8 @@ export interface DataTableSort {
 export type DataTableColumnPriority = 'high' | 'normal' | 'low';
 
 /**
- * How a column filters (ERPlora's rule, ADR-0125: free text by «contains», a closed domain by
- * equality, never the other way round):
+ * How a column filters (free text by «contains», a closed domain by equality, never the other way
+ * round):
  *   - `text`: free text, «contains», case-insensitive, on what the cell paints;
  *   - `select`: a closed domain (`options`), exact equality on the row's field;
  *   - `date`: one day (`YYYY-MM-DD`), the local day of the row's date or date-time;
@@ -57,7 +52,6 @@ export interface DataTableTextFilter extends DataTableFilterBase {
 
 export interface DataTableSelectFilter extends DataTableFilterBase {
   type: 'select';
-  /** The closed domain offered, in order. */
   options?: DataTableFilterOption[];
 }
 
@@ -73,7 +67,6 @@ export interface DataTableRangeFilter extends DataTableFilterBase {
   type: 'range';
   /** The names of its two ends in `filters` (`['priceMin', 'priceMax']`). Default `<key>_from`/`<key>_to`. */
   keys?: readonly [string, string];
-  /** Bounds and step of the number boxes (the schema's). */
   min?: number;
   max?: number;
   step?: number;
@@ -109,18 +102,16 @@ export type DataTableColumnFilter =
 
 /**
  * A filter with no column of its own (`filterFields` of the table): a field the list does not paint
- * (customer `is_active`, a date, an amount). The same filters as a column's, with their name in `filters`
- * (`key`) and the label the panel shows. Order of a table's filters, in the panel and in the filter row:
- * the columns' own first, in column order, then `filterFields`, in theirs. They count on the funnel, are
- * sent like the others (only declared names, outfitkit#116), take `filterErrors`, filter `rows` in client
- * mode by `row[key]`, and the column chooser never offers them. One name, one control: a field whose `key`
- * or names in `filters` a column's filter (or an earlier field) already takes is left out, with a warning
+ * (customer `is_active`, a date, an amount). Order of a table's filters, in the panel and in the filter
+ * row: the columns' own first, in column order, then `filterFields`, in theirs. They count on the funnel,
+ * are sent like the others (only declared names), take `filterErrors`, filter `rows` in client mode by
+ * `row[key]`, and the column chooser never offers them. One name, one control: a field whose `key` or
+ * names in `filters` a column's filter (or an earlier field) already takes is left out, with a warning
  * in the console in development — the column wins.
  */
 export type DataTableFilterField = DataTableColumnFilter & {
   /** Its name in `filters` (a range: `<key>_from`/`<key>_to` unless `keys`) and the row field it reads. */
   key: string;
-  /** What the panel and the filter row call it. */
   label: string;
 };
 
@@ -131,15 +122,13 @@ export type DataTableFilters = Record<string, string>;
 export interface DataTableColumn<T = Record<string, unknown>> {
   /** Field of the row, or a logical id when `format`/`cell` paint something else. */
   key: string;
-  /** Column header. */
   label: string;
   /** Text to paint; receives `row[key]` and the row. Without it the raw value is painted. */
   format?: (value: unknown, row: T) => string;
-  /** What a client-side sort compares (outfitkit#256): e.g. a status sorted by rank. Without it a
-   *  formatted column compares `row[key]` when it is data (number, boolean, Date, ISO date/time or
-   *  numeric string; null last) and the painted text for anything else. */
+  /** What a client-side sort compares: e.g. a status sorted by rank. Without it a formatted column
+   *  compares `row[key]` when it is data (number, boolean, Date, ISO date/time or numeric string; null
+   *  last) and the painted text for anything else. */
   sortValue?: (row: T) => unknown;
-  /** Alignment of the cell content. */
   align?: 'left' | 'right' | 'center';
   /** Client mode: sortable unless `false`. Server mode: only when `true` (emits `sortChange`). */
   sortable?: boolean;
@@ -150,12 +139,12 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   hidden?: boolean;
   /** CSS track of the column in the list (`8rem`, `minmax(8rem,1fr)`…). Default `minmax(5.5rem,1fr)`. */
   width?: string;
-  /** hub#703 - The narrowest this column goes (`10.5rem`), for one whose content must keep some of its text: the
+  /** The narrowest this column goes (`10.5rem`), for one whose content must keep some of its text: the
    *  list gives up the next step of its ladder rather than cut it under this. Default `5.5rem`. Ignored with `width`. */
   minWidth?: string;
   /** Pins the column to the end edge, like the row actions column. */
   pinned?: 'end';
-  /** W-19 - `low`: hidden first when the list does not fit its box. Default `normal`. */
+  /** Default `normal`. */
   priority?: DataTableColumnPriority;
   /** A control in the table's filter row, or in its filters panel with `filterable`. Client mode filters
    *  `rows`; server mode emits `filtersChange`. */
@@ -206,7 +195,6 @@ export interface DataTablePrimaryAction {
  *  of the count that returns the noun (an i18n plural). Without it, «record(s)». */
 export type DataTableEntityLabel = { one: string; many: string } | ((count: number) => string);
 
-/** Stable key of a row: one of its fields, or a function of it. */
 export type DataTableRowKey<T> = (keyof T & string) | ((row: T) => string);
 
 /** Every human text of the table chrome (`{n}`, `{from}`, `{to}` are filled in by the table; a text with

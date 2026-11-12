@@ -193,7 +193,7 @@ describe('App (shell root)', () => {
     expect(router.currentRoute.value.path).toBe('/demo/items');
   });
 
-  it('no menu without a user, nor on a screen that does not require a session (hub#925)', async () => {
+  it('no menu without a user, nor on a screen that does not require a session', async () => {
     session.value = me({ user: null });
     expect(mountApp().find('ion-menu').exists()).toBe(false);
 
@@ -215,7 +215,7 @@ describe('App (shell root)', () => {
     expect(wrapper.find('ion-menu').exists()).toBe(true);
   });
 
-  it('mounts the split pane again when the person changes (hub#2539)', async () => {
+  it('mounts the split pane again when the person changes', async () => {
     const wrapper = mountApp();
     const before = wrapper.get('ion-split-pane').element;
     session.value = me({ user: { id: 'u1', label: 'Ana P.' } });
@@ -228,9 +228,9 @@ describe('App (shell root)', () => {
 });
 
 
-// FIX-SHELL-SPLIT-PANE (PLAN-MIGRATIONS §16, Ioan 2026-10-17): the hub's shell is the old hub's — the
-// side menu pinned from lg (a drawer below), with the platform's entries and no module in it (the
-// modules open from «My apps» and Home), the QR in its footer and a rail the topbar folds it to.
+// The hub's shell: the side menu pinned from lg (a drawer below), with the platform's entries and no
+// module in it (the modules open from «My apps» and Home), the QR in its footer and a rail the topbar
+// folds it to.
 describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
   const entry = (id: string, to: string, icon: string): ShellSidebarItem => ({ id, labelKey: `sidebar.${id}`, icon, to });
   const SIDEBAR: ShellSidebar = {
@@ -289,8 +289,7 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(name('es')).toBe('Menú principal');
   });
 
-  // The old hub (menu-toggle-*.png): a line under the person and one between the two groups, the
-  // headers of its «General» and «Account» without their words.
+  // The group headers are dividers without words: a line under the person and one between the groups.
   it('a divider opens each group: under the person, and between the two', () => {
     const groups = lists(mountApp(undefined, { config: HUB }));
     expect(groups.map((list) => list.findAll(':scope > ion-list-header.nav-section-label').map((h) => h.attributes('role')))).toEqual([
@@ -300,7 +299,7 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(groups.map((list) => list.element.firstElementChild?.tagName.toLowerCase())).toEqual(['ion-list-header', 'ion-list-header']);
   });
 
-  // APP-BASE-5: `visible` is a composable the shell runs once in its setup (so it may read the session or a live
+  // `visible` is a composable the shell runs once in its setup (so it may read the session or a live
   // query); the entry shows and goes with its value, live, and a group it leaves empty goes too.
   it('an entry with `visible` shows and goes with it, live; its composable runs once and reads the session', async () => {
     const shown = ref(false);
@@ -360,7 +359,7 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(home.map((i) => i.attributes('data-testid'))).toEqual(['nav-home']);
   });
 
-  // hub#151: in the drawer, picking an entry closes it, so the screen it opens is not left covered.
+  // In the drawer, picking an entry closes it, so the screen it opens is not left covered.
   it('every entry closes the drawer when picked (ion-menu-toggle, auto-hide off)', () => {
     const toggles = mountApp(undefined, { config: HUB }).findAll('ion-menu ion-content ion-menu-toggle');
     expect(toggles.map((toggle) => [(toggle.element as El).autoHide, toggle.findAll('ion-item.nav-item').length])).toEqual([
@@ -376,8 +375,8 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(foot.findComponent(SidebarInstallQr).exists()).toBe(true);
   });
 
-  // APP-BASE-1: the project's piece of the footer (the hub's «Upgrade plan») goes under the QR and over
-  // the brand, as in the old hub; inside the menu, so only behind a session.
+  // The project's piece of the footer (the hub's «Upgrade plan») goes under the QR and over the brand,
+  // inside the menu, so only behind a session.
   const Plan = { name: 'ProjectPlan', render: () => h('a', { class: 'upgrade-plan' }, 'Upgrade plan') };
 
   it("the footer with the project's piece: QR, the piece, then the brand", () => {
@@ -400,7 +399,7 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     );
   });
 
-  // APPOINTMENT-F28: the project's piece that paints nothing (the hub's device notices) is mounted once, next to
+  // The project's piece that paints nothing (the hub's device notices) is mounted once, next to
   // the pane, while a person is signed in — on every screen, its own frame included — and again for the next one.
   const Listener = { name: 'ProjectListener', render: () => h('i', { class: 'project-listener' }) };
 
@@ -415,7 +414,7 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(wrapper.findAllComponents(Listener)).toHaveLength(1);
   });
 
-  // ui#81: the piece's key follows the person, yet it is not the pane's: they are siblings, and Vue warns of a repeated key.
+  // The piece's key follows the person, yet it is not the pane's: they are siblings, and Vue warns of a repeated key.
   it('no background piece without a person signed in, and a new one with a key of its own for the next person', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     session.value = me({ user: null });
@@ -436,7 +435,7 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(wrapper.findAllComponents(Listener)).toHaveLength(1);
   });
 
-  // PRINTING-F18: each app's background piece (printing's print host) is mounted the same way, next to the project's.
+  // Each app's background piece (the printing app's print host) is mounted the same way, next to the project's.
   const AppPiece = { name: 'AppBackground', render: () => h('b', { class: 'app-background' }) };
 
   it("mounts each app's background piece beside the pane, on every screen of a signed-in person, and anew for the next", async () => {
@@ -473,7 +472,7 @@ describe("App: the hub's sidebar (createShell({ sidebar }))", () => {
     expect(wrapper.get('ion-split-pane').classes()).not.toContain('rail');
   });
 
-  it('still no menu without a user, nor on a screen that does not require a session (hub#925)', async () => {
+  it('still no menu without a user, nor on a screen that does not require a session', async () => {
     session.value = me({ user: null });
     expect(mountApp(undefined, { config: HUB }).find('ion-menu').exists()).toBe(false);
     session.value = me();
@@ -528,9 +527,8 @@ describe('App: Home', () => {
   });
 });
 
-// The user menu (mockups README §3: «usuario arriba»; PLAN-SAAS §3.6, point 1): the person at the top
-// of the side menu is a button that opens an ion-popover with the project's entries (the SaaS:
-// Account), Help, the theme (light, dark, system) and Sign out.
+// The person at the top of the side menu is a button that opens an ion-popover with the project's
+// entries, Help, the theme (light, dark, system) and Sign out.
 describe('App: user menu', () => {
   afterEach(() => {
     toastError.mockReset();
@@ -707,7 +705,7 @@ describe('App: user menu', () => {
   });
 });
 
-// PLAN-SAAS §3.6 point 5: the SaaS marks the Store `webOnly`; inside the apps it is not in the menu.
+// The SaaS marks the Store `webOnly`: inside the apps it is not in the menu.
 describe('App: navigation on the app surfaces', () => {
   afterEach(() => applySurface('web'));
 

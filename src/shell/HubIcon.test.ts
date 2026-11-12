@@ -1,8 +1,3 @@
-// HubIcon: the ONE icon component (PLAN §16.4). `<HubIcon name="ion:cart-outline" />`,
-// `name="lucide:panel-left"`, `name="mdi:cart"`… Every set paints through `ion-icon`, so its box
-// (1em, currentColor), `color` and `slot="start|end|icon-only"` are exactly Ionic's.
-// Accessibility (audit R-03, WCAG 1.1.1): an icon is decorative unless it is given a `label`, so a
-// screen reader never announces a bare «image» next to the text that already says what it is.
 import { IonIcon } from '@ionic/vue';
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';

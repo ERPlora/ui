@@ -24,7 +24,7 @@ function mountPage(props: Record<string, unknown> = {}, slots: Record<string, st
   });
 }
 
-describe('AppPage (ADR-0045: the single layout of the shell screens)', () => {
+describe('AppPage (the single layout of the shell screens)', () => {
   it('is an ion-page with the shared topbar and ONE ion-content holding the view', () => {
     const wrapper = mountPage();
     expect(wrapper.classes()).toContain('ion-page');
@@ -79,9 +79,8 @@ describe('AppPage (ADR-0045: the single layout of the shell screens)', () => {
   });
 });
 
-// Section tabbar (mockups README §3: «las secciones van en la tabbar de pie, y cada pestaña lleva su
-// icono»): `ion-footer > ion-toolbar > ion-segment.tabbar`, the Hub's footer strip (ADR-0022), wired by
-// `bindTabbar` + `bindTabbarPeek` (AppPage.tabbar-binding.test.ts).
+// Section tabbar: `ion-footer > ion-toolbar > ion-segment.tabbar`, wired by `bindTabbar` +
+// `bindTabbarPeek` (AppPage.tabbar-binding.test.ts).
 describe('AppPage: section tabbar', () => {
   type Tab = { id: string; label: string; icon: string; to?: string; webOnly?: boolean };
   const TABS: Tab[] = [
@@ -195,9 +194,8 @@ describe('AppPage: section tabbar', () => {
   });
 });
 
-// The height chain of a list page (Ioan, 2026-10-15, PLAN-MIGRATIONS §13: the DataTable takes the space
-// between the topbar and the tabbar): ported from the SaaS's panel-fill.css (2026-10-14, measured there at
-// 390, 834 and 1440 px), so the Hub and the SaaS share ONE stylesheet. Every ancestor needs a height,
+// The height chain of a list page, one stylesheet for the Hub and the SaaS: the DataTable takes the
+// space between the topbar and the tabbar. Every ancestor needs a height,
 // never a min-height: `detail-fill` gives the page's box its height; a `.panel-fill` stack takes it whole;
 // what sits above and under the list keeps its height and the list takes the rest. happy-dom lays nothing
 // out, so this reads the stylesheet.
@@ -290,14 +288,14 @@ describe('polish.css: the height chain of a list page (`.page-fill`, `.panel-fil
     expect(['nested', 'direct', 'panel', 'after', 'lone'].map(reached)).toEqual([true, true, true, false, false]);
   });
 
-  // The SaaS panel's own decisions (2026-10-14: R-14 and the phone heading) stay under its `.panel-fill`:
-  // the Hub's pages (AppPage `fill`, `.page-fill`) keep the old hub's toolbar and their heading.
+  // The SaaS panel's own toolbar rules stay under its `.panel-fill`: the Hub's pages (AppPage `fill`,
+  // `.page-fill`) keep their own toolbar and heading.
   it('the SaaS panel: on a phone a list with a search drops its heading (its topbar and tabbar name it)', () => {
     expect(rule('.panel-fill .data-table__bar-main:has(> .data-table__search) > .data-table__title-wrap', media(PHONE))).toBe('display: none;');
     expect(rule('.panel-fill .data-table__bar-main:has(> .data-table__search) > .data-table__title-wrap')).toBe('');
   });
 
-  it('the SaaS panel: on a desk or a tablet the search gives way first, so the toolbar stays in one row from 834 to 1180 px (R-14)', () => {
+  it('the SaaS panel: on a desk or a tablet the search gives way first, so the toolbar stays in one row from 834 to 1180 px', () => {
     expect(rule('.panel-fill .data-table .data-table__search', media(DESK))).toBe('flex: 1 1 11rem; min-width: 9rem; max-width: 22rem;');
     expect(rule('.panel-fill .data-table .data-table__search')).toBe('');
   });
@@ -321,9 +319,8 @@ describe('polish.css: the height chain of a list page (`.page-fill`, `.panel-fil
   });
 });
 
-// APP-BASE-1: the project's notice over every screen (the hub's blocking strip, hub#374). It goes
-// between the topbar and the scroller, as in the old hub's AppPage: a warning that scrolls away is not
-// a warning. Authenticated chrome only (useChromeVisible); the piece decides itself when to paint.
+// The project's notice over every screen (the hub's blocking strip) goes between the topbar and the
+// scroller: a warning that scrolls away is not a warning. Authenticated chrome only (useChromeVisible); the piece decides itself when to paint.
 describe('AppPage: the project notice', () => {
   const Strip = { name: 'ProjectStrip', render: () => h('div', { class: 'strip' }, 'You cannot invoice yet') };
   const ME: SessionMe = { user: { id: 'u1', label: 'Ana' }, permissions: [], menu: [], apps: [], language: 'en' };

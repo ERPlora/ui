@@ -1,6 +1,5 @@
-/* Visual polish layer of the Hub — refines Ionic components via their CSS vars + minimal globals.
-   Modern look (Linear/Vercel/Notion): soft elevation, radii, careful typography, comfortable
-   density. Self-contained: tokens are --ep-* (variables.css). Does NOT touch logic or markup. */
+/* Refines Ionic components through their CSS variables, plus minimal globals; tokens are --ep-*
+   (variables.css). */
 
 /* ── Typography ───────────────────────────────────────────────────────────────────────────── */
 h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 4px; }
@@ -22,10 +21,9 @@ ion-toolbar {
 }
 ion-title { font-weight: 650; letter-spacing: -0.01em; font-size: 1.0625rem; }
 
-/* ── Shared topbar (AppTopbar.vue) — parity with Cloud's .dash-header ─────────────────── */
-/* The user lives in the sidebar header (.sidebar-user), never in the topbar (hub#146). */
+/* ── Shared topbar (AppTopbar.vue) ───────────────────────────────────────────────────────── */
 .app-topbar { position: relative; }
-/* The section on screen after the title («Billing · Invoices», mockups README §3): muted, and gone on
+/* The section on screen after the title («Billing · Invoices»): muted, and gone on
    a phone, where the footer tabbar already says it and the title needs the room. */
 .topbar-section { font-weight: 400; color: var(--ep-text-muted); }
 .topbar-section::before { content: '· '; }
@@ -47,15 +45,14 @@ ion-title { font-weight: 650; letter-spacing: -0.01em; font-size: 1.0625rem; }
 @keyframes topbarpulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .topbar-progress > div { animation: none; } }
 
-/* Sidebar footer: brand (logo + wordmark) + version. The user lives at the top (.sidebar-user
-   in the menu header); the old actions row (install/logout) was removed 2026-07-16. */
+/* Sidebar footer: brand (logo + wordmark) + version. */
 .sidebar-foot-brand {
   display: flex; align-items: center; gap: 0.4rem;
   padding: 0.45rem 0.75rem 0.7rem; font-size: 0.72rem;
 }
-/* The project's piece of the footer (APP-BASE-1, the hub's «Upgrade plan»), centred under the QR. */
+/* The project's piece of the footer (the hub's «Upgrade plan»), centred under the QR. */
 .sidebar-foot-chrome { padding: 0 0.75rem 0.25rem; text-align: center; }
-/* Secondary text at AA (UX-AUDIT-2 V-03: the 55 % mix it had read 3.74:1 on the canvas). */
+/* Secondary text at AA: a 55 % mix reads 3.74:1 on the canvas. */
 .sidebar-foot-text { color: var(--ep-text-muted); }
 .ml-auto { margin-inline-start: auto; }
 
@@ -110,9 +107,9 @@ ion-item ion-icon[slot="start"]:not(.nav-icon):not([size]) {
 ion-item h3 { font-weight: 600; }
 ion-note { font-size: 0.875rem; }
 
-/* Settings row: the VALUE must not strangle the LABEL (hub#1733). `ion-item` lays its slots out in
+/* Settings row: the value must not strangle the label. `ion-item` lays its slots out in
    the shadow DOM and the label's box gets whatever the `slot="end"` control leaves, so a long value
-   eats the row: measured on banco-pre at 390px, «Automatic · Europe/Madrid, 23:01» took 182 of the
+   eats the row: measured at 390px, «Automatic · Europe/Madrid, 23:01» took 182 of the
    252px on offer and left the label 70px, stacking «Time zone» into a 125px-tall column while
    «Country» right above it read normally. Capping the value is the ONLY lever — a `min-width` on
    `ion-label` is an illusion, because the label is not the flex item: it just paints over the
@@ -124,15 +121,15 @@ ion-note { font-size: 0.875rem; }
    desktop (1440) laid out row for row the same with the rule and without it.
    Only `ion-select` and `ion-note`: they truncate or wrap. A blanket `[slot="end"]` cap was
    measured and REGRESSED the «PIN digits» row — its `ion-segment` cannot truncate, so 288px →
-   112px just clipped its own options. Rows whose end slot is a control keep their own bug (hub#1794). */
+   112px just clipped its own options. Rows whose end slot is a control are not capped. */
 ion-item > ion-select[slot="end"],
 ion-item > ion-note[slot="end"] {
   max-width: max(7rem, calc(50vw - 6rem));
 }
 
 /* ── Dropdown options: a long one reads whole before it is chosen ─────────────────────────── */
-/* Ionic keeps the `part="label"` of its `ion-radio` and `ion-checkbox` on one line ending in «…»: «Se consume en el
-   local (servicio de resta…» in a phone's «New menu» (hub#775). `ion-select-popover` paints in `ion-app`, out of reach
+/* Ionic keeps the `part="label"` of its `ion-radio` and `ion-checkbox` on one line ending in «…», so a long
+   option cannot be read before it is chosen. `ion-select-popover` paints in `ion-app`, out of reach
    of a form's own styles, so it is said once here and every dropdown of the Hub and the SaaS gets it. Ionic's alert and
    action sheet wrap their options already (measured at 375), and the list keeps scrolling on `.popover-content`. */
 ion-select-popover ion-radio::part(label),
@@ -142,9 +139,8 @@ ion-select-popover ion-checkbox::part(label) {
 
 /* ── Switches: a long label reads whole and never widens its form ─────────────────────────── */
 /* Ionic keeps the `part="label"` of its `ion-toggle` on one line. In a form's one-column grid that line is the
-   column's least width, and the whole form ran past a phone's screen with «Save» at the end of the spilled row: Tables'
-   settings 425 px wide on a 375 px phone in Spanish, «Guardar» cut to «Gua» (hub#866), Reservations' 382 in English
-   (hub#906), Time clock's before them (hub#94). Said once here, every switch of the Hub and the SaaS goes on to the
+   column's least width, so the whole form runs past a phone's screen with «Save» at the end of the spilled row.
+   Said once here, every switch of the Hub and the SaaS goes on to the
    next line between words; a label that fits keeps its one line, so nothing that fitted moves. */
 ion-toggle::part(label) {
   white-space: normal;
@@ -152,7 +148,7 @@ ion-toggle::part(label) {
 
 /* ── Dropdowns: what an outlined field has chosen reads whole with the field closed ───────────── */
 /* Ionic keeps it on one line ending in «…», and a person cannot read what is set: «Madrid (Central European …» in a
-   business's settings at 320, a long name in the store at any phone width (saas#272). The outlined field of a form has
+   business's settings at 320, a long name in the store at any phone width. The outlined field of a form has
    room to take more lines; a select without `fill` is a compact control of a bar (a table's filter, the assistant's
    voice), with one line to live in, so it keeps its «…», outside a dialog (FormModal wraps those too).
    Ionic floats the label over the field's top edge, 8px into the box, and centres the text in 56px: from three lines the
@@ -165,20 +161,19 @@ ion-select.select-fill-outline::part(text) {
 }
 
 /* ── Segment (footer tabs): modern, no uppercase ────────────────────────────────────── */
-/* #278 — reserve the gesture bar/home indicator on iOS/Android: without reserving it the tabs
+/* Reserve the gesture bar/home indicator on iOS/Android: without reserving it the tabs
    (min-height 46px, 2-line labels) end up under it and get clipped. On desktop env()
    resolves to 0 (no effect).
    Only when the footer has NO toolbar, which is where Ionic does not reach: the per-module tabbar is
    `ion-footer > ion-toolbar > ion-segment` and there Ionic already reserves it itself
    (`ion-footer.footer-toolbar-padding ion-toolbar:last-of-type`). Reserving it again here is what
-   left ~50 dp dead above the navigation gesture on Android (hub#1895). The only footer without a
+   left ~50 dp dead above the navigation gesture on Android. The only footer without a
    toolbar is the side menu's (App.vue), and that one the shell does reserve. */
 ion-footer { box-shadow: none; }
 ion-footer:not(:has(ion-toolbar)) { padding-bottom: env(safe-area-inset-bottom, 0px); }
 ion-footer ion-toolbar { --border-width: 0; }
 ion-segment { --background: transparent; padding: 4px; gap: 4px; }
-/* The footer tabbar (ADR-0022: `navigation[]` → ion-segment) is styled by theme/tabbar.css (the
-   `.tabbar` class, ported from OutfitKit). The tab minimum is adjusted with the `--ep-tabbar-min`
+/* The footer tabbar is styled by theme/tabbar.css (the `.tabbar` class). The tab minimum is adjusted with the `--ep-tabbar-min`
    token if it is ever needed. */
 ion-segment-button {
   --indicator-color: transparent;
@@ -192,7 +187,7 @@ ion-segment-button {
 }
 ion-segment-button::part(indicator-background) { border-radius: 10px; }
 
-/* A footer tab's label wraps between words, never inside one, and is never cut (hub#2414, hub#2422).
+/* A footer tab's label wraps between words, never inside one, and is never cut.
    Ionic's own label is single-line with an ellipsis, which on a phone left the shell's strips
    reading «Approva…», «Plan and li…»; a strip that does not fit SCROLLS instead (Material's
    scrollable tabs, the iOS tab bar). `bindTabbarPeek` (tabbar-peek.ts) widens each tab to its
@@ -207,9 +202,8 @@ ion-footer .tabbar ion-label {
   line-height: 1.1;
 }
 
-/* ── Shell / side menu — same visual language as Cloud's dashboard ────────────────── */
-/* (.nav-*, .sidebar-*, .brand-* classes adapted from cloud/static/css/dashboard-shell.css;
-   markup in App.vue. They target light DOM, hence global CSS, not scoped.) */
+/* ── Shell / side menu ──────────────────────────────────────────────────────────────────── */
+/* Markup in App.vue. These target light DOM, hence global CSS, not scoped. */
 
 /* Split-pane: comfortable width; .rail (desktop, icon-only) narrows it. The shell canvas
    (--ion-background-color) and NO divider: the border between panel and content is given by the radius of the
@@ -259,7 +253,6 @@ ion-menu.dash-menu ion-toolbar {
 }
 ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-background-color); }
 
-/* Brand (logo + wordmark) */
 .brand-toolbar { --min-height: 60px; }
 .brand-link {
   display: inline-flex; align-items: center; gap: 0.55rem;
@@ -267,7 +260,6 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
   cursor: pointer; min-width: 0;
 }
 
-/* Navigation list */
 .nav-list { background: transparent; padding: 0.25rem 0; }
 /* Section separator = divider (not a text label). Identical expanded and collapsed,
    so there is no jump on collapse. The i18n text ("General"/"Account") stays in the DOM
@@ -309,8 +301,8 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
 .nav-item.selected::part(native) {
   box-shadow: inset 3px 0 0 var(--ion-color-primary);
 }
-/* The 'aa' contrast (variables.css): primary text on a primary wash is under AA (3.82:1, UX-AUDIT-2
-   V-02), so the selected item and the avatar take the AA pair of tokens instead. */
+/* The 'aa' contrast (variables.css): primary text on a primary wash is under AA (3.82:1),
+   so the selected item and the avatar take the AA pair of tokens instead. */
 :root[data-ep-contrast='aa']:not([data-ep-palette]) .nav-item.selected {
   --background: var(--ep-primary-tint);
   --color: var(--ep-primary-text);
@@ -349,7 +341,7 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
    theme row's segment is three icon-only buttons in a FIXED 7.5rem (each 34px wide and 44px tall,
    iOS's 4px gaps between them): with `width: auto` they grew to 50px each (166px) and left «Theme»
    18px of the 248px menu, one letter a line (measured at 390, 834 and 1440). The end slot is the
-   only lever: a min-width on the label does not hold (hub#1733, «Settings row» above). */
+   only lever: a min-width on the label does not hold («Settings row» above). */
 .user-menu-theme ion-segment { flex: none; width: 7.5rem; }
 .user-menu-theme ion-segment-button { min-width: 0; }
 .sidebar-user-meta { min-width: 0; flex: 1; }
@@ -368,7 +360,7 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
 /* ── Collapsed rail (desktop, icon-only) ───────────────────────────────────────────────── */
 .rail-toggle { display: none; }            /* the toggle only shows on desktop */
 @media (min-width: 992px) { .rail-toggle { display: inline-flex; } }
-/* hub#1831: the drawer button is the opposite door — phone and tablet only. It no longer auto-hides
+/* The drawer button is the opposite door — phone and tablet only. It no longer auto-hides
    (that is what left it hidden for up to a second after the first paint), so the breakpoint that
    hides it is this one, the same `lg` (992px) at which `ion-split-pane when="lg"` pins the menu. */
 @media (min-width: 992px) { .app-topbar ion-menu-button.menu-toggle { display: none; } }
@@ -393,8 +385,8 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
   ion-split-pane.rail .sidebar-user { justify-content: center; }
 }
 
-/* hub#1715 — «Open on your phone». Sits in the sidebar footer, always, for everyone.
-   NO `max-width` anywhere (hub#1605): the code has its own size, and the block just centres it. */
+/* «Open on your phone». Sits in the sidebar footer, always, for everyone.
+   No `max-width` anywhere: the code has its own size, and the block just centres it. */
 .sidebar-install-qr { padding: 0.5rem 0.75rem 0.25rem; text-align: center; }
 /* The image is drawn at 264 px (a dense screen) and painted at 132: a fixed box, so neither the
    drawing size nor the panel's width decides it, and the same box is kept while it is drawn. A block
@@ -458,7 +450,7 @@ ion-router-outlet#main.split-pane-main > .ion-page > ion-content::part(scroll) {
   border-radius: 25px;
 }
 
-/* ── Immersive mode: the whole screen for selling (ADR-0048) ─────────────────────────────── */
+/* ── Immersive mode: the whole screen for selling ─────────────────────────────── */
 /* The marker is set by `lib/immersive.ts` when the active module asks for the `fullscreen` control, and only
    if its `navigation[]` entry declared it. The work happens here: the shell chrome goes away.
    The topbar goes TOO, not just the menu and the tabbar: what was asked for is «just the sales
@@ -503,13 +495,12 @@ html.immersive ion-router-outlet#main.split-pane-main > .ion-page > ion-content:
 }
 
 /* ── The height chain of a list page (`.page-fill`, `.panel-fill`) ────────────────────────── */
-/* A list fills its page (Ioan, 2026-10-14 in the SaaS panel, 2026-10-15 in the Hub): between the topbar and
+/* A list fills its page: between the topbar and
    the tabbar, the toolbar and the footer stay and the rows scroll inside. Every ancestor needs a height, never
    a min-height: AppPage `content-layout="fill"` (or `detail-fill`) gives the page's box its height; a stack
    takes it whole (`.page-fill`, the one AppPage `fill` renders; `.panel-fill`, the SaaS panel's own); what
    sits above and under the list keeps its own height and the list takes the rest, a DataTable with `fill` or
-   a nested stack that holds one. Ported from the SaaS's panel-fill.css (measured there at 390, 834 and
-   1440 px): one stylesheet for both. Guard: AppPage.test.ts. */
+   a nested stack that holds one. One stylesheet for the Hub and the SaaS; guard: AppPage.test.ts. */
 .page-fill,
 .panel-fill {
   display: flex;
@@ -557,10 +548,10 @@ html.immersive ion-router-outlet#main.split-pane-main > .ion-page > ion-content:
   }
 }
 
-/* The SaaS panel's own toolbar decisions (2026-10-14), only under its `.panel-fill`: the Hub's lists keep the
-   old hub's toolbar and their heading. */
+/* The SaaS panel's own toolbar rules, only under its `.panel-fill`: the Hub's lists keep their own toolbar and
+   heading. */
 @media (min-width: 641px) {
-  /* R-14 (SaaS audit 2026-10-14): the toolbar in one row from 834 to 1180 px. A wrapping row breaks by its
+  /* The toolbar in one row from 834 to 1180 px. A wrapping row breaks by its
      pieces' basis before anything shrinks, and DataTable's search asks for 22rem: a small basis that grows
      lets the search give way first. Three classes: stronger than DataTable's scoped rule. */
   .panel-fill .data-table .data-table__search {
@@ -588,7 +579,7 @@ html.immersive ion-router-outlet#main.split-pane-main > .ion-page > ion-content:
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(var(--ion-text-color-rgb), 0.3); background-clip: content-box; }
 
-/* Module cascade notice (ADR-0128): the message lists the affected modules with line
+/* Module cascade notice: the message lists the affected modules with line
    breaks (`· Inventory\n· Sales…`); without this, ion-alert flattens them into a single line. */
 .cascade-alert .alert-message {
   white-space: pre-line;

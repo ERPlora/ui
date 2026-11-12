@@ -1,54 +1,8 @@
 <script setup lang="ts">
-// FormModal — the dialog of a short form on a row or a list (invite, change role, new API key,
-// billing details; mockups `mockups/saas-panel/`, README §3b): an `ion-modal` with the title and a
-// close button, the fields (default slot) and a footer Cancel / Save. Longer entity forms go in a
-// page (PLAN-SAAS §3.6).
-//   <FormModal v-model:open="inviting" :title="t('invite.title')" :pending="invite.pending.value"
-//              :error="invite.error.value" @submit="send">
-//     <template #default="{ fieldErrors }">
-//       <ion-input v-model="email" mode="md" fill="outline" :error-text="fieldErrors.email" … />
-//     </template>
-//   </FormModal>
-// Contract:
-//   - `submit` never closes it: the page closes it (`open = false`) when its command succeeds, and
-//     meanwhile passes `pending` (Save disabled with a spinner; nothing closes it) and, on failure,
-//     the command's `error` (its message on top, its 422 `fields` to the slot as `fieldErrors`).
-//   - A refusal with `fields` says on top only «check the highlighted details»: that notice goes away
-//     as soon as something is changed and comes back if the next try is refused. Each field's message
-//     goes away as soon as that field is changed (typed or chosen; never on focus or blur), and the
-//     next refusal says them all again (ui#89; Odoo, WooCommerce, Shopify). FormModal tells the field
-//     by its `name` when it is a key of `fields` (as a Django form names its errors), else by the
-//     message it shows (`error-text`) when no other refused field has those words. A refusal without
-//     `fields`, or of the whole form (`__all__`), stays until the next try: nothing else says it. The rule
-//     is `useRefusal` (`refusal.ts`), which a page uses for a form of its own (hub#821).
-//   - A refused field nothing in the form says (no field painting its message, no text with its words)
-//     has its reason said on top until that field is changed or the next try (hub#833): a window with
-//     no marks cannot promise them, so an `invalid_payload` that marks nothing shows only those reasons.
-//   - A refusal that lands brings the first marked field, else the banner, into view: a person at the
-//     bottom of a long form would otherwise see nothing happen (hub#833).
-//   - Cancel, the close button, Escape and the backdrop (`dismissOnBackdrop`) emit `cancel` and set
-//     `open` to false; closing from the page is not a cancel.
-//   - `canDismiss`: a window holding what the person typed asks before any of those ways out — and the
-//     system Back, which dismisses it as Ionic does (role `backdrop`) — throws it away (hub#1023; Cloudscape,
-//     Shopify's `leaveConfirmation`, iOS «Discard changes?»). The page's question is asked once at a time; on
-//     «no» (or a question that could not be asked, said in the console) the dialog stays as it was. Closing
-//     from the page (`open = false`) never asks, nor a dismissal by who already asked (Ionic's role `handler`).
-//   - Enter in a single-line field submits; Escape cancels (not while pending). Only Save, Enter and
-//     the footer slot's `submit` submit: the `<form>`'s own submit event is just prevented, so a
-//     native button in a custom footer (type submit by default) never submits twice, nor by mistake.
-//   - Focus: on opening, a `[data-autofocus]` field, else the first field, else Cancel (read only:
-//     Close) on its native button, so Enter presses it, unless the person is already in the form; on
-//     closing, back to what had it before (the button that opened it, its native button for an
-//     `ion-button`).
-//   - `readonly`: a window that only shows data (ui#62; Odoo, Shopify, Business Central) — the footer
-//     is a single «Close» that closes it as the header's does (`cancel`); nothing submits.
-//   - Named by its title: Ionic copies `aria-label` and `role` into its own `role="dialog"` (in its
-//     shadow DOM, where `aria-labelledby` cannot reach) once, when the element loads, so each
-//     opening renders a fresh `ion-modal` and the name is always the current title.
-//   - Desktop: a centred card (480px, `sm` 420px) as tall as its content. Below 640px (R-29, UX
-//     audit 2): a sheet from the bottom with the sheet's rounded top, as tall as its content up to
-//     90vh, the fields scrolling between the title and the buttons; with `phoneLayout: 'card'` (a
-//     confirmation, ConfirmDialog) the centred card at every width.
+// A short form in a dialog, its fields in the default slot; longer entity forms go in a page. `submit` never closes it:
+// the page sets `open = false` once its command succeeds, and meanwhile passes `pending` and, on failure, the command's
+// `error` (its message on top, its 422 `fields` to the slot as `fieldErrors`). Cancel, the close button, Escape, the
+// backdrop and the system Back emit `cancel` once `canDismiss` agrees; closing from the page is no cancel and never asks.
 import { IonButton, IonButtons, IonHeader, IonModal, IonSpinner, IonTitle, IonToolbar } from '@ionic/vue';
 import { computed, nextTick, shallowRef, useId, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -146,7 +100,8 @@ const refusal = useRefusal(() => props.error, {
   },
 });
 const { refusedFields, fieldErrors } = refusal;
-/** The refused fields nothing in the form said when the refusal painted (hub#833). */
+/** The refused fields nothing in the form said when the refusal painted: their reasons go on top, since a window
+ *  with no marks cannot point at them. */
 const unsaid = shallowRef<ReadonlySet<string>>(new Set());
 /** Their reasons, once each, but those of the fields the person has changed since. */
 const unsaidReasons = computed<readonly string[]>(() => [
@@ -176,7 +131,8 @@ const hookPrefix = computed(() => props.testid?.trim() || undefined);
 const tid = (part?: string): string | undefined =>
   hookPrefix.value ? [hookPrefix.value, part].filter(Boolean).join('-') : undefined;
 
-/** Bumped on every opening: a fresh `ion-modal`, so Ionic reads the current title and role. */
+/** Bumped on every opening for a fresh `ion-modal`: Ionic copies `aria-label` and `role` into the `role="dialog"` of its
+ *  shadow DOM (where `aria-labelledby` cannot reach) only once, when the element loads. */
 const presentation = shallowRef(0);
 /** What had the focus when the dialog opened: it gets it back on closing. */
 let returnFocusTo: HTMLElement | null = null;
@@ -192,6 +148,8 @@ watch(
   { flush: 'sync', immediate: true },
 );
 
+/** Only Save, Enter and the footer slot's `submit` call this: the `<form>`'s own submit event is just prevented, so a
+ *  native button in a custom footer (type submit by default) never submits twice, nor by mistake. */
 function submit(): void {
   if (props.pending || props.submitDisabled || props.readonly) return;
   sayItAllAgain();
@@ -539,8 +497,7 @@ function focusFirstField(): void {
 
 <style>
 /* Not scoped: Ionic renders the modal's own wrapper (`.ion-delegate-host`) and moves the modal to
-   ion-app. Every rule hangs from `ion-modal.ep-form-modal`, so nothing leaks out. The look is the
-   mockups' `erplora-dialog` (old `ionic-theme.css` + `mock.css`), with our tokens. */
+   ion-app. Every rule hangs from `ion-modal.ep-form-modal`, so nothing leaks out. */
 ion-modal.ep-form-modal {
   --width: 480px;
   --max-width: calc(100vw - 32px);
@@ -554,12 +511,12 @@ ion-modal.ep-form-modal {
 ion-modal.ep-form-modal[data-size='sm'] {
   --width: 420px;
 }
-/* Dark: the dialog stands out from what is behind it (UX audit U-90). */
+/* Dark: the dialog stands out from what is behind it. */
 :root.ion-palette-dark ion-modal.ep-form-modal {
   --ep-form-modal-backdrop-opacity: 0.6;
   --background: var(--ion-color-step-100, #1d2025);
 }
-/* Over another window (a sheet, another dialog) too (hub#928): Ionic drops the backdrop and the shadow of a modal opened
+/* Over another window (a sheet, another dialog) too: Ionic drops the backdrop and the shadow of a modal opened
    over another one (`ion-modal.modal-default.show-modal ~ ion-modal.modal-default`, its core.css), made for windows of one
    size that cover each other. This card is narrower than a sheet and the phone's sheet only as tall as its fields, so what
    is behind would show around it, neither dimmed nor apart. */
@@ -608,18 +565,17 @@ ion-modal.ep-form-modal .ep-form-modal__footer {
 ion-modal.ep-form-modal .ep-form-modal__footer ion-button {
   margin: 0;
 }
-/* Cancel in the text colour, both themes (the mockups' neutral button). */
 ion-modal.ep-form-modal .ep-form-modal__cancel {
   --color: var(--ion-text-color);
 }
 /* What a select has chosen takes the lines it needs. On one line it sets the select's minimum width, and a form's
-   one-column grid grows to it, every field with it, past the dialog (hub#760, hub#784). Here it holds for a select without
+   one-column grid grows to it, every field with it, past the dialog. Here it holds for a select without
    `fill` too; the outlined ones, in and out of a dialog, and the room under their label are the shared theme's (polish.css). */
 ion-modal.ep-form-modal ion-select::part(text) {
   white-space: normal;
 }
 
-/* Phone (R-29): a form is a sheet from the bottom as tall as its fields, up to 90vh, the fields
+/* Phone: a form is a sheet from the bottom as tall as its fields, up to 90vh, the fields
    scrolling between the title and the buttons. A confirmation (`card`) keeps the centred card. */
 @media (max-width: 639.98px) {
   ion-modal.ep-form-modal[data-phone-layout='sheet'] {

@@ -1,14 +1,5 @@
-// The shell's router. Ported from ERPlora hub `apps/web/src/router/index.ts` (origin/develop),
-// phase-1 minimum: Ionic's `createRouter` (IonRouterOutlet stacks and animates with it), the app
-// routes (each `routes.ts` maps routes → pages), the shell's Home at `/` (the hub's, `home`), the
-// catch-all 404, the auth gate and the web-only gate (a route that sells is not in the apps,
-// PLAN-SAAS §3.6 point 5).
-//
-// A screen whose file is gone after a deploy opens in a fresh document (`view-load.ts`, gh:hub#438; the old hub's
-// hub#1518 for an open app).
-//
-// Not ported: courier scrubbing and the entitlement/activation gates (the SaaS ↔ Hub handoff is
-// phase 2), the old hub's reload of the document's FIRST screen (hub#1518) and the Android back button (hub#1906).
+// Ionic's `createRouter`, because IonRouterOutlet stacks and animates with it. A screen whose file is
+// gone after a deploy opens in a fresh document (`view-load.ts`).
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import type { RouteLocationNormalized, RouteLocationRaw, Router, RouteRecordRaw, RouterHistory } from 'vue-router';
 
@@ -46,7 +37,7 @@ export const HOME_ROUTE: RouteRecordRaw = {
 };
 
 /**
- * Catch-all: an address this hub does NOT have says so (hub#1723). A `component` and not a
+ * Catch-all: an address this hub does not have says so. A `component` and not a
  * `redirect`, so the requested address stays in the bar and the typo can be read back. Behind a
  * session like the rest of the shell: a stranger with a broken link sees the login, not the chrome.
  */
@@ -93,7 +84,7 @@ export interface ShellRouterOptions {
 /**
  * Routes with `meta.auth` need `session.user`. Without one, the whole page goes to the login with
  * `next=` (Django's parameter; `&next=` when the login URL has a query) and the navigation is cancelled. It waits for `base.session.me`
- * first (hub#858): deciding before it arrives sent people with a live session to the login.
+ * first: deciding before it arrives would send people with a live session to the login.
  */
 export function createAuthGate(
   session: ShellSession,

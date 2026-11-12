@@ -20,7 +20,7 @@ describe("vitest config", () => {
     const names = plugins().map((p) => p.name);
     expect(names).toEqual(expect.arrayContaining(["vite:vue", "unplugin-icons"]));
   });
-  it("compiles every tag as a Vue component: no custom-element escape hatch (PLAN §16.11)", () => {
+  it("compiles every tag as a Vue component: no custom-element escape hatch", () => {
     const vue = plugins().find((p) => p.name === "vite:vue") as
       | { api?: { options?: { template?: { compilerOptions?: { isCustomElement?: unknown } } } } }
       | undefined;

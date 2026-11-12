@@ -132,8 +132,8 @@ describe('toast', () => {
   });
 });
 
-// S-04 (UX audit 2, 2026-10-14): at 390px a toast at the bottom covered the section tabbar (y=762–834
-// over a bar from y=786). Ionic's `positionAnchor` sets it above the screen's bottom bar instead.
+// At 390px a toast at the bottom covers the section tabbar (y=762–834 over a bar from y=786); Ionic's
+// `positionAnchor` sets it above the screen's bottom bar instead.
 describe('the toast sits above the bottom bar of the screen on view (S-04)', () => {
   /** What Ionic renders: the menu, the stack of pages (hidden ones marked) and a page's footer. */
   function shell(pages: string): void {
@@ -173,10 +173,10 @@ describe('the toast sits above the bottom bar of the screen on view (S-04)', () 
     expect(toastAnchor()).toBeUndefined();
   });
 
-  // saas#344: back from a payment, `open = false` and the notice come in one go, while the dialog is still open. Ionic
+  // Back from a payment, `open = false` and the notice come in one go, while the dialog is still open. Ionic
   // gives the page back (drops the outlet's `aria-hidden`) once the dialog starts to close, a few promises later, and
   // the page the flow went to is there by then: the bar is the one on view when the notice shows, not when it is asked.
-  it('asked as a dialog closes, it sits above the bar of the page the dialog leaves on view (saas#344)', async () => {
+  it('asked as a dialog closes, it sits above the bar of the page the dialog leaves on view', async () => {
     shell(`<div class="ion-page"><ion-content></ion-content><ion-footer data-id="tabbar"></ion-footer></div>`);
     const outlet = document.querySelector('ion-router-outlet')!;
     outlet.setAttribute('aria-hidden', 'true');
@@ -187,7 +187,7 @@ describe('the toast sits above the bottom bar of the screen on view (S-04)', () 
     expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ position: 'bottom', positionAnchor: byId('tabbar') }));
   });
 
-  it('asked as the next page comes, it sits above the bar of that page, not of the one it leaves (saas#344)', async () => {
+  it('asked as the next page comes, it sits above the bar of that page, not of the one it leaves', async () => {
     shell(`<div class="ion-page"><ion-content></ion-content></div>`);
     const shown = toastSuccess('Saved');
     await Promise.resolve();
@@ -224,10 +224,10 @@ describe('the toast sits above the bottom bar of the screen on view (S-04)', () 
     };
   }
 
-  // saas#344, in Chrome: back from a payment the dialog is set to close (`isOpen` false at Vue's next flush) and the
+  // In Chrome, back from a payment the dialog is set to close (`isOpen` false at Vue's next flush) and the
   // notice asked in one go, but Ionic lets the dialog go only once its own lock is free, ~300 ms later; till then the
   // page stays hidden behind it. The notice waits for the dialog to give the page back, and sits above the page's bar.
-  it('asked as its dialog is set to close, it waits for the dialog to give the page back (saas#344)', async () => {
+  it('asked as its dialog is set to close, it waits for the dialog to give the page back', async () => {
     shell(`<div class="ion-page"><ion-content></ion-content><ion-footer data-id="tabbar"></ion-footer></div>`);
     const { dialog, letGo } = openDialog();
     const shown = toastSuccess('Café Central is now on Starter');
@@ -272,9 +272,9 @@ describe('the toast sits above the bottom bar of the screen on view (S-04)', () 
   });
 });
 
-// hub#732: a notice that shares the screen with a sheet's keys at the bottom edge is asked for at the top, so a tap on
+// A notice that shares the screen with a sheet's keys at the bottom edge is asked for at the top, so a tap on
 // the last row of keys does not fall on it.
-describe('a toast asked for at the top (hub#732)', () => {
+describe('a toast asked for at the top', () => {
   const pageWithBar = `<ion-app><ion-router-outlet><div class="ion-page"><ion-footer data-id="bar"></ion-footer></div></ion-router-outlet></ion-app>`;
 
   it('sits at the top edge, with no anchor: Ionic would put it under the bottom bar on view', async () => {
@@ -297,7 +297,7 @@ describe('a toast asked for at the top (hub#732)', () => {
 });
 
 describe('no global CSV feedback', () => {
-  it('exports no window-event hook: the Web Components table that emitted csvExport/csvImport is gone (PLAN §16.11)', () => {
+  it('exports no window-event hook for csvExport/csvImport', () => {
     expect(toastModule).not.toHaveProperty('bootActionFeedback');
   });
 });

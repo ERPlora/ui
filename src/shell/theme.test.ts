@@ -113,11 +113,10 @@ describe('chooseThemeMode (the user menu: light, dark, system)', () => {
   });
 });
 
-// The accessible colours (mockups README §6.15, UX-AUDIT-2 V-01/V-02): the brand primary #1496d6 is
-// 3.3:1 with white; `aa` switches primary, success, warning and danger to AA solids (theme-css.test.ts
-// measures them). Ioan decides which one is the default: ONE line, `DEFAULT_THEME_CONTRAST`.
+// The brand primary #1496d6 is 3.3:1 with white; `aa` switches primary, success, warning and danger to
+// AA solids, which theme-css.test.ts measures.
 describe('contrast (brand colours or AA colours)', () => {
-  it('has two settings and the brand colours are the default until Ioan decides', () => {
+  it('has two settings and the brand colours are the default', () => {
     expect(THEME_CONTRASTS).toEqual(['brand', 'aa']);
     expect(DEFAULT_THEME_CONTRAST).toBe('brand');
   });

@@ -1,8 +1,3 @@
-// Behaviour spec of FormModal: the dialog of the panel's short forms (invite, change role, new API
-// key, billing details; mockups `business.html`, `billing.html`, README §3b): an `ion-modal` with
-// a title and a close button, the fields (default slot) and a footer Cancel / Save. It never closes
-// itself on submit (the page closes it when the command succeeds); it closes on Cancel, the close
-// button, Escape and the backdrop, unless a submit is pending.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -345,7 +340,7 @@ describe('FormModal: the notice of a refusal by fields', () => {
   const typed = (): Event => new Event('input', { bubbles: true });
   const changed = (): Event => new CustomEvent('ionChange', { bubbles: true, composed: true });
   const emailField = () => h('input', { 'data-testid': 'email' });
-  /** A window that says what was refused: the notice has something to point at (hub#833). */
+  /** A window that says what was refused: the notice has something to point at. */
   const mountMarked = (props: Partial<Props>, field: () => unknown = emailField): VueWrapper =>
     mountModal(props, {
       default: (slot) => [field(), h('small', (slot.fieldErrors as Readonly<Record<string, string>>).email)],
@@ -683,7 +678,7 @@ describe('FormModal: the message of a refused field (ui#89)', () => {
   });
 });
 
-describe('FormModal: a refused field that nothing in the form says (hub#833)', () => {
+describe('FormModal: a refused field that nothing in the form says', () => {
   // A window that does not mark a refused field would promise marks that are not there: nothing tells the
   // person what to correct. FormModal says that reason itself, in the banner, until the next try.
   const NOTICE = 'Check the highlighted details.';
@@ -895,7 +890,7 @@ describe('FormModal: a refused field that nothing in the form says (hub#833)', (
   });
 });
 
-describe('FormModal: a refusal lands where the person is (hub#833)', () => {
+describe('FormModal: a refusal lands where the person is', () => {
   // On a phone a long form scrolls, and the person who pressed Save is at its bottom: what the refusal says
   // is above them, and it looks as if nothing happened.
   const REFUSED = { status: 422, code: 'invalid_payload', message: 'Check the highlighted details.', fields: { email: 'Not a valid email.' } };
@@ -990,7 +985,7 @@ describe('FormModal: focus', () => {
   });
 
   // The dialog says it has opened about half a second after it shows, and by then a person may already
-  // be in another field (hub#700): what they type would land in the first one and theirs stay empty.
+  // be in another field: what they type would land in the first one and theirs stay empty.
   const opened = (wrapper: VueWrapper): void => {
     wrapper.findComponent({ name: 'IonModal' }).vm.$emit('didPresent');
   };
@@ -1060,7 +1055,7 @@ describe('FormModal: options', () => {
     expect(cancelButton(own).textContent?.trim()).toBe('Back');
   });
 
-  it('size: md by default (the mockups\' 480px dialog), sm for short confirmations', async () => {
+  it('size: md by default (the 480px dialog), sm for short confirmations', async () => {
     const md = mountModal();
     await settle();
     expect(modalEl(md).getAttribute('data-size')).toBe('md');
@@ -1069,7 +1064,7 @@ describe('FormModal: options', () => {
     expect(modalEl(sm).getAttribute('data-size')).toBe('sm');
   });
 
-  it('Save takes an Ionic colour and an icon (the mockups\' «Send invitation» with its icon)', async () => {
+  it('Save takes an Ionic colour and an icon', async () => {
     const wrapper = mountModal({ submitColor: 'danger', submitIcon: 'ion:trash-outline' });
     await settle();
     expect((submitButton(wrapper) as HTMLElement & { color?: string }).color).toBe('danger');
@@ -1115,11 +1110,10 @@ describe('FormModal: options', () => {
   });
 });
 
-// hub#1023 (Cloudscape «Communicating unsaved changes», Shopify's `leaveConfirmation`, the «Discard changes?» of iOS): a
-// window that holds what the person typed asks before ANY way out throws it away — Cancel, the close button, Escape, a
+// A window that holds what the person typed asks before ANY way out throws it away — Cancel, the close button, Escape, a
 // tap on the backdrop and the system Back (Ionic's own dismissal, role `backdrop`) — and stays while the answer is
 // «no». The page gives the question (`canDismiss`); closing from the page (`open = false`, a saved form) never asks.
-describe('FormModal: asks before the person closes it (`canDismiss`, hub#1023)', () => {
+describe('FormModal: asks before the person closes it (`canDismiss`)', () => {
   /** A page's question, answered `answer` (or by hand when `answer` is a promise it resolves). */
   const asking = (answer: boolean | Promise<boolean>) => vi.fn(() => answer);
   /** A way out: its name, how the person takes it, and the dialog's options for it. */
@@ -1312,7 +1306,7 @@ describe('FormModal: read only (a window that only shows data, ui#62)', () => {
   });
 });
 
-describe('FormModal: on a phone (R-29)', () => {
+describe('FormModal: on a phone', () => {
   it('is a sheet by default and a centred card with `phoneLayout: card`, said on the ion-modal for the stylesheet', async () => {
     const sheet = mountModal();
     await settle();
@@ -1331,20 +1325,20 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     expect(sfc).toMatch(/ion-modal\.ep-form-modal\[data-size='sm'\]\s*\{[^}]*--width:\s*420px;/);
   });
 
-  // R-29 (UX audit 2, 2026-10-14; Material 3 and iOS): a form on a phone is a sheet from the bottom
-  // as tall as its fields, never a full-height page with ~600px of nothing under one field; it grows
-  // to 90% of the screen and then its fields scroll between the title and the buttons. A
-  // confirmation (`phoneLayout: 'card'`, ConfirmDialog) stays the centred card at every width.
+  // As in Material 3 and iOS, a form on a phone is a sheet from the bottom as tall as its fields, never a full-height
+  // page with most of the screen empty under one field; it grows to 90% of the screen and then its fields scroll
+  // between the title and the buttons. A confirmation (`phoneLayout: 'card'`, ConfirmDialog) stays the centred card at
+  // every width.
   const STYLE = /<style>([\s\S]*?)<\/style>/.exec(sfc)?.[1] ?? '';
 
-  // hub#760, hub#784: a select keeps what it has chosen on one line, so its minimum width is that line's, and the
+  // A select keeps what it has chosen on one line, so its minimum width is that line's, and the
   // one-column grid of a form grows to it, every field with it. Inside a dialog the chosen text takes the lines it needs.
   it('a select wraps what it has chosen, so no field grows past the dialog', () => {
     expect(STYLE).toMatch(/ion-modal\.ep-form-modal ion-select::part\(text\)\s*\{[^}]*white-space:\s*normal;/);
   });
 
-  // ui#93: an outlined select floats its label over the top edge of its box, down to 8px inside it, and centres what it
-  // has chosen in the 56px box, under Ionic's 1px margin. Measured in Chromium (hub `Nueva mesa`, lines of 18px): one line
+  // An outlined select floats its label over the top edge of its box, down to 8px inside it, and centres what it
+  // has chosen in the 56px box, under Ionic's 1px margin. Measured in Chromium (a Hub form, lines of 18px): one line
   // starts at 19.5 and two at 10.5, clear of the label; three or more fill the box from 1px, and the label lies on them.
   // happy-dom lays nothing out and has no `::part`, so these numbers are the ones of that measure.
   describe('what an outlined select has chosen, against its floating label', () => {
@@ -1352,7 +1346,7 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     const BOX = 56;
     const IONIC_MARGIN = 1;
     const LABEL_BOTTOM = 8;
-    // saas#272: the shared theme says it for every outlined select, those of a dialog with them, once.
+    // The shared theme says it once for every outlined select, those of a dialog included.
     const THEME = readFileSync(join(HERE, '../../shell/theme/polish.css'), 'utf8');
     const OUTLINED_TEXT = /(?:^|\})\s*ion-select\.select-fill-outline::part\(text\)\s*\{([^}]*)\}/m;
     const padding = (): number => Number(/padding-block:\s*([\d.]+)px;/.exec(OUTLINED_TEXT.exec(THEME)?.[1] ?? '')?.[1] ?? 0);
@@ -1437,11 +1431,11 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     }
   });
 
-  // hub#928: Ionic drops the backdrop and the shadow of a modal opened over another one (`ion-modal.modal-default.show-modal
+  // Ionic drops the backdrop and the shadow of a modal opened over another one (`ion-modal.modal-default.show-modal
   // ~ ion-modal.modal-default` in its core.css), a rule made for windows of one size that cover each other. The card is
-  // narrower than a sheet (600px wide on a tablet) and the phone's sheet is only as tall as its fields, so what was behind
-  // showed around it, neither dimmed nor apart, its words cut at the card's edges. Over another window it keeps both.
-  describe('over another window (hub#928)', () => {
+  // narrower than a sheet (600px wide on a tablet) and the phone's sheet is only as tall as its fields, so what is behind
+  // would show around it, neither dimmed nor apart. Over another window it keeps both.
+  describe('over another window', () => {
     const IONIC = readFileSync(join(HERE, '../../../node_modules/@ionic/vue/css/core.css'), 'utf8');
     const SHADOW = '0 18px 50px rgba(17, 24, 39, 0.18)';
 
@@ -1476,13 +1470,13 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
       expect(shadow).toBe(SHADOW);
     });
 
-    it('dark: the backdrop of a dialog over another window is as deep as the one over a page (UX audit U-90)', async () => {
+    it('dark: the backdrop of a dialog over another window is as deep as the one over a page', async () => {
       expect((await over(1440, dialog('sheet'), true)).backdrop).toBe('0.6');
     });
 
-    // Over a page Ionic's own 0.4 (its shadow root's `:host`, which happy-dom does not apply) is what the dialog says now
-    // itself, with the 0.6 of dark: one value per theme for both cases.
-    it('over a page it says Ionic\'s 0.4 itself, and 0.6 in dark (UX audit U-90)', async () => {
+    // Over a page, Ionic's own 0.4 (set on its shadow root's `:host`, which happy-dom does not apply) is said by the
+    // dialog itself, with the 0.6 of dark: one value per theme for both cases.
+    it('over a page it says Ionic\'s 0.4 itself, and 0.6 in dark', async () => {
       expect(await over(1440, dialog('sheet'), false, true)).toEqual({ backdrop: '0.4', shadow: SHADOW });
       expect((await over(1440, dialog('sheet'), true, true)).backdrop).toBe('0.6');
     });
@@ -1494,7 +1488,7 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     });
   });
 
-  it('uses Ionic\'s spacing class and our tokens, nothing of OutfitKit', () => {
+  it('uses Ionic\'s spacing class and our tokens, never an `ok-*` one', () => {
     expect(sfc).toMatch(/ion-padding/);
     expect(sfc).not.toMatch(/--ok-|\bok-[a-z]/);
   });

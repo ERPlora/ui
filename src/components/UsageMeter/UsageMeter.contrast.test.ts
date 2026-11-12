@@ -1,8 +1,6 @@
-// Contrast of UsageMeter and UsageCounter (working rules §2.4): the filled part of the bar is the
-// information, so it must reach 3:1 (WCAG 1.4.11, non-text) against the card it sits on and against
-// the empty track next to it; the texts (label, amount, percentage, hint; the counter's label, number
-// and hint) must reach 4.5:1. On every surface, light and dark, with the shell's theme and every
-// optional palette, read from the real stylesheets.
+// UsageMeter and UsageCounter: the filled part of the bar is the information, so it must reach 3:1 (WCAG 1.4.11,
+// non-text) against the card it sits on and against the empty track next to it, and the texts must reach 4.5:1. On
+// every surface, light and dark, with the shell's theme and every optional palette, read from the real stylesheets.
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';

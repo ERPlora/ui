@@ -1,6 +1,3 @@
-// BASE-G115 and G116: what the card of a write says before it runs — its action and app by their names, each datum
-// in words (an amount in the business's currency, never in cents: gh:hub#1045). Cases of the old hub's
-// `assistant-confirm.test.ts` and `assistant-danger.test.ts`.
 import { describe, expect, it } from 'vitest';
 
 import { type AssistantCard, cardLine, fieldLabelKey, fieldLines, fieldText, typedMatches } from './card';
@@ -43,8 +40,6 @@ describe('each datum', () => {
   });
 
   it('an amount marked signed says over or short as Cash register does: + over, - short, none at zero', () => {
-    // FIX-HUB-BASE-ASSISTANT-CARD-POSITIVE-DIFFERENCE-WITHOUT-SIGN: a difference over came as «137,90 €», like an
-    // amount, while only the one short had its sign.
     const difference = (value: number) => ({ name: 'difference', label: 'Diferencia', kind: 'money' as const, value, signed: true });
     expect(fieldText(difference(13790), opts)).toBe('+137,90 €');
     expect(fieldText(difference(-490), opts)).toBe('-4,90 €');
@@ -58,8 +53,7 @@ describe('each datum', () => {
   });
 
   it('an amount that carries its own currency (a preview’s, as its read answers it) is written in it, not the business’s', () => {
-    // FIX-HUB-BASE-ASSISTANT-CARD-MONEY-IN-BUSINESS-NOT-PREVIEW-CURRENCY: an invoice issued in euros, rectified once the
-    // business had moved to Poland, showed «-121,00 zł» on the card.
+    // An invoice issued in euros and rectified after the business moved to Poland stays in euros.
     const PLN = { currency: 'PLN', decimals: 2 };
     const total = { name: 'total_amount', label: 'Total', kind: 'money' as const, value: -12100, money: EUR };
     expect(fieldText(total, { ...opts, money: PLN })).toBe('-121,00 €');
@@ -67,13 +61,13 @@ describe('each datum', () => {
     // Even before the business's is known; with its sign when it is a difference.
     expect(fieldText(total, { locale: 'es-ES', t })).toBe('-121,00 €');
     expect(fieldText({ ...total, value: 4200, signed: true }, { ...opts, money: PLN })).toBe('+42,00 €');
-    // One that carries none, in the business's, as before.
+    // One that carries none is in the business's.
     expect(fieldText({ ...total, money: null }, { ...opts, money: PLN })).toBe('-121,00 zł');
     expect(fieldText(card().fields[1], { ...opts, money: PLN })).toBe('15,00 zł');
   });
 
   it('an amount is in the minor unit of its currency: a yen invoice’s total is not a hundred times less', () => {
-    // FIX-HUB-BASE-ASSISTANT-CARD-MONEY-IN-BUSINESS-NOT-PREVIEW-CURRENCY: Invoicing answers ¥12,100 as 12100.
+    // Invoicing sends ¥12,100 as 12100.
     const JPY = { currency: 'JPY', decimals: 0 };
     const total = { name: 'total_amount', label: 'Total', kind: 'money' as const, value: -12100, money: JPY };
     expect(fieldText(total, { ...opts, locale: 'en' })).toBe('-¥12,100');
@@ -98,10 +92,8 @@ describe('each datum', () => {
 });
 
 describe('a datum that is a list', () => {
-  // FIX-HUB-PRINTING-ASSISTANT-CARD-LEAVES-OUT-ITS-RECORDS: the server names each record of a list («Caja», «Cocina»),
-  // and the card said «Impresoras: 2 elementos». As Odoo's tags, Salesforce's pills or Atlassian's avatars: what it can
-  // say in words, one after another; past four, the first three and how many more. Only a list the server says it put
-  // in words (`named`): one of texts sent as they are — codes nobody names — still says how many.
+  // A list the server put in words (`named`) is said one record after another, like tags or pills; past four, the first
+  // three and how many more. A list of texts sent as they are (codes nobody names) still says how many.
   const list = (value: unknown[], named = true) => ({ name: 'printers', label: 'Impresoras', kind: 'list' as const, value, named });
   /** The screen's words, with their values and the plural the catalogue picks (`a | b | c`: none, one, more). */
   const spoken = (catalogue: unknown) => ({
@@ -130,7 +122,7 @@ describe('a datum that is a list', () => {
   it('one it cannot name (left out: not there, or not the person’s to read) counts among the more, never by its id', () => {
     expect(fieldText(list(['Caja', null]), spoken(es))).toBe('Caja y 1 más');
     expect(fieldText(list(['Caja', null]), spoken(en))).toBe('Caja and 1 more');
-    // None of them: how many, as before.
+    // None of them named: how many.
     expect(fieldText(list([null, null]), spoken(es))).toBe('2 elementos');
     expect(fieldText(list([null]), spoken(en))).toBe('1 item');
   });
@@ -157,8 +149,7 @@ describe('a datum that is a list', () => {
     expect(fieldText(list(['Caja', ['Cocina']]), spoken(es))).toBe('Caja y 1 más');
   });
 
-  it('a line that carries only its record is said by the name the server gave it (a booking’s services, hub#835)', () => {
-    // The server names each service and marks the list: the card said «Servicios: 1 elemento».
+  it('a line that carries only its record is said by the name the server gave it (a booking’s services)', () => {
     const services = { name: 'services', label: 'Servicios', kind: 'list' as const, value: [{ service_id: 'Corte de pelo' }], named: true };
     expect(fieldLines([services], spoken(es))).toEqual(['Servicios: Corte de pelo']);
     expect(fieldText(list([{ service_id: 'Haircut' }, { service_id: 'Colour' }]), spoken(en))).toBe('Haircut, Colour');
@@ -173,8 +164,7 @@ describe('a datum that is a list', () => {
     expect(fieldText(list([{ service_id: 'Corte de pelo' }, { service: null }]), spoken(es))).toBe('Corte de pelo y 1 más');
   });
 
-  it('a line that carries its record and figures is said by the record’s name and each figure (a reception of goods, hub#970)', () => {
-    // The server names each product and marks the list: the card said «Productos: 1 elemento».
+  it('a line that carries its record and figures is said by the record’s name and each figure (a reception of goods)', () => {
     const products = { name: 'items', label: 'Productos', kind: 'list' as const, value: [{ product_id: 'Vino tinto', qty: '6' }], named: true };
     expect(fieldLines([products], spoken(es))).toEqual(['Productos: Vino tinto · 6']);
     expect(cardLine(card({ fields: [products] }), spoken(es))).toBe('Vino tinto · 6');
@@ -197,7 +187,6 @@ describe('a datum that is a list', () => {
   });
 
   it('a list of texts the server did not name says how many, never its codes (flow.flow.grant’s operations)', () => {
-    // The two revisers of ui#48: «Permisos: sale.sale.create, invoice.invoice.issue…» on a dangerous write.
     const operations = { name: 'operations', label: 'Permisos', kind: 'list' as const, value: ['sale.sale.create', 'invoice.invoice.issue'] };
     expect(fieldText(operations, spoken(es))).toBe('2 elementos');
     expect(fieldLines([operations], spoken(es))).toEqual(['Permisos: 2 elementos']);
@@ -220,9 +209,8 @@ describe('a datum that is a list', () => {
 });
 
 describe('a datum that is an object', () => {
-  // FIX-HUB-BASE-ASSISTANT-CARD-OBJECT-SHOWS-INNER-KEYS-IN-ENGLISH: its inner data went by their keys, in English in
-  // every language («Plantilla: name: cita_recordatorio · language: es»). Like an address on a summary or a variant
-  // on a ticket, it is said by its values; its own name is the datum's.
+  // Like an address on a summary or a variant on a ticket, an object is said by its values, never by its inner keys;
+  // its own name is the datum's.
   const template = {
     name: 'template',
     label: 'Plantilla',
@@ -272,8 +260,8 @@ describe('a datum that is an object', () => {
   });
 
   it('an amount within it is written as one on top: its currency, the same symbol, never the server’s words', () => {
-    // FIX-HUB-BASE-ASSISTANT-MONEY-KNOWN-ONLY-BY-DESCRIPTION-WORDS: the server said an amount inside an object in its own
-    // words («1,50 US$», «1,50 PLN») and the screen the one on top in its own («1,50 $», «1,50 zł»), on one card.
+    // An amount inside an object takes the same symbol as the one on top of the card, never the server's own words for
+    // it («1,50 US$», «1,50 PLN»).
     const PLN = { currency: 'PLN', decimals: 2 };
     const USD = { currency: 'USD', decimals: 2 };
     const JPY = { currency: 'JPY', decimals: 0 };
@@ -303,7 +291,7 @@ describe('a datum that is an object', () => {
 
   it('a known datum is named in the person’s language; another by its own title', () => {
     expect(fieldLabelKey('price')).toBe('assistant.card.fields.price');
-    // The app a card turns on or off (base.app.enable/disable, PLAN-HUB §9): «App» in both languages.
+    // The app a card turns on or off (base.app.enable/disable): «App» in both languages.
     expect(fieldLabelKey('app')).toBe('assistant.card.fields.app');
     expect(fieldLabelKey('tax_category_key')).toBeNull();
   });
@@ -311,7 +299,7 @@ describe('a datum that is an object', () => {
 
 describe('the lines of a dangerous write', () => {
   it('each datum by its name in the person’s language, else by the label the server gives it, and its value in words', () => {
-    // BASE-F98: what the write sends and what it will do (its preview) are both said this way.
+    // What the write sends and what it will do (its preview) are both said this way.
     expect(fieldLines(card().fields.slice(0, 2), opts)).toEqual([
       'assistant.card.fields.name: Corte caballero',
       'assistant.card.fields.price: 15,00\u00a0€',
@@ -322,9 +310,8 @@ describe('the lines of a dangerous write', () => {
     expect(fieldLines([], opts)).toEqual([]);
   });
 
-  // FIX-HUB-BASE-ASSISTANT-DANGER-CARD-CALLS-THE-RECORD-BY-ITS-FIELD-NAME: transferring a check said «Registro: 5
-  // (Terraza)» where Tables titles it «Cuenta»: the screen's word for a datum it knows by its name (`id`) hid the title
-  // its app wrote, which the server marks `titled`.
+  // The server marks `titled` a datum whose title its app wrote: a transferred check is a «Check», never the screen's
+  // «Record» for an `id`.
 
   it('a datum its app titles is called by that title, over the screen’s word for its name', () => {
     const check = { name: 'id', kind: 'text' as const, value: '5 (Terraza)', titled: true };

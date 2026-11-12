@@ -1,27 +1,14 @@
 <script setup lang="ts">
-// AppPage — the ONE layout of the shell screens (ADR-0045). Ported from ERPlora hub
-// `apps/web/src/components/AppPage.vue` (origin/develop): `ion-page` + `AppTopbar` + a single
-// `ion-content`, so every view shares the same container, padding and margins and only injects its
-// content, and the footer strip of sections (`tabs`, mockups README §3). Over the content, between the
-// topbar and the scroller, the project's notice (`createShell({ chrome: { notice } })`, the hub's
-// blocking strip, hub#374): there and not inside ion-content because a warning that scrolls away is not
-// a warning, and here because every screen shares this layout. Not ported: the offline strip.
+// The one layout of the shell screens: a single `ion-content`, so every view shares the same container,
+// padding and margins. The project's notice (`createShell({ chrome: { notice } })`) goes between the
+// topbar and the scroller, not inside ion-content, because a warning that scrolls away is not a warning.
 //
-// Layouts (`contentLayout`): `fluid` (default) puts the view straight in `ion-content`; `detail` wraps it
-// in `.hub-detail-shell` (reading, forms, settings); `detail-fill` gives that box the content area's
-// height; `fill` is a list page: the `detail-fill` box holds a `.page-fill` stack (polish.css) in which
-// what sits above or under the list keeps its height and a DataTable `fill` takes the rest, between the
-// topbar and the tabbar, with its toolbar and footer fixed and its rows scrolling inside (Ioan,
-// 2026-10-15; on a phone the list grows with its rows instead: one scroll). A page writes only
-// `<AppPage content-layout="fill"><DataTable fill … /></AppPage>`.
+// `fill` is a list page: the `detail-fill` box holds a `.page-fill` stack (polish.css) in which what sits
+// above or under the list keeps its height and a DataTable `fill` takes the rest, with its toolbar and
+// footer fixed and its rows scrolling inside; on a phone the list grows with its rows instead (one scroll).
 //
-// Slots: default (the view, inside `ion-content`), `actions` (forwarded to the topbar), `footer`
-// (after the content: a sheet's action bar, or a view's own `ion-footer > ion-toolbar > ion-segment`).
-//
-// Section tabbar: `tabs` + `v-model:tab` paint `ion-footer > ion-toolbar > ion-segment.tabbar`, every
-// tab with its icon over its label. Tabs with `to` follow the route (the route says which one is
-// active; selecting one REPLACES the address, so Back leaves the section instead of walking its
-// tabs). The topbar names the active tab after the title («Billing · Invoices»).
+// Tabs with `to` follow the route, and selecting one replaces the address, so Back leaves the section
+// instead of walking its tabs.
 import { IonContent, IonFooter, IonLabel, IonPage, IonSegment, IonSegmentButton, IonToolbar } from '@ionic/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -43,7 +30,7 @@ const props = withDefaults(
     /** Inner layout: fluid for data/tables; `detail`/`detail-fill` for reading, forms and settings;
      *  `fill` for a list page whose DataTable `fill` takes the height left between topbar and tabbar. */
     contentLayout?: 'fluid' | 'detail' | 'detail-fill' | 'fill';
-    /** The view already paints its own `<h1>` (hub#794): the toolbar title drops the heading role. */
+    /** The view already paints its own `<h1>`: the toolbar title drops the heading role. */
     headingOnScreen?: boolean;
     /** The sections of the page, painted as the footer tabbar; none = no tabbar. */
     tabs?: ShellTab[];
@@ -78,7 +65,7 @@ function onTabChange(event: CustomEvent<{ value?: string | number }>): void {
   if (target.to) void router.replace(target.to);
 }
 
-// ── Footer strip wiring (hub#1734, hub#1830) ─────────────────────────────────────────────────────
+// ── Footer strip wiring ─────────────────────────────────────────────────────
 // `bindTabbar` says WHETHER the strip hides tabs (edge fade), keeps the checked tab in view and
 // drags with a mouse; `bindTabbarPeek` sizes the tabs so that on a phone the next one peeks. Wired
 // WHEN the strip appears, not only at mount: the tabs (ours or a view's own `#footer`) can arrive

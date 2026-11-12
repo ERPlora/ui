@@ -1,6 +1,3 @@
-// DataTable row actions: per-row labels (#110), tones (#162), hidden per row (hub#2014) with gaps
-// that keep the columns aligned (#240), the measured track (#121, #211) and the «…» fold (#122,
-// #213). Cases ported from the Lit tests of OutfitKit's `ok-data-table`.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { byTestId, cards, click, dataRows, mountTable, settle, text, viewport } from './__tests__/harness';
@@ -30,10 +27,10 @@ async function layOut(t: ReturnType<typeof mountTable>, container: number, conte
   await settle();
 }
 
-/** Lays the list out too narrow for its buttons, so they fold into «…» (#122). */
+/** Lays the list out too narrow for its buttons, so they fold into «…». */
 const fold = (t: ReturnType<typeof mountTable>) => layOut(t, 700, 796);
 
-describe('a row action names itself, per row (#110)', () => {
+describe('a row action names itself, per row', () => {
   const ROWS = [{ id: '1', number: 'V-1000', total: 100, refunded: 30 }, { id: '2', number: 'V-1001', total: 50, refunded: 0 }];
   const remaining = (row: Row) => Number(row.total) - Number(row.refunded);
   const refund = { id: 'refund', label: (row: Row) => `Devolver el resto (${remaining(row)} €)` };
@@ -68,7 +65,7 @@ describe('a row action names itself, per row (#110)', () => {
   });
 });
 
-describe('row action tones (#162)', () => {
+describe('row action tones', () => {
   const t = () =>
     mountTable({
       rows: [{ id: '1', name: 'A' }],
@@ -103,7 +100,7 @@ describe('row action tones (#162)', () => {
   });
 });
 
-describe('a row action hidden for a row (hub#2014) keeps its column (#240)', () => {
+describe('a row action hidden for a row keeps its column', () => {
   const ROWS: Row[] = [{ id: 'issued', status: 'issued' }, { id: 'paid', status: 'paid' }, { id: 'voided', status: 'voided' }];
   const ACTIONS = [
     { id: 'view', label: 'View', icon: 'eye-outline' },
@@ -187,7 +184,7 @@ describe('a row action hidden for a row (hub#2014) keeps its column (#240)', () 
   });
 });
 
-describe('the actions track is pinned to the measured width of the widest row (#121)', () => {
+describe('the actions track is pinned to the measured width of the widest row', () => {
   const BUTTON_PX = 44;
   function stubActionsWidth(width: (box: Element) => number) {
     vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
@@ -213,9 +210,9 @@ describe('the actions track is pinned to the measured width of the widest row (#
     for (const row of dataRows(t)) expect(row.style.gridTemplateColumns).toBe(template(t));
   });
 
-  // SaaS Billing at 1440px: the box packs its buttons to the END (`justify-content: flex-end`), so
-  // labelled buttons wider than the track overflow towards the inline-START, where `scrollWidth`
-  // does not look: the track stayed at the box's own width and «Pay»/«PDF» covered the status pill.
+  // The box packs its buttons to the END (`justify-content: flex-end`), so labelled buttons wider
+  // than the track overflow towards the inline-START, where `scrollWidth` does not look: measured that
+  // way, the track stays at the box's own width and the buttons cover the column beside them.
   it('counts buttons that overflow towards the start: the track is their widths side by side, plus the gaps', async () => {
     const LABELLED_PX = 92;
     const GAP_PX = 4;
@@ -244,7 +241,7 @@ describe('the actions track is pinned to the measured width of the widest row (#
   });
 });
 
-describe('the «Actions» header is never painted truncated (#211)', () => {
+describe('the «Actions» header is never painted truncated', () => {
   const LABEL_PX = 63;
   async function lay(t: ReturnType<typeof mountTable>, cellPx: number, labelPx = LABEL_PX) {
     const cell = t.element.querySelector('.data-table__row--head .data-table__cell--actions') as HTMLElement;
@@ -283,7 +280,7 @@ describe('the «Actions» header is never painted truncated (#211)', () => {
   });
 });
 
-describe('on a narrow tablet the row actions fold into «…» (#122, #213)', () => {
+describe('on a narrow tablet the row actions fold into «…»', () => {
   const ROWS = [{ id: '1', name: 'Familia Pérez' }, { id: '2', name: 'Marta Ruiz' }];
   const ACTIONS = [
     { id: 'confirm', label: 'Confirmar', icon: 'checkmark-outline' },
@@ -397,7 +394,7 @@ describe('the `row-actions` slot', () => {
   });
 });
 
-describe('a row action with `showLabel` paints its icon AND its text (mockups/saas-panel §3b, §6.16)', () => {
+describe('a row action with `showLabel` paints its icon AND its text', () => {
   const ROWS = [{ id: '1', name: 'Bar Norte' }, { id: '2', name: 'Tienda Sol' }];
   const OPEN = { id: 'open', label: 'Open', icon: 'log-in-outline', showLabel: true };
   const DELETE = { id: 'delete', label: 'Delete', icon: 'trash-outline' };
@@ -437,7 +434,7 @@ describe('a row action with `showLabel` paints its icon AND its text (mockups/sa
     expect(open.disabled).toBe(true);
   });
 
-  it('a hidden labelled action keeps its place with a stand-in of the same icon and text (#240)', async () => {
+  it('a hidden labelled action keeps its place with a stand-in of the same icon and text', async () => {
     const t = mountTable({ ...props, actions: [{ ...OPEN, hidden: (r: Row) => r.id === '2' }, DELETE] });
     await settle();
     const gap = actionCells(t)[1].querySelector('[data-slot-for="open"]') as HTMLElement;
@@ -446,7 +443,7 @@ describe('a row action with `showLabel` paints its icon AND its text (mockups/sa
     expect(gap.classList.contains('data-table__action--labelled')).toBe(true);
   });
 
-  it('folded, a single labelled action goes into «⋮» like a text one (#213), where it reads with its icon and label', async () => {
+  it('folded, a single labelled action goes into «⋮» like a text one, where it reads with its icon and label', async () => {
     const t = mountTable({ ...props, actions: [OPEN] });
     await settle();
     await fold(t);

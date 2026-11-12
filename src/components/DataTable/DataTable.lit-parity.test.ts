@@ -1,8 +1,7 @@
-// «Visually identical» as a mechanical check: EVERY rule of the Lit original's stylesheet
-// (`__tests__/lit-styles.css`, verbatim from ERPlora/outfitkit origin/main) is either ported to a
-// DataTable rule with the SAME declarations in the same order, or listed below as dropped with its
-// reason; and every DataTable rule is either a port or listed as an addition with its reason.
-// Nothing is assumed beyond the ported CSS: a declaration changed, added or lost fails here.
+// «Visually identical» to the Lit table as a mechanical check: EVERY rule of its stylesheet (a verbatim
+// copy in `__tests__/lit-styles.css`) is either ported to a DataTable rule with the SAME declarations in
+// the same order, or listed below as dropped with its reason; and every DataTable rule is either a port
+// or listed as an addition with its reason. A declaration changed, added or lost fails here.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,7 +52,7 @@ const OK_TOKENS: Record<string, string> = {
   font: '--ion-font-family',
   transition: '--ep-transition',
   'tap-min': '--ep-tap-min',
-  // The phone sheet's insets the table measures and publishes (`useFilterSheet`, outfitkit#197).
+  // The phone sheet's insets the table measures and publishes (`useFilterSheet`).
   'sheet-top': '--data-table-sheet-top',
   'sheet-bottom': '--data-table-sheet-bottom',
 };
@@ -183,10 +182,8 @@ const PORTED: Record<string, string> = {
   '.pnum.on': '.data-table__page.data-table__page--current',
   '.pgap': '.data-table__page-gap',
   'ion-button': 'ion-button',
-  // The inline filters' boxed control (hub-next apps/tax/UI-REQUESTS.md: column filters are back).
   '.tk-filter': '.data-table__filter',
-  // The filters panel (`filterable`, PLAN-MIGRATIONS §13, 2026-10-15): the old table's funnel with its count,
-  // and its drawer inside the table: two columns from 834 px, a sheet over the content area below (#75/#197).
+  // The filters panel (`filterable`): the funnel with its count, and its drawer inside the table.
   '.toolbtn': '.data-table__filter-button',
   '.toolbtn .badge': '.data-table__filter-button .data-table__filter-count',
   '@media (pointer: coarse), (max-width: 834px) || .toolbtn': '@media (pointer: coarse), (max-width: 834px) || .data-table__filter-button',
@@ -211,11 +208,11 @@ const PORTED: Record<string, string> = {
 const DROPPED: Record<string, string> = {};
 const drop = (reason: string, ...rules: string[]) => rules.forEach((r) => (DROPPED[r] = reason));
 drop(
-  'FIX-UI-DATATABLE-CLIP: its one-line «…» cut card titles that fit in two lines; `.data-table__card-title` wraps instead',
+  'its one-line «…» cut card titles that fit in two lines; `.data-table__card-title` wraps instead',
   '.rcard-head .rc-title',
 );
 drop(
-  'filters panel: its scrim is never painted, the panel pushes the list from 834 px and is a whole sheet below (outfitkit kept it for a browser without media queries)',
+  'filters panel: its scrim is never painted, the panel pushes the list from 834 px and is a whole sheet below (the Lit table kept it for a browser without media queries)',
   '.tk-scrim',
   '@media (min-width: 834px) || .card.has-panel > .tk-scrim',
   '@media (max-width: 833.98px) || .tk-scrim',
@@ -239,7 +236,7 @@ drop(
 );
 drop('never painted by the Lit render either (dead CSS in the original)', '.panel', '.vsep', '.pager .nav .pp');
 drop(
-  'Ioan, 2026-10-13: the list/cards switch is an ion-segment, not a bordered box of square tool buttons (the only ones)',
+  'the list/cards switch is an ion-segment, not a bordered box of square tool buttons (the only ones)',
   '.viewseg',
   '.viewseg ion-button',
 );
@@ -256,62 +253,62 @@ const ADDED: Record<string, string> = {
   '.data-table :deep(*)': 'shell shield: the global `*` thin scrollbars never reached the shadow root',
   ':where(.data-table__search) .searchbar-input': 'shell shield: normalize.css line height on the inner input',
   ':where(.data-table__search) .searchbar-clear-button': 'shell shield: normalize/preflight font and cursor on the clear button',
-  '.data-table__view-segment': 'Ioan, 2026-10-13: the list/cards ion-segment, at its own width in the toolbar',
-  '.data-table__view-segment ion-segment-button': 'Ioan, 2026-10-13: icon-only segment buttons, as tall as the toolbar controls',
+  '.data-table__view-segment': 'the list/cards ion-segment, at its own width in the toolbar',
+  '.data-table__view-segment ion-segment-button': 'icon-only segment buttons, as tall as the toolbar controls',
   '@media (pointer: coarse), (max-width: 834px) || .data-table__view-segment ion-segment-button':
-    'Ioan, 2026-10-13: the segment buttons reach 44px on touch, like every other table control',
+    'the segment buttons reach 44px on touch, like every other table control',
   '@media (min-width: 641px) and (max-width: 1024px) || .data-table__search':
-    'APP-BASE-1: without the spacer the line breaks at the search minimum, so at 820px the funnel no longer drops alone to a second line (measured in the Hub)',
+    'without the spacer the line breaks at the search minimum, so at 820px the funnel no longer drops alone to a second line (measured in the Hub)',
   '.data-table__bar-main > :slotted(ion-select)':
-    'DEMO-F05: a filter select the page puts in the `filters` (or `toolbar`) slot is boxed like the table’s own selects',
+    'a filter select the page puts in the `filters` (or `toolbar`) slot is boxed like the table’s own selects',
   '.data-table__actions .data-table__action--labelled':
-    'mockups/saas-panel §3b, §6.16: a `showLabel` row action, icon and text, as mock.css `.dt-labeled` paints it',
-  '.data-table__action--labelled > [slot="start"]': 'mockups/saas-panel §6.16: the gap between its icon (or spinner) and its text',
-  '.data-table__filters': 'column filters: the row of controls under the toolbar, wrapping (hub-next apps/tax/UI-REQUESTS.md)',
+    'a `showLabel` row action: its icon and its text side by side',
+  '.data-table__action--labelled > [slot="start"]': 'the gap between a labelled action’s icon (or spinner) and its text',
+  '.data-table__filters': 'column filters: the row of controls under the toolbar, wrapping',
   '.data-table__filter-range': 'column filters: the From and To of a range, side by side',
   '.data-table__filter-range .data-table__filter': 'column filters: each end of a range is a short number box',
   '.data-table__search :deep(.searchbar-input)':
-    'FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER (rv-ui-29): the search box’s example text ends in «…» where the box is short of it (cut with no sign at 820px, measured in Chromium)',
+    'the search box’s example text ends in «…» where the box is short of it (cut with no sign at 820px, measured in Chromium)',
   '.data-table__filter-range--date .data-table__filter':
-    'FIX-UI-DATATABLE-DATERANGE-ICON-CLIPS-PLACEHOLDER: each end of a date range is as wide as a date field (the calendar icon covered the last character, measured in Chromium)',
+    'each end of a date range is as wide as a date field (the calendar icon covered the last character, measured in Chromium)',
   '.data-table__filter-range-label':
-    'FIX-UI-DATATABLE-RANGE-FILTER-LABELS: the column heading a range in the row (its ends alone said only «From» / «To»; the Lit inline date range had no name on screen either)',
+    'the column heading a range in the row (its ends alone said only «From» / «To»; the Lit inline date range had no name on screen either)',
   '.data-table__filters-clear': 'column filters: «Clear filters», an ion-chip in the row, at its font size',
   '.data-table__drawer-range > ion-input':
-    'FIX-UI-DATATABLE-CLIP: the two ends of a range share the 360px panel (two date fields reached 21px past it, measured in Chromium)',
+    'the two ends of a range share the 360px panel (two date fields reached 21px past it, measured in Chromium)',
   '.data-table__pager--phone-pages':
-    'FIX-SAAS-SESSIONS-RESULT-TOO-BIG: a phone past `maxWindow` pages; its footer wraps the nav to a line of its own if the count needs it',
-  '.data-table__pager--phone-pages .data-table__pager-nav': 'FIX-SAAS-SESSIONS-RESULT-TOO-BIG: that nav stays at the end of its line',
-  '.data-table__page-of': 'FIX-SAAS-SESSIONS-RESULT-TOO-BIG: «page / pages» between previous and next on that phone',
+    'a phone past `maxWindow` pages; its footer wraps the nav to a line of its own if the count needs it',
+  '.data-table__pager--phone-pages .data-table__pager-nav': 'the nav of a paging phone stays at the end of its line',
+  '.data-table__page-of': '«page / pages» between previous and next on a paging phone',
   '.data-table__card-title':
-    'FIX-UI-DATATABLE-CLIP: the card title wraps, two lines at most (Polaris, Material), instead of the Lit one-line «…»',
+    'the card title wraps, two lines at most (Polaris, Material), instead of the Lit one-line «…»',
   '.data-table__row--data > .data-table__cell:not(.data-table__cell--actions)':
-    'FIX-UI-DATATABLE-CELL-NO-WRAP-SQUEEZES-CHIP-BESIDE-BADGE: a data cell drops what does not fit under, instead of squeezing a chip beside a badge to its icon (Hub: Inventory › Products at 820/834 px, measured in Chromium)',
+    'a data cell drops what does not fit under, instead of squeezing a chip beside a badge to its icon (measured in Chromium at 820/834 px)',
   '.data-table__field-text':
-    'FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP: a card value’s own box, which ends a word too long for the card in «…» (a 54-character email ran past it, measured in Chromium)',
-  '.data-table__field-text--unfolded': 'FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP: a tapped clipped card value unfolds in place, as a cell does (#217)',
+    'a card value’s own box, which ends a word too long for the card in «…» (a 54-character email ran past it, measured in Chromium)',
+  '.data-table__field-text--unfolded': 'a tapped clipped card value unfolds in place, as a cell does',
   '@media (max-width: 833.98px) || .data-table__drawer-foot':
-    'outfitkit#197: a sheet that reaches the screen edge keeps the safe area in its footer (a tab bar below keeps it already)',
+    'a sheet that reaches the screen edge keeps the safe area in its footer (a tab bar below keeps it already)',
   '@media (max-width: 640px) || .data-table--fill:not(.data-table--content-after)':
-    '#218 on a phone, with nothing after the table: it grows with its rows instead of clipping them (measured at 390px)',
-  '.data-table ion-checkbox': 'UX audit 2, R-13: a 24×24 selection box (Ionic ios paints 22)',
+    'on a phone, with nothing after the table: it grows with its rows instead of clipping them (measured at 390px)',
+  '.data-table ion-checkbox': 'a 24×24 selection box (Ionic ios paints 22)',
   '@media (pointer: coarse), (max-width: 834px) || .data-table ion-checkbox':
-    'UX audit 2, R-13: a 44×44 target on touch, the row as tall as before',
+    'a 44×44 target on touch, without making the row taller',
   ':where(.data-table__search) ion-searchbar:focus-within, :where(.data-table__search) ion-searchbar.searchbar-has-focus':
-    'UX audit 2, R-12: the focused search box shows it (the Lit box changed 0 pixels)',
-  '.data-table > .data-table__surface': 'PoC: a subtle theme border around the shared table surface',
+    'the focused search box shows it (the Lit box changed 0 pixels)',
+  '.data-table > .data-table__surface': 'a subtle theme border around the shared table surface',
   '.data-table > .data-table__surface > .data-table__bar, .data-table > .data-table__surface > .data-table__pager':
-    'PoC: quieter toolbar and footer relief, derived from the current theme',
-  '.data-table__pager-nav > ion-button.data-table__page': 'PoC: numbered pages are Ionic buttons with 44px touch targets',
-  '.data-table__pager-nav > ion-button.data-table__page.data-table__page--current': 'PoC: the current Ionic page button uses the primary tint',
+    'quieter toolbar and footer relief, derived from the current theme',
+  '.data-table__pager-nav > ion-button.data-table__page': 'numbered pages are Ionic buttons with 44px touch targets',
+  '.data-table__pager-nav > ion-button.data-table__page.data-table__page--current': 'the current Ionic page button uses the primary tint',
   '.data-table > .data-table__surface > .data-table__pager > .data-table__pager-info > .data-table__pager-size':
-    'PoC: the standalone rows-per-page control is Ionic too',
+    'the standalone rows-per-page control is Ionic too',
 };
 
 /** Declarations a port carries on top of its Lit rule, with why. */
 const EXTRA: Record<string, string[]> = {
   '.data-table': [
-    // The phone filters sheet's insets and safe area (useFilterSheet, outfitkit#197): the Lit host set them inline.
+    // The phone filters sheet's insets and safe area (useFilterSheet): the Lit host set them inline.
     '--data-table-sheet-top: 0px',
     '--data-table-sheet-bottom: 0px',
     '--data-table-sheet-safe-bottom: env(safe-area-inset-bottom, 0px)',
@@ -323,7 +320,7 @@ const EXTRA: Record<string, string[]> = {
   '.data-table__selection-clear': ['padding: revert'], // normalize.css `button { padding: 0 }` neither
   // Ionic clips its native button: the count pill on the corner was cut in half (measured in Chromium).
   '.data-table__filter-button': ['--overflow: visible'],
-  // A flex item never shrinks below its longest word: a long email ran past its card (FIX-UI-DATATABLE-CARD-LONG-VALUE-CLIP).
+  // A flex item never shrinks below its longest word: without this a long email runs past its card.
   '.data-table__field-value': ['min-width: 0'],
 };
 
@@ -367,7 +364,7 @@ describe('DataTable stylesheet ↔ the Lit original, rule by rule', () => {
     expect(invented).toEqual([]);
   });
 
-  it('the toolbar selects are the Lit rules, word for word (the list/cards switch is an ion-segment now)', () => {
+  it('the toolbar selects are the Lit rules, word for word (the list/cards switch is an ion-segment)', () => {
     const body = (k: string) => VUE.get(k)?.declarations.join('; ');
     expect(VUE.has('.data-table__view-switch')).toBe(false);
     expect(VUE.has('.data-table__tool-button')).toBe(false);

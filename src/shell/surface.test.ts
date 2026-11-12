@@ -1,7 +1,3 @@
-// Where the shell is running (PLAN-SAAS §3.6, point 5; mockups README §4): the web, the desktop app
-// (Tauri on Windows), the mobile app (Tauri on Android, or another WebView that announces itself) or
-// the account page the app opened in the system browser (`?surface=account`). Everything that sells
-// is web only; the other three surfaces get the in-app rules.
 import { mount } from '@vue/test-utils';
 import { defineComponent, h, nextTick, withDirectives } from 'vue';
 import { afterEach, describe, expect, it } from 'vitest';

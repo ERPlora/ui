@@ -1,8 +1,6 @@
-// Footer tabbar: the shared behaviour of an `ion-segment` used as the footer NAVIGATION bar, ported
-// from OutfitKit's `src/tabbar/tabbar.ts` (origin/main; PLAN §16.11) — `theme/tabbar.css` already
-// came from there. It fills a real gap of Ionic, it does not wrap it: `ion-segment` does not bring
-// the checked tab into view, and whether the strip overflows and where its scroll is is exactly
-// what CSS cannot know alone, so it is published in `data-overflow` and `tabbar.css` paints the fade.
+// An `ion-segment` used as the footer navigation bar. `ion-segment` does not bring the checked tab into
+// view, and whether the strip overflows and where its scroll is is what CSS cannot know alone, so it is
+// published in `data-overflow` and `tabbar.css` paints the fade.
 //
 // One call, keep the cleanup (AppPage does it for every footer strip):
 //
@@ -199,7 +197,7 @@ function bindDrag(segment: HTMLElement): () => void {
  * Wires a footer strip and returns its cleanup. It watches three causes of change: `scroll` (the
  * person slides), a `ResizeObserver` (the width changes: rotating the phone, folding the menu) and
  * a `MutationObserver` (the NUMBER of tabs changes, or WHICH one is checked: the route sets it as
- * much as the finger). It reveals the checked tab on mount and whenever it changes (hub#1734), and
+ * much as the finger). It reveals the checked tab on mount and whenever it changes, and
  * hints the scroll once on entry. `hint: false` turns the hint off (the fade stays).
  */
 export function bindTabbar(segment: HTMLElement | null, opts: { hint?: boolean } = {}): () => void {
