@@ -124,6 +124,23 @@ export function moneyFieldText(value: number | null | undefined, locale: string,
   return `${sign}${whole}${decimalMark(locale)}${String(absolute % scale).padStart(decimals, '0')}`;
 }
 
+/** The examples the field's «not an amount» gives — an amount, and for a signed field a supplement and a discount —
+ *  written as the field writes an amount of `money`, cut to its decimals and never to 0, so that copying one clears
+ *  the warning: «12,50», «1,50» and «-0,50» in euros; «12», «1» and «-1» in yen; «12,500», «1,500» and «-0,500» in
+ *  dinars (ui#140). */
+export interface MoneyExamples {
+  amount: string;
+  supplement: string;
+  discount: string;
+}
+
+export function moneyExamples(locale: string, money?: Money): MoneyExamples {
+  const scale = 10 ** moneyDecimals(money);
+  // `hundredths` of a major unit (1250 is 12.50) in minor units of `money`: cut, but at least one of them.
+  const example = (hundredths: number) => moneyFieldText(Math.trunc((hundredths * scale) / 100) || Math.sign(hundredths), locale, money);
+  return { amount: example(1250), supplement: example(150), discount: example(-50) };
+}
+
 /** The field once the person leaves it: the page format when readable, as typed when not. */
 export function normaliseMoneyText(text: string, locale: string, options: MoneyReadOptions = {}): string {
   const read = parseMoney(text, options);

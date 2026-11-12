@@ -9,8 +9,9 @@
 //   - `money` is the field's currency with its decimals (the business's, `useBusinessMoney`; a price list's, its own).
 //     Its code or its symbol around the figure is read, another currency's is not; at most its decimals (none in yen).
 //   - On leaving, a readable amount is rewritten in the page format («2.2» → «2,20»). What is not an amount says so
-//     under the field once the person leaves it, or with `showError` (after a save attempt); «1.250» says both
-//     readings. The server's message for the field (`errorText`) wins.
+//     under the field once the person leaves it, or with `showError` (after a save attempt), with an example in the
+//     field's money (`moneyExamples`: «12,50», «12» in yen); «1.250» says both readings. The server's message for the
+//     field (`errorText`) wins.
 //   - Until `money` is known the field neither rewrites nor judges what was typed: «150» is not made «150.00» (the yen
 //     has no decimals) and «¥1500» or «12,50 zł» are not «not an amount» before the business says its currency
 //     (hub#918, hub#921, hub#945). Once it arrives, what was left is read in it.
@@ -26,7 +27,7 @@ import { formatMoney, type Money } from '../format';
 import { useComponentLocale } from '../locale';
 import en from './locales/en.json';
 import es from './locales/es.json';
-import { normaliseMoneyText, parseMoney } from './money';
+import { moneyExamples, normaliseMoneyText, parseMoney } from './money';
 
 const props = withDefaults(
   defineProps<{
@@ -60,7 +61,11 @@ const readError = computed(() => {
   if (!props.money) return '';
   const read = parseMoney(text.value, { money: props.money, signed: props.signed });
   if (read.ok) return '';
-  if (read.reason === 'not_amount') return t(props.signed ? 'moneyInput.notAmountSigned' : 'moneyInput.notAmount');
+  if (read.reason === 'not_amount') {
+    // Its examples in the field's money: «12,50» is no amount in yen (ui#140).
+    const { amount, supplement, discount } = moneyExamples(locale.value, props.money);
+    return props.signed ? t('moneyInput.notAmountSigned', { supplement, discount }) : t('moneyInput.notAmount', { amount });
+  }
   if (read.reason === 'negative') return t('moneyInput.negative');
   return t('moneyInput.ambiguous', {
     typed: text.value.trim(),

@@ -8,11 +8,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Money } from '../format';
-import { moneyFieldText, normaliseMoneyText, parseMoney } from './money';
-
-const EUR: Money = { currency: 'EUR', decimals: 2 };
-const PLN: Money = { currency: 'PLN', decimals: 2 };
-const JPY: Money = { currency: 'JPY', decimals: 0 };
+import { EUR, JPY, KWD, PLN } from './__tests__/moneys';
+import { moneyExamples, moneyFieldText, normaliseMoneyText, parseMoney } from './money';
 
 describe('parseMoney', () => {
   it('reads the decimal comma and the decimal point', () => {
@@ -148,5 +145,41 @@ describe('normaliseMoneyText', () => {
   it('a signed amount keeps its sign; the screen’s «+» goes', () => {
     expect(normaliseMoneyText('-0.5', 'es', { signed: true })).toBe('-0,50');
     expect(normaliseMoneyText('+1,00 zł', 'es', { signed: true, money: PLN })).toBe('1,00');
+  });
+});
+
+// ui#140: «12,50» is no amount in yen. The examples the field's «not an amount» gives are written as the field writes an
+// amount of its money: cut to its decimals, never to zero, so copying one clears the warning in every currency.
+describe('moneyExamples (ui#140)', () => {
+  it('carries the decimals of the field’s money: «12,50» in euros, «12» in yen, «12,500» in dinars', () => {
+    expect([EUR, JPY, KWD].map((money) => moneyExamples('es', money))).toEqual([
+      { amount: '12,50', supplement: '1,50', discount: '-0,50' },
+      { amount: '12', supplement: '1', discount: '-1' },
+      { amount: '12,500', supplement: '1,500', discount: '-0,500' },
+    ]);
+    expect(moneyExamples('en', KWD)).toEqual({ amount: '12.500', supplement: '1.500', discount: '-0.500' });
+  });
+
+  it('while the money is unknown, two decimals, as the field reads it', () => {
+    expect(moneyExamples('en')).toEqual({ amount: '12.50', supplement: '1.50', discount: '-0.50' });
+  });
+
+  it('each example is an amount of its money, the discount with its sign: copying one clears the warning', () => {
+    const read = (text: string, money: Money, signed = false) => {
+      const reading = parseMoney(text, { money, signed });
+      return reading.ok ? reading.cents : reading.reason;
+    };
+    const readings = (locale: string, money: Money) => {
+      const { amount, supplement, discount } = moneyExamples(locale, money);
+      return [read(amount, money), read(supplement, money, true), read(discount, money, true)];
+    };
+    expect([EUR, JPY, KWD].flatMap((money) => [readings('es', money), readings('en', money)])).toEqual([
+      [1250, 150, -50],
+      [1250, 150, -50],
+      [12, 1, -1],
+      [12, 1, -1],
+      [12500, 1500, -500],
+      [12500, 1500, -500],
+    ]);
   });
 });
