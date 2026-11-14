@@ -1,0 +1,173 @@
+{
+  "src/components/Assistant/deviceVoice.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/Assistant/dictation.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/Assistant/grounding.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/Assistant/guide.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/components/Assistant/markdown.ts": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "src/components/Assistant/nativeVoice.ts": {
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "src/components/Assistant/readAloud.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/Assistant/state.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "src/components/Combo/Combo.vue": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/DataTable/model.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/DataTable/useDataTableLayout.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/DataTable/useFilterSheet.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/FormModal/settingsForm.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/MoneyInput/money.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/StatusPill/statuses.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/components/UsageMeter/usage.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/sdk/allauth.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 3
+    }
+  },
+  "src/sdk/errors.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/sdk/live-client.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/sdk/optimistic.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/sdk/print-channel.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/sdk/sse-parser.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/sdk/stream-manager.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/sdk/subscription-registry.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/sdk/use-live.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/shell/device-printer.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/shell/tabbar.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/shell/theme.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/shell/toast.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/testing/mail.ts": {
+    "max-params": {
+      "count": 1
+    }
+  }
+}

@@ -25,4 +25,19 @@ export default [
     ignores: ["src/sdk/**"],
     rules: { "no-restricted-globals": ["error", ...restricted] },
   },
+  // A function a person can follow. The ones that already broke these limits are frozen in
+  // eslint-suppressions.json, which ESLint fails on once a suppression is no longer needed.
+  {
+    rules: {
+      complexity: ["error", 15],
+      "max-depth": ["error", 4],
+      "max-params": ["error", 3],
+      "max-lines-per-function": ["error", { max: 50, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  // A test's describe block is one long function, and a test helper takes what the case needs.
+  {
+    files: ["**/*.test.*", "**/*.spec.*", "**/__tests__/**", "**/e2e/**"],
+    rules: { "max-params": "off", "max-lines-per-function": "off" },
+  },
 ];
