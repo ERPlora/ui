@@ -36,8 +36,9 @@ export default [
     },
   },
   // A test's describe block is one long function, and a test helper takes what the case needs.
+  // The extensions are named: a bare `*.test.*` would make ESLint parse a `*.test.sh` script.
   {
-    files: ["**/*.test.*", "**/*.spec.*", "**/__tests__/**", "**/e2e/**"],
+    files: ["**/*.{test,spec}.{ts,tsx,js,mjs,cjs,vue}", "**/__tests__/**", "**/e2e/**"],
     rules: { "max-params": "off", "max-lines-per-function": "off" },
   },
 ];

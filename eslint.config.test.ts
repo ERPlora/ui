@@ -78,4 +78,11 @@ describe("eslint config", () => {
     expect(limits["max-params"]?.[0]).toBe(0);
     expect(limits["max-lines-per-function"]?.[0]).toBe(0);
   });
+
+  it.each([".githooks/pre-push.test.sh", "scripts/release.spec.sh", "src/theme.test.css"])(
+    "does not try to parse %s as JavaScript because its name looks like a test",
+    async (file) => {
+      expect(await new ESLint({ cwd: REPO_ROOT }).isPathIgnored(file)).toBe(true);
+    },
+  );
 });
