@@ -8,8 +8,8 @@ import { describe, expect, it } from "vitest";
 
 // A person has to be able to hold a file in their head: production code stops at 1,000 physical lines
 // and a test file at 1,500. Files that were already longer are frozen in `.file-size-allow`, one line
-// per file (`<ceiling> <path> <issue>`), and that list, like ESLint's bulk suppressions of the function
-// limits, can only shrink.
+// per file (`<ceiling> <path> <issue>`, the ceiling being the size rounded up to a hundred), and that
+// list, like ESLint's bulk suppressions of the function limits, can only shrink.
 const LIMITS = { production: 1000, test: 1500 } as const;
 const CODE_FILE = /\.(?:ts|tsx|js|mjs|cjs|vue|css|html|sh)$/;
 const TEST_FILE = /\.(?:test|spec)\.[^/]+$|(?:^|\/)(?:__tests__|e2e)\//;
@@ -49,7 +49,15 @@ function exceptionProblems({ path, ceiling }: Exception, lines: number | undefin
   const limit = limitFor(path);
   if (lines <= limit) return [`${path}: ${lines} lines fit under the ${limit}-line limit; remove its line from ${ALLOW_LIST}`];
   if (lines > ceiling) return [`${path}: ${lines} lines, over its ceiling of ${ceiling} in ${ALLOW_LIST}`];
+  // The ceiling follows the file down, so the lines someone removes cannot quietly come back.
+  const expected = ceilingFor(lines);
+  if (ceiling > expected) return [`${path}: ${lines} lines; lower its ceiling in ${ALLOW_LIST} from ${ceiling} to ${expected}`];
   return [];
+}
+
+/** A file's ceiling: its size rounded up to a hundred. */
+function ceilingFor(lines: number): number {
+  return Math.ceil(lines / 100) * 100;
 }
 
 function sizeProblems(sizes: Map<string, number>, exceptions: Exception[]): string[] {
@@ -171,6 +179,17 @@ describe("file size", () => {
       "src/grown.vue: 2401 lines, over its ceiling of 2400 in .file-size-allow",
       "src/split.vue: 990 lines fit under the 1000-line limit; remove its line from .file-size-allow",
       "src/gone.test.ts: listed in .file-size-allow but no such code file; remove its line",
+    ]);
+  });
+
+  it("asks to lower a ceiling once its file shrinks below the ceiling's hundred", () => {
+    const exceptions = [{ ceiling: 2400, path: "src/a.vue", issue: "#1" }];
+    expect(sizeProblems(new Map([["src/a.vue", 2301]]), exceptions)).toEqual([]);
+    expect(sizeProblems(new Map([["src/a.vue", 2300]]), exceptions)).toEqual([
+      "src/a.vue: 2300 lines; lower its ceiling in .file-size-allow from 2400 to 2300",
+    ]);
+    expect(sizeProblems(new Map([["src/a.vue", 2150]]), exceptions)).toEqual([
+      "src/a.vue: 2150 lines; lower its ceiling in .file-size-allow from 2400 to 2200",
     ]);
   });
 
