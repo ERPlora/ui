@@ -140,8 +140,6 @@ describe("lint limits", () => {
   });
 
   // These read every file of the repository or ask git, which takes seconds on a busy machine.
-
-  // These read every file of the repository or ask git, which takes seconds on a busy machine.
   it("no comment in the code switches a size or function limit off, or loosens it", { timeout: 60_000 }, () => {
     const found = lintedFiles().flatMap((path) => silencedLimits(readRepoFile(path) ?? "").map((at) => `${path}:${at}`));
     expect(found).toEqual([]);
