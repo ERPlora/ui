@@ -79,6 +79,16 @@ describe("eslint config", () => {
     expect(limits["max-lines-per-function"]?.[0]).toBe(0);
   });
 
+  it("fails a Vue block past its limit, blank lines included: template 250, script 300 and style 150", async () => {
+    const path = "src/components/Long/Long.vue";
+    expect(await longBlocks(vueComponent({ template: 250, script: 300, style: 150 }), path)).toEqual([]);
+    expect(await longBlocks(vueComponent({ template: 251, script: 301, style: 151 }), path)).toEqual([
+      "template",
+      "script",
+      "style",
+    ]);
+  });
+
   it.each([".githooks/pre-push.test.sh", "scripts/release.spec.sh", "src/theme.test.css"])(
     "does not try to parse %s as JavaScript because its name looks like a test",
     async (file) => {
@@ -86,3 +96,26 @@ describe("eslint config", () => {
     },
   );
 });
+
+/** The blocks of a Vue component the lint fails as too long, in the order they appear. */
+async function longBlocks(code: string, filePath: string): Promise<string[]> {
+  const [result] = await new ESLint({ cwd: REPO_ROOT }).lintText(code, { filePath });
+  const blocks = result.messages.filter((message) => message.ruleId === "vue/max-lines-per-block");
+  expect(blocks.every((message) => message.severity === 2), JSON.stringify(blocks)).toBe(true);
+  return blocks.map((message) => code.split("\n")[message.line - 1].replace(/^<(\w+).*$/, "$1"));
+}
+
+/** `count` lines, every other one blank. */
+function lines(count: number, text: (n: number) => string): string {
+  return Array.from({ length: count }, (_, n) => (n % 2 ? "" : text(n))).join("\n");
+}
+
+/** A Vue component whose blocks hold the given number of lines between their opening and closing tags. */
+function vueComponent(blocks: { template: number; script: number; style: number }): string {
+  return [
+    `<template>\n${lines(blocks.template, (n) => `  <p>${n}</p>`)}\n</template>`,
+    `<script setup lang="ts">\n${lines(blocks.script, (n) => `const line${n} = ${n};`)}\n</script>`,
+    `<style scoped>\n${lines(blocks.style, (n) => `.line${n} { order: ${n}; }`)}\n</style>`,
+    "",
+  ].join("\n");
+}

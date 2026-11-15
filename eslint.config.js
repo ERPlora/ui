@@ -35,6 +35,11 @@ export default [
       "max-lines-per-function": ["error", { max: 50, skipBlankLines: true, skipComments: true }],
     },
   },
+  // A component measured by blocks: the function limits see neither its template nor its style.
+  {
+    files: ["**/*.vue"],
+    rules: { "vue/max-lines-per-block": ["error", { template: 250, script: 300, style: 150 }] },
+  },
   // A test's describe block is one long function, and a test helper takes what the case needs.
   // The extensions are named: a bare `*.test.*` would make ESLint parse a `*.test.sh` script.
   {
