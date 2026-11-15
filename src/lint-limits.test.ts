@@ -10,9 +10,11 @@ const LINTED_FILE = /\.(?:ts|tsx|js|mjs|cjs|vue)$/;
 const ESLINT_CONFIG = "eslint.config.js";
 // The rules that keep a function or a Vue block small, which no comment in the code may switch off.
 const LIMIT_RULES = new Set(["complexity", "max-depth", "max-params", "max-lines-per-function", "vue/max-lines-per-block"]);
-// `eslint-disable[-line|-next-line] <rules> -- <reason>` or `eslint <rule>: <options>`, in any kind of comment.
-const DIRECTIVE = /(?:\/\/|\/\*|<!--)\s*(eslint(?:-disable(?:-next-line|-line)?)?)(?![\w-])(.*)/;
-const DIRECTIVE_END = /\s--\s|\*\/|-->/;
+// A directive opens its comment, as ESLint reads it: right after `//` on the same line, or after `/*` or `<!--`
+// and any spaces or line breaks. `eslint-disable[-line|-next-line] <rules> -- <reason>` or `eslint <rule>: <options>`.
+const DIRECTIVE = /(?:\/\/[ \t]*|(\/\*|<!--)\s*)(eslint(?:-disable(?:-next-line|-line)?)?)(?![\w-])/g;
+const COMMENT_END: Record<string, string> = { "/*": "*/", "<!--": "-->" };
+const DESCRIPTION = /\s--\s/;
 const CONFIGURED_RULE = /([@\w/-]+)["']?\s*:/g;
 
 type Configs = { current: string; base: string };
@@ -33,15 +35,15 @@ function suppressionGrowth(current: Suppressions, base: Suppressions, configs: C
   );
 }
 
-
-/** The comments that switch a limit off, or loosen it, as `<line>: <directive>`. */
+/** The comments that switch a limit off, or loosen it, as `<line where the comment opens>: <directive>`. */
 function silencedLimits(text: string): string[] {
-  return text.split("\n").flatMap((line, index) => {
-    const match = DIRECTIVE.exec(line);
-    if (!match) return [];
-    const [, kind, rest] = match;
-    const body = rest.split(DIRECTIVE_END)[0].trim();
-    return silencesALimit(kind, body) ? [`${index + 1}: ${`${kind} ${body}`.trim()}`] : [];
+  return [...text.matchAll(DIRECTIVE)].flatMap((match) => {
+    const [opening, opener, kind] = match;
+    const start = match.index + opening.length;
+    const end = text.indexOf(opener ? COMMENT_END[opener] : "\n", start);
+    const body = text.slice(start, end === -1 ? undefined : end).split(DESCRIPTION)[0].replace(/\s+/g, " ").trim();
+    const line = text.slice(0, match.index).split("\n").length;
+    return silencesALimit(kind, body) ? [`${line}: ${`${kind} ${body}`.trim()}`] : [];
   });
 }
 
@@ -111,6 +113,17 @@ describe("lint limits", () => {
       `${block} eslint-env node */`,
       `${line} eslint-enable complexity`,
       `${line} see https:${line}eslint.org/docs/latest/rules/complexity`,
+      `${block}`,
+      `  eslint-disable complexity`,
+      `*/`,
+      `${block}`,
+      `  eslint complexity: ["error", 40]`,
+      `*/`,
+      `${block} eslint-disable`,
+      `   no-console,`,
+      `   max-params -- a reason`,
+      `   on two lines */`,
+      `${block} a note that mentions eslint-disable complexity in passing */`,
     ].join("\n");
     expect(silencedLimits(code)).toEqual([
       "1: eslint-disable-next-line complexity",
@@ -120,6 +133,9 @@ describe("lint limits", () => {
       "5: eslint-disable",
       "6: eslint-disable-next-line",
       '7: eslint max-lines-per-function: ["error", 500]',
+      "14: eslint-disable complexity",
+      '17: eslint complexity: ["error", 40]',
+      "20: eslint-disable no-console, max-params",
     ]);
   });
 

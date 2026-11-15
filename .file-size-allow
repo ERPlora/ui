@@ -1,28 +1,33 @@
 # Code files over their limit, checked by src/file-size.test.ts: TypeScript and JavaScript 300 lines (tests 500),
-# shell scripts 100, CSS and HTML 1,000 (tests 1,500); a Vue component is measured by blocks in the lint.
+# shell scripts 100 (shell tests 1,500), CSS and HTML 1,000 (tests 1,500). A Vue component is measured by blocks in
+# the lint and is listed here while a block of it is frozen in eslint-suppressions.json, so that it does not grow.
 # <ceiling> <path> <issue>: the ceiling is the file's exact size in lines. The list only shrinks: no new entries
 # and no higher ceilings. A file that shrinks lowers its ceiling to its new size and leaves once it fits its limit.
-1016 src/components/Assistant/AssistantPanel.test.ts #155
-583 src/components/Assistant/grounding.test.ts #155
-608 src/components/Assistant/state.test.ts #155
-413 src/components/Assistant/state.ts #155
-792 src/components/Combo/Combo.test.ts #155
-985 src/components/DataTable/DataTable.filters.test.ts #155
-538 src/components/DataTable/DataTable.fit.test.ts #155
-724 src/components/DataTable/DataTable.test.ts #155
-525 src/components/DataTable/DataTable.visual.test.ts #155
-561 src/components/DataTable/model.test.ts #155
-420 src/components/DataTable/model.ts #155
-569 src/components/DataTable/useDataTableLayout.ts #155
-1503 src/components/FormModal/FormModal.test.ts #151
-579 src/components/FormModal/settingsForm.test.ts #155
-952 src/sdk/allauth.test.ts #155
-416 src/sdk/allauth.ts #155
-341 src/sdk/print-channel.ts #155
-733 src/sdk/stream-manager.test.ts #155
-363 src/sdk/stream-manager.ts #155
-759 src/shell/App.test.ts #155
-957 src/shell/device-notices.test.ts #155
-452 src/shell/device-notices.ts #155
-342 src/shell/icons.ts #155
-542 src/shell/tabbar-peek.test.ts #155
+1016 src/components/Assistant/AssistantPanel.test.ts erplora-next#77
+616 src/components/Assistant/AssistantPanel.vue erplora-next#77
+583 src/components/Assistant/grounding.test.ts erplora-next#77
+608 src/components/Assistant/state.test.ts erplora-next#77
+413 src/components/Assistant/state.ts erplora-next#77
+792 src/components/Combo/Combo.test.ts erplora-next#77
+571 src/components/Combo/Combo.vue erplora-next#77
+985 src/components/DataTable/DataTable.filters.test.ts erplora-next#77
+538 src/components/DataTable/DataTable.fit.test.ts erplora-next#77
+724 src/components/DataTable/DataTable.test.ts erplora-next#77
+525 src/components/DataTable/DataTable.visual.test.ts erplora-next#77
+2368 src/components/DataTable/DataTable.vue erplora-next#86
+561 src/components/DataTable/model.test.ts erplora-next#77
+420 src/components/DataTable/model.ts erplora-next#77
+569 src/components/DataTable/useDataTableLayout.ts erplora-next#77
+1503 src/components/FormModal/FormModal.test.ts erplora-next#87
+603 src/components/FormModal/FormModal.vue erplora-next#77
+579 src/components/FormModal/settingsForm.test.ts erplora-next#77
+952 src/sdk/allauth.test.ts erplora-next#77
+416 src/sdk/allauth.ts erplora-next#77
+341 src/sdk/print-channel.ts erplora-next#77
+733 src/sdk/stream-manager.test.ts erplora-next#77
+363 src/sdk/stream-manager.ts erplora-next#77
+759 src/shell/App.test.ts erplora-next#77
+957 src/shell/device-notices.test.ts erplora-next#77
+452 src/shell/device-notices.ts erplora-next#77
+342 src/shell/icons.ts erplora-next#77
+542 src/shell/tabbar-peek.test.ts erplora-next#77
