@@ -82,7 +82,8 @@ describe('dismissToast', () => {
 });
 
 describe('one stack, painted by one component', () => {
-  it("nothing in the library draws its own toast with Ionic's toastController or ion-toast", () => {
+  // It reads every source file of the repository, which takes seconds on a busy machine.
+  it("nothing in the library draws its own toast with Ionic's toastController or ion-toast", { timeout: 60_000 }, () => {
     const own = /\btoastController\b|<ion-toast\b|\bIonToast\b/;
     const drawing = versionedFiles()
       .filter((path) => /^src\/.*\.(?:ts|vue)$/.test(path) && path !== 'src/shell/toast.test.ts')

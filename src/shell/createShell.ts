@@ -41,6 +41,7 @@ import './theme/tabbar.css';
 import './theme/polish.css';
 import './theme/global.css';
 
+import type { ActionNoticeSource } from './action-center/types';
 import AppRoot from './App.vue';
 import { installTrustedTypesPolicy } from './boot/trusted-types.boot';
 import { createShellI18n, type ShellI18nOptions, shellLocale } from './i18n';
@@ -80,10 +81,15 @@ export interface CreateShellOptions {
    */
   sidebar?: ShellSidebar;
   /**
-   * The project's pieces of the authenticated chrome (the hub's bell at the end of the topbar, «Upgrade
-   * plan» in the side menu's footer and the blocking strip over every screen). Default none.
+   * The project's pieces of the authenticated chrome (a piece at the end of the topbar and «Upgrade plan» in the
+   * side menu's footer). Default none.
    */
   chrome?: ShellChrome;
+  /**
+   * The source of the notices that need an action: the bell in the topbar, the card of a new one and the panel.
+   * Called once for each person who signs in. Default none: no bell, card or panel.
+   */
+  actionNotices?: () => ActionNoticeSource;
   /** App catalogues (`en` + `es`), merged over the shell's. */
   messages?: ShellI18nOptions['messages'];
   /** Router history. Default `createWebHistory()`. */
@@ -139,6 +145,7 @@ export async function createShell(options: CreateShellOptions): Promise<{ app: A
       home: options.home,
       sidebar: options.sidebar,
       chrome: options.chrome,
+      actionNotices: options.actionNotices,
       backgrounds: backgrounds.length > 0 ? backgrounds : undefined,
     },
     app,
