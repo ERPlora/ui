@@ -71,7 +71,8 @@
     "action": "Go to Home"
   },
   "toast": {
-    "close": "OK"
+    "close": "Close",
+    "region": "Notifications"
   },
   "inlineFeedback": {
     "dismiss": "Dismiss"

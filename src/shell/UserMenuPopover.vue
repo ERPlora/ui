@@ -72,7 +72,7 @@ async function signOut(): Promise<void> {
     await userMenu.logout?.();
   } catch (error) {
     console.error('shell: sign out failed', error);
-    void toastError(t('userMenu.logoutFailed'));
+    toastError(t('userMenu.logoutFailed'));
   }
 }
 </script>

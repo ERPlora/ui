@@ -104,9 +104,19 @@ el modo; sus valores exactos están en `src/shell/brandbook.ts` y se comprueban 
 | Transición | `--ep-transition` | 150 ms, suave |
 | Pulsación | `--ep-press-scale` | 0.98 |
 | Foco | `--ep-focus-ring` | Anillo del primario al 24 % |
+| Cristal (superficies flotantes) | `--ep-glass-bg`, `--ep-glass-backdrop`, `--ep-glass-border`, `--ep-glass-highlight` | Fondo del tema translúcido, desenfoque de 20 px y saturación del 180 %, borde de luz |
+| Sombra flotante | `--ep-shadow-float` | Dos capas: corta y nítida, larga y difusa |
+| Resorte | `--ep-spring`, `--ep-ease-out` | Entradas con un leve rebase; salidas cortas |
 
 La animación comunica respuesta, no entretiene. `prefers-reduced-motion` elimina desplazamientos y
 transiciones no esenciales. No usar glass o gradientes como fondo general de una pantalla de trabajo.
+
+El cristal (`theme/glass.css`, clase `.ep-glass`) es solo para lo que flota sobre la pantalla: hoy los
+avisos breves; el menú lateral, la barra superior y las tarjetas siguen sólidos. Apagado es el mismo
+diseño en opaco: con la clase `ep-opaque` en `<html>` (`setThemeTransparency(false)`), cuando el
+sistema pide menos transparencia y en un navegador sin `backdrop-filter`. El radio del desenfoque no se
+anima nunca, y nada por encima de una superficie de cristal anima `opacity` ni lleva `filter`: el
+cristal entra y sale con `transform`, y mientras se funde deja de ser cristal.
 
 ## 6. Componentes
 
@@ -121,6 +131,11 @@ transiciones no esenciales. No usar glass o gradientes como fondo general de una
 - **Formularios:** controles Ionic, etiquetas persistentes y errores junto al campo. `fill="outline"`
   siempre con `mode="md"`; los formularios no pierden sus valores al cambiar tamaño u orientación.
 - **Estados y avisos:** `StatusPill` e `InlineFeedback`; texto explícito y pares de tinte accesibles.
+- **Avisos breves (toasts):** se piden con `toastSuccess`, `toastError`, `toastInfo` o `toastWarning`
+  y los pinta una sola pila del shell (`ToastStack`): una píldora de cristal oscuro (clara en tema
+  oscuro), abajo en el centro sobre la barra inferior, o arriba con `position: 'top'`. Tres visibles
+  como mucho; con el ratón, el foco o un toque se despliegan y su tiempo se para. Se cierran
+  deslizándolos, con `Esc` o con su botón de cerrar (los fijos y los de error).
 - **Diálogos y hojas:** Ionic y `FormModal`; elevación `--ep-shadow-modal`, fondo de la paleta y foco
   devuelto al disparador al cerrar.
 

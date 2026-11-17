@@ -22,6 +22,12 @@ describe('shell barrel', () => {
       'toggleTheme',
       'toastError',
       'toastSuccess',
+      'toastInfo',
+      'toastWarning',
+      'toast',
+      'dismissToast',
+      'setThemeTransparency',
+      'themeTransparency',
     ]) {
       expect(shell, name).toHaveProperty(name);
     }
@@ -137,7 +143,7 @@ describe('shell barrel', () => {
   it('imports the boot hooks before any module that loads @ionic/vue', () => {
     const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'index.ts'), 'utf8');
     const firstIonicUser = Math.min(
-      ...["'./toast'", "'./createShell'", "'./AppPage.vue'", "'./router'"].map((m) => source.indexOf(m)),
+      ...["'./createShell'", "'./AppPage.vue'", "'./router'"].map((m) => source.indexOf(m)),
     );
     for (const hook of ['ionic-fill', 'ionic-select-text', 'ionic-select-interface']) {
       const at = source.indexOf(`import './boot/${hook}.boot';`);
