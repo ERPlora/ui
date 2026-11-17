@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { flushPromises, mount } from '@vue/test-utils';
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createCommentVNode, defineComponent, h, ref } from 'vue';
 import { parse } from 'vue/compiler-sfc';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
@@ -36,6 +36,9 @@ afterEach(() => {
   window.history.replaceState(null, '');
 });
 
+/** Whether the bar shows its menu button: it is always there, hidden (`display: none`) where there is no menu. */
+const menuButtonSeen = (bar: VueWrapper) => (bar.get('ion-menu-button').element as HTMLElement).style.display !== 'none';
+
 function mountTopbar(props: Record<string, unknown>, locale = 'en', slots = {}) {
   return mount(AppTopbar, {
     props: { title: 'Items', ...props },
@@ -68,8 +71,8 @@ describe('AppTopbar', () => {
     expect(title.attributes('aria-level')).toBeUndefined();
   });
 
-  it('has no menu button where there is no side menu: nobody signed in (useChromeVisible)', () => {
-    expect(mountTopbar({}).find('ion-menu-button').exists()).toBe(false);
+  it('hides the menu button where there is no side menu: nobody signed in (useChromeVisible)', () => {
+    expect(menuButtonSeen(mountTopbar({}))).toBe(false);
   });
 
   it('has no back button when backHref is empty', () => {
@@ -252,6 +255,7 @@ describe("AppTopbar with the hub's sidebar", () => {
 
   it('with the side menu, its button is always there (auto-hide off), labelled in the user language', () => {
     const en = mountHubTopbar().get('ion-buttons[slot="start"] ion-menu-button');
+    expect(menuButtonSeen(mountHubTopbar())).toBe(true);
     expect(en.classes()).toContain('menu-toggle');
     expect((en.element as HTMLElement & { autoHide?: boolean }).autoHide).toBe(false);
     expect(en.attributes('aria-label')).toBe('Open menu');
@@ -314,16 +318,16 @@ describe("AppTopbar with the hub's sidebar", () => {
 
   // A screen that asks for credentials, or paints its own frame, shows none of the authenticated chrome: no apps,
   // and no rail nor button of a menu that is not there (useChromeVisible): a customer's public page has none.
-  it('without a person signed in, or on a screen with its own frame, no apps, no rail toggle, no menu button', async () => {
+  it('without a person signed in, or on a screen with its own frame, no apps, no rail toggle, no menu button seen', async () => {
     const anonymous = mountHubTopbar({}, { me: null });
     expect(anonymous.find('[data-testid="topbar-apps"]').exists()).toBe(false);
     expect(anonymous.find('[data-testid="topbar-rail"]').exists()).toBe(false);
-    expect(anonymous.find('ion-menu-button').exists()).toBe(false);
+    expect(menuButtonSeen(anonymous)).toBe(false);
     await hubRouter.push('/welcome');
     const framed = mountHubTopbar();
     expect(framed.find('[data-testid="topbar-apps"]').exists()).toBe(false);
     expect(framed.find('[data-testid="topbar-rail"]').exists()).toBe(false);
-    expect(framed.find('ion-menu-button').exists()).toBe(false);
+    expect(menuButtonSeen(framed)).toBe(false);
   });
 
   // The project's piece of the bar (the hub's bell) closes it, after «My apps»; it is authenticated
