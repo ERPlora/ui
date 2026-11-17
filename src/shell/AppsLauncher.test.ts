@@ -234,10 +234,10 @@ describe('AppsLauncher: an app whose page fails to load', () => {
     expect(reopen).not.toHaveBeenCalled();
     expect(router.currentRoute.value.path).toBe('/demo/items');
     expect(toast).toHaveBeenCalledOnce();
-    const [message, , , id, action] = toast.mock.calls[0];
+    const { message, id, action } = toast.mock.calls[0][0];
     expect(message).toBe('Could not open Sales and point of sale. Check the connection and try again.');
     expect(id).toBe('view-load-failed');
-    expect(action.text).toBe('Retry');
+    expect(action.label).toBe('Retry');
     wrapper.unmount();
   });
 
@@ -265,7 +265,7 @@ describe('AppsLauncher: an app whose page fails to load', () => {
     await flushPromises();
     expect(router.currentRoute.value.path).toBe('/demo/items');
     expect(toast).toHaveBeenCalledOnce();
-    expect(toast.mock.calls[0][3]).toBe('view-load-failed');
+    expect(toast.mock.calls[0][0].id).toBe('view-load-failed');
     wrapper.unmount();
   });
 
@@ -280,19 +280,19 @@ describe('AppsLauncher: an app whose page fails to load', () => {
     expect(error).toHaveBeenCalled();
     expect(reopen).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledOnce();
-    const [message, color, duration, id, action] = toast.mock.calls[0];
+    const { message, tone, duration, id, action } = toast.mock.calls[0][0];
     expect(message).toBe('Could not open Sales and point of sale. Check the connection and try again.');
-    expect(color).toBe('danger');
+    expect(tone).toBe('error');
     expect(duration).toBe(0);
     expect(id).toBe('apps-launcher-open');
-    expect(action.text).toBe('Retry');
+    expect(action.label).toBe('Retry');
 
     // The browser keeps a failed dynamic import failed for the life of the document (Chromium: no new
     // request, the same error), so a Retry inside the SPA would fail again: Retry loads the app's
     // page afresh, as Vite recommends for a chunk that did not load.
     const assign = vi.fn();
     vi.stubGlobal('location', { ...window.location, assign });
-    action.handler();
+    action.run();
     await flushPromises();
     expect(assign).toHaveBeenCalledWith('/sale/tickets');
     vi.unstubAllGlobals();

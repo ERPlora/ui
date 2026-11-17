@@ -67,7 +67,7 @@ async function send(): Promise<void> {
   try {
     await report(client, input);
     open.value = false;
-    void toastSuccess(t('assistant.report.sent'));
+    toastSuccess(t('assistant.report.sent'));
     emit('close');
   } catch {
     error.value = { message: t('assistant.report.failed') };

@@ -40,6 +40,7 @@ describe('theme tokens: ours (--ep-*), none of OutfitKit', () => {
     const expected: Record<string, string[]> = {
       '--ep-radius': ['14px'],
       '--ep-radius-sm': ['10px'],
+      '--ep-radius-md': ['12px'],
       '--ep-radius-pill': ['999px'],
       '--ep-radius-lg': ['16px'],
       '--ep-radius-sheet-top': ['18px 18px 0 0'],

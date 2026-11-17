@@ -71,7 +71,8 @@
     "action": "Ir a Inicio"
   },
   "toast": {
-    "close": "Aceptar"
+    "close": "Cerrar",
+    "region": "Notificaciones"
   },
   "inlineFeedback": {
     "dismiss": "Cerrar"

@@ -28,6 +28,7 @@ import { useChromeVisible, useShellConfig } from './shell-config';
 import { railCollapsed, type ShellSidebarItem, useSidebarGroups } from './sidebar';
 import SidebarInstallQr from './SidebarInstallQr.vue';
 import { useSurface } from './surface';
+import ToastStack from './ToastStack.vue';
 import UserMenuPopover from './UserMenuPopover.vue';
 
 /** Stable id of the main menu, so we never depend on which one Ionic considers "open". */
@@ -328,5 +329,6 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
         :key="`${screenKey}:${index}`"
       />
     </template>
+    <ToastStack />
   </ion-app>
 </template>

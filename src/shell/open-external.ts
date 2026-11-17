@@ -21,6 +21,6 @@ export function openExternalLink(url: string, event: Event): void {
   event.preventDefault();
   invoke(OPEN_EXTERNAL_COMMAND, { url }).catch((error: unknown) => {
     console.error('shell: open_external_url failed', error);
-    void toastError(shellText('userMenu.openFailed'));
+    toastError(shellText('userMenu.openFailed'));
   });
 }
