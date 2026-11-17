@@ -165,7 +165,6 @@ const PORTED: Record<string, string> = {
   '.empty .empty-ic, .load-error .empty-ic': '.data-table__empty .data-table__state-icon, .data-table__error .data-table__state-icon',
   '.actions': '.data-table__actions',
   '.actions ion-button': '.data-table__actions ion-button',
-  '.actions .action-gap': '.data-table__actions .data-table__action-gap',
   '.sr-only': '.data-table__sr-only',
   '@media (pointer: coarse), (max-width: 834px) || .add-btn': '@media (pointer: coarse), (max-width: 834px) || .data-table__add-button',
   '@media (pointer: coarse), (max-width: 834px) || .pager .nav ion-button': '@media (pointer: coarse), (max-width: 834px) || .data-table__pager-nav ion-button',
@@ -245,6 +244,7 @@ drop(
   '.filters-grow input, .filters-grow select',
   '.range',
 );
+drop('a row action hidden for the row is not there: no invisible stand-in keeps its place', '.actions .action-gap');
 drop('never painted by the Lit render either (dead CSS in the original)', '.panel', '.vsep', '.pager .nav .pp');
 drop(
   'the list/cards switch is an ion-segment, not a bordered box of square tool buttons (the only ones)',
@@ -318,7 +318,7 @@ const ADDED: Record<string, string> = {
   '.data-table__cell > :deep(span)': 'slotted content can shrink without hiding its status text',
   '@media (prefers-reduced-motion: reduce) || .data-table__row--data:hover, .data-table__row--data:active':
     'row motion is disabled with reduced motion in its own component',
-  '.data-table__actions .data-table__action--primary': 'the pinned action reads as the primary row action',
+  '.data-table__actions .data-table__action--main': 'the card’s main action reads as such',
   '.data-table__empty ion-button': 'the empty-state action has a 44px target',
   '.data-table__loading-label': 'the skeleton loading state keeps its visible loading label',
   '.data-table__skeletons': 'loading placeholders follow the responsive card grid',
@@ -332,7 +332,7 @@ const ADDED: Record<string, string> = {
   '.data-table__card-meta-icon': 'metadata uses the baked icon of its column',
   '.data-table__card-meta-label': 'the field name remains available to assistive technology',
   '.data-table__card-meta-value': 'metadata text can shrink and unfold without clipping',
-  '.data-table__card-actions :deep(.data-table__action--primary)': 'the primary card action takes the available width',
+  '.data-table__card-actions :deep(.data-table__action--main)': 'the card’s main action takes the available width',
   '.data-table__identity': 'the shared identity cell aligns its icon and text',
   '.data-table__identity-icon': 'the identity icon uses the theme tile',
   '.data-table__identity-text': 'the identity text can shrink around its icon',

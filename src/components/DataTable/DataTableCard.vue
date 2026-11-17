@@ -20,7 +20,6 @@ const props = withDefaults(
     icon?: string;
     fields?: DataTableColumn<T>[];
     actions: DataTableActionCell<T>;
-    gapLabels?: Map<DataTableAction<T>, string>;
     selectable?: boolean;
     selected?: boolean;
     clickable?: boolean;
@@ -29,7 +28,7 @@ const props = withDefaults(
     moreLabel?: string;
     testid?: string;
   }>(),
-  { rows: undefined, titleColumn: undefined, icon: undefined, fields: () => [], gapLabels: undefined, selectable: false, selected: false, clickable: false, hasActions: false, selectLabel: 'Select', moreLabel: 'More actions', testid: undefined },
+  { rows: undefined, titleColumn: undefined, icon: undefined, fields: () => [], selectable: false, selected: false, clickable: false, hasActions: false, selectLabel: 'Select', moreLabel: 'More actions', testid: undefined },
 );
 
 const emit = defineEmits<{
@@ -187,7 +186,7 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
       </template>
     </ion-card-content>
     <div
-      v-if="hasActions"
+      v-if="hasActions && (actions.items.length > 0 || actions.menu.length > 0 || !!$slots['row-actions'])"
       class="data-table__card-actions"
       @click.stop
     >
@@ -196,7 +195,6 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
         :row-id="rowId"
         :items="actions.items"
         :menu="actions.menu"
-        :gap-labels="gapLabels"
         :testid="testid"
         :more-label="moreLabel"
         @action="emit('action', $event)"
@@ -234,5 +232,5 @@ ion-card.data-table__card { margin: 0; }
 .data-table__field-text--unfolded { overflow-wrap: anywhere; }
 .data-table__card-actions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0.75rem; border-top: 1px solid var(--border-color-soft); }
 .data-table__card-actions .data-table__actions { width: 100%; flex-wrap: nowrap; }
-.data-table__card-actions :deep(.data-table__action--primary) { flex: 1 1 auto; }
+.data-table__card-actions :deep(.data-table__action--main) { flex: 1 1 auto; }
 </style>

@@ -2,13 +2,13 @@
 // The record list: Ionic controls inside, no network and no business logic.
 //
 // What fits is decided by the table's OWN box (a ResizeObserver on it), never by the window: with the
-// side menu open the box is far narrower than the screen. When the list does not fit, it gives up the
-// `priority: 'low'` columns and takes them back as the box widens; every row keeps one primary action
-// and a menu. The list becomes cards when it still does not fit (when `views` offers them and no view
-// was picked by hand). Only then does the list
-// scroll sideways inside its box; the page never does. At or below `cardBreakpoint` (a phone) the table
-// is cards whatever its box. The `row-actions` slot never folds: it is only for a control that cannot
-// be an action.
+// side menu open the box is far narrower than the screen. A list row shows two icon buttons at most and
+// «⋮» for the rest; a card, its main action and «⋮». When the list does not fit, it gives up the
+// `priority: 'low'` columns, then every row action but the pinned ones, and takes them back as the box
+// widens; then the list becomes cards (when `views` offers them and no view was picked by hand). Only
+// then does the list scroll sideways inside its box; the page never does. At or below `cardBreakpoint`
+// (a phone) the table is cards whatever its box. The `row-actions` slot never folds: it is only for a
+// control that cannot be an action.
 //
 // Server mode on a phone has no pager: `rows` is a WINDOW from the first row that «Load more» asks the
 // parent to grow (`loadMore`, never `pageChange`); past `maxWindow` it pages there too. Only the filter
@@ -58,18 +58,16 @@ import {
   filterKeys,
   filterRows,
   gridTemplate,
-  inlineActions,
   pageList,
   pagerState,
   phonePages,
   rowKeyOf,
   sameRecords,
   searchRows,
-  slotActions as slotActionsOf,
   sortRows,
   toneStyle,
-  visibleActions,
 } from './model';
+import { cardRowActions, listRowActions } from './rowActions';
 import { syncSearchbarInputName } from './searchbarName';
 import type {
   DataTableAction,
@@ -151,8 +149,8 @@ const props = withDefaults(
      *  slot: these fold into «⋮» when the box is narrow. Mark the row's main one `pinned`
      *  (it never folds) and a delicate one `menuOnly` (never a button). */
     actions?: DataTableAction<T>[];
-    /** Buttons a row keeps at the first fold (2 by default); the rest go into «⋮» (a `pinned` one counts
-     *  and always stays). Only applies when the list does not fit: with room, every action shows. */
+    /** Buttons a list row keeps, two at most (and by default); the rest go into «⋮», a `pinned` one
+     *  taking a place first. A card keeps one, its main action. */
     maxInlineActions?: number;
     /** A labelled create button in the toolbar (emits `add`). */
     addable?: boolean;
@@ -303,14 +301,10 @@ const hasSearch = computed(() => props.searchable || props.searchKeys.length > 0
 const viewToggle = computed(() => (Array.isArray(props.views) ? props.views.length > 1 : props.views === true));
 const cardViewEnabled = computed(() => (Array.isArray(props.views) ? props.views.includes('cards') : props.views === true));
 const hasActions = computed(() => props.actions.length > 0 || !!slots['row-actions']);
-/** The actions that get a place in the list: those some row shows. */
-const slotActions = computed(() => slotActionsOf(props.actions, props.rows));
 /** The ladder of THIS table: only the steps that free something. */
 const fitSteps = computed(() => {
   const steps: DataTableFitStep[] = [];
   if (yieldingColumns.value.length) steps.push('hideLow');
-  const max = props.maxInlineActions;
-  if (inlineActions(slotActions.value, 'extra', max).length < inlineActions(slotActions.value, 'none', max).length) steps.push('foldExtra');
   if (hasActions.value) steps.push('foldAll');
   return steps;
 });
@@ -679,8 +673,7 @@ function setSelection(next: Set<string>): void {
 }
 function toggleRow(key: string): void {
   const next = new Set(selection.value);
-  if (next.has(key)) next.delete(key);
-  else next.add(key);
+  if (!next.delete(key)) next.add(key);
   setSelection(next);
 }
 function toggleAll(): void {
@@ -775,9 +768,7 @@ function setPageSize(size: number): void {
   clientPage.value = 0;
   mobileShown.value = 0;
 }
-function onPageSizeSelect(ev: CustomEvent<{ value?: unknown }>): void {
-  setPageSize(Number(ev.detail.value));
-}
+const onPageSizeSelect = (ev: CustomEvent<{ value?: unknown }>): void => setPageSize(Number(ev.detail.value));
 function loadMore(): void {
   if (props.serverSide) emit('loadMore');
   else mobileShown.value = Math.min((mobileShown.value || pageSizeNow.value) + pageSizeNow.value, pager.value.count);
@@ -793,14 +784,9 @@ const alignClass = (column: DataTableColumn<T>): string | undefined =>
   column.align === 'right' ? 'data-table__cell--right' : column.align === 'center' ? 'data-table__cell--center' : undefined;
 
 // ── Row actions ───────────────────────────────────────────────────────────────────────────────
-function focusedActions(row: T): DataTableActionCell<T> {
-  const visible = visibleActions(props.actions, row);
-  const primary = visible.find((action) => action.pinned && !action.menuOnly) ?? visible.find((action) => !action.menuOnly);
-  return {
-    items: primary ? [{ action: primary, gap: false, primary: true }] : [],
-    menu: visible.filter((action) => action !== primary),
-  };
-}
+const listActions = (row: T): DataTableActionCell<T> =>
+  listRowActions(props.actions, row, { maxInline: props.maxInlineActions, folded: rowActionsCollapsed.value });
+const cardActions = (row: T): DataTableActionCell<T> => cardRowActions(props.actions, row);
 const isBusy = (action: DataTableAction<T>, row: T): boolean => action.loading?.(row) === true;
 const isDisabled = (action: DataTableAction<T>, row: T): boolean => isBusy(action, row) || action.disabled?.(row) === true;
 function runAction(action: DataTableAction<T>, row: T): void {
@@ -819,7 +805,7 @@ const menuRow = computed(() => {
 const menuActions = computed(() => {
   const row = menuRow.value;
   if (!row) return [];
-  return focusedActions(row).menu;
+  return (cardsOn.value ? cardActions(row) : listActions(row)).menu;
 });
 // The box widened under an open menu and every action is a button again: nothing left to offer.
 watch(
@@ -1220,7 +1206,7 @@ onUpdated(nameSearchBox);
           :title-column="cardTitleColumnOf(row)"
           :icon="cardIcon?.(row)"
           :fields="cardFields(row)"
-          :actions="focusedActions(row)"
+          :actions="cardActions(row)"
           :selectable="selectable"
           :selected="selection.has(keyOf(row))"
           :clickable="rowClickable"
@@ -1242,7 +1228,10 @@ onUpdated(nameSearchBox);
               :row="cardRow"
             />
           </template>
-          <template #row-actions="{ row: actionRow }">
+          <template
+            v-if="slots['row-actions']"
+            #row-actions="{ row: actionRow }"
+          >
             <slot
               name="row-actions"
               :row="actionRow"
@@ -1325,7 +1314,7 @@ onUpdated(nameSearchBox);
               :row-id="rowId(row, index)"
               :columns="listColumns"
               :template="template"
-              :actions="focusedActions(row)"
+              :actions="listActions(row)"
               :selectable="selectable"
               :selected="selection.has(keyOf(row))"
               :clickable="rowClickable"

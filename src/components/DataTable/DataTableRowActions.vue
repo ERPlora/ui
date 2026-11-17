@@ -11,11 +11,10 @@ const props = withDefaults(
     rowId: string;
     items: DataTableActionCell<T>['items'];
     menu: DataTableAction<T>[];
-    gapLabels?: Map<DataTableAction<T>, string>;
     testid?: string;
     moreLabel: string;
   }>(),
-  { gapLabels: undefined, testid: undefined },
+  { testid: undefined },
 );
 
 const emit = defineEmits<{
@@ -28,6 +27,8 @@ const icon = ionIconSrc;
 const busy = (action: DataTableAction<T>) => action.loading?.(props.row) === true;
 const disabled = (action: DataTableAction<T>) => busy(action) || action.disabled?.(props.row) === true;
 const hook = (id: string) => (props.testid ? `${props.testid}-row-${props.rowId}-${id}` : undefined);
+/** Its text is painted: the card's main button, `showLabel`, or no icon to stand for it. */
+const labelled = (action: DataTableAction<T>, primary?: boolean) => !!primary || iconWithLabel(action) || !action.icon;
 
 function run(action: DataTableAction<T>): void {
   if (!disabled(action)) emit('action', { action, row: props.row });
@@ -36,56 +37,46 @@ function run(action: DataTableAction<T>): void {
 
 <template>
   <div class="data-table__actions">
-    <template
-      v-for="{ action, gap, primary } in items"
+    <ion-button
+      v-for="{ action, primary } in items"
       :key="action.id"
+      :class="{ 'data-table__action--labelled': labelled(action, primary), 'data-table__action--main': primary }"
+      size="small"
+      :fill="primary || action.pinned ? 'outline' : 'clear'"
+      :style="toneStyle(action.color ?? 'medium', 'clear')"
+      :data-testid="hook(action.id)"
+      :disabled="disabled(action)"
+      :aria-disabled="disabled(action) ? 'true' : undefined"
+      :aria-label="actionLabel(action, row)"
+      :title="actionLabel(action, row)"
+      @click="run(action)"
     >
-      <ion-button
-        :class="{
-          'data-table__action-gap': gap,
-          'data-table__action--labelled': iconWithLabel(action) || primary,
-          'data-table__action--primary': (primary || action.pinned) && !gap,
-        }"
-        size="small"
-        :fill="!gap && (primary || action.pinned) ? 'outline' : 'clear'"
-        :style="toneStyle(action.color ?? 'medium', 'clear')"
-        :data-testid="gap ? undefined : hook(action.id)"
-        :data-slot-for="gap ? action.id : undefined"
-        :disabled="gap ? undefined : disabled(action)"
-        :aria-disabled="!gap && disabled(action) ? 'true' : undefined"
-        :aria-label="gap ? undefined : actionLabel(action, row)"
-        :title="gap ? undefined : actionLabel(action, row)"
-        :aria-hidden="gap ? 'true' : undefined"
-        :inert="gap"
-        @click="!gap && run(action)"
-      >
-        <ion-spinner
-          v-if="!gap && busy(action) && (iconWithLabel(action) || primary)"
-          slot="start"
-          name="dots"
-        />
-        <ion-spinner
-          v-else-if="!gap && busy(action)"
-          slot="icon-only"
-          name="dots"
-        />
-        <ion-icon
-          v-else-if="action.icon && (iconWithLabel(action) || primary)"
-          slot="start"
-          :icon="icon(action.icon)"
-          aria-hidden="true"
-        />
-        <ion-icon
-          v-else-if="action.icon"
-          slot="icon-only"
-          :icon="icon(action.icon)"
-          aria-hidden="true"
-        />
-        <template v-if="gap ? !action.icon || iconWithLabel(action) : iconWithLabel(action) || primary || (!action.icon && !busy(action))">
-          {{ gap ? gapLabels?.get(action) : actionLabel(action, row) }}
-        </template>
-      </ion-button>
-    </template>
+      <ion-spinner
+        v-if="busy(action) && labelled(action, primary)"
+        slot="start"
+        name="dots"
+      />
+      <ion-spinner
+        v-else-if="busy(action)"
+        slot="icon-only"
+        name="dots"
+      />
+      <ion-icon
+        v-else-if="action.icon && labelled(action, primary)"
+        slot="start"
+        :icon="icon(action.icon)"
+        aria-hidden="true"
+      />
+      <ion-icon
+        v-else-if="action.icon"
+        slot="icon-only"
+        :icon="icon(action.icon)"
+        aria-hidden="true"
+      />
+      <template v-if="labelled(action, primary)">
+        {{ actionLabel(action, row) }}
+      </template>
+    </ion-button>
     <slot
       name="row-actions"
       :row="row"
@@ -115,7 +106,6 @@ function run(action: DataTableAction<T>): void {
 .data-table__actions ion-button { flex: 0 0 auto; min-width: 44px; min-height: 44px; margin: 0; }
 .data-table__actions .data-table__action--labelled { font-size: 13px; font-weight: 500; --padding-start: 0.5rem; --padding-end: 0.6rem; }
 .data-table__action--labelled > [slot="start"] { margin-inline: 0 0.3rem; }
-.data-table__actions .data-table__action--primary { font-weight: 600; }
-.data-table__actions .data-table__action-gap { visibility: hidden; }
+.data-table__actions .data-table__action--main { font-weight: 600; }
 .data-table__actions ion-spinner { width: 18px; height: 18px; }
 </style>

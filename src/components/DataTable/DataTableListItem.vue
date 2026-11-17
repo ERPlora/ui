@@ -15,7 +15,6 @@ const props = withDefaults(
     columns: DataTableColumn<T>[];
     template: string;
     actions: DataTableActionCell<T>;
-    gapLabels?: Map<DataTableAction<T>, string>;
     selectable?: boolean;
     selected?: boolean;
     clickable?: boolean;
@@ -24,7 +23,7 @@ const props = withDefaults(
     moreLabel?: string;
     testid?: string;
   }>(),
-  { rows: undefined, gapLabels: undefined, selectable: false, selected: false, clickable: false, hasActions: false, selectLabel: 'Select', moreLabel: 'More actions', testid: undefined },
+  { rows: undefined, selectable: false, selected: false, clickable: false, hasActions: false, selectLabel: 'Select', moreLabel: 'More actions', testid: undefined },
 );
 
 const emit = defineEmits<{
@@ -118,7 +117,6 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
         :row-id="rowId"
         :items="actions.items"
         :menu="actions.menu"
-        :gap-labels="gapLabels"
         :testid="testid"
         :more-label="moreLabel"
         @action="emit('action', $event)"

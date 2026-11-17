@@ -174,8 +174,8 @@ export interface DataTableAction<T = Record<string, unknown>> {
   label: DataTableActionLabel<T>;
   /** Icon name (`ion:` by default, any baked set). Icon actions are icon-only buttons unless `showLabel`. */
   icon?: string;
-  /** An icon action that also paints its label («Open», «Pay»), in the list and the cards. The
-   *  «⋮» menu always shows labels. Default: icon-only (the universal ones: bin, PDF). */
+  /** An icon action that also paints its label in the list, for one whose icon does not say it alone
+   *  («See plans», «Retry»). The card's main button and the «⋮» menu always show labels. Default: icon-only. */
   showLabel?: boolean;
   /** Theme tone (`danger`, `primary`…), painted from its `--ion-color-*` token. Default `medium`. */
   color?: string;
@@ -183,9 +183,9 @@ export interface DataTableAction<T = Record<string, unknown>> {
   disabled?: (row: T) => boolean;
   /** In progress for the row: spinner instead of the icon, and disabled. */
   loading?: (row: T) => boolean;
-  /** Does not apply to the row: not rendered (the list keeps an invisible gap of its width). */
+  /** Does not apply to the row: not rendered. */
   hidden?: (row: T) => boolean;
-  /** The row's main action («Open», «Pay»): stays a button when the others fold into «⋮». */
+  /** The row's main action («Open», «Pay»): the card's main button, and a list button when the others fold into «⋮». */
   pinned?: boolean;
   /** A delicate action («Transfer ownership»): never a button, always inside «⋮» (list and cards). */
   menuOnly?: boolean;
@@ -199,7 +199,7 @@ export interface DataTableActionEvent<T = Record<string, unknown>> {
 
 export interface DataTableActionSlot<T = Record<string, unknown>> {
   action: DataTableAction<T>;
-  gap: boolean;
+  /** The card's main button: full width, with its text. */
   primary?: boolean;
 }
 

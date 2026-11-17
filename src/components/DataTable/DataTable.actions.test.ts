@@ -55,19 +55,31 @@ describe('row actions keep their own label and row', () => {
   });
 });
 
-describe('action state and tone survive the focused presentation', () => {
-  it('uses tokens, disables a busy primary action and keeps its label', async () => {
-    const t = mountTable({
+describe('action state and tone', () => {
+  const busy = (extra: Row = {}) =>
+    mountTable({
       rows: [{ id: '1', name: 'Invoice' }],
       columns: [{ key: 'name', label: 'Name' }],
       testid: 'invoice',
-      actions: [{ id: 'sync', label: 'Sync', icon: 'sync-outline', color: 'danger', loading: () => true }],
+      actions: [{ id: 'sync', label: 'Sync', icon: 'sync-outline', color: 'danger', loading: () => true, ...extra }],
     });
+
+  it('paints from the token; busy, an icon button turns into a spinner, disabled and still named', async () => {
+    const t = busy();
     await settle();
     const button = byTestId(t, 'invoice-row-1-sync')[0] as HTMLElement & { disabled?: boolean };
     expect(button.getAttribute('style')).toContain('--color: var(--ion-color-danger, #c5000f)');
     expect(button.disabled).toBe(true);
     expect(button.getAttribute('aria-disabled')).toBe('true');
+    expect(button.querySelector('ion-spinner[slot="icon-only"]')).not.toBeNull();
+    expect(text(button)).toBe('');
+    expect(button.getAttribute('aria-label')).toBe('Sync');
+  });
+
+  it('busy, a labelled action keeps its text beside the spinner', async () => {
+    const t = busy({ showLabel: true });
+    await settle();
+    const button = byTestId(t, 'invoice-row-1-sync')[0] as HTMLElement;
     expect(button.querySelector('ion-spinner[slot="start"]')).not.toBeNull();
     expect(text(button)).toBe('Sync');
   });
@@ -77,7 +89,11 @@ describe('action state and tone survive the focused presentation', () => {
       rows: [{ id: '1', name: 'Invoice' }],
       columns: [{ key: 'name', label: 'Name' }],
       testid: 'invoice',
-      actions: [{ id: 'open', label: 'Open', pinned: true }, { id: 'delete', label: 'Delete', disabled: () => true }],
+      actions: [
+        { id: 'open', label: 'Open', pinned: true },
+        { id: 'edit', label: 'Edit' },
+        { id: 'delete', label: 'Delete', disabled: () => true },
+      ],
     });
     await settle();
     await click(byTestId(t, 'invoice-row-1-menu')[0]);
@@ -101,8 +117,8 @@ describe('hidden actions leave no phantom controls', () => {
     const t = mountTable({ ...props, rows: [{ ...rows[0], refund: { amount: '10 €' } }, rows[1], rows[2]] });
     await settle();
     expect(actionCells(t).map((cell) => buttons(cell).map((button) => button.getAttribute('data-testid')))).toEqual([
-      ['invoice-row-issued-view', 'invoice-row-issued-menu'],
-      ['invoice-row-paid-view', 'invoice-row-paid-menu'],
+      ['invoice-row-issued-view', 'invoice-row-issued-refund', 'invoice-row-issued-menu'],
+      ['invoice-row-paid-view', 'invoice-row-paid-delete'],
       ['invoice-row-voided-view'],
     ]);
     expect(t.element.querySelectorAll('[data-slot-for]')).toHaveLength(0);
@@ -114,7 +130,7 @@ describe('hidden actions leave no phantom controls', () => {
     expect(buttons(actionCells(t)[0])).toHaveLength(1);
     await t.setProps({ rows: [{ ...rows[0], refund: { amount: '10 €' } }] });
     await settle();
-    expect(byTestId(t, 'invoice-row-issued-menu')).toHaveLength(1);
+    expect(text(byTestId(t, 'invoice-row-issued-refund')[0])).toBe('Refund 10 €');
   });
 });
 
@@ -154,17 +170,24 @@ describe('the row menu keeps the action contract', () => {
   const actions = [
     { id: 'open', label: 'Open', pinned: true },
     { id: 'edit', label: 'Edit', icon: 'create-outline' },
+    { id: 'archive', label: 'Archive', icon: 'archive-outline' },
     { id: 'delete', label: 'Delete', icon: 'trash-outline', color: 'danger' },
   ];
 
-  it('offers secondary actions with labels and tones and emits the row that opened it', async () => {
+  it('two buttons per row; the menu offers the rest with icon, label and tone, and emits the row that opened it', async () => {
     const t = mountTable({ rows, columns: [{ key: 'name', label: 'Name' }], actions, testid: 'record' });
     await settle();
+    expect(buttons(actionCells(t)[1]).map((button) => button.getAttribute('data-testid'))).toEqual([
+      'record-row-2-open',
+      'record-row-2-edit',
+      'record-row-2-menu',
+    ]);
     await click(byTestId(t, 'record-row-2-menu')[0]);
-    expect(menuItems(t).map(itemLabel)).toEqual(['Edit', 'Delete']);
+    expect(menuItems(t).map(itemLabel)).toEqual(['Archive', 'Delete']);
+    expect(menuItems(t).every((item) => item.querySelector('ion-icon[slot="start"]'))).toBe(true);
     expect(menuItems(t)[1].querySelector('ion-label')?.getAttribute('style')).toContain('color: var(--ion-color-danger, #c5000f)');
     await click(menuItems(t)[0]);
-    expect(t.emitted('action')).toEqual([[{ actionId: 'edit', row: rows[1] }]]);
+    expect(t.emitted('action')).toEqual([[{ actionId: 'archive', row: rows[1] }]]);
     expect(menuItems(t)).toHaveLength(0);
   });
 
@@ -172,9 +195,9 @@ describe('the row menu keeps the action contract', () => {
     const t = mountTable({ rows, columns: [{ key: 'name', label: 'Name' }], actions, testid: 'record' });
     await settle();
     expect(byTestId(t, 'record-row-1-open')[0].tagName).toBe('ION-BUTTON');
-    expect(byTestId(t, 'record-row-1-edit')).toHaveLength(0);
+    expect(byTestId(t, 'record-row-1-delete')).toHaveLength(0);
     await click(byTestId(t, 'record-row-1-menu')[0]);
-    expect(byTestId(t, 'record-row-1-edit')[0].tagName).toBe('ION-ITEM');
+    expect(byTestId(t, 'record-row-1-delete')[0].tagName).toBe('ION-ITEM');
   });
 });
 
@@ -190,7 +213,7 @@ describe('custom controls and the default primary action', () => {
     expect(text(cardsView.element.querySelector('.data-table__card-actions .own'))).toBe('Go 1');
   });
 
-  it('keeps only the primary button and the menu in the list and the cards', async () => {
+  it('the list keeps two buttons; the card keeps its main one, and «⋮» holds the rest', async () => {
     const props = {
       rows: [{ id: '1', name: 'Invoicing' }],
       columns: [{ key: 'name', label: 'App' }],
@@ -204,11 +227,13 @@ describe('custom controls and the default primary action', () => {
     const list = mountTable(props);
     const cardsView = mountTable({ ...props, views: true, defaultView: 'cards' });
     await settle();
-    for (const t of [list, cardsView]) {
-      const inline = [...t.element.querySelectorAll('[data-testid="apps-row"] ion-button')].map((button) => button.getAttribute('data-testid'));
-      expect(inline).toEqual(['apps-row-1-open', 'apps-row-1-menu']);
-    }
-    await click(byTestId(list, 'apps-row-1-menu')[0]);
-    expect(list.element.querySelectorAll('.data-table__row-menu ion-item')).toHaveLength(2);
+    const inline = (t: ReturnType<typeof mountTable>) =>
+      [...t.element.querySelectorAll('[data-testid="apps-row"] ion-button')].map((button) => button.getAttribute('data-testid'));
+    expect(inline(list)).toEqual(['apps-row-1-open', 'apps-row-1-toggle', 'apps-row-1-menu']);
+    expect(inline(cardsView)).toEqual(['apps-row-1-open', 'apps-row-1-menu']);
+    expect(text(byTestId(list, 'apps-row-1-open')[0]), 'icon-only in the list').toBe('');
+    expect(text(byTestId(cardsView, 'apps-row-1-open')[0]), 'with its text on the card').toBe('Open');
+    await click(byTestId(cardsView, 'apps-row-1-menu')[0]);
+    expect(menuItems(cardsView).map(itemLabel)).toEqual(['Turn off', 'Delete']);
   });
 });

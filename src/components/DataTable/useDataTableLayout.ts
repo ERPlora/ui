@@ -23,7 +23,7 @@ export interface RowActionsFitDecision {
 
 /** What the list gives up, in this order, when it does not fit its box. Only the steps that
  *  change something for the table at hand make its ladder. */
-export type DataTableFitStep = 'hideLow' | 'foldExtra' | 'foldAll';
+export type DataTableFitStep = 'hideLow' | 'foldAll';
 
 /** Input of `decideFitLevel`. */
 export interface FitLevelInput {
@@ -214,7 +214,6 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   /** The columns may cut their text: the rung whole did not fit. */
   const columnsClipped = computed(() => rung.value.clipped);
   const lowColumnsHidden = computed(() => fitApplied('hideLow'));
-  const extraActionsFolded = computed(() => fitApplied('foldExtra'));
   const rowActionsCollapsed = computed(() => fitApplied('foldAll'));
   const fitCards = ref(false);
   const contentAfter = ref(false);
@@ -560,7 +559,6 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     actionsLabelFits,
     rowActionsCollapsed,
     lowColumnsHidden,
-    extraActionsFolded,
     columnsClipped,
     contentWidths,
     fitCards,

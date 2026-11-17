@@ -103,3 +103,21 @@ describe('the default clear card body', () => {
     expect(wrapper.find('[data-testid="apps-plan"]').text()).toBe('Free');
   });
 });
+
+describe('the card footer', () => {
+  it('is left out when the row offers no action, so no empty bar is painted', () => {
+    const wrapper = mountCard({ hasActions: true, actions: { items: [], menu: [] } });
+    expect(wrapper.find('.data-table__card-actions').exists()).toBe(false);
+  });
+
+  it('holds the main action and «⋮» when there are some', () => {
+    const open = { id: 'open', label: 'Open', icon: 'ion:open-outline' };
+    const wrapper = mountCard({ hasActions: true, actions: { items: [{ action: open, primary: true }], menu: [] } });
+    expect(wrapper.find('.data-table__card-actions [data-testid="apps-row-1-open"]').text()).toBe('Open');
+  });
+
+  it('holds the consumer’s own controls even without actions', () => {
+    const wrapper = mountCard({ hasActions: true }, { 'row-actions': '<button class="own">Go</button>' });
+    expect(wrapper.find('.data-table__card-actions .own').exists()).toBe(true);
+  });
+});

@@ -28,9 +28,9 @@ describe('the default focused presentation', () => {
     expect(list).toContain('.data-table__row--data > .data-table__cell:not(.data-table__cell--actions) { flex-wrap: wrap;');
   });
 
-  it('keeps every row action at least 44×44, with the primary action outlined', () => {
+  it('keeps every row action at least 44×44, with the main and the pinned actions outlined', () => {
     expect(actions).toContain('min-width: 44px; min-height: 44px');
-    expect(actionsSource).toContain("primary || action.pinned) ? 'outline' : 'clear'");
+    expect(actionsSource).toContain(":fill=\"primary || action.pinned ? 'outline' : 'clear'\"");
   });
 
   it('uses 44px toolbar controls, not desktop-only smaller targets', () => {
