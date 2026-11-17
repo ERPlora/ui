@@ -173,8 +173,9 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
           :data-column="column.key"
         >
           <HubIcon
+            v-if="column.cardIcon"
             class="data-table__card-meta-icon"
-            :name="column.cardIcon ?? 'ion:information-circle-outline'"
+            :name="column.cardIcon"
           />
           <span class="data-table__card-meta-label">{{ column.label }}</span>
           <span class="data-table__card-meta-value">
@@ -241,7 +242,7 @@ ion-card.data-table__card { display: flex; flex-direction: column; margin: 0; }
 .data-table__card--clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 .data-table__card-head { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 0.5rem; }
 .data-table__card-icon { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: var(--ep-radius-sm); color: var(--ep-primary-text); background: var(--ep-primary-tint); font-size: 22px; }
-.data-table__card-title { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-size: 17px; line-height: 1.3; font-weight: 650; }
+.data-table__card-title { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: break-word; color: var(--ion-text-color); font-size: 17px; line-height: 1.3; font-weight: 650; }
 .data-table__card-body { display: flex; flex: 1 1 auto; flex-direction: column; gap: 0.75rem; }
 .data-table__card-status { display: flex; flex-wrap: wrap; gap: 0.375rem; min-width: 0; }
 .data-table__card-description { margin: 0; color: var(--ep-text-muted); font-size: 14px; line-height: 1.5; }

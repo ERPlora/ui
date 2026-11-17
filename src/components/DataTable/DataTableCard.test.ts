@@ -2,6 +2,8 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
 import DataTableCard from './DataTableCard.vue';
+import source from './DataTableCard.vue?raw';
+import identitySource from './DataTableIdentity.vue?raw';
 
 const row = { id: '1', name: 'Invoicing', total: '10,00 €' };
 const actions = { items: [], menu: [] };
@@ -160,5 +162,29 @@ describe('a field with a switch, on a card', () => {
     await toggle.trigger('click');
     expect(wrapper.emitted('toggle')).toEqual([[{ column: 'state', row, checked: true }]]);
     expect(wrapper.emitted('open')).toBeUndefined();
+  });
+});
+
+describe('a field line on a card', () => {
+  it('carries the icon its column declares, and none it does not declare', () => {
+    const wrapper = mountCard({
+      row: { id: '1', name: 'Invoicing', category: 'Finance', sku: 'INV-1' },
+      fields: [
+        { key: 'category', label: 'Category', cardIcon: 'ion:pricetag-outline' },
+        { key: 'sku', label: 'SKU' },
+      ],
+    });
+    const [category, sku] = wrapper.findAll('.data-table__card-meta');
+    expect(category.find('.data-table__card-meta-icon').exists()).toBe(true);
+    expect(sku.find('.data-table__card-meta-icon').exists()).toBe(false);
+    expect(sku.find('.data-table__card-meta-label').text()).toBe('SKU');
+  });
+});
+
+describe('a long name in a card head', () => {
+  it('wraps between words, never inside one', () => {
+    expect(source).toMatch(/\.data-table__card-title \{[^}]*overflow-wrap: break-word/);
+    expect(identitySource).toMatch(/\.data-table__identity-title \{[^}]*overflow-wrap: break-word/);
+    expect(identitySource).not.toContain('overflow-wrap: anywhere');
   });
 });

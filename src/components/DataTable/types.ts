@@ -169,7 +169,7 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   cell?: string;
   /** Paints the cell as the record's identity (list, and the head of its card); it takes the widest share of the row. */
   identity?: DataTableIdentity<T>;
-  /** Icon of the field's line on a card. Default: an information icon. */
+  /** Icon of the field's line on a card. Without it the line is its value alone. */
   cardIcon?: string;
   /** A switch for the row's state in this column (see `DataTableColumnToggle`). */
   toggle?: DataTableColumnToggle<T>;
