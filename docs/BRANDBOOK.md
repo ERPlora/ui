@@ -96,6 +96,7 @@ el modo; sus valores exactos están en `src/shell/brandbook.ts` y se comprueban 
 |---|---|---|
 | Radio normal | `--ep-radius` | 14 px |
 | Controles | `--ep-radius-sm` | 10 px |
+| Avisos en línea | `--ep-radius-md` | 12 px |
 | Tarjetas grandes | `--ep-radius-lg` | 16 px |
 | Píldoras | `--ep-radius-pill` | 999 px |
 | Elevación de superficie | `--ep-shadow-xs`, `--ep-shadow-sm` | Fina y corta |
