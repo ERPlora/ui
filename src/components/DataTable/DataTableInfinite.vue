@@ -21,6 +21,9 @@ const emit = defineEmits<{ more: [] }>();
 const THRESHOLD = 120;
 const scroller = ref<{ $el: HTMLElement & { complete?: () => Promise<void> } }>();
 const pending = ref(false);
+/** Ionic binds its scroller when its element is added: only once the table around it has its final classes (Vue
+ *  patches a parent's class after its children), or it keeps listening to the wrong one. */
+const placed = ref(false);
 /** How many rows there were when more were last asked for: an answer that adds none is not asked for again by itself. */
 let askedWith = -1;
 
@@ -67,11 +70,15 @@ watch(
     if (!props.failed) fillTheHost();
   },
 );
-onMounted(() => void nextTick(fillTheHost));
+onMounted(() => {
+  placed.value = true;
+  void nextTick(fillTheHost);
+});
 </script>
 
 <template>
   <ion-infinite-scroll
+    v-if="placed"
     ref="scroller"
     class="data-table__infinite"
     :threshold="`${THRESHOLD}px`"
