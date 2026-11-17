@@ -16,6 +16,8 @@ describe('shell catalogues', () => {
       'actionCenter.actionFailed',
       'actionCenter.arrival.close',
       'actionCenter.bell.empty',
+      'actionCenter.bell.failed',
+      'actionCenter.bell.loading',
       'actionCenter.bell.pending',
       'actionCenter.panel.close',
       'actionCenter.panel.count',

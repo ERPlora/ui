@@ -13,13 +13,15 @@ const SEVERITY_ICONS: Record<NoticeSeverity, string> = {
   info: 'ion:information-circle',
 };
 
-const { total, topSeverity, mostUrgent, dueProgress, open, pulse, openPanel, closePanel } = useActionCenter();
+const { loading, failed, total, topSeverity, mostUrgent, dueProgress, open, pulse, openPanel, closePanel } =
+  useActionCenter();
 const { t } = useI18n();
 const pulsing = shallowRef(false);
 let pulseTimer: ReturnType<typeof setTimeout> | undefined;
 
 const accessibleName = computed(() => {
-  if (!total.value || !topSeverity.value) return t('actionCenter.bell.empty');
+  if (loading.value) return t('actionCenter.bell.loading');
+  if (!total.value || !topSeverity.value) return t(failed.value ? 'actionCenter.bell.failed' : 'actionCenter.bell.empty');
   return t(
     'actionCenter.bell.pending',
     {

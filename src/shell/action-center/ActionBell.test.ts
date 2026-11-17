@@ -25,9 +25,10 @@ let wrapper: VueWrapper | undefined;
 let disconnect: (() => void) | undefined;
 let notices: ReturnType<typeof ref<readonly ActionNotice[] | undefined>>;
 
-function mountBell(items: readonly ActionNotice[] = [], locale = 'en'): VueWrapper {
-  notices = ref<readonly ActionNotice[] | undefined>(items);
-  disconnect = connectActionCenter({ notices: notices, failed: ref(false) });
+/** `null` items: the source has not answered yet. */
+function mountBell(items: readonly ActionNotice[] | null = [], locale = 'en', failed = false): VueWrapper {
+  notices = ref<readonly ActionNotice[] | undefined>(items ?? undefined);
+  disconnect = connectActionCenter({ notices: notices, failed: ref(failed) });
   wrapper = mount(ActionBell, {
     global: { plugins: [createShellI18n({ locale })] },
     attachTo: document.body,
@@ -48,6 +49,13 @@ describe('ActionBell', () => {
     expect(bell.find('.action-bell__severity').exists()).toBe(false);
     expect(unnamedButtons(bell.element)).toEqual([]);
     expect(unnamedIcons(bell.element)).toEqual([]);
+  });
+
+  // Before the source answers, or when it fails having given nothing, the bell does not know the count.
+  it('never says «nothing pending» while it does not know', () => {
+    expect(mountBell(null).get('.action-bell__name').text()).toBe('Notifications, loading');
+    cleanupCenter(wrapper, disconnect);
+    expect(mountBell([], 'es', true).get('.action-bell__name').text()).toBe('Avisos, no se pudieron cargar');
   });
 
   it('summarizes the total and highest severity with an icon, not colour alone', () => {

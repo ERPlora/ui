@@ -99,6 +99,8 @@
     "resolved": "Resuelto",
     "bell": {
       "empty": "Avisos, ninguno pendiente",
+      "loading": "Avisos, cargando",
+      "failed": "Avisos, no se pudieron cargar",
       "pending": "1 aviso pendiente. {severity}: {label} | {count} avisos pendientes. {severity}: {label}"
     },
     "severity": {

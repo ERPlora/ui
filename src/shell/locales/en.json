@@ -99,6 +99,8 @@
     "resolved": "Resolved",
     "bell": {
       "empty": "Notifications, nothing pending",
+      "loading": "Notifications, loading",
+      "failed": "Notifications, could not load them",
       "pending": "1 notification pending. {severity}: {label} | {count} notifications pending. {severity}: {label}"
     },
     "severity": {
