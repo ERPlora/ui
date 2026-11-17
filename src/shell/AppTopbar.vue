@@ -84,10 +84,12 @@ function goBack(): void {
   <ion-header class="ion-no-border app-topbar">
     <ion-toolbar>
       <ion-buttons slot="start">
-        <!-- `auto-hide` off: Ionic hides the button until its `ion-menu` registers, which
-             happens after the screen is painted, so a phone showed the page with no way out of it.
-             Hiding it where the menu is pinned (≥lg) is the stylesheet's job: `polish.css`. -->
+        <!-- Only where the shell has its side menu (the same gate): elsewhere it opened nothing. `auto-hide`
+             off: Ionic hides the button until its `ion-menu` registers, which happens after the screen is
+             painted, so a phone showed the page with no way out of it. Hiding it where the menu is pinned (≥lg)
+             is the stylesheet's job: `polish.css`. -->
         <ion-menu-button
+          v-if="chromeVisible"
           class="menu-toggle"
           :auto-hide="false"
           :aria-label="t('topbar.menu')"
