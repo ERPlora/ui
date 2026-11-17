@@ -198,9 +198,14 @@ function setSection(edge: ToastPosition, el: unknown): void {
   right: var(--assistant-width, 0px);
 }
 
+/* As wide as its longest message, from 390 px up to 672 px (Material's snackbar), before a message wraps. The toasts
+   share one grid cell, so each sizes the list and all take its width. */
 .ep-toast-stack__list {
   position: relative;
-  width: min(390px, 100%);
+  display: grid;
+  width: max-content;
+  min-width: min(390px, 100%);
+  max-width: min(672px, 100%);
   pointer-events: auto;
   transition: height 350ms var(--ep-spring);
 }
@@ -208,21 +213,20 @@ function setSection(edge: ToastPosition, el: unknown): void {
 /* Moved with `translate` and `scale`, never `transform`: TransitionGroup would take a transform transition for its
    own moves and fight the depth. */
 .ep-toast {
-  position: absolute;
-  left: 0;
-  right: 0;
+  position: relative;
+  grid-area: 1 / 1;
   translate: calc(var(--drag-x, 0px) + var(--leave-x, 0px)) calc(var(--y, 0px) + var(--drag-y, 0px) + var(--leave-y, 0px));
   scale: var(--scale, 1);
   transition: translate 350ms var(--ep-spring), scale 350ms var(--ep-spring), height 350ms var(--ep-spring);
 }
 
 [data-position='bottom'] .ep-toast {
-  bottom: 0;
+  align-self: end;
   transform-origin: bottom center;
 }
 
 [data-position='top'] .ep-toast {
-  top: 0;
+  align-self: start;
   transform-origin: top center;
 }
 

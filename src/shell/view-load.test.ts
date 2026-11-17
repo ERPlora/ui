@@ -59,6 +59,20 @@ async function tap(router: ReturnType<typeof setup>['router'], to: string): Prom
   await flushPromises();
 }
 
+/** The screen it was on is kept, and one toast that stays says the page could not open, with a Retry it returns. */
+function keptAndSaidSo({ router, redirect }: ReturnType<typeof setup>): { run: () => void } {
+  expect(redirect).not.toHaveBeenCalled();
+  expect(router.currentRoute.value.path).toBe('/');
+  expect(toast).toHaveBeenCalledOnce();
+  const { message, tone, duration, id, action } = toast.mock.calls[0][0];
+  expect(message).toBe('Could not open that page. Check the connection and try again.');
+  expect(tone).toBe('error');
+  expect(duration).toBe(0);
+  expect(id).toBe('view-load-failed');
+  expect(action.label).toBe('Retry');
+  return action;
+}
+
 let consoleError: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
@@ -123,17 +137,10 @@ describe('a screen whose file is gone after a deploy', () => {
   // or a blank first screen, with no way back to the till.
   it('a flaky network the browser still calls online: keeps the screen and says so, never a fresh document', async () => {
     vi.stubGlobal('fetch', noAnswer());
-    const { router, redirect } = setup();
-    await router.push('/');
-    await tap(router, '/verifactu');
-    expect(redirect).not.toHaveBeenCalled();
-    expect(router.currentRoute.value.path).toBe('/');
-    expect(toast).toHaveBeenCalledOnce();
-    const { message, duration, id, action } = toast.mock.calls[0][0];
-    expect(message).toBe('Could not open that page. Check the connection and try again.');
-    expect(duration).toBe(0);
-    expect(id).toBe('view-load-failed');
-    expect(action.label).toBe('Retry');
+    const shell = setup();
+    await shell.router.push('/');
+    await tap(shell.router, '/verifactu');
+    keptAndSaidSo(shell);
   });
 
   it('a check that never answers: after 5 s it stays and says so, never waits for ever', async () => {
@@ -213,24 +220,16 @@ describe('a screen whose file is gone after a deploy', () => {
 
   it('offline: keeps the screen it is on and says so, with a Retry that opens it afresh once back online (never silent)', async () => {
     const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
-    const { router, redirect } = setup();
-    await router.push('/');
-    await tap(router, '/verifactu');
-    expect(redirect).not.toHaveBeenCalled();
-    expect(router.currentRoute.value.path).toBe('/');
-    expect(toast).toHaveBeenCalledOnce();
-    const { message, tone, duration, id, action } = toast.mock.calls[0][0];
-    expect(message).toBe('Could not open that page. Check the connection and try again.');
-    expect(tone).toBe('error');
-    expect(duration).toBe(0);
-    expect(id).toBe('view-load-failed');
-    expect(action.label).toBe('Retry');
+    const shell = setup();
+    await shell.router.push('/');
+    await tap(shell.router, '/verifactu');
+    const action = keptAndSaidSo(shell);
     // A retry inside the SPA cannot work (the browser keeps a failed module import failed for the life of the
     // document): back online, Retry opens the screen in a fresh document.
     online.mockReturnValue(true);
     action.run();
     await flushPromises();
-    expect(redirect).toHaveBeenCalledWith('/verifactu');
+    expect(shell.redirect).toHaveBeenCalledWith('/verifactu');
   });
 
   it('says it in the language of the page', async () => {

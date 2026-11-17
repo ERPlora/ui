@@ -5,6 +5,15 @@ import type { Toast } from './toast-store';
 
 const messages = (list: readonly Toast[]): string[] => list.map((toast) => toast.message);
 
+/** A stack whose bottom edge is full: three toasts that stay, '1' the oldest. Returns it and the id of '1'. */
+function bottomFull() {
+  const store = createToastStore();
+  const first = store.show({ message: '1', duration: 0 });
+  store.show({ message: '2', duration: 0 });
+  store.show({ message: '3', duration: 0 });
+  return { store, first };
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
 });
@@ -60,10 +69,7 @@ describe('the stack', () => {
   });
 
   it('shows at most three per edge; the next waits and comes in when one leaves', () => {
-    const store = createToastStore();
-    const first = store.show({ message: '1', duration: 0 });
-    store.show({ message: '2', duration: 0 });
-    store.show({ message: '3', duration: 0 });
+    const { store, first } = bottomFull();
     store.show({ message: '4', duration: 0 });
     store.show({ message: 'Top', duration: 0, position: 'top' });
     expect(messages(store.bottom.value)).toEqual(['3', '2', '1']);
@@ -84,10 +90,7 @@ describe('the stack', () => {
   });
 
   it('a waiting toast replaced by id keeps waiting in its turn', () => {
-    const store = createToastStore();
-    const first = store.show({ message: '1', duration: 0 });
-    store.show({ message: '2', duration: 0 });
-    store.show({ message: '3', duration: 0 });
+    const { store, first } = bottomFull();
     store.show({ message: '4', id: 'four', duration: 0 });
     store.show({ message: '5', duration: 0 });
     store.show({ message: '4 again', id: 'four', duration: 0 });
@@ -197,10 +200,7 @@ describe('the time on screen', () => {
   });
 
   it('a toast that comes or takes its turn while paused counts its time from the resume', () => {
-    const store = createToastStore();
-    const first = store.show({ message: '1', duration: 0 });
-    store.show({ message: '2', duration: 0 });
-    store.show({ message: '3', duration: 0 });
+    const { store, first } = bottomFull();
     store.show({ message: '4', duration: 1000 });
     store.pause();
     store.show({ message: 'Top', duration: 1000, position: 'top' });

@@ -11,6 +11,7 @@ vi.mock('./toast-anchor', async () => {
   return { useToastAnchor: () => anchor.bar };
 });
 
+import { componentCss, declaration } from '../components/__tests__/themeContrast';
 import { createShellI18n } from './i18n';
 import { toast, toastError, toastInfo, toastSuccess } from './toast';
 import { useToasts } from './toast-store';
@@ -127,6 +128,17 @@ describe('ToastStack: what it paints', () => {
     anchor.bar.value = bar;
     await flushPromises();
     expect((stackAt('bottom').element as HTMLElement).style.bottom).toBe('80px');
+  });
+
+  it('grows with its longest message up to its widest before a message takes a second line, every toast as wide', () => {
+    const css = componentCss(join(dirname(fileURLToPath(import.meta.url)), 'ToastStack.vue'));
+    expect(declaration(css, '.ep-toast-stack__list', 'width')).toBe('max-content');
+    expect(declaration(css, '.ep-toast-stack__list', 'min-width')).toBe('min(390px, 100%)');
+    expect(declaration(css, '.ep-toast-stack__list', 'max-width')).toBe('min(672px, 100%)');
+    // In one grid cell, not absolute: an absolute toast would not size the list, and every message would wrap at 390 px.
+    expect(declaration(css, '.ep-toast-stack__list', 'display')).toBe('grid');
+    expect(declaration(css, '.ep-toast', 'grid-area')).toBe('1 / 1');
+    expect(declaration(css, '.ep-toast', 'position')).not.toBe('absolute');
   });
 
   it('is centred on the content beside the docked assistant, not on the window', () => {
