@@ -24,13 +24,9 @@ import {
   IonButton,
   IonCheckbox,
   IonChip,
-  IonContent,
   IonIcon,
   IonInput,
-  IonItem,
   IonLabel,
-  IonList,
-  IonPopover,
   IonSearchbar,
   IonSegment,
   IonSegmentButton,
@@ -42,11 +38,11 @@ import { computed, nextTick, onMounted, onUpdated, ref, shallowRef, useId, watch
 import { ionIconSrc } from '../../shell/icons';
 import DataTableCard from './DataTableCard.vue';
 import DataTableListItem from './DataTableListItem.vue';
+import DataTableRowMenu from './DataTableRowMenu.vue';
 import DataTableLookup from './DataTableLookup.vue';
 import DataTableState from './DataTableState.vue';
 import { useDataTableLabels } from './labels';
 import {
-  actionLabel,
   activeFilters,
   cardTitleColumn as titleColumnByText,
   cellText,
@@ -65,7 +61,6 @@ import {
   sameRecords,
   searchRows,
   sortRows,
-  toneStyle,
 } from './model';
 import { cardRowActions, listRowActions } from './rowActions';
 import { syncSearchbarInputName } from './searchbarName';
@@ -787,8 +782,6 @@ const alignClass = (column: DataTableColumn<T>): string | undefined =>
 const listActions = (row: T): DataTableActionCell<T> =>
   listRowActions(props.actions, row, { maxInline: props.maxInlineActions, folded: rowActionsCollapsed.value });
 const cardActions = (row: T): DataTableActionCell<T> => cardRowActions(props.actions, row);
-const isBusy = (action: DataTableAction<T>, row: T): boolean => action.loading?.(row) === true;
-const isDisabled = (action: DataTableAction<T>, row: T): boolean => isBusy(action, row) || action.disabled?.(row) === true;
 function runAction(action: DataTableAction<T>, row: T): void {
   emit('action', { actionId: action.id, row });
 }
@@ -822,7 +815,7 @@ function openRowMenu(ev: Event, row: T): void {
 }
 function pickMenuAction(action: DataTableAction<T>): void {
   const row = menuRow.value;
-  if (!row || isDisabled(action, row)) return;
+  if (!row) return;
   rowMenuOpen.value = false;
   runAction(action, row);
 }
@@ -1348,41 +1341,16 @@ onUpdated(nameSearchBox);
         </div>
       </template>
 
-      <!-- The row's «⋮» menu, for the list and the cards (Ionic presents it out of the table). -->
-      <ion-popover
-        v-if="actions.length && menuRow"
-        class="data-table__row-menu"
-        :is-open="rowMenuOpen"
+      <DataTableRowMenu
+        v-if="actions.length"
+        :open="rowMenuOpen"
         :event="rowMenuEvent"
-        :dismiss-on-select="true"
-        @did-dismiss="rowMenuOpen = false"
-      >
-        <ion-content>
-          <ion-list lines="none">
-            <ion-item
-              v-for="action in menuActions"
-              :key="action.id"
-              :button="true"
-              :detail="false"
-              :data-testid="tid(`row-${keyOf(menuRow)}-${action.id}`)"
-              :disabled="isDisabled(action, menuRow)"
-              :aria-disabled="isDisabled(action, menuRow) ? 'true' : undefined"
-              @click="pickMenuAction(action)"
-            >
-              <ion-icon
-                v-if="action.icon"
-                slot="start"
-                :icon="icon(action.icon)"
-                :style="toneStyle(action.color, 'text')"
-                aria-hidden="true"
-              />
-              <ion-label :style="toneStyle(action.color, 'text')">
-                {{ actionLabel(action, menuRow) }}
-              </ion-label>
-            </ion-item>
-          </ion-list>
-        </ion-content>
-      </ion-popover>
+        :row="menuRow"
+        :actions="menuActions"
+        :hook="menuRow ? tid(`row-${keyOf(menuRow)}`) : undefined"
+        @pick="pickMenuAction"
+        @dismiss="rowMenuOpen = false"
+      />
 
       <div
         v-if="showPager"
