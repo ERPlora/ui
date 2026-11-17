@@ -21,8 +21,8 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - decir que no hay datos → `EmptyState`
 - confirmar algo que la persona acaba de hacer → `toastSuccess`, `toastError`…
 - un aviso que solo tiene sentido junto a lo que afecta (un error de carga, el rechazo de un formulario) → `InlineFeedback`
-- un aviso que exige una acción y sigue siendo verdad hasta que se resuelve → el centro de avisos del shell (en curso,
-  ver «Lo que aún no existe»), nunca un toast ni una caja suelta en la página
+- un aviso que exige una acción y sigue siendo verdad hasta que se resuelve → el centro de avisos del shell
+  (`createShell({ actionNotices })`, `ActionBell`), nunca un toast ni una caja suelta en la página
 - pedir confirmación antes de algo irreversible → `useConfirm` (o `ConfirmDialog`)
 - el estado de un registro en una etiqueta de color → `StatusPill`
 - cuánto se ha gastado de un límite / una cifra de uso → `UsageMeter` / `UsageCounter`
@@ -156,7 +156,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 `import { InlineFeedback } from '@erplora/ui/components'`
 - **Para qué sirve:** un aviso que se queda en el flujo de la pantalla (información, éxito, advertencia o error), con acciones a su lado.
 - **Úsalo cuando** tiene que seguir visible mientras dure lo que dice: un error de carga con «Reintentar», un rechazo, una advertencia.
-- **No lo uses cuando** confirma lo que la persona acaba de hacer → `toast`; exige una acción hasta resolverse → el centro de avisos (en curso); pregunta algo → `useConfirm`.
+- **No lo uses cuando** confirma lo que la persona acaba de hacer → `toast`; exige una acción hasta resolverse → el centro de avisos (`ActionBell`); pregunta algo → `useConfirm`.
 - **API:** props `tone` (`info`, `success`, `warning`, `danger`, `neutral`), `heading`, `icon`, `dismissible` (evento `dismiss`), `role` (`status`, `alert`); slot por defecto y slot `actions`.
 - **Ionic:** `ion-icon`.
 
@@ -164,7 +164,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 `import { toastSuccess, toastError, toast, dismissToast } from '@erplora/ui/shell'` (y `toastWarning`, `toastInfo`)
 - **Para qué sirve:** el aviso pasajero que confirma lo que la persona acaba de hacer. Lo pinta la pila que el shell monta una sola vez: ninguna pantalla monta un toast.
 - **Úsalo cuando** «Guardado», «No se pudo enviar» o un aviso con una acción («Deshacer») después de una orden.
-- **No lo uses cuando** el aviso solo tiene sentido junto a lo que afecta → `InlineFeedback`; exige una acción hasta resolverse → el centro de avisos (en curso); nunca un `ion-toast` ni un `toastController` propios.
+- **No lo uses cuando** el aviso solo tiene sentido junto a lo que afecta → `InlineFeedback`; exige una acción hasta resolverse → el centro de avisos (`ActionBell`); nunca un `ion-toast` ni un `toastController` propios.
 - **API:** síncronas. `toast({ message, tone?, duration?, id?, action?: { label, run }, position?: 'bottom' | 'top' })` devuelve el id; `toastSuccess`, `toastError`, `toastInfo` y `toastWarning(message, options?)`; `dismissToast(id)` devuelve `false` si ya no estaba. Tonos `success`, `error`, `info` (por defecto) y `warning`; dura 3 s (éxito e info), 4 s (aviso) o 5 s (error), `duration: 0` lo deja fijo hasta cerrarlo y el mismo `id` sustituye al anterior.
 - **Ionic:** `ion-button` (acción y cerrar) dentro de la pila propia del shell; no usa `ion-toast`.
 
@@ -183,6 +183,14 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **No lo uses cuando** es una etiqueta sin estado (categoría, filtro) → `ion-chip`; el aviso necesita una frase → `InlineFeedback`.
 - **API:** props `label`, `tone` (`success`, `info`, `warning`, `danger`, `neutral`), `dot`, `busy`, `size` (`sm`, `md`); slot por defecto en lugar de `label`.
 - **Ionic:** ninguno (HTML con los tokens `--ep-*`, contraste AA comprobado).
+
+### `ActionBell`, `useActionCenter`, `useQuietActionNotices`, `connectActionCenter`
+`import { ActionBell, useActionCenter, useQuietActionNotices } from '@erplora/ui/shell'`
+- **Para qué sirve:** el centro de avisos: lo que exige una acción y sigue siendo verdad hasta que se resuelve (una factura sin pagar, una impresora sin conexión, citas por confirmar). La campana lo resume y abre su panel; un aviso nuevo llega como tarjeta bajo la barra superior.
+- **Úsalo cuando** el proyecto da la fuente de sus avisos a `createShell({ actionNotices })`: el shell pinta la campana en `AppTopbar`, la tarjeta de llegada y el panel. Una pantalla no monta la tarjeta ni el panel; `ActionBell` a mano solo va en una pantalla con cabecera propia, sin `AppTopbar`.
+- **No lo uses cuando** confirma lo que la persona acaba de hacer → `toast`; solo tiene sentido junto a lo que afecta → `InlineFeedback`; nunca una banda ni una caja suelta en la página.
+- **API:** `actionNotices: () => ({ notices, failed, retry? })`, con avisos `{ id, severity, icon, label, title, body?, figure?, chip?, count?, due?, action?, secondary? }`, `severity` `danger`, `warning` o `info` y acciones `{ label, to | href | run }`; `useQuietActionNotices(active)`: mientras `active`, un aviso nuevo no tapa la pantalla y solo late la campana (una hoja de cobro); `useActionCenter()` lee su estado y lo abre (`total`, `openPanel(id?)`…); `connectActionCenter(source)` lo llama el shell, no una pantalla. `ActionBell` no tiene props.
+- **Ionic:** `ion-button`, `ion-badge` e `ion-chip` en la campana; `ion-modal`, `ion-list` e `ion-item` en el panel.
 
 ### `ReportProblemModal`
 `import { ReportProblemModal } from '@erplora/ui/components'`
@@ -222,7 +230,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 
 ### `AppTopbar`
 `import { AppTopbar } from '@erplora/ui/shell'`
-- **Para qué sirve:** la barra superior del shell: menú, título, sección, Atrás, las acciones de la vista (dos o más se pliegan en «⋮» en el teléfono) y las piezas del proyecto, como el lanzador de apps.
+- **Para qué sirve:** la barra superior del shell: menú, título, sección, Atrás, las acciones de la vista (dos o más se pliegan en «⋮» en el teléfono) la campana del centro de avisos (con `createShell({ actionNotices })`) y las piezas del proyecto, como el lanzador de apps.
 - **Úsalo cuando** una vista monta su propio `ion-page` y no puede usar `AppPage`.
 - **No lo uses cuando** es una pantalla normal → `AppPage`, que ya la pinta.
 - **API:** props `title`, `section`, `backHref`, `titleIsHeading`; slot `actions`.
@@ -275,9 +283,6 @@ impresora del dispositivo, `useMyApps`), que no pinta pantallas; los datos van p
 Las tarjetas de entidad, la tarjeta de cifra, la baldosa táctil, la comanda y el panel de ajustes están en diseño.
 Mientras no existan, no se maqueta una tarjeta nueva a mano sin avisarlo en la issue o en la PR, para que entre en el
 diseño de la pieza común.
-
-El centro de avisos del shell está en curso: será el sitio de lo que exige una acción y sigue siendo verdad hasta que
-se resuelve. Hasta que llegue a la librería no tiene API que documentar aquí.
 
 ## Reglas
 
