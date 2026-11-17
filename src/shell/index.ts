@@ -98,6 +98,7 @@ export { createDevicePrinter } from './device-printer';
 export type { DevicePrinterDeps } from './device-printer';
 export { createPrintHost, printChannelUrl, usePrintHost } from './print-host';
 export type { PrintHost, PrintHostDeps, UsePrintHostOptions } from './print-host';
+export { default as ActionBell } from './action-center/ActionBell.vue';
 export { connectActionCenter, useActionCenter, useQuietActionNotices } from './action-center/center';
 export type { ActionCenter } from './action-center/center';
 export type { NoticeActionSlot } from './action-center/actions';

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 // The one layout of the shell screens: a single `ion-content`, so every view shares the same container,
-// padding and margins. The project's notice (`createShell({ chrome: { notice } })`) goes between the
-// topbar and the scroller, not inside ion-content, because a warning that scrolls away is not a warning.
+// padding and margins.
 //
 // `fill` is a list page: the `detail-fill` box holds a `.page-fill` stack (polish.css) in which what sits
 // above or under the list keeps its height and a DataTable `fill` takes the rest, with its toolbar and
@@ -16,7 +15,6 @@ import { useRoute, useRouter } from 'vue-router';
 
 import AppTopbar from './AppTopbar.vue';
 import HubIcon from './HubIcon.vue';
-import { useChromeVisible, useShellConfig } from './shell-config';
 import { useSurface } from './surface';
 import { bindTabbar, type ShellTab } from './tabbar';
 import { bindTabbarPeek } from './tabbar-peek';
@@ -47,8 +45,6 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { isWeb } = useSurface();
-const { chrome } = useShellConfig();
-const chromeVisible = useChromeVisible();
 
 const visibleTabs = computed(() => props.tabs.filter((item) => !item.webOnly || isWeb.value));
 const routeTab = computed(
@@ -125,13 +121,6 @@ onBeforeUnmount(() => {
         <slot name="actions" />
       </template>
     </AppTopbar>
-
-    <div
-      v-if="chrome?.notice && chromeVisible"
-      class="page-notice"
-    >
-      <component :is="chrome.notice" />
-    </div>
 
     <!-- fullscreen=false: the ion-content sits STRICTLY between the topbar and the footer (it does not
          scroll behind them). The shell's rounded content card (polish.css) needs it: with fullscreen

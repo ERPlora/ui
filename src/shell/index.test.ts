@@ -116,6 +116,12 @@ describe('shell barrel', () => {
     expect(shell.connectActionCenter).toBeTypeOf('function');
     expect(shell.useActionCenter().open.value).toBe(false);
     expect(shell.useQuietActionNotices).toBeTypeOf('function');
+    // The bell, for a screen that hides the shell's topbar and draws its own header (the point of sale).
+    expect(shell).toHaveProperty('ActionBell');
+    // The card and the panel are the shell's, mounted once by `createShell({ actionNotices })`.
+    for (const name of ['ActionArrival', 'ActionPanel', 'ActionFeatured', 'ActionRow', 'ActionLayer']) {
+      expect(shell, name).not.toHaveProperty(name);
+    }
   });
 
   it('exports the print host, so an app keeps a device set up to print draining the queue', () => {
