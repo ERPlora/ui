@@ -19,8 +19,10 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
 - enseñar un importe, una fecha o una cantidad → `formatMoney`, `formatDateTime`, `formatQuantity`
 - decir que no hay datos → `EmptyState`
-- un aviso que se queda en la pantalla (error de carga, rechazo, advertencia) → `InlineFeedback`
-- confirmar que una acción salió bien o mal, y que se vaya solo → `toastSuccess`, `toastError`…
+- confirmar algo que la persona acaba de hacer → `toastSuccess`, `toastError`…
+- un aviso que solo tiene sentido junto a lo que afecta (un error de carga, el rechazo de un formulario) → `InlineFeedback`
+- un aviso que exige una acción y sigue siendo verdad hasta que se resuelve → el centro de avisos del shell (en curso,
+  ver «Lo que aún no existe»), nunca un toast ni una caja suelta en la página
 - pedir confirmación antes de algo irreversible → `useConfirm` (o `ConfirmDialog`)
 - el estado de un registro en una etiqueta de color → `StatusPill`
 - cuánto se ha gastado de un límite / una cifra de uso → `UsageMeter` / `UsageCounter`
@@ -154,16 +156,16 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 `import { InlineFeedback } from '@erplora/ui/components'`
 - **Para qué sirve:** un aviso que se queda en el flujo de la pantalla (información, éxito, advertencia o error), con acciones a su lado.
 - **Úsalo cuando** tiene que seguir visible mientras dure lo que dice: un error de carga con «Reintentar», un rechazo, una advertencia.
-- **No lo uses cuando** confirma una acción y puede irse solo → `toast`; pregunta algo → `useConfirm`.
+- **No lo uses cuando** confirma lo que la persona acaba de hacer → `toast`; exige una acción hasta resolverse → el centro de avisos (en curso); pregunta algo → `useConfirm`.
 - **API:** props `tone` (`info`, `success`, `warning`, `danger`, `neutral`), `heading`, `icon`, `dismissible` (evento `dismiss`), `role` (`status`, `alert`); slot por defecto y slot `actions`.
 - **Ionic:** `ion-icon`.
 
 ### `toast`, `toastSuccess`, `toastError`, `toastWarning`, `toastInfo`, `dismissToast`
 `import { toastSuccess, toastError, toast, dismissToast } from '@erplora/ui/shell'` (y `toastWarning`, `toastInfo`)
-- **Para qué sirve:** el aviso pasajero del resultado de una acción, que pinta la única pila de avisos del shell.
+- **Para qué sirve:** el aviso pasajero que confirma lo que la persona acaba de hacer. Lo pinta la pila que el shell monta una sola vez: ninguna pantalla monta un toast.
 - **Úsalo cuando** «Guardado», «No se pudo enviar» o un aviso con una acción («Deshacer») después de una orden.
-- **No lo uses cuando** el aviso tiene que quedarse → `InlineFeedback`; nunca un `ion-toast` ni un `toastController` propios.
-- **API:** `toastSuccess(message, options?)` y sus hermanos; `toast({ message, tone, duration, id, action: { label, run }, position })` devuelve el id; `duration: 0` lo deja hasta cerrarlo, el mismo `id` lo sustituye y `dismissToast(id)` lo retira.
+- **No lo uses cuando** el aviso solo tiene sentido junto a lo que afecta → `InlineFeedback`; exige una acción hasta resolverse → el centro de avisos (en curso); nunca un `ion-toast` ni un `toastController` propios.
+- **API:** síncronas. `toast({ message, tone?, duration?, id?, action?: { label, run }, position?: 'bottom' | 'top' })` devuelve el id; `toastSuccess`, `toastError`, `toastInfo` y `toastWarning(message, options?)`; `dismissToast(id)` devuelve `false` si ya no estaba. Tonos `success`, `error`, `info` (por defecto) y `warning`; dura 3 s (éxito e info), 4 s (aviso) o 5 s (error), `duration: 0` lo deja fijo hasta cerrarlo y el mismo `id` sustituye al anterior.
 - **Ionic:** `ion-button` (acción y cerrar) dentro de la pila propia del shell; no usa `ion-toast`.
 
 ### `ConfirmDialog`, `useConfirm`
@@ -274,10 +276,19 @@ Las tarjetas de entidad, la tarjeta de cifra, la baldosa táctil, la comanda y e
 Mientras no existan, no se maqueta una tarjeta nueva a mano sin avisarlo en la issue o en la PR, para que entre en el
 diseño de la pieza común.
 
+El centro de avisos del shell está en curso: será el sitio de lo que exige una acción y sigue siendo verdad hasta que
+se resuelve. Hasta que llegue a la librería no tiene API que documentar aquí.
+
 ## Reglas
 
 - Los componentes compartidos se construyen sobre componentes de Ionic, personalizados con sus variables CSS y
   `::part`, y con los tokens `--ep-*` del tema; nada de colores ni medidas sueltas.
+- El material translúcido es la clase `.ep-glass` de `src/shell/theme/glass.css` y solo va en superficies flotantes
+  (en un overlay de Ionic, sus tokens `--ep-glass-*` en `::part(content)` o en `--background`); un componente no
+  declara cristal propio.
 - Ningún prefijo `ok-`.
-- Una pieza que se necesita en dos pantallas va a la librería, no a la app: `src/components/<Nombre>/`, con su test,
-  sus textos en `en` y `es`, su export en `src/components/index.ts` y su entrada en este catálogo.
+- Una pieza sube a la librería cuando la necesita una segunda app (o el Hub y el SaaS): `src/components/<Nombre>/`,
+  con su test, sus textos en `en` y `es`, su export en `src/components/index.ts` y su entrada en este catálogo. Lo que
+  solo se repite dentro de una app vive en `apps/<app>/frontend/components/` de esa app.
+- Antes de crear un componente en una app se mira este catálogo y los `components/` de la propia app.
+- Un componente que ya existe no se copia a otra app: se sube a la librería y se importa.
