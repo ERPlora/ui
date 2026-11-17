@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { toggleNote, toggleState } from './columnToggle';
+import { hasToggle, toggleNote, toggleState } from './columnToggle';
 import type { DataTableColumnToggle } from './types';
 
 type Row = { id: string; on: boolean; why?: string; failed?: boolean };
@@ -35,5 +35,15 @@ describe('columnToggle', () => {
     expect(toggleNote(toggle, { id: 'a', on: false, why: 'Could not turn on', failed: true })).toEqual({ text: 'Could not turn on', tone: 'danger' });
     expect(toggleNote(toggle, { id: 'a', on: false, why: '' })).toBeUndefined();
     expect(toggleNote(undefined, { id: 'a', on: false })).toBeUndefined();
+  });
+});
+
+describe('a row without a switch', () => {
+  it('is said by `hidden`; its note still shows', () => {
+    const readOnly: DataTableColumnToggle<Row> = { ...toggle, hidden: () => true };
+    expect(hasToggle(readOnly, { id: 'a', on: true })).toBe(false);
+    expect(hasToggle(toggle, { id: 'a', on: true })).toBe(true);
+    expect(hasToggle(undefined, { id: 'a', on: true })).toBe(false);
+    expect(toggleNote(readOnly, { id: 'a', on: false, why: 'Bought on erplora.com' })?.text).toBe('Bought on erplora.com');
   });
 });

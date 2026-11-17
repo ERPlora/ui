@@ -140,7 +140,8 @@ export interface DataTableColumnToggle<T = Record<string, unknown>> {
   /** Why it cannot change, or what went wrong: a small line under the cell, a line of the card. */
   note?: (row: T) => string | null | undefined;
   /** `danger` for a failure; muted by default. */
-  noteTone?: (row: T) => 'muted' | 'danger';
+  noteTone?: (row: T) => 'muted' | 'danger';  /** No switch for this row (who may not change it); its note still shows. */
+  hidden?: (row: T) => boolean;
 }
 
 /** Payload of `toggle`. */

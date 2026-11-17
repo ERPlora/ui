@@ -5,7 +5,7 @@ import { computed, ref, watch } from 'vue';
 import HubIcon from '../../shell/HubIcon.vue';
 import { ionIconSrc } from '../../shell/icons';
 import StatusPill from '../StatusPill/StatusPill.vue';
-import { toggleNote, toggleState } from './columnToggle';
+import { hasToggle, toggleNote, toggleState } from './columnToggle';
 import DataTableIdentity from './DataTableIdentity.vue';
 import DataTableRowActions from './DataTableRowActions.vue';
 import DataTableToggle from './DataTableToggle.vue';
@@ -48,7 +48,7 @@ const iconSrc = ionIconSrc;
 /** The field whose switch sits at the end of the head; its note is a line of the body. */
 const toggleField = computed(() => props.fields.find((column) => column.toggle));
 const note = computed(() => toggleNote(toggleField.value?.toggle, props.row));
-const hasHead = () => !!(props.title || props.titleColumn || props.icon || props.selectable || toggleField.value);
+const hasHead = () => !!(props.title || props.titleColumn || props.icon || props.selectable || hasToggle(toggleField.value?.toggle, props.row));
 const valueOf = (column: DataTableColumn<T>) => (props.row as Record<string, unknown>)[column.key];
 const cellId = (column: DataTableColumn<T>) => `${props.rowId}␟${column.key}`;
 const statusField = computed(() => props.fields.find((column) => ['state', 'status'].includes(column.key)));
@@ -123,8 +123,8 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
         @ion-change="emit('select', rowId)"
       />
       <DataTableToggle
-        v-if="toggleField?.toggle"
-        v-bind="toggleState(toggleField.toggle, row)"
+        v-if="toggleField && hasToggle(toggleField.toggle, row)"
+        v-bind="toggleState(toggleField.toggle!, row)"
         @change="emit('toggle', { column: toggleField.key, row, checked: $event })"
       />
     </ion-card-header>

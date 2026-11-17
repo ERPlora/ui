@@ -100,6 +100,13 @@ describe('a column with a switch', () => {
     expect(wrapper.emitted('toggle')).toEqual([[{ column: 'state', row, checked: false }]]);
   });
 
+  it('a row the column hides it for keeps the note, without the switch', () => {
+    const readOnly = { ...state, toggle: { ...state.toggle, hidden: () => true } };
+    const cell = mountRow({ columns: [readOnly] }, slots).find('[role="cell"]');
+    expect(cell.find('ion-toggle').exists()).toBe(false);
+    expect(cell.find('.data-table__cell-note').text()).toBe('Required in Spain');
+  });
+
   it('a column without one has neither switch nor note', () => {
     const wrapper = mountRow();
     expect(wrapper.find('ion-toggle').exists()).toBe(false);

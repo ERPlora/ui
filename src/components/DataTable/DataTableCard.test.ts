@@ -146,6 +146,13 @@ describe('a field with a switch, on a card', () => {
     expect(note.classes()).toContain('data-table__card-note--danger');
   });
 
+  it('a row the column hides it for has no switch in its head, and keeps the note', () => {
+    const readOnly = { ...state, toggle: { ...state.toggle, hidden: () => true } };
+    const wrapper = mountCard({ fields: [readOnly] }, slots);
+    expect(wrapper.find('ion-toggle').exists()).toBe(false);
+    expect(wrapper.find('.data-table__card-note').text()).toContain('Could not turn on');
+  });
+
   it('a flip emits `toggle` and never opens the card', async () => {
     const wrapper = mountCard({ clickable: true, fields: [state] }, slots);
     const toggle = wrapper.find('.data-table__card-head ion-toggle');

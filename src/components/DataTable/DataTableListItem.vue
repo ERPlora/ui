@@ -2,7 +2,7 @@
 import { IonCheckbox } from '@ionic/vue';
 import { ref, watch } from 'vue';
 
-import { toggleNote, toggleState } from './columnToggle';
+import { hasToggle, toggleNote, toggleState } from './columnToggle';
 import DataTableIdentity from './DataTableIdentity.vue';
 import DataTableRowActions from './DataTableRowActions.vue';
 import DataTableToggle from './DataTableToggle.vue';
@@ -88,7 +88,7 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
       role="cell"
     >
       <DataTableToggle
-        v-if="column.toggle"
+        v-if="hasToggle(column.toggle, row)"
         v-bind="toggleState(column.toggle, row)"
         @change="emit('toggle', { column: column.key, row, checked: $event })"
       />
