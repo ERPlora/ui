@@ -17,6 +17,9 @@
   --ep-glass-backdrop: blur(20px) saturate(180%);
   --ep-glass-border: color-mix(in srgb, var(--ion-card-background) 72%, transparent);
   --ep-glass-highlight: color-mix(in srgb, var(--ion-card-background) 82%, transparent);
+  --ep-glass-muted: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-card-background));
+  --ep-action-bg: var(--ep-primary-text);
+  --ep-action-text: var(--ion-card-background);
   --ep-shadow-float: 0 3px 10px rgba(17, 24, 39, 0.12), 0 28px 80px rgba(17, 24, 39, 0.18);
 
   /* A toast is the inverse of the page: dark on a light theme, light on a dark one. */

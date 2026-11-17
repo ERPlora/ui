@@ -77,6 +77,38 @@
   "inlineFeedback": {
     "dismiss": "Cerrar"
   },
+  "actionCenter": {
+    "actionFailed": "No se pudo completar la acción. Inténtalo de nuevo.",
+    "arrival": {
+      "close": "Enviar a los avisos"
+    },
+    "panel": {
+      "title": "Avisos",
+      "count": "Nada pendiente | 1 cosa pendiente | {count} cosas pendientes",
+      "subtitle": "Ordenadas por lo que requiere atención",
+      "close": "Cerrar avisos",
+      "loading": "Cargando avisos…",
+      "errorTitle": "No se pudieron cargar los avisos",
+      "errorBody": "Comprueba la conexión e inténtalo de nuevo.",
+      "stale": "No se pudieron actualizar los avisos. Lo que ves puede no estar al día.",
+      "retry": "Reintentar",
+      "emptyTitle": "Todo al día",
+      "emptyBody": "No queda nada que requiera acción."
+    },
+    "processing": "Procesando…",
+    "resolved": "Resuelto",
+    "bell": {
+      "empty": "Avisos, ninguno pendiente",
+      "loading": "Avisos, cargando",
+      "failed": "Avisos, no se pudieron cargar",
+      "pending": "1 aviso pendiente. {severity}: {label} | {count} avisos pendientes. {severity}: {label}"
+    },
+    "severity": {
+      "danger": "Urgente",
+      "warning": "Atención",
+      "info": "Información"
+    }
+  },
   "notices": {
     "primerHeader": "Deja que te avisemos",
     "primerMessage": "Cuando algo necesite tu atención podemos avisarte, aunque nadie esté mirando esta pantalla. Tu dispositivo te lo preguntará a continuación.",

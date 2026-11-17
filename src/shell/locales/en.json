@@ -77,6 +77,38 @@
   "inlineFeedback": {
     "dismiss": "Dismiss"
   },
+  "actionCenter": {
+    "actionFailed": "Could not complete that action. Try again.",
+    "arrival": {
+      "close": "Send to notifications"
+    },
+    "panel": {
+      "title": "Notifications",
+      "count": "Nothing pending | 1 thing pending | {count} things pending",
+      "subtitle": "Sorted by what needs attention",
+      "close": "Close notifications",
+      "loading": "Loading notifications…",
+      "errorTitle": "Could not load notifications",
+      "errorBody": "Check the connection and try again.",
+      "stale": "Could not refresh the notifications. What you see may be out of date.",
+      "retry": "Retry",
+      "emptyTitle": "All caught up",
+      "emptyBody": "Nothing needs your attention."
+    },
+    "processing": "Working…",
+    "resolved": "Resolved",
+    "bell": {
+      "empty": "Notifications, nothing pending",
+      "loading": "Notifications, loading",
+      "failed": "Notifications, could not load them",
+      "pending": "1 notification pending. {severity}: {label} | {count} notifications pending. {severity}: {label}"
+    },
+    "severity": {
+      "danger": "Urgent",
+      "warning": "Attention",
+      "info": "Information"
+    }
+  },
   "notices": {
     "primerHeader": "Let us keep you posted",
     "primerMessage": "When something needs your attention, we can warn you, even if nobody is looking at this screen. Your device will ask you next.",

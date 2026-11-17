@@ -10,6 +10,7 @@ import { Comment, computed, Fragment, onBeforeUnmount, ref, Text, useSlots, type
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import ActionBell from './action-center/ActionBell.vue';
 import AppsLauncher from './AppsLauncher.vue';
 import HubIcon from './HubIcon.vue';
 import { useChromeVisible, useShellConfig } from './shell-config';
@@ -37,7 +38,7 @@ const props = withDefaults(
 
 const { t } = useI18n();
 const router = useRouter();
-const { sidebar, chrome } = useShellConfig();
+const { sidebar, chrome, actionNotices } = useShellConfig();
 const chromeVisible = useChromeVisible();
 
 /** The hub's chrome of the bar (rail toggle, «My apps»): with its sidebar, behind the gate. */
@@ -176,6 +177,7 @@ function goBack(): void {
           :is="chrome.topbar"
           v-if="chrome?.topbar && chromeVisible"
         />
+        <ActionBell v-if="actionNotices && chromeVisible" />
       </ion-buttons>
     </ion-toolbar>
   </ion-header>

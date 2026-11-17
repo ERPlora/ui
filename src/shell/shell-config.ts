@@ -1,6 +1,7 @@
 import { type App, type Component, computed, type ComputedRef, inject, type InjectionKey } from 'vue';
 import { useRoute } from 'vue-router';
 
+import type { ActionNoticeSource } from './action-center/types';
 import { SESSION_KEY } from './session';
 import type { ShellSidebar } from './sidebar';
 
@@ -16,6 +17,8 @@ export interface ShellConfig {
   sidebar?: ShellSidebar;
   /** The project's pieces of the authenticated chrome; unset (the SaaS): none. */
   chrome?: ShellChrome;
+  /** The source of the action center, connected once for each person signed in; unset: no bell, card or panel. */
+  actionNotices?: () => ActionNoticeSource;
   /**
    * Each app's piece that runs on every screen (a route marked `meta.background`, which is no screen: printing's print
    * host), mounted beside the pane like `chrome.background`; unset: none.
@@ -32,8 +35,6 @@ export interface ShellChrome {
   topbar?: Component;
   /** In the side menu's footer, between the QR and the brand (the hub's «Upgrade plan»). */
   sidebarFooter?: Component;
-  /** Over the content of every screen, between the topbar and the scroller (the hub's blocking strip). */
-  notice?: Component;
   /**
    * Mounted once beside the pane while a person is signed in, on every screen (its own frame included), and
    * again for the next person; it paints nothing of its own (the hub's device notices).
