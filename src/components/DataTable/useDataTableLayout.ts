@@ -504,7 +504,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
       measureXOverflow();
       measureActionsTrack();
       measureRowActionsFit();
-      fitWholeRows(scroll, source.fill() && !isMobile.value);
+      fitWholeRows(scrollEl(), source.fill() && !isMobile.value);
     });
     scrollObserver.disconnect();
     if (!scroll) return;

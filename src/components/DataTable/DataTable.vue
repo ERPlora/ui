@@ -1821,7 +1821,7 @@ onUpdated(nameSearchBox);
 }
 
 /* ── Footer: count + paging ──────────────────────────────────────────────────────────────── */
-.data-table__pager { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.55rem 1rem; border-top: 1px solid var(--border-color); background: var(--header-background); font-size: 12.5px; color: var(--color-muted); }
+.data-table__pager { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: auto; padding: 0.55rem 1rem; border-top: 1px solid var(--border-color); background: var(--header-background); font-size: 12.5px; color: var(--color-muted); }
 .data-table__pager-info { display: flex; align-items: center; gap: 0.6rem; }
 .data-table__pager-count { font-weight: 600; color: var(--color); }
 .data-table__pager-size { font: inherit; font-size: 12.5px; padding: 0.2rem 0.35rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--background); color: var(--color); }
