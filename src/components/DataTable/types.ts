@@ -127,6 +127,29 @@ export interface DataTableIdentity<T = Record<string, unknown>> {
   testid?: string;
 }
 
+/** A switch for the row's own on/off state, in its column: at the start of the cell in the list and at the end of
+ *  the card's head. Flipping it emits `toggle`; it shows `checked` again unless the change is on its way (`busy`). */
+export interface DataTableColumnToggle<T = Record<string, unknown>> {
+  checked: (row: T) => boolean;
+  /** Accessible name, which says what flipping it does («Turn Invoicing off»). */
+  label: (row: T) => string;
+  disabled?: (row: T) => boolean;
+  busy?: (row: T) => boolean;
+  /** What its spinner says to assistive technology. */
+  busyLabel?: string;
+  /** Why it cannot change, or what went wrong: a small line under the cell, a line of the card. */
+  note?: (row: T) => string | null | undefined;
+  /** `danger` for a failure; muted by default. */
+  noteTone?: (row: T) => 'muted' | 'danger';
+}
+
+/** Payload of `toggle`. */
+export interface DataTableToggleEvent<T = Record<string, unknown>> {
+  column: string;
+  row: T;
+  checked: boolean;
+}
+
 export interface DataTableColumn<T = Record<string, unknown>> {
   /** Field of the row, or a logical id when `format`/`cell` paint something else. */
   key: string;
@@ -147,6 +170,8 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   identity?: DataTableIdentity<T>;
   /** Icon of the field's line on a card. Default: an information icon. */
   cardIcon?: string;
+  /** A switch for the row's state in this column (see `DataTableColumnToggle`). */
+  toggle?: DataTableColumnToggle<T>;
   /** Not painted until the person picks it in the column chooser; it still sorts. */
   hidden?: boolean;
   /** CSS track of the column in the list (`8rem`, `minmax(8rem,1fr)`…). Default `minmax(5.5rem,1fr)`, and

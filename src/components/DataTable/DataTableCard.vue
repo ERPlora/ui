@@ -5,10 +5,12 @@ import { computed, ref, watch } from 'vue';
 import HubIcon from '../../shell/HubIcon.vue';
 import { ionIconSrc } from '../../shell/icons';
 import StatusPill from '../StatusPill/StatusPill.vue';
+import { toggleNote, toggleState } from './columnToggle';
 import DataTableIdentity from './DataTableIdentity.vue';
 import DataTableRowActions from './DataTableRowActions.vue';
+import DataTableToggle from './DataTableToggle.vue';
 import { cellText } from './model';
-import type { DataTableAction, DataTableActionCell, DataTableColumn } from './types';
+import type { DataTableAction, DataTableActionCell, DataTableColumn, DataTableToggleEvent } from './types';
 
 const props = withDefaults(
   defineProps<{
@@ -36,13 +38,17 @@ const emit = defineEmits<{
   select: [key: string];
   action: [payload: { action: DataTableAction<T>; row: T }];
   menu: [event: Event, row: T];
+  toggle: [payload: DataTableToggleEvent<T>];
 }>();
 defineSlots<{ card?: (props: { row: T }) => unknown; 'row-actions'?: (props: { row: T }) => unknown; [cell: string]: unknown }>();
 
 const unfolded = ref(new Set<string>());
 let pointerType = '';
 const iconSrc = ionIconSrc;
-const hasHead = () => !!(props.title || props.titleColumn || props.icon || props.selectable);
+/** The field whose switch sits at the end of the head; its note is a line of the body. */
+const toggleField = computed(() => props.fields.find((column) => column.toggle));
+const note = computed(() => toggleNote(toggleField.value?.toggle, props.row));
+const hasHead = () => !!(props.title || props.titleColumn || props.icon || props.selectable || toggleField.value);
 const valueOf = (column: DataTableColumn<T>) => (props.row as Record<string, unknown>)[column.key];
 const cellId = (column: DataTableColumn<T>) => `${props.rowId}␟${column.key}`;
 const statusField = computed(() => props.fields.find((column) => ['state', 'status'].includes(column.key)));
@@ -116,6 +122,11 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
         @click.stop
         @ion-change="emit('select', rowId)"
       />
+      <DataTableToggle
+        v-if="toggleField?.toggle"
+        v-bind="toggleState(toggleField.toggle, row)"
+        @change="emit('toggle', { column: toggleField.key, row, checked: $event })"
+      />
     </ion-card-header>
     <ion-card-content class="data-table__card-body">
       <slot
@@ -183,6 +194,16 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
             >{{ cellText(column, row) }}</span>
           </span>
         </div>
+        <div
+          v-if="note"
+          :class="['data-table__card-meta', 'data-table__card-note', `data-table__card-note--${note.tone}`]"
+        >
+          <HubIcon
+            class="data-table__card-meta-icon"
+            :name="note.tone === 'danger' ? 'ion:alert-circle-outline' : 'ion:information-circle-outline'"
+          />
+          <span class="data-table__card-meta-value">{{ note.text }}</span>
+        </div>
       </template>
     </ion-card-content>
     <div
@@ -214,20 +235,21 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
 <style scoped>
 :where(.data-table) ion-card { border: 1px solid var(--border-color-soft); border-radius: var(--ep-radius-lg); box-shadow: var(--ep-shadow-xs); }
 :where(.data-table) ion-card-header { padding: 16px; }
-ion-card.data-table__card { margin: 0; }
+ion-card.data-table__card { display: flex; flex-direction: column; margin: 0; }
 .data-table__card--selected { outline: 2px solid var(--primary); outline-offset: -2px; }
 .data-table__card--clickable { cursor: pointer; }
 .data-table__card--clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 .data-table__card-head { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 0.5rem; }
 .data-table__card-icon { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: var(--ep-radius-sm); color: var(--ep-primary-text); background: var(--ep-primary-tint); font-size: 22px; }
 .data-table__card-title { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-size: 17px; line-height: 1.3; font-weight: 650; }
-.data-table__card-body { display: flex; flex-direction: column; gap: 0.75rem; }
+.data-table__card-body { display: flex; flex: 1 1 auto; flex-direction: column; gap: 0.75rem; }
 .data-table__card-status { display: flex; flex-wrap: wrap; gap: 0.375rem; min-width: 0; }
 .data-table__card-description { margin: 0; color: var(--ep-text-muted); font-size: 14px; line-height: 1.5; }
 .data-table__card-meta { display: flex; align-items: center; gap: 0.5rem; min-width: 0; color: var(--ep-text-muted); font-size: 12px; }
 .data-table__card-meta-icon { flex: none; width: 16px; height: 16px; color: var(--ep-primary-text); font-size: 16px; }
 .data-table__card-meta-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .data-table__card-meta-value { min-width: 0; color: var(--color); font-weight: 500; }
+.data-table__card-note--danger, .data-table__card-note--danger .data-table__card-meta-icon, .data-table__card-note--danger .data-table__card-meta-value { color: var(--ep-danger-text); }
 .data-table__field-text { display: block; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 .data-table__field-text--unfolded { overflow-wrap: anywhere; }
 .data-table__card-actions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0.75rem; border-top: 1px solid var(--border-color-soft); }

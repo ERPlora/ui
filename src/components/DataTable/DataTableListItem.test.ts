@@ -64,3 +64,45 @@ describe('the focused row rhythm', () => {
     expect(source).toMatch(/\.data-table__row--data \{[^}]*padding-top: 0\.75rem; padding-bottom: 0\.75rem/);
   });
 });
+
+describe('a column with a switch', () => {
+  const state = {
+    key: 'state',
+    label: 'State',
+    cell: 'state',
+    toggle: {
+      checked: () => true,
+      label: () => 'Turn Invoicing off',
+      note: () => 'Required in Spain',
+      noteTone: () => 'muted' as const,
+    },
+  };
+  const slots = { state: '<template #state><span class="custom-chip">Active</span></template>' };
+
+  it('starts its cell with the switch, then the cell’s own content, and the note on a line of its own', () => {
+    const cell = mountRow({ columns: [state] }, slots).find('[role="cell"]');
+    const children = [...cell.element.children].map((el) => el.className.split(' ')[0]);
+    expect(children).toEqual(['data-table__toggle', 'custom-chip', 'data-table__cell-note']);
+    expect(cell.find('ion-toggle').attributes('aria-label')).toBe('Turn Invoicing off');
+    expect(cell.find('.data-table__cell-note').text()).toBe('Required in Spain');
+  });
+
+  it('a failure note reads as one', () => {
+    const failed = { ...state, toggle: { ...state.toggle, noteTone: () => 'danger' as const } };
+    const note = mountRow({ columns: [failed] }, slots).find('.data-table__cell-note');
+    expect(note.classes()).toContain('data-table__cell-note--danger');
+  });
+
+  it('a flip emits `toggle` with the column, the row and the state asked for', async () => {
+    const wrapper = mountRow({ columns: [state] }, slots);
+    const toggle = wrapper.find('ion-toggle');
+    toggle.element.dispatchEvent(new CustomEvent('ionChange', { detail: { checked: false } }));
+    expect(wrapper.emitted('toggle')).toEqual([[{ column: 'state', row, checked: false }]]);
+  });
+
+  it('a column without one has neither switch nor note', () => {
+    const wrapper = mountRow();
+    expect(wrapper.find('ion-toggle').exists()).toBe(false);
+    expect(wrapper.find('.data-table__cell-note').exists()).toBe(false);
+  });
+});

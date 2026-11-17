@@ -121,3 +121,37 @@ describe('the card footer', () => {
     expect(wrapper.find('.data-table__card-actions .own').exists()).toBe(true);
   });
 });
+
+describe('a field with a switch, on a card', () => {
+  const state = {
+    key: 'state',
+    label: 'State',
+    cell: 'state',
+    toggle: { checked: () => false, label: () => 'Turn Invoicing on', note: () => 'Could not turn on', noteTone: () => 'danger' as const },
+  };
+  const slots = { state: '<template #state><span class="custom-chip">Failed</span></template>' };
+  const withSwitch = () => mountCard({ fields: [state, { key: 'total', label: 'Total' }] }, slots);
+
+  it('puts the switch at the end of the head, the status under the head without it', () => {
+    const wrapper = withSwitch();
+    expect(wrapper.find('.data-table__card-head ion-toggle').attributes('aria-label')).toBe('Turn Invoicing on');
+    expect(wrapper.find('.data-table__card-head').element.lastElementChild?.classList.contains('data-table__toggle')).toBe(true);
+    expect(wrapper.find('.data-table__card-status .custom-chip').text()).toBe('Failed');
+    expect(wrapper.find('.data-table__card-status ion-toggle').exists()).toBe(false);
+  });
+
+  it('its note is a line of the card, among the secondary data, with its tone', () => {
+    const note = withSwitch().find('.data-table__card-meta.data-table__card-note');
+    expect(note.text()).toContain('Could not turn on');
+    expect(note.classes()).toContain('data-table__card-note--danger');
+  });
+
+  it('a flip emits `toggle` and never opens the card', async () => {
+    const wrapper = mountCard({ clickable: true, fields: [state] }, slots);
+    const toggle = wrapper.find('.data-table__card-head ion-toggle');
+    toggle.element.dispatchEvent(new CustomEvent('ionChange', { detail: { checked: true } }));
+    await toggle.trigger('click');
+    expect(wrapper.emitted('toggle')).toEqual([[{ column: 'state', row, checked: true }]]);
+    expect(wrapper.emitted('open')).toBeUndefined();
+  });
+});

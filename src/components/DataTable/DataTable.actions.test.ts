@@ -237,3 +237,25 @@ describe('custom controls and the default primary action', () => {
     expect(menuItems(cardsView).map(itemLabel)).toEqual(['Turn off', 'Delete']);
   });
 });
+
+describe('a column with a switch', () => {
+  const rows = [{ id: 'invoice', name: 'Invoicing', on: true }];
+  const columns = [
+    { key: 'name', label: 'App' },
+    { key: 'state', label: 'State', toggle: { checked: (row: Row) => row.on === true, label: (row: Row) => `Turn ${String(row.name)} off` } },
+  ];
+
+  it('the list and the cards emit `toggle` with the column, the row and the state asked for', async () => {
+    const list = mountTable({ rows, columns, testid: 'apps' });
+    const cardsView = mountTable({ rows, columns, testid: 'apps', views: true, defaultView: 'cards' });
+    await settle();
+    for (const t of [list, cardsView]) {
+      const toggle = t.element.querySelector('[data-testid="apps-row"] ion-toggle') as HTMLElement;
+      expect(toggle.getAttribute('aria-label')).toBe('Turn Invoicing off');
+      toggle.dispatchEvent(new CustomEvent('ionChange', { detail: { checked: false } }));
+      await settle();
+      expect(t.emitted('toggle')).toEqual([[{ column: 'state', row: rows[0], checked: false }]]);
+    }
+    expect(cardsView.element.querySelector('.data-table__card-head ion-toggle')).not.toBeNull();
+  });
+});

@@ -33,7 +33,7 @@ import {
   IonSelect,
   IonSelectOption,
 } from '@ionic/vue';
-import { computed, nextTick, onMounted, onUpdated, ref, shallowRef, useId, watch } from 'vue';
+import { computed, nextTick, onMounted, onUpdated, ref, useId, watch } from 'vue';
 
 import { ionIconSrc } from '../../shell/icons';
 import DataTableCard from './DataTableCard.vue';
@@ -64,12 +64,14 @@ import {
 import { cardRowActions, listRowActions } from './rowActions';
 import { useCardParts } from './useCardParts';
 import { useMediaQuery } from './useMediaQuery';
+import { useRowMenu } from './useRowMenu';
 import { useRowSelection } from './useRowSelection';
 import { syncSearchbarInputName } from './searchbarName';
 import type {
   DataTableAction,
   DataTableActionCell,
   DataTableActionEvent,
+  DataTableToggleEvent,
   DataTableColumn,
   DataTableEntityLabel,
   DataTableFilterField,
@@ -231,8 +233,10 @@ const emit = defineEmits<{
   action: [event: DataTableActionEvent<T>];
   sortChange: [sort: DataTableSort];
   pageChange: [page: number];
-  /** Server mode, phone: grow the window of `rows` by one page, from the first row. */
+  /** Server mode, windowed (cards, a phone): grow the window of `rows` by one page, from the first row. */
   loadMore: [];
+  /** A column's switch was flipped (`DataTableColumn.toggle`). */
+  toggle: [payload: DataTableToggleEvent<T>];
   pageSizeChange: [size: number];
   'update:search': [value: string];
   'update:filters': [filters: DataTableFilters];
@@ -276,9 +280,6 @@ const clientSort = ref('');
 const clientSortDir = ref<DataTableSortDir>('asc');
 /** The person's pick in the column chooser, per key; untouched columns follow their `hidden`. */
 const columnChoice = ref(new Map<string, boolean>());
-const rowMenuOpen = ref(false);
-const rowMenuEvent = shallowRef<Event>();
-const rowMenuRow = shallowRef<T>();
 
 const keyOf = (row: T): string => rowKeyOf(row, props.rowKey ?? ('id' as DataTableRowKey<T>));
 const tid = (suffix: string): string | undefined => {
@@ -787,39 +788,14 @@ function runAction(action: DataTableAction<T>, row: T): void {
   emit('action', { actionId: action.id, row });
 }
 
-/** The row the «…» menu is open for, read again by key (its data may have changed). */
-const menuRow = computed(() => {
-  const kept = rowMenuRow.value;
-  if (!kept) return undefined;
-  const key = keyOf(kept);
-  return (key ? props.rows.find((row) => keyOf(row) === key) : undefined) ?? kept;
-});
-/** What «⋮» offers now: never an action that has its button on screen, so a menu item can
- *  carry the action's hook without it ever being there twice. */
-const menuActions = computed(() => {
-  const row = menuRow.value;
-  if (!row) return [];
-  return (cardsOn.value ? cardActions(row) : listActions(row)).menu;
-});
-// The box widened under an open menu and every action is a button again: nothing left to offer.
-watch(
-  () => menuActions.value.length,
-  (count) => {
-    if (count === 0) rowMenuOpen.value = false;
-  },
-);
-function openRowMenu(ev: Event, row: T): void {
-  ev.stopPropagation();
-  rowMenuEvent.value = ev;
-  rowMenuRow.value = row;
-  rowMenuOpen.value = true;
-}
-function pickMenuAction(action: DataTableAction<T>): void {
-  const row = menuRow.value;
-  if (!row) return;
-  rowMenuOpen.value = false;
-  runAction(action, row);
-}
+const {
+  open: rowMenuOpen,
+  event: rowMenuEvent,
+  row: menuRow,
+  actions: menuActions,
+  openFor: openRowMenu,
+  pick: pickMenuAction,
+} = useRowMenu<T>({ rows: () => props.rows, keyOf, menuOf: (row) => (cardsOn.value ? cardActions(row) : listActions(row)).menu, run: runAction });
 
 // ── Cards ─────────────────────────────────────────────────────────────────────────────────────
 const { cardTitleOf, cardTitleColumnOf, cardFields } = useCardParts<T>({
@@ -1201,6 +1177,7 @@ onUpdated(nameSearchBox);
           @select="toggleRow"
           @action="runAction($event.action, $event.row)"
           @menu="openRowMenu"
+          @toggle="emit('toggle', $event)"
         >
           <template
             v-if="slots.card"
@@ -1314,6 +1291,7 @@ onUpdated(nameSearchBox);
               @select="toggleRow"
               @action="runAction($event.action, $event.row)"
               @menu="openRowMenu"
+              @toggle="emit('toggle', $event)"
             >
               <template #row-actions="{ row: actionRow }">
                 <slot
@@ -1826,7 +1804,7 @@ onUpdated(nameSearchBox);
 
 /* ── Cards ───────────────────────────────────────────────────────────────────────────────── */
 /* Each card is as tall as its content; rows pack at the top. */
-.data-table__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.75rem; padding: 1rem; grid-auto-rows: max-content; align-content: start; align-items: start; }
+.data-table__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.75rem; padding: 1rem; grid-auto-rows: max-content; align-content: start; align-items: stretch; }
 @media (prefers-reduced-motion: reduce) {
   .data-table__cell--sortable:hover, .data-table__cell--sortable:active,
   .data-table__row--data:hover, .data-table__row--data:active { transform: none; }

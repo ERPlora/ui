@@ -338,6 +338,10 @@ const ADDED: Record<string, string> = {
   '.data-table__identity-text': 'the identity text can shrink around its icon',
   '.data-table__identity-title': 'the identity name wraps in the theme text colour',
   '.data-table__identity-subtitle': 'the second line uses the accessible muted token',
+  '.data-table__cell-note': 'why a cell’s switch cannot change sits under it, from the cell’s start edge',
+  '.data-table__cell-note--danger': 'a failure note reads in the danger text token',
+  '.data-table__card-note--danger, .data-table__card-note--danger .data-table__card-meta-icon, .data-table__card-note--danger .data-table__card-meta-value':
+    'a failure note on a card reads in the danger text token',
 };
 
 /** Declarations a port carries on top of its Lit rule, with why. */
@@ -369,7 +373,10 @@ const RESTYLED: Record<string, string[]> = {
   '.data-table__filter-button': ['position: relative', '--padding-start: 0', '--padding-end: 0', '--border-radius: 10px', 'width: 44px', 'height: 44px', 'margin: 0'],
   '.data-table__card-icon': ['display: inline-grid', 'place-items: center', 'flex: none', 'width: 44px', 'height: 44px', 'border-radius: var(--ep-radius-sm)', 'color: var(--ep-primary-text)', 'background: var(--ep-primary-tint)', 'font-size: 22px'],
   '.data-table__row--data': ['min-height: 80px', 'background: var(--background)', 'border-bottom: 1px solid var(--border-color-soft)', 'padding-top: 0.75rem', 'padding-bottom: 0.75rem', 'transition: background-color var(--ep-transition, 150ms ease), color var(--ep-transition, 150ms ease), box-shadow var(--ep-transition, 150ms ease), transform 120ms ease'],
-  '.data-table__card-body': ['display: flex', 'flex-direction: column', 'gap: 0.75rem'],
+  '.data-table__card-body': ['display: flex', 'flex: 1 1 auto', 'flex-direction: column', 'gap: 0.75rem'],
+  // Cards of a grid row are as tall as the tallest, with their footers on one line.
+  '.data-table__cards': ['display: grid', 'grid-template-columns: repeat(auto-fill, minmax(230px, 1fr))', 'gap: 0.75rem', 'padding: 1rem', 'grid-auto-rows: max-content', 'align-content: start', 'align-items: stretch'],
+  'ion-card.data-table__card': ['display: flex', 'flex-direction: column', 'margin: 0'],
   '.data-table__card-actions': ['display: flex', 'justify-content: flex-end', 'gap: 0.25rem', 'padding: 0.75rem', 'border-top: 1px solid var(--border-color-soft)'],
   '.data-table__card-actions .data-table__actions': ['width: 100%', 'flex-wrap: nowrap'],
 };

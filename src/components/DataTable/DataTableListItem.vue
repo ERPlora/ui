@@ -2,10 +2,12 @@
 import { IonCheckbox } from '@ionic/vue';
 import { ref, watch } from 'vue';
 
+import { toggleNote, toggleState } from './columnToggle';
 import DataTableIdentity from './DataTableIdentity.vue';
 import DataTableRowActions from './DataTableRowActions.vue';
+import DataTableToggle from './DataTableToggle.vue';
 import { cellText } from './model';
-import type { DataTableAction, DataTableActionCell, DataTableColumn } from './types';
+import type { DataTableAction, DataTableActionCell, DataTableColumn, DataTableToggleEvent } from './types';
 
 const props = withDefaults(
   defineProps<{
@@ -31,6 +33,7 @@ const emit = defineEmits<{
   select: [key: string];
   action: [payload: { action: DataTableAction<T>; row: T }];
   menu: [event: Event, row: T];
+  toggle: [payload: DataTableToggleEvent<T>];
 }>();
 defineSlots<{ 'row-actions'?: (props: { row: T }) => unknown; [cell: string]: unknown }>();
 
@@ -84,6 +87,11 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
       :class="['data-table__cell', alignClass(column), { 'data-table__cell--pinned': column.pinned === 'end' }]"
       role="cell"
     >
+      <DataTableToggle
+        v-if="column.toggle"
+        v-bind="toggleState(column.toggle, row)"
+        @change="emit('toggle', { column: column.key, row, checked: $event })"
+      />
       <DataTableIdentity
         v-if="column.identity"
         :title="cellText(column, row)"
@@ -105,6 +113,10 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
         @pointerdown="pointerType = $event.pointerType"
         @click="onCellTap($event, column)"
       >{{ cellText(column, row) }}</span>
+      <span
+        v-if="toggleNote(column.toggle, row)"
+        :class="['data-table__cell-note', `data-table__cell-note--${toggleNote(column.toggle, row)?.tone}`]"
+      >{{ toggleNote(column.toggle, row)?.text }}</span>
     </div>
     <div
       v-if="hasActions"
@@ -153,6 +165,9 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
 .data-table__cell > :deep(span) { min-width: 0; }
 .data-table__cell > .data-table__text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .data-table__cell > .data-table__text--unfolded { white-space: normal; overflow-wrap: anywhere; }
+/* Under the switch and the cell's own content, from the cell's start edge. */
+.data-table__cell-note { flex-basis: 100%; color: var(--ep-text-muted); font-size: 12px; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+.data-table__cell-note--danger { color: var(--ep-danger-text, var(--ion-color-danger)); }
 @media (prefers-reduced-motion: reduce) {
   .data-table__row--data:hover, .data-table__row--data:active { transform: none; }
 }
