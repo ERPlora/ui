@@ -311,8 +311,8 @@ export function gridTemplate<T>(input: {
     if (!(need > 0)) return `minmax(${floor},${share})`;
     // Whole while the row has room, sharing what is left; when cut, down to the floor and never past
     // its content (the widest text gives its width up first).
-    if (input.clipped) return `minmax(${floor},${need}px)`;
-    return c.minWidth || identity ? `minmax(max(${floor},${need}px),${share})` : `minmax(${need}px,${share})`;
+    if (input.clipped) return `minmax(${identity && !c.minWidth ? `min(${floor},${need}px)` : floor},${need}px)`;
+    return c.minWidth ? `minmax(max(${floor},${need}px),${share})` : `minmax(${need}px,${share})`;
   };
   return [
     input.selectable ? '2.75rem' : null,

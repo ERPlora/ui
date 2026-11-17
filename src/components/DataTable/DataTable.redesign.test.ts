@@ -66,4 +66,23 @@ describe('identity columns keep their reading width', () => {
     });
     expect(result).toBe('minmax(10rem,1.4fr) minmax(5.5rem,1fr)');
   });
+
+  const measured = (need: number, clipped: boolean) =>
+    gridTemplate({
+      selectable: false,
+      columns: [{ key: 'name', label: 'Name', priority: 'high' }],
+      hasActions: false,
+      actionsTrackPx: 0,
+      contentWidths: { name: need },
+      clipped,
+    });
+
+  it('whole, a short name takes no more than its text: the other columns are not given up for empty room', () => {
+    expect(measured(100, false)).toBe('minmax(100px,1.4fr)');
+  });
+
+  it('cut, a name keeps 10rem before its text is cut, or its whole text when shorter', () => {
+    expect(measured(300, true)).toBe('minmax(min(10rem,300px),300px)');
+    expect(measured(100, true)).toBe('minmax(min(10rem,100px),100px)');
+  });
 });
