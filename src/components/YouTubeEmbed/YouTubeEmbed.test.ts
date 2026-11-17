@@ -163,6 +163,63 @@ describe('YouTubeEmbed: offline', () => {
   });
 });
 
+// Inside the help window a keyboard or screen-reader user must not be thrown back to the top of the page when what
+// they were on is swapped for something else.
+describe('YouTubeEmbed: focus when what is shown changes', () => {
+  const settle = async () => {
+    for (let i = 0; i < 3; i++) await nextTick();
+  };
+  const goOffline = async () => {
+    setOnLine(false);
+    window.dispatchEvent(new Event('offline'));
+    await settle();
+  };
+
+  it('moves the focus to the offline card when the focused poster gives way to it, and back to the poster', async () => {
+    const wrapper = mountEmbed();
+    (wrapper.get('button').element as HTMLElement).focus();
+    await goOffline();
+    const card = wrapper.get('.youtube-embed__offline');
+    expect(card.attributes('tabindex')).toBe('-1');
+    expect(document.activeElement).toBe(card.element);
+
+    setOnLine(true);
+    window.dispatchEvent(new Event('online'));
+    await settle();
+    expect(document.activeElement).toBe(wrapper.get('button').element);
+  });
+
+  it('moves the focus to the new poster when the focused player is given another video', async () => {
+    const wrapper = mountEmbed();
+    await wrapper.get('button').trigger('click');
+    await settle();
+    expect(document.activeElement).toBe(wrapper.get('iframe').element);
+    await wrapper.setProps({ videoId: 'a-b_C1d2E3f', title: 'How Sales works' });
+    await settle();
+    expect(document.activeElement).toBe(wrapper.get('button').element);
+  });
+
+  it('leaves the focus alone when what was swapped did not have it', async () => {
+    const elsewhere = document.createElement('button');
+    document.body.append(elsewhere);
+    const wrapper = mountEmbed();
+    elsewhere.focus();
+    await goOffline();
+    expect(document.activeElement).toBe(elsewhere);
+
+    setOnLine(true);
+    window.dispatchEvent(new Event('online'));
+    await settle();
+    await wrapper.get('button').trigger('click');
+    await settle();
+    elsewhere.focus();
+    await wrapper.setProps({ videoId: 'a-b_C1d2E3f' });
+    await settle();
+    expect(document.activeElement).toBe(elsewhere);
+    elsewhere.remove();
+  });
+});
+
 describe('YouTubeEmbed: layout', () => {
   const css = componentCss(SFC);
 

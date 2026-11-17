@@ -36,13 +36,31 @@ const online = useOnline();
 const captionId = useId();
 
 const playing = shallowRef(false);
+const root = useTemplateRef<HTMLElement>('root');
 const player = useTemplateRef<HTMLIFrameElement>('player');
+const offlineCard = useTemplateRef<HTMLElement>('offlineCard');
+const poster = useTemplateRef<HTMLButtonElement>('poster');
+
+/** What is shown: the player once asked for, else the offline card or the poster. */
+const shown = computed(() => (playing.value ? 'player' : online.value ? 'poster' : 'offline'));
 
 watch(
   () => props.videoId,
   () => {
     playing.value = false;
   },
+);
+
+// Read before Vue swaps the elements: what replaces the focused one takes the focus, so a keyboard or screen-reader user
+// keeps their place instead of falling to the page's body. A focus somewhere else is left alone.
+watch(
+  shown,
+  async () => {
+    if (!root.value?.contains(document.activeElement)) return;
+    await nextTick();
+    (player.value ?? offlineCard.value ?? poster.value)?.focus();
+  },
+  { flush: 'pre' },
 );
 
 async function play(): Promise<void> {
@@ -55,6 +73,7 @@ async function play(): Promise<void> {
 <template>
   <div
     v-if="src"
+    ref="root"
     class="youtube-embed"
   >
     <iframe
@@ -69,8 +88,10 @@ async function play(): Promise<void> {
     />
     <div
       v-else-if="!online"
+      ref="offlineCard"
       class="youtube-embed__frame youtube-embed__offline"
       role="status"
+      tabindex="-1"
     >
       <HubIcon
         class="youtube-embed__offline-icon"
@@ -80,6 +101,7 @@ async function play(): Promise<void> {
     </div>
     <template v-else>
       <button
+        ref="poster"
         type="button"
         class="youtube-embed__frame youtube-embed__poster"
         :aria-label="playLabel"
@@ -223,6 +245,10 @@ async function play(): Promise<void> {
   border: 1px solid var(--ion-border-color, #e7e9ee);
   background: var(--ion-color-light, #f4f5f8);
   color: var(--ep-text-muted, #646b78);
+}
+.youtube-embed__offline:focus-visible {
+  outline: 2px solid var(--ion-color-primary, #1496d6);
+  outline-offset: 3px;
 }
 .youtube-embed__offline-icon {
   font-size: 32px;
