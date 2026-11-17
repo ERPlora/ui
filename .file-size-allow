@@ -12,8 +12,8 @@
 571 src/components/Combo/Combo.vue erplora-next#77
 985 src/components/DataTable/DataTable.filters.test.ts erplora-next#77
 533 src/components/DataTable/DataTable.fit.test.ts erplora-next#77
-724 src/components/DataTable/DataTable.test.ts erplora-next#77
-524 src/components/DataTable/DataTable.visual.test.ts erplora-next#77
+714 src/components/DataTable/DataTable.test.ts erplora-next#77
+523 src/components/DataTable/DataTable.visual.test.ts erplora-next#77
 1881 src/components/DataTable/DataTable.vue erplora-next#86
 561 src/components/DataTable/model.test.ts erplora-next#77
 420 src/components/DataTable/model.ts erplora-next#77

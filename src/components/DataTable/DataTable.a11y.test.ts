@@ -79,7 +79,7 @@ describe('no unnamed icon and no unnamed button in the DataTable', () => {
   it('the failed load, the empty list and the search that finds nothing', async () => {
     for (const props of [{ error: 'The service did not answer.' }, { rows: [] }, { rows: ROWS, search: 'zzz' }]) {
       const t = await fullTable(props);
-      expect(t.element.querySelector('.data-table__state-icon ion-icon'), JSON.stringify(props)).not.toBeNull();
+      expect(t.element.querySelector('.data-table__error ion-icon, .data-table__empty ion-icon'), JSON.stringify(props)).not.toBeNull();
       expect(describeAll(unnamedIcons(t.element)), JSON.stringify(props)).toEqual([]);
       expect(describeAll(unnamedButtons(t.element)), JSON.stringify(props)).toEqual([]);
       t.unmount();

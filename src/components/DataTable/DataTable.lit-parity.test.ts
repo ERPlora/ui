@@ -156,13 +156,6 @@ const PORTED: Record<string, string> = {
   'ion-card-content.rcard-body': '.data-table__card-body',
   '.ractions': '.data-table__card-actions',
   '.ractions .actions': '.data-table__card-actions .data-table__actions',
-  '.empty': '.data-table__empty',
-  '.load-error': '.data-table__error',
-  '.loading-state': '.data-table__loading',
-  '.load-error .load-error-title': '.data-table__error .data-table__error-title',
-  '.load-error .empty-ic': '.data-table__error .data-table__state-icon',
-  '.load-error ion-button': '.data-table__error ion-button',
-  '.empty .empty-ic, .load-error .empty-ic': '.data-table__empty .data-table__state-icon, .data-table__error .data-table__state-icon',
   '.actions': '.data-table__actions',
   '.actions ion-button': '.data-table__actions ion-button',
   '.sr-only': '.data-table__sr-only',
@@ -244,6 +237,16 @@ drop(
   '.range',
 );
 drop('the next rows load at the end of the scroll (`ion-infinite-scroll`): there is no «Load more» button', '.pager .load-more');
+drop(
+  'the library’s EmptyState and InlineFeedback paint the empty list and the failed load; the table gives them room',
+  '.empty',
+  '.load-error',
+  '.loading-state',
+  '.load-error .load-error-title',
+  '.load-error .empty-ic',
+  '.load-error ion-button',
+  '.empty .empty-ic, .load-error .empty-ic',
+);
 drop('a row action hidden for the row is not there: no invisible stand-in keeps its place', '.actions .action-gap');
 drop('never painted by the Lit render either (dead CSS in the original)', '.panel', '.vsep', '.pager .nav .pp');
 drop(
@@ -319,7 +322,9 @@ const ADDED: Record<string, string> = {
   '@media (prefers-reduced-motion: reduce) || .data-table__row--data:hover, .data-table__row--data:active':
     'row motion is disabled with reduced motion in its own component',
   '.data-table__actions .data-table__action--main': 'the card’s main action reads as such',
-  '.data-table__empty ion-button': 'the empty-state action has a 44px target',
+  '.data-table__empty, .data-table__error, .data-table__loading': 'the table gives the library’s notices their room',
+  '.data-table__loading': 'the skeletons sit centred under their label',
+  '.data-table__empty ion-button, .data-table__error ion-button': 'the empty and failed states’ actions have a 44px target',
   '.data-table__loading-label': 'the skeleton loading state keeps its visible loading label',
   '.data-table__skeletons': 'loading placeholders follow the responsive card grid',
   '.data-table__skeleton-card': 'a loading placeholder preserves the card shape',
@@ -360,7 +365,6 @@ const EXTRA: Record<string, string[]> = {
   // Ionic clips its native button: the count pill on the corner was cut in half (measured in Chromium).
   '.data-table__filter-button': ['--overflow: visible'],
   '.data-table__actions ion-button': ['min-width: 44px', 'min-height: 44px', 'margin: 0'],
-  '.data-table__error ion-button': ['min-height: 44px', '--padding-start: 1rem', '--padding-end: 1rem'],
 };
 
 // The focused presentation deliberately changes these declarations; every other port stays verbatim.

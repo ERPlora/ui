@@ -1,17 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  byTestId,
-  cards,
-  click,
-  dataRows,
-  ionChange,
-  mountTable,
-  settle,
-  text,
-  type,
-  viewport,
-} from './__tests__/harness';
+import InlineFeedback from '../InlineFeedback/InlineFeedback.vue';
+import { byTestId, cards, click, dataRows, ionChange, mountTable, settle, text, type, viewport } from './__tests__/harness';
 
 type Row = Record<string, unknown>;
 
@@ -272,7 +262,7 @@ describe('«could not load» is not «empty»', () => {
     expect(t.text()).not.toContain('No customers.');
     expect(t.text()).not.toMatch(/\b0 records\b/);
     expect(t.find('.data-table__title-count').exists()).toBe(false);
-    expect(errorBlock(t)?.getAttribute('role')).toBe('alert');
+    expect(t.findComponent(InlineFeedback).props()).toMatchObject({ tone: 'danger', heading: "Couldn't load the data" });
     expect(text(errorBlock(t))).toContain("Couldn't load the data");
     expect(text(errorBlock(t))).toContain(REASON);
     expect(text(retry(t))).toBe('Retry');
@@ -342,10 +332,10 @@ describe('«could not load» is not «empty»', () => {
     expect(times(es, 'No se han podido cargar las tareas.')).toBe(1);
     expect(times(fallback, "Couldn't load the data")).toBe(1);
     expect(times(loose, 'Could not load the tickets')).toBe(1);
-    expect(text(loose.element.querySelector('.data-table__error-title'))).toBe('Could not load the tickets');
+    expect(loose.findComponent(InlineFeedback).props('heading')).toBe('Could not load the tickets');
     for (const t of [same, es, fallback, loose]) {
       expect(reason(t)).toBeNull();
-      expect(errorBlock(t)?.getAttribute('role')).toBe('alert');
+      expect(t.findComponent(InlineFeedback).props('tone')).toBe('danger');
       expect(retry(t)).not.toBeNull();
     }
     expect(text(retry(es))).toBe('Reintentar');

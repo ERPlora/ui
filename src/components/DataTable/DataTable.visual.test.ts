@@ -143,9 +143,9 @@ describe('the painted structure (class names the stylesheet hangs on)', () => {
       expect(cardsView.element.querySelector(`.${cls}`), cls).not.toBeNull();
     }
     expect(cardsView.findAll('.data-table__card')).toHaveLength(3);
-    expect(empty.find('.data-table__empty .data-table__state-icon').exists()).toBe(true);
-    expect(failed.find('.data-table__error .data-table__state-icon').exists()).toBe(true);
-    expect(failed.find('.data-table__error .data-table__error-title').exists()).toBe(true);
+    // Empty and failed are the library's own notices, inside the table's room for them.
+    expect(empty.find('.data-table__empty .empty-state ion-icon').exists()).toBe(true);
+    expect(failed.find('.data-table__error .inline-feedback ion-icon').exists()).toBe(true);
     expect(loading.findAll('.data-table__loading ion-skeleton-text').length).toBeGreaterThan(2);
   });
 });
@@ -333,7 +333,7 @@ describe('the rules that carry the look', () => {
     expect(rule('.data-table__actions ion-button')).toContain('min-width: 44px; min-height: 44px');
     expect(rule('.data-table__view-segment ion-segment-button')).toContain('min-height: 44px');
     expect(rule('.data-table__pager-nav ion-button', media('(pointer: coarse), (max-width: 834px)'))).toContain('min-height: 44px');
-    expect(rule('.data-table__error ion-button')).toContain('min-height: 44px');
+    expect(rule('.data-table__empty ion-button, .data-table__error ion-button')).toContain('min-height: 44px');
   });
 
   it('a select the page puts in the `filters` or `toolbar` slot is boxed like the table’s own selects', () => {
@@ -362,7 +362,6 @@ describe('the rules that carry the look', () => {
     // the pager below the fold and leaves the page nothing to scroll (measured in Chrome at 390px). On a
     // phone it grows with its rows, at least the container's height.
     expect(rule('.data-table--fill:not(.data-table--content-after)', phone)).toBe('height: auto; min-height: 100%;');
-    expect(rule('.data-table__error .data-table__state-icon')).toContain('var(--ion-color-danger, #c5000f)');
   });
 
   it('the document’s global rules are held off the table’s own controls (measured in Chromium)', () => {

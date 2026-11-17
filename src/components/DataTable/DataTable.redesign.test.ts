@@ -44,7 +44,8 @@ describe('the default focused presentation', () => {
   it('loads with labelled Ionic skeletons and keeps complete empty and error actions', () => {
     expect(state).toContain('ion-skeleton-text');
     expect(stateSource).toContain('role="status"');
-    expect(stateSource).toContain('role="alert"');
+    expect(stateSource).toContain('<InlineFeedback');
+    expect(stateSource).toContain('<EmptyState');
     expect(stateSource).toContain("emit('retry')");
     expect(stateSource).toContain("emit('reset')");
   });
