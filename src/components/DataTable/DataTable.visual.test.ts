@@ -9,6 +9,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ION_ICONS } from '../../shell/icons';
 import { dataRows, ionChange, mountTable, settle, viewport } from './__tests__/harness';
+import cardSource from './DataTableCard.vue?raw';
+import listSource from './DataTableListItem.vue?raw';
+import actionsSource from './DataTableRowActions.vue?raw';
+import stateSource from './DataTableState.vue?raw';
 import source from './DataTable.vue?raw';
 import { DATA_TABLE_ICONS } from './model';
 
@@ -16,7 +20,10 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const VARIABLES = readFileSync(join(HERE, '../../shell/theme/variables.css'), 'utf8');
 
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
-const STYLE = stripComments(source.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\s+/g, ' ');
+const STYLE = [source, cardSource, listSource, actionsSource, stateSource]
+  .map((input) => stripComments(input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? ''))
+  .join(' ')
+  .replace(/\s+/g, ' ');
 /** The unscoped block: rules that must stay weaker than Ionic's own classes (a scoped copy carries Vue's attribute). */
 const WEAK = stripComments(source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\s+/g, ' ');
 const TEMPLATE = (source.match(/<template>([\s\S]*)<\/template>/)?.[1] ?? '').replace(/<!--[\s\S]*?-->/g, '');
@@ -139,7 +146,7 @@ describe('the painted structure (class names the stylesheet hangs on)', () => {
     expect(empty.find('.data-table__empty .data-table__state-icon').exists()).toBe(true);
     expect(failed.find('.data-table__error .data-table__state-icon').exists()).toBe(true);
     expect(failed.find('.data-table__error .data-table__error-title').exists()).toBe(true);
-    expect(loading.find('.data-table__loading ion-spinner').exists()).toBe(true);
+    expect(loading.findAll('.data-table__loading ion-skeleton-text').length).toBeGreaterThan(2);
   });
 });
 
@@ -190,20 +197,15 @@ describe('the list/cards switch is an ion-segment', () => {
     expect(t.emitted('viewChange')).toBeUndefined();
   });
 
-  it('sits in the toolbar at its own width (an ion-segment is 100% wide by default) and is a 44px target on touch', () => {
+  it('sits in the toolbar at its own width and keeps 44px targets', () => {
     expect(rule('.data-table__view-segment')).toMatch(/flex: 0 0 auto; width: auto/);
-    expect(rule('.data-table__view-segment ion-segment-button')).toMatch(/min-width: 44px; min-height: 36px/);
+    expect(rule('.data-table__view-segment ion-segment-button')).toMatch(/min-width: 44px; min-height: 44px/);
     const touch = media('(pointer: coarse), (max-width: 834px)');
     expect(rule('.data-table__view-segment ion-segment-button', touch)).toContain('min-height: 44px');
     expect(STYLE).not.toMatch(/\.data-table__view-switch|\.data-table__tool-button/);
   });
 });
 
-// A wrapping row breaks its lines with each item's flex basis, not its minimum, so at its 22rem the search
-// sends the funnel alone to a second line on a tablet (820–834px) before it shrinks a pixel: search 352 +
-// columns 144 + rows 88 + switch 112 + funnel 44 + gaps = 772px in a 770px row. Where the spacer is gone
-// (≤1024px) the search breaks the line at its 12rem minimum and grows back up to 22rem: the same width
-// wherever the row fits, and the row stays one line down to about 660px of toolbar.
 describe('the toolbar keeps one line on a tablet', () => {
   it('without the spacer, the search shrinks before anything wraps and grows back to its 22rem', () => {
     expect(rule('.data-table__spacer', media('(max-width: 1024px)'))).toContain('display: none');
@@ -312,7 +314,7 @@ describe('the rules that carry the look', () => {
 
   it('the hidden-but-named label, and the one-line clip a tap unfolds', () => {
     expect(rule('.data-table__sr-only')).toMatch(/position: absolute; width: 1px; height: 1px;.*clip-path: inset\(50%\)/);
-    expect(rule('.data-table__cell > :deep(span)')).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap/);
+    expect(rule('.data-table__cell > .data-table__text')).toMatch(/overflow: hidden; text-overflow: ellipsis; white-space: nowrap/);
     // More specific than the clip, so the unfolded text wins.
     expect(rule('.data-table__cell > .data-table__text--unfolded')).toContain('white-space: normal');
   });
@@ -324,24 +326,22 @@ describe('the rules that carry the look', () => {
     expect(rule('.data-table__card-head')).toMatch(/display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center/);
   });
 
-  it('tap targets — 36px create button on a desk, 44px on touch', () => {
-    expect(rule('.data-table__add-button')).toContain('min-height: 36px');
+  it('tap targets are at least 44px at every width', () => {
+    expect(rule('.data-table__add-button')).toContain('min-height: 44px');
     expect(rule('.data-table__primary-button')).toContain('--background: var(--primary)');
     expect(rule('.data-table__load-more')).toContain('min-height: 44px');
     expect(rule('.data-table__page')).toMatch(/min-width: var\(--ep-tap-min, 44px\); height: var\(--ep-tap-min, 44px\)/);
-    const touch = media('(pointer: coarse), (max-width: 834px)');
-    expect(rule('.data-table__actions ion-button', touch)).toContain('min-width: 44px; min-height: 44px');
-    expect(rule('.data-table__view-segment ion-segment-button', touch)).toContain('min-height: 44px');
-    expect(rule('.data-table__add-button', touch)).toContain('min-height: 44px');
-    expect(rule('.data-table__pager-nav ion-button', touch)).toContain('min-height: 44px');
-    expect(rule('.data-table__error ion-button', touch)).toContain('min-height: 44px');
+    expect(rule('.data-table__actions ion-button')).toContain('min-width: 44px; min-height: 44px');
+    expect(rule('.data-table__view-segment ion-segment-button')).toContain('min-height: 44px');
+    expect(rule('.data-table__pager-nav ion-button', media('(pointer: coarse), (max-width: 834px)'))).toContain('min-height: 44px');
+    expect(rule('.data-table__error ion-button')).toContain('min-height: 44px');
   });
 
   it('a select the page puts in the `filters` or `toolbar` slot is boxed like the table’s own selects', () => {
     const own = rule('.data-table__columns-select');
     const slotted = rule('.data-table__bar-main > :slotted(ion-select)');
     for (const declaration of [
-      'min-height: 38px',
+      'min-height: 44px',
       'font-size: 13px',
       'background: var(--background)',
       'color: var(--color)',
@@ -372,8 +372,8 @@ describe('the rules that carry the look', () => {
     expect(rule(':where(.data-table) ion-button')).toMatch(/height: auto; margin: 4px 2px; text-transform: inherit; font-weight: 500; --border-radius: 6px/);
     expect(rule(':where(.data-table) ion-button[fill="clear"]')).toMatch(/font-weight: normal; --color: var\(--ion-color-primary, #0054e9\)/);
     expect(rule(':where(.data-table) ion-button > ion-icon[slot="start"]')).toBe('margin-inline-start: -0.3em;');
-    expect(rule(':where(.data-table) ion-card')).toMatch(/border: initial; border-radius: 8px; box-shadow: 0 4px 16px rgba\(0, 0, 0, 0.12\)/);
-    expect(rule(':where(.data-table) ion-card-header')).toBe('padding: 20px 20px 16px;');
+    expect(rule(':where(.data-table) ion-card')).toBe('border: 1px solid var(--border-color-soft); border-radius: var(--ep-radius-lg); box-shadow: var(--ep-shadow-xs);');
+    expect(rule(':where(.data-table) ion-card-header')).toBe('padding: 16px;');
     // The table's ion-selects take its --border-radius (16px).
     expect(rule(':where(.data-table) ion-select')).toBe('--border-radius: inherit;');
     expect(rule('.data-table__title')).toContain('letter-spacing: inherit');
@@ -381,9 +381,9 @@ describe('the rules that carry the look', () => {
     expect(rule('.data-table :deep(*)')).toBe('scrollbar-width: auto;');
   });
 
-  it('the searchbar rules stay WEAKER than Ionic’s own classes (60px box, Ionic’s grey field)', () => {
+  it('the searchbar rules stay WEAKER than Ionic’s own classes', () => {
     expect(STYLE, 'a scoped copy carries Vue’s attribute and outweighs Ionic').not.toMatch(/ion-searchbar\s*[.{]/);
-    expect(rule(':where(.data-table__search) ion-searchbar', WEAK)).toBe('--background: var(--background); --border-radius: 10px; padding: 0; min-height: 36px;');
+    expect(rule(':where(.data-table__search) ion-searchbar', WEAK)).toBe('--background: var(--background); --border-radius: 10px; padding: 0; min-height: 44px;');
     expect(rule(':where(.data-table__search) ion-searchbar.ion-no-border', WEAK)).toBe('--box-shadow: none;');
     expect(rule(':where(.data-table__search) .searchbar-input', WEAK)).toBe('line-height: normal;');
     expect(rule(':where(.data-table__search) .searchbar-clear-button', WEAK)).toBe('font: revert; cursor: revert;');
@@ -413,8 +413,8 @@ describe('the filters panel (`filterable`): pushes the list from 834 px, a sheet
     expect(root).toContain('--data-table-sheet-safe-bottom: env(safe-area-inset-bottom, 0px);');
   });
 
-  it('the funnel is a 36px tool button (44px on touch) with its count in a pill on its corner', () => {
-    expect(rule('.data-table__filter-button')).toMatch(/width: 36px; height: 36px/);
+  it('the funnel is a 44px tool button with its count in a pill on its corner', () => {
+    expect(rule('.data-table__filter-button')).toMatch(/width: 44px; height: 44px/);
     // Ionic clips its native button (`--overflow: hidden`), which cuts the pill on the corner in half
     // (measured in Chromium at 390, 834 and 1440 px).
     expect(rule('.data-table__filter-button')).toContain('--overflow: visible');
@@ -477,7 +477,7 @@ describe('nothing of the table is cut off (measured in Chromium)', () => {
     expect(rule(DATA_CELL)).toBe('flex-wrap: wrap; gap: 0.25rem;');
     // The base rule stays one line: the header (its name and the sort caret) never wraps.
     expect(rule('.data-table__cell')).toBe('display: flex; align-items: center; min-width: 0;');
-    expect(rule('.data-table__cell > :deep(span)')).toBe('overflow: hidden; text-overflow: ellipsis; white-space: nowrap;');
+    expect(rule('.data-table__cell > .data-table__text')).toBe('overflow: hidden; text-overflow: ellipsis; white-space: nowrap;');
   });
 
   it('side by side, a data cell keeps its things as far apart as one under the other (4px), never touching', () => {
@@ -519,7 +519,7 @@ describe('nothing of the table is cut off (measured in Chromium)', () => {
     // The whole rule: as an addition the Lit parity test does not check it, so its weight, its share of
     // the head and the clamp's box are pinned here (no `white-space: nowrap`, no `text-overflow: ellipsis`).
     expect(rule('.data-table__card-title')).toBe(
-      'flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-weight: 600;',
+      'flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-size: 17px; line-height: 1.3; font-weight: 650;',
     );
   });
 });

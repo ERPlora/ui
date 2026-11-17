@@ -8,6 +8,10 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import cardSource from './DataTableCard.vue?raw';
+import listSource from './DataTableListItem.vue?raw';
+import actionsSource from './DataTableRowActions.vue?raw';
+import stateSource from './DataTableState.vue?raw';
 import source from './DataTable.vue?raw';
 
 // From disk: Vitest's CSS handling empties a `.css?raw` import.
@@ -119,7 +123,7 @@ const PORTED: Record<string, string> = {
   '.grow': '.data-table__row',
   '.ghead': '.data-table__row--head',
   '.gcell': '.data-table__cell',
-  '.gcell > span': '.data-table__cell > :deep(span)',
+  '.gcell > span': '.data-table__cell > .data-table__text',
   '.gcell > span.unfolded': '.data-table__cell > .data-table__text--unfolded',
   '.gcell.right': '.data-table__cell--right',
   '.gcell.center': '.data-table__cell--center',
@@ -157,7 +161,6 @@ const PORTED: Record<string, string> = {
   '.empty': '.data-table__empty',
   '.load-error': '.data-table__error',
   '.loading-state': '.data-table__loading',
-  '.loading-state ion-spinner': '.data-table__loading ion-spinner',
   '.load-error .load-error-title': '.data-table__error .data-table__error-title',
   '.load-error .empty-ic': '.data-table__error .data-table__state-icon',
   '.load-error ion-button': '.data-table__error ion-button',
@@ -166,10 +169,8 @@ const PORTED: Record<string, string> = {
   '.actions ion-button': '.data-table__actions ion-button',
   '.actions .action-gap': '.data-table__actions .data-table__action-gap',
   '.sr-only': '.data-table__sr-only',
-  '@media (pointer: coarse), (max-width: 834px) || .actions ion-button': '@media (pointer: coarse), (max-width: 834px) || .data-table__actions ion-button',
   '@media (pointer: coarse), (max-width: 834px) || .add-btn': '@media (pointer: coarse), (max-width: 834px) || .data-table__add-button',
   '@media (pointer: coarse), (max-width: 834px) || .pager .nav ion-button': '@media (pointer: coarse), (max-width: 834px) || .data-table__pager-nav ion-button',
-  '@media (pointer: coarse), (max-width: 834px) || .load-error ion-button': '@media (pointer: coarse), (max-width: 834px) || .data-table__error ion-button',
   '.actions ion-spinner': '.data-table__actions ion-spinner',
   '.pager': '.data-table__pager',
   '.pager .left': '.data-table__pager-info',
@@ -210,6 +211,12 @@ const drop = (reason: string, ...rules: string[]) => rules.forEach((r) => (DROPP
 drop(
   'its one-line «…» cut card titles that fit in two lines; `.data-table__card-title` wraps instead',
   '.rcard-head .rc-title',
+);
+drop(
+  'Ionic skeletons replace the spinner, and 44px targets apply at every width instead of a touch-only override',
+  '.loading-state ion-spinner',
+  '@media (pointer: coarse), (max-width: 834px) || .actions ion-button',
+  '@media (pointer: coarse), (max-width: 834px) || .load-error ion-button',
 );
 drop(
   'filters panel: its scrim is never painted, the panel pushes the list from 834 px and is a whole sheet below (the Lit table kept it for a browser without media queries)',
@@ -303,6 +310,18 @@ const ADDED: Record<string, string> = {
   '.data-table__pager-nav > ion-button.data-table__page.data-table__page--current': 'the current Ionic page button uses the primary tint',
   '.data-table > .data-table__surface > .data-table__pager > .data-table__pager-info > .data-table__pager-size':
     'the standalone rows-per-page control is Ionic too',
+  '.data-table__cell--header > span': 'only header text is clipped; slotted status content can wrap',
+  '.data-table__cell > :deep(span)': 'slotted content can shrink without hiding its status text',
+  '@media (prefers-reduced-motion: reduce) || .data-table__row--data:hover, .data-table__row--data:active':
+    'row motion is disabled with reduced motion in its own component',
+  '.data-table__actions .data-table__action--primary': 'the pinned action reads as the primary row action',
+  '.data-table__empty ion-button': 'the empty-state action has a 44px target',
+  '.data-table__loading-label': 'the skeleton loading state keeps its visible loading label',
+  '.data-table__skeletons': 'loading placeholders follow the responsive card grid',
+  '.data-table__skeleton-card': 'a loading placeholder preserves the card shape',
+  '.data-table__skeleton-icon': 'the placeholder icon matches the tiled card icon',
+  '.data-table__skeleton-lines': 'placeholder lines occupy the card content',
+  '.data-table__skeleton-lines ion-skeleton-text': 'Ionic skeletons paint the placeholder lines',
 };
 
 /** Declarations a port carries on top of its Lit rule, with why. */
@@ -322,10 +341,25 @@ const EXTRA: Record<string, string[]> = {
   '.data-table__filter-button': ['--overflow: visible'],
   // A flex item never shrinks below its longest word: without this a long email runs past its card.
   '.data-table__field-value': ['min-width: 0'],
+  '.data-table__actions ion-button': ['min-width: 44px', 'min-height: 44px', 'margin: 0'],
+  '.data-table__error ion-button': ['min-height: 44px', '--padding-start: 1rem', '--padding-end: 1rem'],
+};
+
+// The focused presentation deliberately changes these declarations; every other port stays verbatim.
+const RESTYLED: Record<string, string[]> = {
+  ':where(.data-table__search) ion-searchbar': ['--background: var(--background)', '--border-radius: 10px', 'padding: 0', 'min-height: 44px'],
+  '.data-table__add-button': ['min-height: 44px', '--border-radius: 10px', '--padding-start: 0.9rem', '--padding-end: 1rem', 'margin: 0', 'font-weight: 600'],
+  '.data-table__columns-select': ['min-width: 6.5rem', 'max-width: 9rem', 'min-height: 44px', 'font-size: 13px', 'background: var(--background)', 'color: var(--color)', 'border: 1px solid var(--control-border)', 'border-radius: 10px', '--padding-start: 0.6rem', '--padding-end: 0.4rem', '--padding-top: 0.3rem', '--padding-bottom: 0.3rem'],
+  '.data-table__page-size-select': ['min-width: 4.25rem', 'max-width: 5.5rem', 'min-height: 44px', 'font-size: 13px', 'background: var(--background)', 'color: var(--color)', 'border: 1px solid var(--control-border)', 'border-radius: 10px', '--padding-start: 0.6rem', '--padding-end: 0.4rem', '--padding-top: 0.35rem', '--padding-bottom: 0.35rem'],
+  '.data-table__filter': ['min-width: 8.5rem', 'max-width: 13rem', 'min-height: 44px', 'font-size: 13px', 'background: var(--background)', 'color: var(--color)', 'border: 1px solid var(--control-border)', 'border-radius: 10px', '--padding-start: 0.7rem', '--padding-end: 0.5rem', '--padding-top: 0.35rem', '--padding-bottom: 0.35rem'],
+  '.data-table__filter-button': ['position: relative', '--padding-start: 0', '--padding-end: 0', '--border-radius: 10px', 'width: 44px', 'height: 44px', 'margin: 0'],
+  '.data-table__card-icon': ['display: inline-grid', 'place-items: center', 'flex: none', 'width: 44px', 'height: 44px', 'border-radius: var(--ep-radius-sm)', 'color: var(--ep-primary-text)', 'background: var(--ep-primary-tint)', 'font-size: 22px'],
 };
 
 const LIT = parse(litCss);
-const scoped = source.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '';
+const scoped = [source, cardSource, listSource, actionsSource, stateSource]
+  .map((input) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '')
+  .join('\n');
 const weak = source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
 const VUE = new Map([...parse(scoped), ...parse(weak)]);
 
@@ -339,7 +373,7 @@ describe('DataTable stylesheet ↔ the Lit original, rule by rule', () => {
     expect(unaccounted).toEqual([]);
   });
 
-  it('every ported rule has exactly the Lit declarations, in order (--ok-* resolved as the shell paints them)', () => {
+  it('ported rules keep the Lit declarations except for the listed focused restyling', () => {
     const mismatches: string[] = [];
     for (const [lit, vue] of Object.entries(PORTED)) {
       const from = LIT.get(lit);
@@ -348,7 +382,7 @@ describe('DataTable stylesheet ↔ the Lit original, rule by rule', () => {
       if (!to) mismatches.push(`no DataTable rule «${vue}» (port of «${lit}»)`);
       if (!from || !to) continue;
       const extras = EXTRA[vue] ?? [];
-      const expected = from.declarations.map(resolveOkTokens);
+      const expected = RESTYLED[vue] ?? from.declarations.map(resolveOkTokens);
       const actual = to.declarations.filter((d) => !extras.includes(d));
       if (JSON.stringify(actual) !== JSON.stringify(expected)) {
         mismatches.push(`«${vue}»\n    Lit: ${expected.join('; ')}\n    Vue: ${actual.join('; ')}`);
@@ -364,15 +398,15 @@ describe('DataTable stylesheet ↔ the Lit original, rule by rule', () => {
     expect(invented).toEqual([]);
   });
 
-  it('the toolbar selects are the Lit rules, word for word (the list/cards switch is an ion-segment)', () => {
+  it('the toolbar selects keep the Lit layout with 44px targets and an ion-segment', () => {
     const body = (k: string) => VUE.get(k)?.declarations.join('; ');
     expect(VUE.has('.data-table__view-switch')).toBe(false);
     expect(VUE.has('.data-table__tool-button')).toBe(false);
     expect(body('.data-table__columns-select')).toBe(
-      'min-width: 6.5rem; max-width: 9rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem',
+      'min-width: 6.5rem; max-width: 9rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem',
     );
     expect(body('.data-table__page-size-select')).toBe(
-      'min-width: 4.25rem; max-width: 5.5rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem',
+      'min-width: 4.25rem; max-width: 5.5rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem',
     );
   });
 });

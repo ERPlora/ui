@@ -192,7 +192,7 @@ describe('«still loading» is not «empty»', () => {
     expect(t.find('.data-table__pager').exists(), 'the page-size selector lives in the toolbar').toBe(false);
     expect(loading(t)?.getAttribute('role')).toBe('status');
     expect(text(loading(t))).toBe('Loading…');
-    expect(loading(t)?.querySelector('ion-spinner')).not.toBeNull();
+    expect(loading(t)?.querySelectorAll('ion-skeleton-text').length).toBeGreaterThan(2);
     expect(t.find('.data-table__surface').attributes('aria-busy')).toBe('true');
   });
 

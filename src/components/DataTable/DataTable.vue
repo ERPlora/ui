@@ -22,9 +22,6 @@
 // `-filters-close`…
 import {
   IonButton,
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
   IonCheckbox,
   IonChip,
   IonContent,
@@ -39,12 +36,14 @@ import {
   IonSegmentButton,
   IonSelect,
   IonSelectOption,
-  IonSpinner,
 } from '@ionic/vue';
 import { computed, nextTick, onMounted, onUpdated, ref, shallowRef, useId, watch } from 'vue';
 
 import { ionIconSrc } from '../../shell/icons';
+import DataTableCard from './DataTableCard.vue';
+import DataTableListItem from './DataTableListItem.vue';
 import DataTableLookup from './DataTableLookup.vue';
+import DataTableState from './DataTableState.vue';
 import { useDataTableLabels } from './labels';
 import {
   actionLabel,
@@ -59,7 +58,6 @@ import {
   filterKeys,
   filterRows,
   gridTemplate,
-  iconWithLabel,
   inlineActions,
   pageList,
   pagerState,
@@ -77,6 +75,7 @@ import {
 import { syncSearchbarInputName } from './searchbarName';
 import type {
   DataTableAction,
+  DataTableActionCell,
   DataTableActionEvent,
   DataTableColumn,
   DataTableEntityLabel,
@@ -285,15 +284,11 @@ const clientSortDir = ref<DataTableSortDir>('asc');
 /** The person's pick in the column chooser, per key; untouched columns follow their `hidden`. */
 const columnChoice = ref(new Map<string, boolean>());
 const internalSelection = ref(new Set<string>());
-/** Cells unfolded by a tap, as `rowKey + U+241F + column key`. */
-const unfoldedCells = ref(new Set<string>());
-let lastPointerType = '';
 const rowMenuOpen = ref(false);
 const rowMenuEvent = shallowRef<Event>();
 const rowMenuRow = shallowRef<T>();
 
 const keyOf = (row: T): string => rowKeyOf(row, props.rowKey ?? ('id' as DataTableRowKey<T>));
-const fieldOf = (row: T, key: string): unknown => (row as Record<string, unknown>)[key];
 const tid = (suffix: string): string | undefined => {
   const prefix = props.testid?.trim();
   return prefix ? `${prefix}-${suffix}` : undefined;
@@ -301,6 +296,7 @@ const tid = (suffix: string): string | undefined => {
 
 /** Columns the person sees: their `hidden`, unless picked otherwise in the column chooser. */
 const visibleColumns = computed(() => props.columns.filter((c) => columnChoice.value.get(c.key) ?? c.hidden !== true));
+const cellColumns = computed(() => visibleColumns.value.filter((column) => column.cell));
 /** Shown columns the box may take away: `low`, and not picked by hand. */
 const yieldingColumns = computed(() =>
   visibleColumns.value.filter((c) => c.priority === 'low' && columnChoice.value.get(c.key) !== true),
@@ -664,8 +660,6 @@ watch(
       scrollToNewPage = false;
       root.value?.scrollIntoView({ block: 'start' });
     }
-    // New rows: every cell starts folded again.
-    if (unfoldedCells.value.size) unfoldedCells.value = new Set();
     // A new result set starts at one page; the same records refreshed keep the window.
     if (!props.serverSide && mobileShown.value !== 0 && !sameRecords(before, now, keyOf)) mobileShown.value = 0;
   },
@@ -797,31 +791,7 @@ const recordWord = computed(
 );
 
 // ── Rows and cells ────────────────────────────────────────────────────────────────────────────
-function onRowClick(row: T): void {
-  if (props.rowClickable) emit('rowClick', row);
-}
-/** Enter/Space activate a clickable row or card; Space must not scroll the page. */
-function onRowKeydown(ev: KeyboardEvent, row: T): void {
-  if (!props.rowClickable) return;
-  if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
-  ev.preventDefault();
-  emit('rowClick', row);
-}
 const rowId = (row: T, index: number): string => keyOf(row) || `#${index}`;
-/** Every row and card is hooked as `<testid>-row`, told apart by its key in `data-id` (only with a prefix). */
-const rowHookId = (row: T): string | undefined => (tid('row') ? keyOf(row) : undefined);
-const cellId = (row: T, column: DataTableColumn<T>): string => `${keyOf(row)}␟${column.key}`;
-function notePointer(ev: PointerEvent): void {
-  lastPointerType = ev.pointerType;
-}
-/** A touch screen has no hover for the title: in a table whose rows open nothing, a tap on a
- *  clipped cell (or card value) unfolds it in place. A cell that fits, and a mouse click, change nothing. */
-function onCellTap(ev: MouseEvent, id: string): void {
-  if (props.rowClickable || lastPointerType !== 'touch') return;
-  const span = ev.currentTarget as HTMLElement;
-  if (span.scrollWidth <= span.clientWidth) return;
-  unfoldedCells.value = new Set(unfoldedCells.value).add(id);
-}
 const alignClass = (column: DataTableColumn<T>): string | undefined =>
   column.align === 'right' ? 'data-table__cell--right' : column.align === 'center' ? 'data-table__cell--center' : undefined;
 
@@ -837,22 +807,12 @@ const gapLabels = computed(
       }),
     ),
 );
-interface ActionSlot {
-  action: DataTableAction<T>;
-  gap: boolean;
-}
-interface ActionCell {
-  /** The buttons, in order (a `gap` is the invisible stand-in of an action hidden for the row). */
-  items: ActionSlot[];
-  /** What «⋮» offers for the row (nothing = no «⋮»). */
-  menu: DataTableAction<T>[];
-}
 const fold = computed<RowActionsFold>(() => (rowActionsCollapsed.value ? 'all' : extraActionsFolded.value ? 'extra' : 'none'));
 /** Unfolded or partly folded, every row has the same button places. */
 const listSlots = computed(() => inlineActions(slotActions.value, fold.value, props.maxInlineActions));
 /** What the actions cell of a list row holds. Folded entirely, each row decides on its own: a single
  *  icon action stays a button, as do the pinned ones. */
-function listActions(row: T): ActionCell {
+function listActions(row: T): DataTableActionCell<T> {
   const visible = visibleActions(props.actions, row);
   if (fold.value === 'all') {
     const folds = rowActionsFolded(true, visible.filter((a) => a.menuOnly !== true && a.pinned !== true));
@@ -868,7 +828,7 @@ function listActions(row: T): ActionCell {
 /** Some row has a «⋮» (not folded entirely): the others keep its place with a stand-in. */
 const listMenuPlace = computed(() => fold.value !== 'all' && props.rows.some((row) => listActions(row).menu.length > 0));
 /** A card has room for every action: buttons, except the `menuOnly` ones, which stay in «⋮». */
-function cardActions(row: T): ActionCell {
+function cardActions(row: T): DataTableActionCell<T> {
   const visible = visibleActions(props.actions, row);
   return {
     items: visible.filter((a) => a.menuOnly !== true).map((action) => ({ action, gap: false })),
@@ -920,19 +880,18 @@ function pickMenuAction(action: DataTableAction<T>): void {
 const namedTitleColumn = computed(() =>
   props.cardTitleColumn ? props.columns.find((c) => c.key === props.cardTitleColumn) : undefined,
 );
-const hasCardHead = computed(() => !!props.cardTitle || !!namedTitleColumn.value || !!props.cardIcon || props.selectable);
 /** The card title: `cardTitle`, else the painted text of the named column. */
 function cardTitleOf(row: T): string | number {
   if (props.cardTitle) return props.cardTitle(row) ?? '';
   return namedTitleColumn.value ? cellText(namedTitleColumn.value, row) : '';
 }
-/** The default card body leaves out the column the title already shows: the one
- *  `cardTitleColumn` names, else the one whose text is the title. */
+function cardTitleColumnOf(row: T): DataTableColumn<T> | undefined {
+  return namedTitleColumn.value ?? (props.cardTitle ? titleColumnByText(props.cardTitle(row), row, visibleColumns.value) : undefined);
+}
+/** The default card body leaves out the column the title already shows. */
 function cardFields(row: T): DataTableColumn<T>[] {
-  const named = namedTitleColumn.value;
-  if (named) return visibleColumns.value.filter((c) => c !== named);
-  const titleColumn = props.cardTitle ? titleColumnByText(props.cardTitle(row), row, visibleColumns.value) : undefined;
-  return visibleColumns.value.filter((c) => c !== titleColumn);
+  const titleColumn = cardTitleColumnOf(row);
+  return visibleColumns.value.filter((column) => column !== titleColumn);
 }
 
 // The search box is named after its hint, and its clear button with its own text, after every render.
@@ -1251,216 +1210,90 @@ onUpdated(nameSearchBox);
         </div>
       </div>
 
-      <!-- The first rows are on their way: not «empty», not «0 records». -->
-      <div
+      <DataTableState
         v-if="awaitingRows"
-        class="data-table__loading"
-        role="status"
-        data-role="loading"
-        :data-testid="tid('loading')"
-      >
-        <ion-spinner
-          name="crescent"
-          aria-hidden="true"
-        />
-        <span>{{ label('loading') }}</span>
-      </div>
-
-      <!-- The load failed: says so, gives the reason (once), offers to retry. -->
-      <div
+        kind="loading"
+        :labels="{ loading: label('loading'), errorTitle: label('loadError'), empty: '', retry: label('retry'), reset: label('showAll') }"
+        :testid="testid?.trim() || undefined"
+      />
+      <DataTableState
         v-else-if="loadFailed"
-        class="data-table__error"
-        role="alert"
-        data-role="load-error"
-      >
-        <span class="data-table__state-icon"><ion-icon
-          :icon="icon(ICONS.error)"
-          aria-hidden="true"
-        /></span>
-        <strong class="data-table__error-title">{{ label('loadError') }}</strong>
-        <span
-          v-if="errorReason"
-          class="data-table__error-reason"
-        >{{ errorReason }}</span>
-        <ion-button
-          size="small"
-          data-role="load-error-retry"
-          :data-testid="tid('retry')"
-          @click="emit('retry')"
-        >
-          {{ label('retry') }}
-        </ion-button>
-      </div>
-
-      <div
+        kind="error"
+        :labels="{ loading: label('loading'), errorTitle: label('loadError'), empty: '', retry: label('retry'), reset: label('showAll') }"
+        :error-reason="errorReason"
+        :testid="testid?.trim() || undefined"
+        @retry="emit('retry')"
+      />
+      <DataTableState
         v-else-if="pager.visible.length === 0"
-        class="data-table__empty"
+        kind="empty"
+        :labels="{ loading: label('loading'), errorTitle: label('loadError'), empty: noMatches ? (noMatchesMessage ?? label('noMatches')) : (emptyMessage ?? label('empty')), retry: label('retry'), reset: label('showAll') }"
+        :can-reset="noMatches"
+        :testid="testid?.trim() || undefined"
+        @reset="resetSearch"
       >
-        <slot name="empty">
-          <span class="data-table__state-icon"><ion-icon
-            :icon="icon(ICONS.empty)"
-            aria-hidden="true"
-          /></span>
-          <span>{{ noMatches ? (noMatchesMessage ?? label('noMatches')) : (emptyMessage ?? label('empty')) }}</span>
-          <ion-button
-            v-if="noMatches"
-            fill="clear"
-            size="small"
-            data-role="no-matches-reset"
-            :data-testid="tid('show-all')"
-            @click="resetSearch"
-          >
-            {{ label('showAll') }}
-          </ion-button>
-        </slot>
-      </div>
+        <template
+          v-if="slots.empty"
+          #empty
+        >
+          <slot name="empty" />
+        </template>
+      </DataTableState>
 
-      <!-- Cards: an Ionic card per row; the view a phone gets when cards are declared. -->
       <div
         v-else-if="cardsOn"
         class="data-table__cards"
       >
-        <ion-card
+        <DataTableCard
           v-for="(row, index) in pager.visible"
           :key="rowId(row, index)"
-          :class="[
-            'data-table__card',
-            {
-              'data-table__card--selected': selectable && selection.has(keyOf(row)),
-              'data-table__card--clickable': rowClickable,
-            },
-          ]"
-          :data-testid="tid('row')"
-          :data-id="rowHookId(row)"
-          :role="rowClickable ? 'button' : undefined"
-          :tabindex="rowClickable ? 0 : undefined"
-          @click="onRowClick(row)"
-          @keydown="onRowKeydown($event, row)"
+          :row="row"
+          :rows="rows"
+          :row-id="rowId(row, index)"
+          :title="cardTitleOf(row)"
+          :title-column="cardTitleColumnOf(row)"
+          :icon="cardIcon?.(row)"
+          :fields="cardFields(row)"
+          :actions="cardActions(row)"
+          :gap-labels="gapLabels"
+          :selectable="selectable"
+          :selected="selection.has(keyOf(row))"
+          :clickable="rowClickable"
+          :has-actions="hasActions"
+          :select-label="label('select')"
+          :more-label="label('moreActions')"
+          :testid="testid?.trim() || undefined"
+          @open="emit('rowClick', $event)"
+          @select="toggleRow"
+          @action="runAction($event.action, $event.row)"
+          @menu="openRowMenu"
         >
-          <ion-card-header
-            v-if="hasCardHead"
-            class="data-table__card-head"
+          <template
+            v-if="slots.card"
+            #card="{ row: cardRow }"
           >
-            <span
-              v-if="cardIcon?.(row)"
-              class="data-table__card-icon"
-            ><ion-icon
-              :icon="icon(cardIcon(row))"
-              aria-hidden="true"
-            /></span>
-            <span class="data-table__card-title">{{ cardTitleOf(row) }}</span>
-            <ion-checkbox
-              v-if="selectable"
-              :checked="selection.has(keyOf(row))"
-              :aria-label="label('select')"
-              @click.stop
-              @ion-change="toggleRow(keyOf(row))"
-            />
-          </ion-card-header>
-          <ion-card-content class="data-table__card-body">
             <slot
-              v-if="slots.card"
               name="card"
-              :row="row"
+              :row="cardRow"
             />
-            <template v-else>
-              <div
-                v-for="column in cardFields(row)"
-                :key="column.key"
-                class="data-table__field"
-              >
-                <span class="data-table__field-label">{{ column.label }}</span>
-                <span class="data-table__field-value">
-                  <slot
-                    v-if="column.cell"
-                    :name="column.cell"
-                    :row="row"
-                    :value="fieldOf(row, column.key)"
-                    :column="column"
-                  />
-                  <!-- Its own box: a word too long for the card ends in «…» and unfolds like a cell. -->
-                  <span
-                    v-else
-                    :class="['data-table__field-text', { 'data-table__field-text--unfolded': unfoldedCells.has(cellId(row, column)) }]"
-                    :title="cellText(column, row) || undefined"
-                    @pointerdown="notePointer"
-                    @click="onCellTap($event, cellId(row, column))"
-                  >{{ cellText(column, row) }}</span>
-                </span>
-              </div>
-            </template>
-          </ion-card-content>
-          <div
-            v-if="hasActions"
-            class="data-table__card-actions"
-            @click.stop
+          </template>
+          <template #row-actions="{ row: actionRow }">
+            <slot
+              name="row-actions"
+              :row="actionRow"
+            />
+          </template>
+          <template
+            v-for="column in cellColumns"
+            :key="column.key"
+            #[column.cell]="cellProps"
           >
-            <div class="data-table__actions">
-              <ion-button
-                v-for="{ action } in cardActions(row).items"
-                :key="action.id"
-                :class="{ 'data-table__action--labelled': iconWithLabel(action) }"
-                size="small"
-                fill="clear"
-                :style="toneStyle(action.color ?? 'medium', 'clear')"
-                :data-testid="tid(`row-${keyOf(row)}-${action.id}`)"
-                :disabled="isDisabled(action, row)"
-                :aria-disabled="isDisabled(action, row) ? 'true' : undefined"
-                :aria-label="actionLabel(action, row)"
-                :title="actionLabel(action, row)"
-                @click="runAction(action, row)"
-              >
-                <ion-spinner
-                  v-if="isBusy(action, row) && iconWithLabel(action)"
-                  slot="start"
-                  name="dots"
-                />
-                <ion-spinner
-                  v-else-if="isBusy(action, row)"
-                  slot="icon-only"
-                  name="dots"
-                />
-                <ion-icon
-                  v-else-if="iconWithLabel(action)"
-                  slot="start"
-                  :icon="icon(action.icon)"
-                  aria-hidden="true"
-                />
-                <ion-icon
-                  v-else-if="action.icon"
-                  slot="icon-only"
-                  :icon="icon(action.icon)"
-                  aria-hidden="true"
-                />
-                <template v-if="iconWithLabel(action) || (!action.icon && !isBusy(action, row))">
-                  {{ actionLabel(action, row) }}
-                </template>
-              </ion-button>
-              <slot
-                name="row-actions"
-                :row="row"
-              />
-              <!-- The `menuOnly` actions never get a button, not even on a card. -->
-              <ion-button
-                v-if="cardActions(row).menu.length"
-                size="small"
-                fill="clear"
-                :style="toneStyle('medium', 'clear')"
-                :data-testid="tid(`row-${keyOf(row)}-menu`)"
-                :aria-label="label('moreActions')"
-                :title="label('moreActions')"
-                aria-haspopup="menu"
-                @click="openRowMenu($event, row)"
-              >
-                <ion-icon
-                  slot="icon-only"
-                  :icon="icon(ICONS.more)"
-                  aria-hidden="true"
-                />
-              </ion-button>
-            </div>
-          </div>
-        </ion-card>
+            <slot
+              :name="column.cell"
+              v-bind="cellProps"
+            />
+          </template>
+        </DataTableCard>
       </div>
 
       <!-- The list, in CSS grid (not <table>): width per column and a sticky header. -->
@@ -1519,174 +1352,46 @@ onUpdated(nameSearchBox);
               </div>
             </div>
 
-            <div
+            <DataTableListItem
               v-for="(row, index) in pager.visible"
               :key="rowId(row, index)"
-              :class="[
-                'data-table__row data-table__row--data',
-                {
-                  'data-table__row--selected': selectable && selection.has(keyOf(row)),
-                  'data-table__row--clickable': rowClickable,
-                },
-              ]"
-              role="row"
-              :data-testid="tid('row')"
-              :data-id="rowHookId(row)"
-              :style="{ gridTemplateColumns: template }"
-              :tabindex="rowClickable ? 0 : undefined"
-              @click="onRowClick(row)"
-              @keydown="onRowKeydown($event, row)"
+              :row="row"
+              :rows="rows"
+              :row-id="rowId(row, index)"
+              :columns="listColumns"
+              :template="template"
+              :actions="listActions(row)"
+              :gap-labels="gapLabels"
+              :selectable="selectable"
+              :selected="selection.has(keyOf(row))"
+              :clickable="rowClickable"
+              :has-actions="hasActions"
+              :menu-place="listMenuPlace"
+              :select-label="label('selectRow')"
+              :more-label="label('moreActions')"
+              :testid="testid?.trim() || undefined"
+              @open="emit('rowClick', $event)"
+              @select="toggleRow"
+              @action="runAction($event.action, $event.row)"
+              @menu="openRowMenu"
             >
-              <span
-                v-if="selectable"
-                class="data-table__select-cell"
-                @click.stop
-              >
-                <ion-checkbox
-                  :checked="selection.has(keyOf(row))"
-                  :aria-label="label('selectRow')"
-                  @ion-change="toggleRow(keyOf(row))"
+              <template #row-actions="{ row: actionRow }">
+                <slot
+                  name="row-actions"
+                  :row="actionRow"
                 />
-              </span>
-              <div
-                v-for="column in listColumns"
+              </template>
+              <template
+                v-for="column in cellColumns"
                 :key="column.key"
-                :class="['data-table__cell', alignClass(column), { 'data-table__cell--pinned': column.pinned === 'end' }]"
-                role="cell"
+                #[column.cell]="cellProps"
               >
                 <slot
-                  v-if="column.cell"
                   :name="column.cell"
-                  :row="row"
-                  :value="fieldOf(row, column.key)"
-                  :column="column"
+                  v-bind="cellProps"
                 />
-                <span
-                  v-else
-                  :class="['data-table__text', { 'data-table__text--unfolded': unfoldedCells.has(cellId(row, column)) }]"
-                  :title="cellText(column, row) || undefined"
-                  @pointerdown="notePointer"
-                  @click="onCellTap($event, cellId(row, column))"
-                >{{ cellText(column, row) }}</span>
-              </div>
-              <div
-                v-if="hasActions"
-                class="data-table__cell data-table__cell--right data-table__cell--pinned data-table__cell--actions"
-                role="cell"
-                @click.stop
-              >
-                <div class="data-table__actions">
-                  <template
-                    v-for="{ action, gap } in listActions(row).items"
-                    :key="action.id"
-                  >
-                    <!-- A hidden action keeps its width, invisible and inert: the others stay in their column. -->
-                    <ion-button
-                      v-if="gap"
-                      :class="['data-table__action-gap', { 'data-table__action--labelled': iconWithLabel(action) }]"
-                      size="small"
-                      fill="clear"
-                      :data-slot-for="action.id"
-                      aria-hidden="true"
-                      inert
-                    >
-                      <ion-icon
-                        v-if="iconWithLabel(action)"
-                        slot="start"
-                        :icon="icon(action.icon)"
-                        aria-hidden="true"
-                      />
-                      <ion-icon
-                        v-else-if="action.icon"
-                        slot="icon-only"
-                        :icon="icon(action.icon)"
-                        aria-hidden="true"
-                      />
-                      <template v-if="!action.icon || iconWithLabel(action)">
-                        {{ gapLabels.get(action) }}
-                      </template>
-                    </ion-button>
-                    <ion-button
-                      v-else
-                      :class="{ 'data-table__action--labelled': iconWithLabel(action) }"
-                      size="small"
-                      fill="clear"
-                      :style="toneStyle(action.color ?? 'medium', 'clear')"
-                      :data-testid="tid(`row-${keyOf(row)}-${action.id}`)"
-                      :disabled="isDisabled(action, row)"
-                      :aria-disabled="isDisabled(action, row) ? 'true' : undefined"
-                      :aria-label="actionLabel(action, row)"
-                      :title="actionLabel(action, row)"
-                      @click="runAction(action, row)"
-                    >
-                      <ion-spinner
-                        v-if="isBusy(action, row) && iconWithLabel(action)"
-                        slot="start"
-                        name="dots"
-                      />
-                      <ion-spinner
-                        v-else-if="isBusy(action, row)"
-                        slot="icon-only"
-                        name="dots"
-                      />
-                      <ion-icon
-                        v-else-if="iconWithLabel(action)"
-                        slot="start"
-                        :icon="icon(action.icon)"
-                        aria-hidden="true"
-                      />
-                      <ion-icon
-                        v-else-if="action.icon"
-                        slot="icon-only"
-                        :icon="icon(action.icon)"
-                        aria-hidden="true"
-                      />
-                      <template v-if="iconWithLabel(action) || (!action.icon && !isBusy(action, row))">
-                        {{ actionLabel(action, row) }}
-                      </template>
-                    </ion-button>
-                  </template>
-                  <slot
-                    name="row-actions"
-                    :row="row"
-                  />
-                  <!-- «⋮»: one button that opens what left the row (folded, or menuOnly). -->
-                  <ion-button
-                    v-if="listActions(row).menu.length"
-                    size="small"
-                    fill="clear"
-                    :style="toneStyle('medium', 'clear')"
-                    :data-testid="tid(`row-${keyOf(row)}-menu`)"
-                    :aria-label="label('moreActions')"
-                    :title="label('moreActions')"
-                    aria-haspopup="menu"
-                    @click="openRowMenu($event, row)"
-                  >
-                    <ion-icon
-                      slot="icon-only"
-                      :icon="icon(ICONS.more)"
-                      aria-hidden="true"
-                    />
-                  </ion-button>
-                  <!-- Another row has «⋮»: its place, invisible and inert. -->
-                  <ion-button
-                    v-else-if="listMenuPlace"
-                    class="data-table__action-gap"
-                    size="small"
-                    fill="clear"
-                    data-slot-for="menu"
-                    aria-hidden="true"
-                    inert
-                  >
-                    <ion-icon
-                      slot="icon-only"
-                      :icon="icon(ICONS.more)"
-                      aria-hidden="true"
-                    />
-                  </ion-button>
-                </div>
-              </div>
-            </div>
+              </template>
+            </DataTableListItem>
           </div>
         </div>
       </template>
@@ -2021,8 +1726,6 @@ onUpdated(nameSearchBox);
 /* Ionic's `::slotted(ion-icon[slot=start])` pull; the end margin is the `0.35rem` below. */
 :where(.data-table) ion-button > ion-icon[slot="start"] { margin-inline-start: -0.3em; }
 :where(.data-table) ion-select { --border-radius: inherit; }
-:where(.data-table) ion-card { border: initial; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); }
-:where(.data-table) ion-card-header { padding: 20px 20px 16px; }
 
 .data-table {
   --background: var(--ion-card-background, var(--ion-background-color, #ffffff));
@@ -2111,23 +1814,22 @@ onUpdated(nameSearchBox);
 /* List/cards switch: Ionic's segment. An ion-segment is 100% wide by default:
    here it takes only its buttons; icon-only buttons as tall as the toolbar controls. */
 .data-table__view-segment { flex: 0 0 auto; width: auto; }
-.data-table__view-segment ion-segment-button { min-width: 44px; min-height: 36px; }
+.data-table__view-segment ion-segment-button { min-width: 44px; min-height: 44px; }
 
-/* Primary button. The create action is labelled and filled, 36px to line up with the bar
-   (44px back on coarse pointers, below). */
+/* Primary button: labelled, filled and at least 44px tall. */
 .data-table__primary-button { --background: var(--primary); --color: var(--primary-contrast); }
-.data-table__add-button { min-height: 36px; --border-radius: 10px; --padding-start: 0.9rem; --padding-end: 1rem; margin: 0; font-weight: 600; }
+.data-table__add-button { min-height: 44px; --border-radius: 10px; --padding-start: 0.9rem; --padding-end: 1rem; margin: 0; font-weight: 600; }
 .data-table__add-button ion-icon { margin-inline-end: 0.35rem; }
 
 /* Toolbar selects: visible background and border, like the search box. */
-.data-table__columns-select { min-width: 6.5rem; max-width: 9rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem; }
-.data-table__page-size-select { min-width: 4.25rem; max-width: 5.5rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem; }
+.data-table__columns-select { min-width: 6.5rem; max-width: 9rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem; }
+.data-table__page-size-select { min-width: 4.25rem; max-width: 5.5rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem; }
 /* A select the page adds in the `filters` (or `toolbar`) slot: boxed like the two above. */
-.data-table__bar-main > :slotted(ion-select) { min-width: 6.5rem; max-width: 8rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem; }
+.data-table__bar-main > :slotted(ion-select) { min-width: 6.5rem; max-width: 8rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem; }
 
 /* Column filters: a row of boxed controls under the toolbar's main row. */
 .data-table__filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-.data-table__filter { min-width: 8.5rem; max-width: 13rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.7rem; --padding-end: 0.5rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem; }
+.data-table__filter { min-width: 8.5rem; max-width: 13rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.7rem; --padding-end: 0.5rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem; }
 .data-table__filter-range { display: inline-flex; align-items: center; gap: 0.35rem; }
 .data-table__filter-range .data-table__filter { min-width: 5.5rem; max-width: 7rem; }
 /* A date range's end is as wide as a date field: in a number box the calendar icon covers the last
@@ -2138,8 +1840,8 @@ onUpdated(nameSearchBox);
 .data-table__filters-clear { margin: 0; font-size: 13px; }
 
 /* ── Filters panel (`filterable`) ────────────────────────────────────────────────────────────
-   The funnel: a 36px tool button, solid while filtering, with the count of filtered columns. */
-.data-table__filter-button { position: relative; --padding-start: 0; --padding-end: 0; --border-radius: 10px; width: 36px; height: 36px; margin: 0; --overflow: visible; }
+   The funnel: a 44px tool button, solid while filtering, with the count of filtered columns. */
+.data-table__filter-button { position: relative; --padding-start: 0; --padding-end: 0; --border-radius: 10px; width: 44px; height: 44px; margin: 0; --overflow: visible; }
 .data-table__filter-button .data-table__filter-count { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 999px; background: var(--primary); color: var(--primary-contrast); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
 /* The panel, INSIDE the table. Base: an overlay on the right edge (what a browser without media
    queries sees). It PUSHES on a desk and is a WHOLE sheet on a phone, never half covering. */
@@ -2194,19 +1896,9 @@ onUpdated(nameSearchBox);
 .data-table__row { display: grid; align-items: center; gap: 0.5rem; padding: 0 1rem; }
 .data-table__row--head { position: sticky; top: 0; z-index: 2; border-bottom: 1px solid var(--border-color); background: var(--header-background); padding-top: 0.55rem; padding-bottom: 0.55rem; }
 .data-table__cell { display: flex; align-items: center; min-width: 0; }
-/* `:deep`: a span a cell slot paints is clipped too. */
-.data-table__cell > :deep(span) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* A tapped clipped cell unfolds in place; the rest of the row keeps its one line. */
-.data-table__cell > .data-table__text--unfolded { white-space: normal; overflow-wrap: anywhere; }
+.data-table__cell--header > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .data-table__cell--right { justify-content: flex-end; text-align: right; }
 .data-table__cell--center { justify-content: center; text-align: center; }
-/* A data row's cell that cannot hold its things side by side drops the next one under, 4px apart (status
-   badges stack, as in Shopify, Odoo and Square), instead of squeezing one: a chip beside a badge that never
-   shrinks would be left with its icon cut and no text. A lone text has its line to itself and still ends in «…»;
-   the column still asks for its things side by side (`naturalCellWidth`, gap included); the header (its name and
-   the sort caret) and the pinned actions keep their line. Side by side they are 4px apart too: a flex box drops
-   the text space a slot puts between its things, and two pills would touch. */
-.data-table__row--data > .data-table__cell:not(.data-table__cell--actions) { flex-wrap: wrap; gap: 0.25rem; }
 /* PINNED column (row actions, `pinned: 'end'`): stuck to the right edge, on the row background. */
 .data-table__cell--pinned { position: sticky; right: 0; z-index: 1; background: inherit; margin-right: -1rem; padding-right: 1rem; }
 /* The shadow only when something is really hidden to the left. */
@@ -2221,90 +1913,25 @@ onUpdated(nameSearchBox);
 /* Sort caret (3 states): neutral dimmed / active in primary. */
 .data-table__caret { display: inline-flex; align-items: center; margin-left: 0.25rem; flex: 0 0 auto; font-size: 13px; opacity: 0.3; }
 .data-table__caret--active { opacity: 1; color: var(--primary); }
-.data-table__row--data { background: var(--background); border-bottom: 1px solid var(--border-color-soft); padding-top: 0.6rem; padding-bottom: 0.6rem; transition: background-color var(--ep-transition, 150ms ease), color var(--ep-transition, 150ms ease), box-shadow var(--ep-transition, 150ms ease), transform 120ms ease; }
-.data-table__row--data:last-child { border-bottom: 0; }
-@media (hover: hover) {
-  .data-table__row--data:hover { background: linear-gradient(var(--row-hover), var(--row-hover)), var(--background); }
-}
-.data-table__row--data:active { transform: scale(0.995); }
-.data-table__row--data.data-table__row--selected { background: linear-gradient(color-mix(in srgb, var(--primary) 10%, transparent), color-mix(in srgb, var(--primary) 10%, transparent)), var(--background); }
-/* Clickable row (opt-in `rowClickable`). */
-.data-table__row--clickable { cursor: pointer; }
-.data-table__row--clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 .data-table__select-cell { display: flex; align-items: center; justify-content: center; }
-/* A selection box of 24×24 (Ionic's ios one is 22), in the list and on the cards. */
-.data-table ion-checkbox { --size: 24px; }
 
 /* ── Cards ───────────────────────────────────────────────────────────────────────────────── */
 /* Each card is as tall as its content; rows pack at the top. */
 .data-table__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.75rem; padding: 1rem; grid-auto-rows: max-content; align-content: start; align-items: start; }
-/* Native ion-card: Ionic's own background, radius and elevation; the grid gives the gap. */
-ion-card.data-table__card { margin: 0; }
-.data-table__card--selected { outline: 2px solid var(--primary); outline-offset: -2px; }
-/* Clickable card (opt-in `rowClickable`). */
-.data-table__card--clickable { cursor: pointer; }
-.data-table__card--clickable:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 @media (prefers-reduced-motion: reduce) {
   .data-table__cell--sortable:hover, .data-table__cell--sortable:active,
   .data-table__row--data:hover, .data-table__row--data:active { transform: none; }
 }
-/* The head is ONE row: Ionic's ios host CSS gives ion-card-header a column direction. */
-.data-table__card-head { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 0.5rem; }
-.data-table__card-icon { display: inline-flex; color: var(--primary); }
-/* The title wraps, two lines at most (Polaris, Material): never «…» on one line while there is room. */
-.data-table__card-title { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-weight: 600; }
-.data-table__card-body { display: flex; flex-direction: column; gap: 0.4rem; }
-.data-table__field { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 13px; }
-.data-table__field-label { color: var(--color-muted); }
-/* The value may shrink below its longest word (a flex item's `min-width: auto` would let a long email
-   run past the card, cut with no «…»). Its default text wraps between words; a word that still does not
-   fit ends in «…», and a tap unfolds it. Its own `overflow-wrap`: Ionic's `body` breaks a long word at
-   the edge, with no sign. */
-.data-table__field-value { font-weight: 500; text-align: right; color: var(--color); min-width: 0; }
-.data-table__field-text { display: block; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
-.data-table__field-text--unfolded { overflow-wrap: anywhere; }
-.data-table__card-actions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0 0.5rem 0.5rem; }
-/* A card's action row never clips: it wraps. Only on the card: the list's row is measured to pin its
-   track. */
-.data-table__card-actions .data-table__actions { flex-wrap: wrap; }
-
-/* ── States ──────────────────────────────────────────────────────────────────────────────── */
-.data-table__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 3.5rem 1rem; text-align: center; color: var(--color-muted); }
-/* Same frame as «empty»; its heading reads as text. */
-.data-table__error { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 3.5rem 1rem; text-align: center; color: var(--color-muted); }
-/* Same frame as «empty», a spinner instead of the tray. */
-.data-table__loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 3.5rem 1rem; text-align: center; color: var(--color-muted); }
-.data-table__loading ion-spinner { width: 28px; height: 28px; color: var(--ion-color-primary, #3880ff); }
-.data-table__error .data-table__error-title { color: var(--color); font-weight: 600; }
-.data-table__error .data-table__state-icon { color: var(--ion-color-danger, #c5000f); }
-.data-table__error ion-button { margin-top: 0.25rem; }
-.data-table__empty .data-table__state-icon, .data-table__error .data-table__state-icon { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 999px; background: var(--header-background); font-size: 26px; }
 
 /* ── Row actions ─────────────────────────────────────────────────────────────────────────── */
-.data-table__actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
-/* The buttons NEVER shrink: their track is pinned to this very measurement. */
-.data-table__actions ion-button { flex: 0 0 auto; }
-/* An action with `showLabel`: its icon and its text. */
-.data-table__actions .data-table__action--labelled { font-size: 13px; font-weight: 500; --padding-start: 0.5rem; --padding-end: 0.6rem; }
-.data-table__action--labelled > [slot="start"] { margin-inline: 0 0.3rem; }
-/* Stand-in of a hidden action: its width, nothing painted. */
-.data-table__actions .data-table__action-gap { visibility: hidden; }
 /* Named for assistive tech, not painted. */
 .data-table__sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
-/* Touch: the whole button (not only its icon) reaches 44×44. */
 @media (pointer: coarse), (max-width: 834px) {
-  .data-table__actions ion-button { min-width: 44px; min-height: 44px; margin: 0; }
   .data-table__view-segment ion-segment-button { min-height: 44px; }
   .data-table__filter-button { width: 44px; height: 44px; }
   .data-table__add-button { min-height: 44px; }
   .data-table__pager-nav ion-button { min-width: 44px; min-height: 44px; margin: 0; }
-  .data-table__error ion-button { min-height: 44px; --padding-start: 1rem; --padding-end: 1rem; }
-  /* The box keeps its 24px, its target grows to 44×44 (Ionic toggles on the whole host) and the
-     negative margin keeps the row from growing taller. */
-  .data-table ion-checkbox { width: 44px; height: 44px; margin: -10px; display: grid; place-items: center; }
 }
-/* Action in progress: spinner sized inside the small button. */
-.data-table__actions ion-spinner { width: 18px; height: 18px; }
 
 /* ── Footer: count + paging ──────────────────────────────────────────────────────────────── */
 .data-table__pager { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.55rem 1rem; border-top: 1px solid var(--border-color); background: var(--header-background); font-size: 12.5px; color: var(--color-muted); }
@@ -2345,7 +1972,7 @@ ion-card.data-table__card { margin: 0; }
   --border-color: color-mix(in srgb, var(--primary) 32%, transparent);
 }
 .data-table > .data-table__surface > .data-table__pager > .data-table__pager-info > .data-table__pager-size {
-  min-height: 32px;
+  min-height: 44px;
 }
 
 ion-button { --box-shadow: none; }
@@ -2354,9 +1981,10 @@ ion-button { --box-shadow: none; }
 <style>
 /* Unscoped on purpose: these rules must stay WEAK, so that Ionic's own scoped searchbar classes
    (`.sc-ion-searchbar-ios-h`, 0,1,0) beat them on every property both set: the box keeps Ionic's
-   12px padding and its grey field (measured: 60px tall). A scoped copy would carry Vue's attribute
+   12px padding and its grey field. A scoped copy would carry Vue's attribute
    and win. `:where()` limits them to the table. */
-:where(.data-table__search) ion-searchbar { --background: var(--background); --border-radius: 10px; padding: 0; min-height: 36px; }
+.data-table ion-checkbox { --size: 24px; width: 44px; height: 44px; margin: -10px; display: grid; place-items: center; }
+:where(.data-table__search) ion-searchbar { --background: var(--background); --border-radius: 10px; padding: 0; min-height: 44px; }
 :where(.data-table__search) ion-searchbar.ion-no-border { --box-shadow: none; }
 /* Focused, the field shows it: the theme's accent ring and a soft halo of the same colour.
    After the rule above, which has the same weight. Ionic's own `--box-shadow: none` is lighter. */

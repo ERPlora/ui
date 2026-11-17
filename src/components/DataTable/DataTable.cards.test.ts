@@ -282,3 +282,23 @@ describe('cardTitleColumn: the column the card title stands for', () => {
     expect(fields(t)).toEqual([['Category=VAT_STD', 'Rate=21 %']]);
   });
 });
+
+
+describe('a slotted title column in the card head', () => {
+  it('paints the existing cell slot as the title and leaves that column out of the fields', async () => {
+    const t = mountTable(
+      {
+        rows: [{ id: '1', name: 'Invoicing', category: 'Finance' }],
+        columns: [{ key: 'name', label: 'App', cell: 'app' }, { key: 'category', label: 'Category' }],
+        views: true,
+        defaultView: 'cards',
+        cardTitle: (row: Row) => row.name,
+        cardTitleColumn: 'name',
+      },
+      { slots: { app: '<template #app="{ row }"><strong class="app-heading">{{ row.name }}</strong></template>' } },
+    );
+    await settle();
+    expect(t.find('.data-table__card-title .app-heading').exists()).toBe(true);
+    expect(fields(t)).toEqual([['Category=Finance']]);
+  });
+});

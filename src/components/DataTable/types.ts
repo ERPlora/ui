@@ -184,6 +184,16 @@ export interface DataTableActionEvent<T = Record<string, unknown>> {
   row: T;
 }
 
+export interface DataTableActionSlot<T = Record<string, unknown>> {
+  action: DataTableAction<T>;
+  gap: boolean;
+}
+
+export interface DataTableActionCell<T = Record<string, unknown>> {
+  items: DataTableActionSlot<T>[];
+  menu: DataTableAction<T>[];
+}
+
 /** The highlighted button of the toolbar (emits `primaryAction`). */
 export interface DataTablePrimaryAction {
   label: string;
