@@ -148,16 +148,4 @@ describe('holding the cards back', () => {
     arrivals.release('checkout');
     expect(arrivals.offer(notice('printer'))).toBe(true);
   });
-
-  it('forgets every hold and the card on screen when reset', () => {
-    const { arrivals, onSettle } = setup();
-    arrivals.offer(notice('printer'));
-    arrivals.reset();
-    expect(arrivals.current.value).toBeUndefined();
-    arrivals.hold('checkout');
-    arrivals.reset();
-    expect(arrivals.offer(notice('printer'))).toBe(true);
-    vi.advanceTimersByTime(DURATION);
-    expect(onSettle).toHaveBeenCalledTimes(1);
-  });
 });

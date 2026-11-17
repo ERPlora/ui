@@ -29,8 +29,6 @@ export interface Arrivals {
   /** No card is shown until every reason is released; the one on screen goes to the bell. */
   hold(reason: ArrivalHold): void;
   release(reason: ArrivalHold): void;
-  /** Forgets the card on screen and every hold. */
-  reset(): void;
 }
 
 /** A one-off timer that can stop and go on later with the time it had left. */
@@ -107,11 +105,6 @@ export function createArrivals(options: ArrivalsOptions): Arrivals {
     settle();
   }
 
-  function reset(): void {
-    holds.clear();
-    leave();
-  }
-
   return {
     current,
     offer,
@@ -121,6 +114,5 @@ export function createArrivals(options: ArrivalsOptions): Arrivals {
     withdraw: () => void leave(),
     hold,
     release: (reason) => void holds.delete(reason),
-    reset,
   };
 }
