@@ -72,7 +72,8 @@ describe('cardRowActions: one main button and «⋮»', () => {
 
   it('what is hidden for the row is not offered', () => {
     const paid = (r: Row) => r.paid === true;
-    expect(ids(cardRowActions([action('pay', { pinned: true, hidden: paid }), action('edit')], { id: 'r2', paid: true }))).toEqual({
+    const settled: Row = { id: 'r2', paid: true };
+    expect(ids(cardRowActions([action('pay', { pinned: true, hidden: paid }), action('edit')], settled))).toEqual({
       buttons: ['edit'],
       menu: [],
     });

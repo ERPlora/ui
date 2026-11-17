@@ -172,8 +172,8 @@ describe('pagerState', () => {
     expect(all).toMatchObject({ rangeFrom: 1, rangeTo: 25, canLoadMore: false });
   });
 
-  // The parent hands over a WINDOW that «Load more» grows (`loadMore`): `rows` start at the row of
-  // `page` (0 on a phone) and the footer and «Load more» follow the rows shown against the total.
+  // The parent hands over a WINDOW that the end of the scroll grows (`loadMore`): `rows` start at the row
+  // of `page` (0 on a phone) and the footer and the end of the scroll follow the rows shown against the total.
   it('phone server: the window the parent hands over, counted from its first row up to the rows shown', () => {
     const phone = { ...base, serverSide: true, isMobile: true, total: 25 };
     const first = pagerState({ ...phone, rows: rows(10), page: 0 });
@@ -192,7 +192,7 @@ describe('pagerState', () => {
   });
 
   // `maxWindow`: the most rows the parent can hold in one window. A longer query pages on a phone too.
-  it('phone server past `maxWindow`: one page at a time, never «Load more»', () => {
+  it('phone server past `maxWindow`: one page at a time, never a growing window', () => {
     const phone = { ...base, serverSide: true, isMobile: true, pageSize: 25, total: 1801, maxWindow: 100 };
     expect(pagerState({ ...phone, rows: rows(25), page: 0 })).toMatchObject({ pages: 73, current: 0, rangeFrom: 1, rangeTo: 25, canLoadMore: false });
     expect(pagerState({ ...phone, rows: rows(25), page: 1 })).toMatchObject({ current: 1, rangeFrom: 26, rangeTo: 50, canLoadMore: false });

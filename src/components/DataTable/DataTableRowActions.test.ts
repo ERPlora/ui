@@ -13,8 +13,9 @@ const use: DataTableAction<Row> = { id: 'use', label: 'Use template' };
 const remove: DataTableAction<Row> = { id: 'remove', label: 'Remove', icon: 'ion:trash-outline', menuOnly: true };
 
 function mountActions(items: { action: DataTableAction<Row>; primary?: boolean }[], menu: DataTableAction<Row>[] = []) {
+  const props: Record<string, unknown> = { items, menu };
   return mount(DataTableRowActions, {
-    props: { row, rowId: '1', items, menu, testid: 'apps', moreLabel: 'More actions' },
+    props: { row, rowId: '1', testid: 'apps', moreLabel: 'More actions', items: [], menu: [], ...props },
   });
 }
 const button = (wrapper: ReturnType<typeof mountActions>, id: string) => wrapper.find(`[data-testid="apps-row-1-${id}"]`);

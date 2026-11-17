@@ -329,7 +329,6 @@ describe('the rules that carry the look', () => {
   it('tap targets are at least 44px at every width', () => {
     expect(rule('.data-table__add-button')).toContain('min-height: 44px');
     expect(rule('.data-table__primary-button')).toContain('--background: var(--primary)');
-    expect(rule('.data-table__load-more')).toContain('min-height: 44px');
     expect(rule('.data-table__page')).toMatch(/min-width: var\(--ep-tap-min, 44px\); height: var\(--ep-tap-min, 44px\)/);
     expect(rule('.data-table__actions ion-button')).toContain('min-width: 44px; min-height: 44px');
     expect(rule('.data-table__view-segment ion-segment-button')).toContain('min-height: 44px');

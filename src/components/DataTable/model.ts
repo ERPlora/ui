@@ -237,7 +237,7 @@ export interface PagerInput<T> {
   page: number;
   pageSize: number;
   isMobile: boolean;
-  /** Client mode on a phone: rows «Load more» has accumulated (0 = one page). */
+  /** Client mode, windowed: rows the end of the scroll has accumulated (0 = one page). */
   mobileShown: number;
   /** Server mode on a phone: the most rows the parent can hold in one window; a longer query pages. */
   maxWindow?: number;
@@ -265,13 +265,13 @@ export function pagerState<T>(input: PagerInput<T>): PagerState<T> {
   const pages = Math.max(1, Math.ceil(count / ps));
   const current = Math.min(page, pages - 1);
   if (phonePages(input)) {
-    // A window grown by «Load more» before the query outgrew it: its first page only, as the footer says.
+    // A window grown at the end of the scroll before the query outgrew it: its first page only, as the footer says.
     return { visible: rows.slice(0, ps), pages, current, count, rangeFrom: current * ps + 1, rangeTo: Math.min((current + 1) * ps, count), canLoadMore: false };
   }
   if (serverSide && isMobile) {
-    // Server mode on a phone: `rows` is the WINDOW the parent keeps live, from the row of
-    // `page` (0 on a phone) and grown one page per «Load more» (`loadMore`). The footer and «Load
-    // more» follow the rows shown against the total; an empty window keeps that page's range.
+    // Server mode, windowed (cards, a phone): `rows` is the WINDOW the parent keeps live, from the row of
+    // `page` (0 when windowed) and grown one page at the end of the scroll (`loadMore`). The footer and the
+    // end of the scroll follow the rows shown against the total; an empty window keeps that page's range.
     const from = current * ps + 1;
     const to = rows.length ? Math.min(from + rows.length - 1, count) : Math.min((current + 1) * ps, count);
     return { visible: rows, pages, current, count, rangeFrom: from, rangeTo: to, canLoadMore: to < count };

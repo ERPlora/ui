@@ -11,9 +11,10 @@ const remove: DataTableAction<Row> = { id: 'delete', label: 'Delete', icon: 'ion
 const locked: DataTableAction<Row> = { id: 'lock', label: 'Lock', disabled: () => true };
 const PopoverStub = { props: { isOpen: Boolean }, emits: ['didDismiss'], template: '<div v-if="isOpen"><slot /></div>' };
 
-function mountMenu(props: Record<string, unknown> = {}) {
+function mountMenu(extra: Record<string, unknown> = {}) {
+  const props: Record<string, unknown> = { row, actions: [archive, remove, locked], ...extra };
   return mount(DataTableRowMenu, {
-    props: { open: true, row, actions: [archive, remove, locked], hook: 'biz-row-r1', ...props },
+    props: { open: true, actions: [], hook: 'biz-row-r1', ...props },
     global: { stubs: { IonPopover: PopoverStub } },
   });
 }

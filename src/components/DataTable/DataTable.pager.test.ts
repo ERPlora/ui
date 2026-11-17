@@ -16,7 +16,15 @@ const rowsOf = (n: number, offset = 0) => Array.from({ length: n }, (_, i) => ({
 const info = (t: ReturnType<typeof mountTable>) => text(t.element.querySelector('.data-table__pager-info'));
 const page = (t: ReturnType<typeof mountTable>, n: number) =>
   [...t.element.querySelectorAll('.data-table__pager-nav .data-table__page')].find((b) => text(b) === String(n)) as HTMLElement;
-const loadMore = (t: ReturnType<typeof mountTable>) => t.element.querySelector('.data-table__pager .data-table__load-more') as HTMLElement | null;
+type Infinite = HTMLElement & { disabled?: boolean };
+const infinite = (t: ReturnType<typeof mountTable>) => t.element.querySelector('ion-infinite-scroll') as Infinite | null;
+/** Scrolled to the end: Ionic asks for the next rows. */
+async function scrollToEnd(t: ReturnType<typeof mountTable>): Promise<void> {
+  infinite(t)?.dispatchEvent(new CustomEvent('ionInfinite', { bubbles: true }));
+  await settle();
+}
+/** The end asks for no more rows: there is none, or the list pages instead. */
+const ended = (t: ReturnType<typeof mountTable>) => !infinite(t) || infinite(t)?.disabled === true;
 
 describe('desk: the numbered pager', () => {
   it('pages ten by ten, never accumulates, and reports the window of each page', async () => {
@@ -24,7 +32,7 @@ describe('desk: the numbered pager', () => {
     await settle();
     expect(dataRows(t)).toHaveLength(10);
     expect(info(t)).toBe('Showing 1–10 of 25 records');
-    expect(loadMore(t)).toBeNull();
+    expect(infinite(t)).toBeNull();
     await click(page(t, 2));
     expect(dataRows(t)).toHaveLength(10);
     expect(text(dataRows(t)[0])).toBe('Servicio 11');
@@ -152,29 +160,37 @@ describe('`pageSizeChooser: false`: no «rows per page», the footer still count
   });
 });
 
-describe('phone: «Load more» instead of the numbered pager', () => {
+describe('phone: the next rows load at the end of the scroll, instead of the numbered pager', () => {
   beforeEach(() => {
     viewport(true);
   });
 
-  it('client: starts with one page, each tap ADDS one, then goes away; the count stays the total', async () => {
+  it('client: starts with one page, each end of the scroll ADDS one, then stops; the footer ends with the count', async () => {
     const t = mountTable({ rows: rowsOf(25), columns: NAME });
     await settle();
     expect(t.find('.data-table__pager-nav').exists()).toBe(false);
     expect(dataRows(t)).toHaveLength(10);
     expect(info(t)).toBe('Showing 1–10 of 25 records');
-    await click(loadMore(t));
+    await scrollToEnd(t);
     expect(dataRows(t)).toHaveLength(20);
     expect(info(t)).toBe('Showing 1–20 of 25 records');
-    await click(loadMore(t));
+    await scrollToEnd(t);
     expect(dataRows(t)).toHaveLength(25);
-    expect(loadMore(t)).toBeNull();
+    expect(ended(t)).toBe(true);
+    expect(info(t), 'at the end it only says how many').toBe('25 records');
+  });
+
+  it('there is no «Load more» button any more', async () => {
+    const t = mountTable({ rows: rowsOf(25), columns: NAME, testid: 'svc' });
+    await settle();
+    expect(byTestId(t, 'svc-load-more')).toHaveLength(0);
+    expect(t.find('.data-table__load-more').exists()).toBe(false);
   });
 
   it('a new search starts again at one page', async () => {
     const t = mountTable({ rows: rowsOf(25), columns: NAME, searchKeys: ['name'] });
     await settle();
-    await click(loadMore(t));
+    await scrollToEnd(t);
     await type(t, 'Servicio 1');
     expect(dataRows(t)).toHaveLength(10);
   });
@@ -182,7 +198,7 @@ describe('phone: «Load more» instead of the numbered pager', () => {
   it('a different result set starts again; the same records refreshed keep the window', async () => {
     const t = mountTable({ rows: rowsOf(25), columns: NAME });
     await settle();
-    await click(loadMore(t));
+    await scrollToEnd(t);
     await t.setProps({ rows: rowsOf(25).map((r) => (r.id === '15' ? { ...r, name: 'Servicio 15 (instalado)' } : r)) });
     await settle();
     expect(dataRows(t)).toHaveLength(20);
@@ -190,7 +206,7 @@ describe('phone: «Load more» instead of the numbered pager', () => {
     await t.setProps({ rows: rowsOf(25).reverse() });
     await settle();
     expect(dataRows(t), 'reordered').toHaveLength(10);
-    await click(loadMore(t));
+    await scrollToEnd(t);
     await t.setProps({ rows: rowsOf(26) });
     await settle();
     expect(dataRows(t), 'one more record').toHaveLength(10);
@@ -200,7 +216,7 @@ describe('phone: «Load more» instead of the numbered pager', () => {
     const keyless = () => rowsOf(25).map(({ name }) => ({ name }));
     const t = mountTable({ rows: keyless(), columns: NAME });
     await settle();
-    await click(loadMore(t));
+    await scrollToEnd(t);
     await t.setProps({ rows: keyless() });
     await settle();
     expect(dataRows(t)).toHaveLength(10);
@@ -212,25 +228,39 @@ describe('phone: «Load more» instead of the numbered pager', () => {
     const t = mountTable({ serverSide: true, rows: rowsOf(10), total: 120, page: 0, columns: NAME, testid: 'items' });
     await settle();
     expect(info(t)).toBe('Showing 1–10 of 120 records');
-    await click(loadMore(t));
-    expect(t.emitted('loadMore')).toEqual([[]]);
+    await scrollToEnd(t);
+    await scrollToEnd(t);
+    expect(t.emitted('loadMore'), 'once while the rows are on their way').toEqual([[]]);
     expect(t.emitted('pageChange')).toBeUndefined();
     await t.setProps({ rows: rowsOf(20) });
     await settle();
     expect(dataRows(t)).toHaveLength(20);
     expect(info(t)).toBe('Showing 1–20 of 120 records');
-    expect(byTestId(t, 'items-load-more')).toHaveLength(1);
+    await scrollToEnd(t);
+    expect(t.emitted('loadMore'), 'the rows arrived: the end asks again').toEqual([[], []]);
   });
 
-  it('server: «Load more» goes away once the window holds every row, and the count is the total', async () => {
+  it('server: it stops once the window holds every row, and the footer is the total', async () => {
     const t = mountTable({ serverSide: true, rows: rowsOf(10), total: 12, page: 0, columns: NAME });
     await settle();
-    expect(loadMore(t)).not.toBeNull();
+    expect(ended(t)).toBe(false);
     await t.setProps({ rows: rowsOf(12) });
     await settle();
     expect(dataRows(t)).toHaveLength(12);
-    expect(info(t)).toBe('Showing 1–12 of 12 records');
-    expect(loadMore(t)).toBeNull();
+    expect(info(t)).toBe('12 records');
+    expect(ended(t)).toBe(true);
+  });
+
+  it('server: a failed load shows the error with «Retry», which asks the parent again', async () => {
+    const t = mountTable({ serverSide: true, rows: rowsOf(10), total: 120, page: 0, columns: NAME, testid: 'items' });
+    await settle();
+    await scrollToEnd(t);
+    await t.setProps({ error: 'Network down' });
+    await settle();
+    const retry = byTestId(t, 'items-retry')[0];
+    expect(retry.tagName).toBe('ION-BUTTON');
+    await click(retry);
+    expect(t.emitted('retry')).toEqual([[]]);
   });
 
   it('server: crossing the phone breakpoint asks for the first page again when the window is not it', async () => {
@@ -269,15 +299,17 @@ describe('phone: «Load more» instead of the numbered pager', () => {
     expect(info(t)).toBe('Showing 1–10 of 25 records');
   });
 
-  it('is translated', async () => {
+  it('its indicator says it is loading, in each language, and aloud', async () => {
     const t = mountTable({ rows: rowsOf(25), columns: NAME }, { locale: 'es' });
     await settle();
-    expect(text(loadMore(t))).toBe('Cargar más');
+    const content = t.element.querySelector('ion-infinite-scroll-content') as HTMLElement & { loadingText?: string };
+    expect(content.loadingText).toBe('Cargando más…');
+    expect(t.element.querySelector('.data-table__infinite-status')?.getAttribute('role')).toBe('status');
   });
 });
 
 // A parent that keeps its rows live can only hold so many in one window (the server's longest page):
-// past it, «Load more» would stay on screen and bring nothing. With `maxWindow`, a query longer than that
+// past it, the end of the scroll would keep asking and bring nothing. With `maxWindow`, a query longer than that
 // pages on a phone too (previous / next, the page out of the pages).
 describe('phone: a query longer than the parent can hold pages instead (`maxWindow`)', () => {
   beforeEach(() => {
@@ -287,10 +319,10 @@ describe('phone: a query longer than the parent can hold pages instead (`maxWind
   const long = (extra: Record<string, unknown> = {}) =>
     mountTable({ serverSide: true, rows: rowsOf(25), total: 1801, page: 0, pageSize: 25, maxWindow: 100, columns: NAME, testid: 'items', ...extra });
 
-  it('no «Load more»: previous and next move one page, and the footer says which page of how many', async () => {
+  it('no loading at the end: previous and next move one page, and the footer says which page of how many', async () => {
     const t = long();
     await settle();
-    expect(loadMore(t)).toBeNull();
+    expect(ended(t)).toBe(true);
     expect(info(t)).toBe('Showing 1–25 of 1801 records');
     expect(text(t.element.querySelector('.data-table__page-of'))).toBe('1 / 73');
     expect((byTestId(t, 'items-page-prev')[0] as HTMLElement & { disabled?: boolean }).disabled).toBe(true);
@@ -337,17 +369,17 @@ describe('phone: a query longer than the parent can hold pages instead (`maxWind
     expect(info(t)).toBe('Showing 1–25 of 101 records');
   });
 
-  it('a query the window holds keeps «Load more»', async () => {
+  it('a query the window holds keeps loading at the end', async () => {
     const t = long({ total: 100 });
     await settle();
-    expect(loadMore(t)).not.toBeNull();
+    expect(ended(t)).toBe(false);
     expect(t.find('.data-table__pager-nav').exists()).toBe(false);
   });
 
-  it('without `maxWindow` a phone keeps «Load more», however long the query', async () => {
+  it('without `maxWindow` a phone keeps loading at the end, however long the query', async () => {
     const t = long({ maxWindow: undefined });
     await settle();
-    expect(loadMore(t)).not.toBeNull();
+    expect(ended(t)).toBe(false);
     expect(t.find('.data-table__pager-nav').exists()).toBe(false);
   });
 

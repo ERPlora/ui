@@ -251,11 +251,11 @@ describe('«still loading» is not «empty»', () => {
     expect(loading(worded)?.getAttribute('data-testid')).toBe('customers-loading');
   });
 
-  it('on a phone: no count and no «Load more» while the first load is in flight', async () => {
+  it('on a phone: no count and nothing loading at the end while the first load is in flight', async () => {
     viewport(true);
     const t = mountTable({ ...base, total: 40, loading: true });
     await settle();
-    expect(t.find('.data-table__load-more').exists()).toBe(false);
+    expect(t.find('ion-infinite-scroll').exists()).toBe(false);
     expect(t.text()).not.toMatch(/\brecords\b/);
   });
 });
@@ -695,14 +695,14 @@ describe('data-testid hooks of the chrome', () => {
     expect(t.emitted('add')).toHaveLength(1);
   });
 
-  it('names the rows in the cards view, and «load more» on a phone', async () => {
+  it('names the rows in the cards view; a phone loads the next ones at the end of the scroll', async () => {
     viewport(true);
     const t = mountTable({ ...props, testid: 'products-table', views: true });
     await settle();
     expect(cards(t)).toHaveLength(10);
     expect(row(t, 'r1')[0].tagName).toBe('ION-CARD');
     expect(byTestId(t, 'products-table-row')).toHaveLength(10);
-    expect(byTestId(t, 'products-table-load-more')).toHaveLength(1);
+    expect(t.element.querySelectorAll('.data-table__cards ion-infinite-scroll')).toHaveLength(1);
     expect(byTestId(t, 'products-table-page-next')).toHaveLength(0);
   });
 });

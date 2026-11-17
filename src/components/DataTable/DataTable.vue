@@ -10,9 +10,9 @@
 // (a phone) the table is cards whatever its box. The `row-actions` slot never folds: it is only for a
 // control that cannot be an action.
 //
-// Server mode on a phone has no pager: `rows` is a WINDOW from the first row that «Load more» asks the
-// parent to grow (`loadMore`, never `pageChange`); past `maxWindow` it pages there too. Only the filter
-// names the columns declare are sent: the server answers 422 `unknown_filter` to any other.
+// The cards, and a phone's list, have no pager: `rows` is a WINDOW from the first row that the end of the
+// scroll asks the parent to grow (`loadMore`, never `pageChange`); past `maxWindow` they page there too.
+// Only the filter names the columns declare are sent: the server answers 422 `unknown_filter` to any other.
 //
 // The e2e tests of the apps find the table by its `testid` hooks: `<testid>-search`, `-add`, `-view`,
 // `-row` (rows and cards, key in `data-id`), `-row-<key>-<action>`, `-loading`, `-retry`, `-page-prev`,
@@ -37,6 +37,7 @@ import { computed, nextTick, onMounted, onUpdated, ref, shallowRef, useId, watch
 
 import { ionIconSrc } from '../../shell/icons';
 import DataTableCard from './DataTableCard.vue';
+import DataTableInfinite from './DataTableInfinite.vue';
 import DataTableListItem from './DataTableListItem.vue';
 import DataTableRowMenu from './DataTableRowMenu.vue';
 import DataTableLookup from './DataTableLookup.vue';
@@ -44,8 +45,6 @@ import DataTableState from './DataTableState.vue';
 import { useDataTableLabels } from './labels';
 import {
   activeFilters,
-  cardTitleColumn as titleColumnByText,
-  cellText,
   DATA_TABLE_ICONS,
   declaredFilters,
   entityWord,
@@ -63,6 +62,9 @@ import {
   sortRows,
 } from './model';
 import { cardRowActions, listRowActions } from './rowActions';
+import { useCardParts } from './useCardParts';
+import { useMediaQuery } from './useMediaQuery';
+import { useRowSelection } from './useRowSelection';
 import { syncSearchbarInputName } from './searchbarName';
 import type {
   DataTableAction,
@@ -130,9 +132,9 @@ const props = withDefaults(
     total?: number;
     /** Server mode: current page, 0-based. */
     page?: number;
-    /** Server mode on a phone: the most rows the parent can keep in its window (the server's longest
-     *  page). A query with more pages there too (previous / next) instead of growing with «Load more»;
-     *  without it, a phone always grows the window. */
+    /** Server mode, windowed (cards, a phone): the most rows the parent can keep in its window (the server's
+     *  longest page). A query with more pages there too (previous / next) instead of growing at the end of
+     *  the scroll; without it, the window always grows. */
     maxWindow?: number;
     /** Server mode: active sort column. */
     sort?: string;
@@ -177,7 +179,7 @@ const props = withDefaults(
     cardTitleColumn?: string;
     cardIcon?: (row: T) => string | undefined;
     /** Phone breakpoint in px of the WINDOW (640 by default): at or below it the table behaves as on a
-     *  phone (cards when `views` offers them, «Load more», no column chooser). Per table: raise it for
+     *  phone (cards when `views` offers them, no pager, no column chooser). Per table: raise it for
      *  a wide list (Businesses 900, Members or Invoices 1100…). It is a floor: above it the cards
      *  still come when the list does not fit its own box. */
     cardBreakpoint?: number;
@@ -268,13 +270,12 @@ const q = ref('');
 const clientPage = ref(0);
 /** 0 = `pageSize`. */
 const clientPageSize = ref(0);
-/** Rows «Load more» has accumulated on a phone (0 = one page). */
+/** Rows the end of the scroll has accumulated while windowed (0 = one page). */
 const mobileShown = ref(0);
 const clientSort = ref('');
 const clientSortDir = ref<DataTableSortDir>('asc');
 /** The person's pick in the column chooser, per key; untouched columns follow their `hidden`. */
 const columnChoice = ref(new Map<string, boolean>());
-const internalSelection = ref(new Set<string>());
 const rowMenuOpen = ref(false);
 const rowMenuEvent = shallowRef<Event>();
 const rowMenuRow = shallowRef<T>();
@@ -344,6 +345,8 @@ const listColumns = computed(() =>
 );
 /** The table paints cards: picked, the default, the box's fit or a phone (`cardBreakpoint`). */
 const cardsOn = computed(() => viewMode.value === 'cards' && cardViewEnabled.value);
+/** Rows grow from the first one at the end of the scroll (the cards, and a phone's list) instead of paging. */
+const windowed = computed(() => isMobile.value || cardsOn.value);
 
 // ── Column filters ────────────────────────────────────────────────────────────────────────────
 /** The active filters on screen (own state; `filters` from the parent overrides it, like `search`). */
@@ -541,14 +544,14 @@ const pager = computed(() =>
     total: props.total,
     page: props.serverSide ? props.page : clientPage.value,
     pageSize: pageSizeNow.value,
-    isMobile: isMobile.value,
+    isMobile: windowed.value,
     mobileShown: mobileShown.value,
     maxWindow: props.maxWindow,
   }),
 );
-/** A phone in server mode whose query is longer than the parent's window: it pages instead of «Load more». */
+/** Windowed in server mode with a query longer than the parent's window: it pages instead of growing. */
 const phonePaged = computed(() =>
-  phonePages({ serverSide: props.serverSide, isMobile: isMobile.value, total: props.total, maxWindow: props.maxWindow }),
+  phonePages({ serverSide: props.serverSide, isMobile: windowed.value, total: props.total, maxWindow: props.maxWindow }),
 );
 
 const hasError = computed(() => !!props.error?.trim());
@@ -653,31 +656,17 @@ watch(
 
 // A server window is the parent's: a phone counts from row 1 and a desk shows one page, so
 // crossing the breakpoint asks for the first page again unless the window already is just that.
-watch(isMobile, () => {
+watch(windowed, () => {
   if (props.serverSide && (props.page !== 0 || props.rows.length > props.pageSize)) emit('pageChange', 0);
 });
 
 // ── Selection ─────────────────────────────────────────────────────────────────────────────────
-const selection = computed(() => (props.selected ? new Set(props.selected) : internalSelection.value));
-const allSelected = computed(
-  () => pager.value.visible.length > 0 && pager.value.visible.every((row) => selection.value.has(keyOf(row))),
-);
-function setSelection(next: Set<string>): void {
-  if (!props.selected) internalSelection.value = next;
-  emit('update:selected', [...next]);
-}
-function toggleRow(key: string): void {
-  const next = new Set(selection.value);
-  if (!next.delete(key)) next.add(key);
-  setSelection(next);
-}
-function toggleAll(): void {
-  const keys = pager.value.visible.map(keyOf);
-  const next = new Set(selection.value);
-  if (allSelected.value) keys.forEach((k) => next.delete(k));
-  else keys.forEach((k) => next.add(k));
-  setSelection(next);
-}
+const { selection, allSelected, setSelection, toggleRow, toggleAll } = useRowSelection<T>({
+  selected: () => props.selected,
+  visible: () => pager.value.visible,
+  keyOf,
+  emit: (keys) => emit('update:selected', keys),
+});
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────────────────────
 function onSearch(ev: Event): void {
@@ -769,6 +758,18 @@ function loadMore(): void {
   else mobileShown.value = Math.min((mobileShown.value || pageSizeNow.value) + pageSizeNow.value, pager.value.count);
 }
 const pagerFrom = computed(() => label('showing', { from: pager.value.rangeFrom, to: pager.value.rangeTo }));
+/** «Showing 1–20 of»: a page of several, or a window still growing; once every row is there, only the count. */
+const showRange = computed(() => !awaitingRows.value && (windowed.value && !phonePaged.value ? pager.value.canLoadMore : pager.value.pages > 1));
+/** A table that fills its page scrolls its cards itself, but not at a phone's width, where its CSS lets the
+ *  page scroll: Ionic listens to the cards, or to the page. */
+const phoneWidth = useMediaQuery('(max-width: 640px)');
+const ownScroll = computed(() => props.fill && !phoneWidth.value);
+const infinite = computed(() => ({
+  disabled: !pager.value.canLoadMore || awaitingRows.value,
+  shown: pager.value.visible.length,
+  failed: loadFailed.value,
+  label: label('loadingMore'),
+}));
 const recordWord = computed(
   () => entityWord(pager.value.count, props.entityLabel) ?? label(pager.value.count === 1 ? 'recordSingular' : 'recordPlural'),
 );
@@ -821,23 +822,12 @@ function pickMenuAction(action: DataTableAction<T>): void {
 }
 
 // ── Cards ─────────────────────────────────────────────────────────────────────────────────────
-/** The column `cardTitleColumn` names, when it is one of the table's. */
-const namedTitleColumn = computed(() =>
-  props.cardTitleColumn ? props.columns.find((c) => c.key === props.cardTitleColumn) : undefined,
-);
-/** The card title: `cardTitle`, else the painted text of the named column. */
-function cardTitleOf(row: T): string | number {
-  if (props.cardTitle) return props.cardTitle(row) ?? '';
-  return namedTitleColumn.value ? cellText(namedTitleColumn.value, row) : '';
-}
-function cardTitleColumnOf(row: T): DataTableColumn<T> | undefined {
-  return namedTitleColumn.value ?? (props.cardTitle ? titleColumnByText(props.cardTitle(row), row, visibleColumns.value) : undefined);
-}
-/** The default card body leaves out the column the title already shows. */
-function cardFields(row: T): DataTableColumn<T>[] {
-  const titleColumn = cardTitleColumnOf(row);
-  return visibleColumns.value.filter((column) => column !== titleColumn);
-}
+const { cardTitleOf, cardTitleColumnOf, cardFields } = useCardParts<T>({
+  columns: () => props.columns,
+  visible: () => visibleColumns.value,
+  title: () => props.cardTitle,
+  titleColumn: () => props.cardTitleColumn,
+});
 
 // The search box is named after its hint, and its clear button with its own text, after every render.
 function nameSearchBox(): void {
@@ -1187,7 +1177,7 @@ onUpdated(nameSearchBox);
 
       <div
         v-else-if="cardsOn"
-        class="data-table__cards"
+        :class="['data-table__cards', { 'ion-content-scroll-host': ownScroll }]"
       >
         <DataTableCard
           v-for="(row, index) in pager.visible"
@@ -1241,6 +1231,11 @@ onUpdated(nameSearchBox);
             />
           </template>
         </DataTableCard>
+        <DataTableInfinite
+          :key="ownScroll ? 'own' : 'page'"
+          v-bind="infinite"
+          @more="loadMore"
+        />
       </div>
 
       <!-- The list, in CSS grid (not <table>): width per column and a sticky header. -->
@@ -1339,6 +1334,11 @@ onUpdated(nameSearchBox);
             </DataTableListItem>
           </div>
         </div>
+        <DataTableInfinite
+          v-if="windowed"
+          v-bind="infinite"
+          @more="loadMore"
+        />
       </template>
 
       <DataTableRowMenu
@@ -1358,7 +1358,7 @@ onUpdated(nameSearchBox);
       >
         <div class="data-table__pager-info">
           <span>
-            <template v-if="pager.pages > 1 && !awaitingRows">{{ `${pagerFrom} ` }}</template>
+            <template v-if="showRange">{{ `${pagerFrom} ` }}</template>
             <template v-if="!awaitingRows"><span class="data-table__pager-count">{{ pager.count }}</span>{{ ` ${recordWord}` }}</template>
           </span>
           <ion-select
@@ -1379,7 +1379,7 @@ onUpdated(nameSearchBox);
             </ion-select-option>
           </ion-select>
         </div>
-        <!-- On a phone one «Load more» instead of page buttons; past `maxWindow`, previous / next. -->
+        <!-- Windowed rows load at the end of their scroll; past `maxWindow`, previous / next. -->
         <div
           v-if="phonePaged && pager.pages > 1 && !awaitingRows"
           class="data-table__pager-nav"
@@ -1414,19 +1414,8 @@ onUpdated(nameSearchBox);
             />
           </ion-button>
         </div>
-        <template v-else-if="isMobile">
-          <ion-button
-            v-if="pager.canLoadMore && !awaitingRows"
-            class="data-table__load-more"
-            :data-testid="tid('load-more')"
-            size="small"
-            @click="loadMore"
-          >
-            {{ label('loadMore') }}
-          </ion-button>
-        </template>
         <div
-          v-else-if="pager.pages > 1 && !awaitingRows"
+          v-else-if="!windowed && pager.pages > 1 && !awaitingRows"
           class="data-table__pager-nav"
         >
           <ion-button
@@ -1863,8 +1852,6 @@ onUpdated(nameSearchBox);
 .data-table__pager--phone-pages { flex-wrap: wrap; row-gap: 0.25rem; }
 .data-table__pager--phone-pages .data-table__pager-nav { margin-inline-start: auto; }
 .data-table__page-of { min-width: 4.5rem; text-align: center; font-weight: 600; color: var(--color); white-space: nowrap; }
-/* One «Load more» on a phone, 44px tall. */
-.data-table__load-more { min-height: 44px; margin: 0; --padding-start: 1rem; --padding-end: 1rem; font-size: 13px; }
 /* A page button matches the 44px of prev/next. */
 .data-table__page { min-width: var(--ep-tap-min, 44px); height: var(--ep-tap-min, 44px); padding: 0 0.4rem; border: 1px solid transparent; border-radius: 8px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--color); cursor: pointer; transition: background 0.12s, border-color 0.12s; }
 .data-table__page:hover { background: var(--row-hover); }

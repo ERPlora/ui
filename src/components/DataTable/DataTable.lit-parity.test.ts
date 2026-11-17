@@ -174,7 +174,6 @@ const PORTED: Record<string, string> = {
   '.pager .strong': '.data-table__pager-count',
   '.psize': '.data-table__pager-size',
   '.pager .nav': '.data-table__pager-nav',
-  '.pager .load-more': '.data-table__load-more',
   '.pnum': '.data-table__page',
   '.pnum:hover': '.data-table__page:hover',
   '.pnum.on': '.data-table__page.data-table__page--current',
@@ -244,6 +243,7 @@ drop(
   '.filters-grow input, .filters-grow select',
   '.range',
 );
+drop('the next rows load at the end of the scroll (`ion-infinite-scroll`): there is no «Load more» button', '.pager .load-more');
 drop('a row action hidden for the row is not there: no invisible stand-in keeps its place', '.actions .action-gap');
 drop('never painted by the Lit render either (dead CSS in the original)', '.panel', '.vsep', '.pager .nav .pp');
 drop(
