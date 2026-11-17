@@ -1,0 +1,7 @@
+{
+  "youtubeEmbed": {
+    "play": "Reproducir {title}",
+    "caption": "El vídeo se carga desde YouTube al pulsar.",
+    "offline": "Sin conexión: el vídeo no está disponible"
+  }
+}

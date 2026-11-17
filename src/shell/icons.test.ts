@@ -290,3 +290,18 @@ describe('ION_ICONS: gift and gift-outline (Hub sale, comp a till line)', () => 
     expect(ION_ICONS.gift).not.toBe(ION_ICONS['gift-outline']);
   });
 });
+
+// The in-app help window: the play button of the video's poster and the «You are here» mark of the current screen.
+describe('ION_ICONS: play and location-outline (the in-app help window)', () => {
+  it('registers them by their kebab-case Ionicons name, as ion: names resolve', async () => {
+    const ionicons = await import('ionicons/icons');
+    for (const [name, src] of [
+      ['play', ionicons.play],
+      ['location-outline', ionicons.locationOutline],
+    ]) {
+      expect(src, name).toMatch(SVG_URL);
+      expect(ION_ICONS[name], name).toBe(src);
+      expect(resolveIcon(`ion:${name}`), name).toBe(src);
+    }
+  });
+});

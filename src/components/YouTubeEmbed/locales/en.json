@@ -1,0 +1,7 @@
+{
+  "youtubeEmbed": {
+    "play": "Play {title}",
+    "caption": "The video loads from YouTube when you tap it.",
+    "offline": "Offline: the video is not available"
+  }
+}

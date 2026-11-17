@@ -1,5 +1,5 @@
-/** `md`: the 480px dialog; `sm`: 420px, for short confirmations. */
-export type FormModalSize = 'sm' | 'md';
+/** `md`: the 480px dialog; `sm`: 420px, for short confirmations; `lg`: 640px, for windows that are mostly reading. */
+export type FormModalSize = 'sm' | 'md' | 'lg';
 
 /** Below 640px: `sheet`, from the bottom as tall as its content (forms); `card`, the centred card
  *  of every width (confirmations, ConfirmDialog). */
