@@ -129,11 +129,11 @@ describe('a screen whose file is gone after a deploy', () => {
     expect(redirect).not.toHaveBeenCalled();
     expect(router.currentRoute.value.path).toBe('/');
     expect(toast).toHaveBeenCalledOnce();
-    const [message, , duration, id, action] = toast.mock.calls[0];
+    const { message, duration, id, action } = toast.mock.calls[0][0];
     expect(message).toBe('Could not open that page. Check the connection and try again.');
     expect(duration).toBe(0);
     expect(id).toBe('view-load-failed');
-    expect(action.text).toBe('Retry');
+    expect(action.label).toBe('Retry');
   });
 
   it('a check that never answers: after 5 s it stays and says so, never waits for ever', async () => {
@@ -156,14 +156,14 @@ describe('a screen whose file is gone after a deploy', () => {
     const { router, redirect } = setup();
     await router.push('/');
     await tap(router, '/verifactu');
-    toast.mock.calls[0][4].handler();
+    toast.mock.calls[0][0].action.run();
     await flushPromises();
     expect(redirect).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledTimes(2);
-    expect(toast.mock.calls[1][3]).toBe('view-load-failed');
+    expect(toast.mock.calls[1][0].id).toBe('view-load-failed');
 
     check.mockResolvedValue({ status: 200 } as Response);
-    toast.mock.calls[1][4].handler();
+    toast.mock.calls[1][0].action.run();
     await flushPromises();
     expect(redirect).toHaveBeenCalledOnce();
     expect(redirect).toHaveBeenCalledWith('/verifactu');
@@ -174,11 +174,11 @@ describe('a screen whose file is gone after a deploy', () => {
     const { router } = setup(lostChunk, [], withVerifactu());
     await router.push('/');
     await tap(router, '/verifactu');
-    expect(toast.mock.calls[0][0]).toBe('Could not open VeriFactu. Check the connection and try again.');
+    expect(toast.mock.calls[0][0].message).toBe('Could not open VeriFactu. Check the connection and try again.');
     toast.mockReset();
     document.documentElement.lang = 'es';
     await tap(router, '/sale/charge');
-    expect(toast.mock.calls[0][0]).toBe('No se ha podido abrir esa página. Comprueba la conexión e inténtalo de nuevo.');
+    expect(toast.mock.calls[0][0].message).toBe('No se ha podido abrir esa página. Comprueba la conexión e inténtalo de nuevo.');
   });
 
   it("never names a section of the menu that is not an app (the hub's own screens)", async () => {
@@ -188,7 +188,7 @@ describe('a screen whose file is gone after a deploy', () => {
     const { router } = setup(lostChunk, [{ path: '/settings', component: () => Promise.reject(lostChunk()) }], session);
     await router.push('/');
     await tap(router, '/settings');
-    expect(toast.mock.calls[0][0]).toBe('Could not open that page. Check the connection and try again.');
+    expect(toast.mock.calls[0][0].message).toBe('Could not open that page. Check the connection and try again.');
   });
 
   it('keeps what the tap asked for: the query and the fragment travel with it (Tables › «Charge»)', async () => {
@@ -219,16 +219,16 @@ describe('a screen whose file is gone after a deploy', () => {
     expect(redirect).not.toHaveBeenCalled();
     expect(router.currentRoute.value.path).toBe('/');
     expect(toast).toHaveBeenCalledOnce();
-    const [message, color, duration, id, action] = toast.mock.calls[0];
+    const { message, tone, duration, id, action } = toast.mock.calls[0][0];
     expect(message).toBe('Could not open that page. Check the connection and try again.');
-    expect(color).toBe('danger');
+    expect(tone).toBe('error');
     expect(duration).toBe(0);
     expect(id).toBe('view-load-failed');
-    expect(action.text).toBe('Retry');
+    expect(action.label).toBe('Retry');
     // A retry inside the SPA cannot work (the browser keeps a failed module import failed for the life of the
     // document): back online, Retry opens the screen in a fresh document.
     online.mockReturnValue(true);
-    action.handler();
+    action.run();
     await flushPromises();
     expect(redirect).toHaveBeenCalledWith('/verifactu');
   });
@@ -239,9 +239,9 @@ describe('a screen whose file is gone after a deploy', () => {
     const { router } = setup();
     await router.push('/');
     await tap(router, '/verifactu');
-    const [message, , , , action] = toast.mock.calls[0];
+    const { message, action } = toast.mock.calls[0][0];
     expect(message).toBe('No se ha podido abrir esa página. Comprueba la conexión e inténtalo de nuevo.');
-    expect(action.text).toBe('Reintentar');
+    expect(action.label).toBe('Reintentar');
   });
 
   it('never opens an address outside this hub: it stays, says so, and Retry reloads where the person is', async () => {
@@ -252,7 +252,7 @@ describe('a screen whose file is gone after a deploy', () => {
     await tap(router, '//evil.example/steal');
     expect(redirect).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledOnce();
-    toast.mock.calls[0][4].handler();
+    toast.mock.calls[0][0].action.run();
     expect(redirect).not.toHaveBeenCalled();
     expect(reload).toHaveBeenCalledOnce();
   });

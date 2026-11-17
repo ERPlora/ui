@@ -56,11 +56,17 @@ async function open(app: MyApp): Promise<void> {
     // The router already opened it in a fresh document, or said why it could not (`view-load.ts`).
     if (isViewLoadError(error)) return;
     console.error(`shell: could not open the app ${app.id}`, error);
-    void toast(t('launcher.openFailed', { app: app.name }), 'danger', 0, 'apps-launcher-open', {
-      text: t('launcher.retry'),
-      // The browser keeps a failed dynamic import failed for the life of the document, so a retry
-      // inside the SPA fails again: load the app's page afresh (Vite's advice for a lost chunk).
-      handler: () => window.location.assign(router.resolve(path).href),
+    toast({
+      message: t('launcher.openFailed', { app: app.name }),
+      tone: 'error',
+      duration: 0,
+      id: 'apps-launcher-open',
+      action: {
+        label: t('launcher.retry'),
+        // The browser keeps a failed dynamic import failed for the life of the document, so a retry
+        // inside the SPA fails again: load the app's page afresh (Vite's advice for a lost chunk).
+        run: () => window.location.assign(router.resolve(path).href),
+      },
     });
   }
 }

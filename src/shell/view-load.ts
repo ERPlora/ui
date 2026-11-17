@@ -85,7 +85,13 @@ export function installViewLoadRecovery(
     const message = app ? shellText('launcher.openFailed').replace('{app}', app) : shellText('viewLoad.failed');
     const probe = failedFileOf(error) ?? href;
     const sayIt = (retry: () => void) =>
-      void toast(message, 'danger', 0, VIEW_LOAD_TOAST, { text: shellText('viewLoad.retry'), handler: retry });
+      toast({
+        message,
+        tone: 'error',
+        duration: 0,
+        id: VIEW_LOAD_TOAST,
+        action: { label: shellText('viewLoad.retry'), run: retry },
+      });
 
     const recover = async (): Promise<void> => {
       if (href && probe && window.navigator.onLine !== false && (await serverAnswers(probe, VIEW_LOAD_CHECK_MS))) {

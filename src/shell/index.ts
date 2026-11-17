@@ -1,5 +1,5 @@
 // The three `boot/*.boot.ts` side-effect modules come first: an entry that imports this barrel must hook
-// `customElements.define` before `./toast`, `./createShell` or the pages load `@ionic/vue`, which registers its
+// `customElements.define` before `./createShell` or the pages load `@ionic/vue`, which registers its
 // elements on import. `index.test.ts` guards the order.
 import './boot/ionic-fill.boot';
 import './boot/ionic-select-text.boot';
@@ -50,8 +50,9 @@ export {
   toastError,
   toastInfo,
   toastSuccess,
+  toastWarning,
 } from './toast';
-export type { ToastAction, ToastColor } from './toast';
+export type { ToastAction, ToastOptions, ToastPosition, ToastTone } from './toast-store';
 export { createShell } from './createShell';
 export type { CreateShellOptions } from './createShell';
 export { createAuthGate, createShellRouter, HOME_ROUTE, NOT_FOUND_ROUTE, NOT_IN_APP_ROUTE, webOnlyGate } from './router';

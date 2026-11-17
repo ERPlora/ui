@@ -178,11 +178,6 @@
       "count": 1
     }
   },
-  "src/shell/toast.ts": {
-    "max-params": {
-      "count": 1
-    }
-  },
   "src/testing/mail.ts": {
     "max-params": {
       "count": 1
