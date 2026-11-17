@@ -15,6 +15,10 @@ const actions = styles(actionsSource);
 const state = styles(stateSource);
 
 describe('the default focused presentation', () => {
+  it('gives each card room for its icon, a name and its switch: 260px at least, one column when narrower', () => {
+    expect(table).toMatch(/\.data-table__cards \{[^}]*grid-template-columns: repeat\(auto-fill, minmax\(min\(100%, 260px\), 1fr\)\)/);
+  });
+
   it('uses quiet Ionic cards with a tiled icon and a strong title', () => {
     expect(card).toContain('border-radius: var(--ep-radius-lg)');
     expect(card).toContain('box-shadow: var(--ep-shadow-xs)');

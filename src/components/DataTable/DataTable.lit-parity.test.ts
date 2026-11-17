@@ -380,8 +380,8 @@ const RESTYLED: Record<string, string[]> = {
   '.data-table__card-body': ['display: flex', 'flex: 1 1 auto', 'flex-direction: column', 'gap: 0.75rem'],
   // A table that fills its page and ends after its last whole row keeps its pager at the bottom.
   '.data-table__pager': ['display: flex', 'align-items: center', 'justify-content: space-between', 'gap: 0.75rem', 'margin-top: auto', 'padding: 0.55rem 1rem', 'border-top: 1px solid var(--border-color)', 'background: var(--header-background)', 'font-size: 12.5px', 'color: var(--color-muted)'],
-  // Cards of a grid row are as tall as the tallest, with their footers on one line.
-  '.data-table__cards': ['display: grid', 'grid-template-columns: repeat(auto-fill, minmax(230px, 1fr))', 'gap: 0.75rem', 'padding: 1rem', 'grid-auto-rows: max-content', 'align-content: start', 'align-items: stretch'],
+  // Cards of a grid row are as tall as the tallest, with their footers on one line, and wide enough for a head with a switch.
+  '.data-table__cards': ['display: grid', 'grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr))', 'gap: 0.75rem', 'padding: 1rem', 'grid-auto-rows: max-content', 'align-content: start', 'align-items: stretch'],
   'ion-card.data-table__card': ['display: flex', 'flex-direction: column', 'margin: 0'],
   '.data-table__card-actions': ['display: flex', 'justify-content: flex-end', 'gap: 0.25rem', 'padding: 0.75rem', 'border-top: 1px solid var(--border-color-soft)'],
   '.data-table__card-actions .data-table__actions': ['width: 100%', 'flex-wrap: nowrap'],

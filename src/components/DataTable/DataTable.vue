@@ -1804,7 +1804,7 @@ onUpdated(nameSearchBox);
 
 /* ── Cards ───────────────────────────────────────────────────────────────────────────────── */
 /* Each card is as tall as its content; rows pack at the top. */
-.data-table__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.75rem; padding: 1rem; grid-auto-rows: max-content; align-content: start; align-items: stretch; }
+.data-table__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 0.75rem; padding: 1rem; grid-auto-rows: max-content; align-content: start; align-items: stretch; }
 @media (prefers-reduced-motion: reduce) {
   .data-table__cell--sortable:hover, .data-table__cell--sortable:active,
   .data-table__row--data:hover, .data-table__row--data:active { transform: none; }
