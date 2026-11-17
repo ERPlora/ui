@@ -1,8 +1,11 @@
 <script setup lang="ts" generic="T extends object">
 import { IonCard, IonCardContent, IonCardHeader, IonCheckbox, IonIcon } from '@ionic/vue';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
+import HubIcon from '../../shell/HubIcon.vue';
 import { ionIconSrc } from '../../shell/icons';
+import StatusPill from '../StatusPill/StatusPill.vue';
+import DataTableIdentity from './DataTableIdentity.vue';
 import DataTableRowActions from './DataTableRowActions.vue';
 import { cellText } from './model';
 import type { DataTableAction, DataTableActionCell, DataTableColumn } from './types';
@@ -43,6 +46,15 @@ const iconSrc = ionIconSrc;
 const hasHead = () => !!(props.title || props.titleColumn || props.icon || props.selectable);
 const valueOf = (column: DataTableColumn<T>) => (props.row as Record<string, unknown>)[column.key];
 const cellId = (column: DataTableColumn<T>) => `${props.rowId}␟${column.key}`;
+const statusField = computed(() => props.fields.find((column) => ['state', 'status'].includes(column.key)));
+const descriptionField = computed(() => props.fields.find((column) => ['summary', 'description'].includes(column.key)));
+const metaFields = computed(() => props.fields.filter((column) => column !== statusField.value && column !== descriptionField.value && hasValue(column)));
+/** A slot paints what the table cannot read, so only a plain field is left out when it is empty. */
+function hasValue(column: DataTableColumn<T>): boolean {
+  if (column.cell) return true;
+  const text = cellText(column, props.row).trim();
+  return text !== '' && text !== '—';
+}
 
 function open(): void {
   if (props.clickable) emit('open', props.row);
@@ -75,15 +87,22 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
       class="data-table__card-head"
     >
       <span
-        v-if="icon"
+        v-if="icon && !titleColumn?.identity"
         class="data-table__card-icon"
       ><ion-icon
         :icon="iconSrc(icon)"
         aria-hidden="true"
       /></span>
       <span class="data-table__card-title">
+        <DataTableIdentity
+          v-if="titleColumn?.identity"
+          :title="title"
+          :icon="titleColumn.identity.icon(row)"
+          :subtitle="titleColumn.identity.subtitle?.(row)"
+          :testid="titleColumn.identity.testid"
+        />
         <slot
-          v-if="titleColumn?.cell"
+          v-else-if="titleColumn?.cell"
           :name="titleColumn.cell"
           :row="row"
           :value="valueOf(titleColumn)"
@@ -107,13 +126,48 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
       />
       <template v-else>
         <div
-          v-for="column in fields"
+          v-if="statusField"
+          class="data-table__card-status"
+          :data-column="statusField.key"
+        >
+          <slot
+            v-if="statusField.cell"
+            :name="statusField.cell"
+            :row="row"
+            :value="valueOf(statusField)"
+            :column="statusField"
+          />
+          <StatusPill
+            v-else
+            :label="cellText(statusField, row)"
+          />
+        </div>
+        <div
+          v-if="descriptionField"
+          class="data-table__card-description"
+          :data-column="descriptionField.key"
+        >
+          <slot
+            v-if="descriptionField.cell"
+            :name="descriptionField.cell"
+            :row="row"
+            :value="valueOf(descriptionField)"
+            :column="descriptionField"
+          />
+          <span v-else>{{ cellText(descriptionField, row) }}</span>
+        </div>
+        <div
+          v-for="column in metaFields"
           :key="column.key"
-          class="data-table__field"
+          class="data-table__card-meta"
           :data-column="column.key"
         >
-          <span class="data-table__field-label">{{ column.label }}</span>
-          <span class="data-table__field-value">
+          <HubIcon
+            class="data-table__card-meta-icon"
+            :name="column.cardIcon ?? 'ion:information-circle-outline'"
+          />
+          <span class="data-table__card-meta-label">{{ column.label }}</span>
+          <span class="data-table__card-meta-value">
             <slot
               v-if="column.cell"
               :name="column.cell"
@@ -169,12 +223,16 @@ ion-card.data-table__card { margin: 0; }
 .data-table__card-head { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 0.5rem; }
 .data-table__card-icon { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: var(--ep-radius-sm); color: var(--ep-primary-text); background: var(--ep-primary-tint); font-size: 22px; }
 .data-table__card-title { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-size: 17px; line-height: 1.3; font-weight: 650; }
-.data-table__card-body { display: flex; flex-direction: column; gap: 0.4rem; }
-.data-table__field { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 13px; }
-.data-table__field-label { color: var(--color-muted); }
-.data-table__field-value { font-weight: 500; text-align: right; color: var(--color); min-width: 0; }
+.data-table__card-body { display: flex; flex-direction: column; gap: 0.75rem; }
+.data-table__card-status { display: flex; flex-wrap: wrap; gap: 0.375rem; min-width: 0; }
+.data-table__card-description { margin: 0; color: var(--ep-text-muted); font-size: 14px; line-height: 1.5; }
+.data-table__card-meta { display: flex; align-items: center; gap: 0.5rem; min-width: 0; color: var(--ep-text-muted); font-size: 12px; }
+.data-table__card-meta-icon { flex: none; width: 16px; height: 16px; color: var(--ep-primary-text); font-size: 16px; }
+.data-table__card-meta-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.data-table__card-meta-value { min-width: 0; color: var(--color); font-weight: 500; }
 .data-table__field-text { display: block; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 .data-table__field-text--unfolded { overflow-wrap: anywhere; }
-.data-table__card-actions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0 0.5rem 0.5rem; }
-.data-table__card-actions .data-table__actions { flex-wrap: wrap; }
+.data-table__card-actions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0.75rem; border-top: 1px solid var(--border-color-soft); }
+.data-table__card-actions .data-table__actions { width: 100%; flex-wrap: nowrap; }
+.data-table__card-actions :deep(.data-table__action--primary) { flex: 1 1 auto; }
 </style>

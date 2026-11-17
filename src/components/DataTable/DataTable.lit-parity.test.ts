@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import cardSource from './DataTableCard.vue?raw';
+import identitySource from './DataTableIdentity.vue?raw';
 import listSource from './DataTableListItem.vue?raw';
 import actionsSource from './DataTableRowActions.vue?raw';
 import stateSource from './DataTableState.vue?raw';
@@ -153,9 +154,6 @@ const PORTED: Record<string, string> = {
   'ion-card-header.rcard-head': '.data-table__card-head',
   '.rcard-head .rc-icon': '.data-table__card-icon',
   'ion-card-content.rcard-body': '.data-table__card-body',
-  '.rrow': '.data-table__field',
-  '.rrow .rk': '.data-table__field-label',
-  '.rrow .rv': '.data-table__field-value',
   '.ractions': '.data-table__card-actions',
   '.ractions .actions': '.data-table__card-actions .data-table__actions',
   '.empty': '.data-table__empty',
@@ -211,6 +209,12 @@ const drop = (reason: string, ...rules: string[]) => rules.forEach((r) => (DROPP
 drop(
   'its one-line «…» cut card titles that fit in two lines; `.data-table__card-title` wraps instead',
   '.rcard-head .rc-title',
+);
+drop(
+  'status, description and icon-led metadata replace the label/value rows',
+  '.rrow',
+  '.rrow .rk',
+  '.rrow .rv',
 );
 drop(
   'Ionic skeletons replace the spinner, and 44px targets apply at every width instead of a touch-only override',
@@ -322,6 +326,18 @@ const ADDED: Record<string, string> = {
   '.data-table__skeleton-icon': 'the placeholder icon matches the tiled card icon',
   '.data-table__skeleton-lines': 'placeholder lines occupy the card content',
   '.data-table__skeleton-lines ion-skeleton-text': 'Ionic skeletons paint the placeholder lines',
+  '.data-table__card-status': 'the status sits under the card heading without a field label',
+  '.data-table__card-description': 'the description is a full-width paragraph',
+  '.data-table__card-meta': 'secondary values form discreet icon-led lines',
+  '.data-table__card-meta-icon': 'metadata uses the baked icon of its column',
+  '.data-table__card-meta-label': 'the field name remains available to assistive technology',
+  '.data-table__card-meta-value': 'metadata text can shrink and unfold without clipping',
+  '.data-table__card-actions :deep(.data-table__action--primary)': 'the primary card action takes the available width',
+  '.data-table__identity': 'the shared identity cell aligns its icon and text',
+  '.data-table__identity-icon': 'the identity icon uses the theme tile',
+  '.data-table__identity-text': 'the identity text can shrink around its icon',
+  '.data-table__identity-title': 'the identity name wraps in the theme text colour',
+  '.data-table__identity-subtitle': 'the second line uses the accessible muted token',
 };
 
 /** Declarations a port carries on top of its Lit rule, with why. */
@@ -339,8 +355,6 @@ const EXTRA: Record<string, string[]> = {
   '.data-table__selection-clear': ['padding: revert'], // normalize.css `button { padding: 0 }` neither
   // Ionic clips its native button: the count pill on the corner was cut in half (measured in Chromium).
   '.data-table__filter-button': ['--overflow: visible'],
-  // A flex item never shrinks below its longest word: without this a long email runs past its card.
-  '.data-table__field-value': ['min-width: 0'],
   '.data-table__actions ion-button': ['min-width: 44px', 'min-height: 44px', 'margin: 0'],
   '.data-table__error ion-button': ['min-height: 44px', '--padding-start: 1rem', '--padding-end: 1rem'],
 };
@@ -354,10 +368,14 @@ const RESTYLED: Record<string, string[]> = {
   '.data-table__filter': ['min-width: 8.5rem', 'max-width: 13rem', 'min-height: 44px', 'font-size: 13px', 'background: var(--background)', 'color: var(--color)', 'border: 1px solid var(--control-border)', 'border-radius: 10px', '--padding-start: 0.7rem', '--padding-end: 0.5rem', '--padding-top: 0.35rem', '--padding-bottom: 0.35rem'],
   '.data-table__filter-button': ['position: relative', '--padding-start: 0', '--padding-end: 0', '--border-radius: 10px', 'width: 44px', 'height: 44px', 'margin: 0'],
   '.data-table__card-icon': ['display: inline-grid', 'place-items: center', 'flex: none', 'width: 44px', 'height: 44px', 'border-radius: var(--ep-radius-sm)', 'color: var(--ep-primary-text)', 'background: var(--ep-primary-tint)', 'font-size: 22px'],
+  '.data-table__row--data': ['min-height: 80px', 'background: var(--background)', 'border-bottom: 1px solid var(--border-color-soft)', 'padding-top: 0.75rem', 'padding-bottom: 0.75rem', 'transition: background-color var(--ep-transition, 150ms ease), color var(--ep-transition, 150ms ease), box-shadow var(--ep-transition, 150ms ease), transform 120ms ease'],
+  '.data-table__card-body': ['display: flex', 'flex-direction: column', 'gap: 0.75rem'],
+  '.data-table__card-actions': ['display: flex', 'justify-content: flex-end', 'gap: 0.25rem', 'padding: 0.75rem', 'border-top: 1px solid var(--border-color-soft)'],
+  '.data-table__card-actions .data-table__actions': ['width: 100%', 'flex-wrap: nowrap'],
 };
 
 const LIT = parse(litCss);
-const scoped = [source, cardSource, listSource, actionsSource, stateSource]
+const scoped = [source, cardSource, listSource, actionsSource, stateSource, identitySource]
   .map((input) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '')
   .join('\n');
 const weak = source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';

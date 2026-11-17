@@ -105,7 +105,7 @@ const menuItems = (t: Table) => [...t.element.querySelectorAll('.data-table__row
 /** Stencil patches `textContent` of its scoped `ion-label`: read its markup. */
 const menuLabels = (t: Table) => menuItems(t).map((item) => item.querySelector('ion-label')?.innerHTML.trim());
 const cardFieldLabels = (t: Table, index = 0) =>
-  [...cards(t)[index].querySelectorAll('.data-table__field-label')].map((l) => text(l));
+  [...cards(t)[index].querySelectorAll('.data-table__card-meta-label')].map((l) => text(l));
 const segment = (t: Table) => t.element.querySelector('.data-table__view-segment') as HTMLElement;
 
 async function mountAt(width: number, extra: Record<string, unknown> = {}): Promise<Table> {
@@ -119,15 +119,15 @@ describe('the list fits its BOX: low columns → extra actions → all but pinne
   it('gives up one thing at a time as the box narrows, and takes it all back when it widens', async () => {
     const t = await mountAt(900);
     expect(headers(t), '900: everything fits').toEqual(['Business', 'Status', 'Plan', 'Web address', 'Role', 'Last used']);
-    expect(rowButtons(t)).toEqual(['open', 'manage', 'pay', 'menu']);
+    expect(rowButtons(t)).toEqual(['open', 'menu']);
 
     await resize(700);
     expect(headers(t), '700: the low columns go first').toEqual(['Business', 'Status', 'Plan', 'Last used']);
-    expect(rowButtons(t), 'the actions are untouched').toEqual(['open', 'manage', 'pay', 'menu']);
+    expect(rowButtons(t), 'the actions are untouched').toEqual(['open', 'menu']);
 
     await resize(560);
     expect(headers(t)).toEqual(['Business', 'Status', 'Plan', 'Last used']);
-    expect(rowButtons(t), '560: beyond maxInlineActions (2) into «⋮»').toEqual(['open', 'manage', 'menu']);
+    expect(rowButtons(t), '560: beyond maxInlineActions (2) into «⋮»').toEqual(['open', 'menu']);
 
     await resize(520);
     expect(rowButtons(t), '520: only the pinned one stays out').toEqual(['open', 'menu']);
@@ -140,20 +140,20 @@ describe('the list fits its BOX: low columns → extra actions → all but pinne
     await resize(900);
     expect(isCards(t), 'wide again: the list').toBe(false);
     expect(headers(t)).toEqual(['Business', 'Status', 'Plan', 'Web address', 'Role', 'Last used']);
-    expect(rowButtons(t)).toEqual(['open', 'manage', 'pay', 'menu']);
+    expect(rowButtons(t)).toEqual(['open', 'menu']);
     expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
   });
 
   it('a hidden low column is still a field of the cards (the cards have room for it)', async () => {
     const t = await mountAt(480);
     expect(isCards(t)).toBe(true);
-    expect(cardFieldLabels(t)).toEqual(['Business', 'Status', 'Plan', 'Web address', 'Role', 'Last used']);
+    expect(cardFieldLabels(t)).toEqual(['Business', 'Plan', 'Web address', 'Role', 'Last used']);
     expect(text(cards(t)[0])).toContain('bar-la-plaza.erplora.com');
   });
 
   it('it is the box, not the window: a wide window with a narrow box still gives up', async () => {
     const t = await mountAt(560);
-    expect(rowButtons(t)).toEqual(['open', 'manage', 'menu']);
+    expect(rowButtons(t)).toEqual(['open', 'menu']);
     expect(headers(t)).not.toContain('Role');
   });
 
@@ -168,7 +168,7 @@ describe('the list fits its BOX: low columns → extra actions → all but pinne
     // 4 columns: all out 592 · two out 552 · one out 512.
     const byDefault = await mountAt(560, { columns });
     const one = await mountAt(560, { columns, maxInlineActions: 1 });
-    expect(rowButtons(byDefault)).toEqual(['open', 'manage', 'menu']);
+    expect(rowButtons(byDefault)).toEqual(['open', 'menu']);
     expect(rowButtons(one), 'the pinned one takes the only place').toEqual(['open', 'menu']);
   });
 
@@ -219,11 +219,11 @@ describe('a measurement that paints nothing never stalls the ladder', () => {
   });
 
   it('folded and fitting, it stays the list, with «⋮» in its own track and nothing hidden sideways', async () => {
-    const t = await mountAt(480, { columns: COLUMNS_4, actions: LABELLED });
+    const t = await mountAt(520, { columns: COLUMNS_4, actions: LABELLED });
     expect(isCards(t)).toBe(false);
-    expect(rowButtons(t)).toEqual(['menu']);
+    expect(rowButtons(t)).toEqual(['correct', 'menu']);
     expect((t.element.querySelector('.data-table__row--head') as HTMLElement).style.gridTemplateColumns).toBe(
-      'minmax(5.5rem,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 40px',
+      'minmax(10rem,1.4fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 80px',
     );
     expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
   });
@@ -233,7 +233,7 @@ describe('a measurement that paints nothing never stalls the ladder', () => {
     expect(isCards(t)).toBe(true);
     await resize(600);
     expect(isCards(t)).toBe(false);
-    expect(rowButtons(t)).toEqual(['correct', 'history']);
+    expect(rowButtons(t)).toEqual(['correct', 'menu']);
     const header = t.element.querySelector('.data-table__row--head > .data-table__cell--actions > span') as HTMLElement;
     expect(header.className).toBe('');
   });
@@ -256,13 +256,13 @@ describe('a refresh of the rows keeps what the box decided', () => {
     const address = vi.fn((value: unknown) => String(value));
     const columns = COLUMNS.map((c) => (c.key === 'address' ? { ...c, format: address } : c));
     const t = await mountAt(560, { columns });
-    expect(rowButtons(t)).toEqual(['open', 'manage', 'menu']);
+    expect(rowButtons(t)).toEqual(['open', 'menu']);
     address.mockClear();
     await t.setProps({ rows: ROWS.map((r) => ({ ...r })) });
     await settle();
     expect(address).not.toHaveBeenCalled();
     expect(headers(t)).not.toContain('Web address');
-    expect(rowButtons(t)).toEqual(['open', 'manage', 'menu']);
+    expect(rowButtons(t)).toEqual(['open', 'menu']);
   });
 });
 
@@ -292,13 +292,13 @@ describe('`pinned` and `menuOnly` row actions: the main action stays, the delica
     const t = await mountAt(900);
     expect(byTestId(t, 'biz-row-b2-transfer')).toHaveLength(0);
     await click(byTestId(t, 'biz-row-b2-menu')[0]);
-    expect(menuLabels(t)).toEqual(['Transfer ownership']);
+    expect(menuLabels(t)).toEqual(['Manage', 'Pay', 'Transfer ownership']);
     expect(byTestId(t, 'biz-row-b2-transfer').map((el) => el.tagName)).toEqual(['ION-ITEM']);
-    await click(menuItems(t)[0]);
+    await click(menuItems(t).find((item) => item.getAttribute('data-testid') === 'biz-row-b2-transfer'));
     expect(t.emitted('action')).toEqual([[{ actionId: 'transfer', row: ROWS[1] }]]);
   });
 
-  it('folded, «⋮» holds what left the row, in order; the pinned one is still a button', async () => {
+  it('the menu holds every secondary action in order and the pinned one remains a button', async () => {
     const t = await mountAt(520);
     expect(rowButtons(t)).toEqual(['open', 'menu']);
     await click(byTestId(t, 'biz-row-b1-menu')[0]);
@@ -307,23 +307,21 @@ describe('`pinned` and `menuOnly` row actions: the main action stays, the delica
     expect(t.emitted('action')?.[0]).toEqual([{ actionId: 'open', row: ROWS[0] }]);
   });
 
-  it('a row without anything for «⋮» keeps an invisible stand-in, so the buttons stay in their column', async () => {
+  it('rows keep the same primary button and menu without invisible stand-ins', async () => {
     const actions = ACTIONS.map((a) => (a.id === 'transfer' ? { ...a, hidden: (r: Row) => r.role !== 'Owner' } : a));
     const t = await mountAt(900, { actions });
-    expect(rowButtons(t, 0)).toEqual(['open', 'manage', 'pay', 'menu']);
-    expect(rowButtons(t, 1)).toEqual(['open', 'manage', 'pay', 'gap:menu']);
-    const gap = dataRows(t)[1].querySelector('[data-slot-for="menu"]') as HTMLElement;
-    expect(gap.getAttribute('aria-hidden')).toBe('true');
-    expect(gap.hasAttribute('inert')).toBe(true);
+    expect(rowButtons(t, 0)).toEqual(['open', 'menu']);
+    expect(rowButtons(t, 1)).toEqual(['open', 'menu']);
+    expect(dataRows(t)[1].querySelector('[data-slot-for="menu"]')).toBeNull();
   });
 
-  it('cards: every action is a button except the `menuOnly` ones, which stay in the card’s «⋮»', async () => {
+  it('cards keep one primary button and every secondary action in the menu', async () => {
     const t = await mountAt(900, { defaultView: 'cards' });
     const buttons = [...cards(t)[0].querySelectorAll('.data-table__card-actions ion-button')].map((b) => b.getAttribute('data-testid'));
-    expect(buttons).toEqual(['biz-row-b1-open', 'biz-row-b1-manage', 'biz-row-b1-pay', 'biz-row-b1-menu']);
+    expect(buttons).toEqual(['biz-row-b1-open', 'biz-row-b1-menu']);
     await click(byTestId(t, 'biz-row-b1-menu')[0]);
-    expect(menuLabels(t)).toEqual(['Transfer ownership']);
-    await click(menuItems(t)[0]);
+    expect(menuLabels(t)).toEqual(['Manage', 'Pay', 'Transfer ownership']);
+    await click(menuItems(t).find((item) => item.getAttribute('data-testid') === 'biz-row-b1-transfer'));
     expect(t.emitted('action')).toEqual([[{ actionId: 'transfer', row: ROWS[0] }]]);
   });
 });
@@ -349,7 +347,7 @@ describe('the column chooser and the low columns the box hid', () => {
     expect(headers(t)).toEqual(['Business', 'Status', 'Plan', 'Role', 'Last used']);
     await resize(480);
     expect(isCards(t)).toBe(true);
-    expect(cardFieldLabels(t)).toEqual(['Business', 'Status', 'Plan', 'Role', 'Last used']);
+    expect(cardFieldLabels(t)).toEqual(['Business', 'Plan', 'Role', 'Last used']);
   });
 });
 
@@ -441,7 +439,7 @@ describe('a column holds its content whole while the row has room', () => {
     const t = await mountAt(720, props834);
     expect(template(t)).toBe('minmax(225px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
     expect(headers(t)).toEqual(['Email', 'Status', 'Total', 'Note']);
-    expect(rowButtons(t)).toEqual(['pay', 'fail']);
+    expect(rowButtons(t)).toEqual(['pay', 'menu']);
     expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
   });
 
@@ -453,7 +451,7 @@ describe('a column holds its content whole while the row has room', () => {
       'minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px',
     );
     expect(headers(t)).toContain('Note');
-    expect(rowButtons(t)).toEqual(['pay', 'fail']);
+    expect(rowButtons(t)).toEqual(['pay', 'menu']);
 
     await resize(540);
     expect(headers(t), '540: not even cut: the low column goes').toEqual(['Email', 'Status', 'Total']);
@@ -461,17 +459,17 @@ describe('a column holds its content whole while the row has room', () => {
 
     await resize(480);
     expect(template(t), '480: cut again before the actions fold').toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 80px');
-    expect(rowButtons(t)).toEqual(['pay', 'fail']);
+    expect(rowButtons(t)).toEqual(['pay', 'menu']);
 
     await resize(340);
-    expect(rowButtons(t), '340: folded into «⋮», and cut').toEqual(['menu']);
-    expect(template(t)).toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 40px');
-    expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
+    expect(rowButtons(t), '340: primary action and menu, still cut').toEqual(['pay', 'menu']);
+    expect(template(t)).toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 80px');
+    expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(true);
 
     await resize(720);
     expect(template(t), 'wide again: whole, everything back').toBe('minmax(225px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
     expect(headers(t)).toEqual(['Email', 'Status', 'Total', 'Note']);
-    expect(rowButtons(t)).toEqual(['pay', 'fail']);
+    expect(rowButtons(t)).toEqual(['pay', 'menu']);
   });
 
   it('a cut email unfolded by a tap leaves its column as it was: wrapped, it no longer tells its width', async () => {
@@ -522,7 +520,7 @@ describe('a column holds its content whole while the row has room', () => {
       await resize(480);
       expect(headers(t), '480: cut without Note').toEqual(['Email', 'Status', 'Total']);
       expect(template(t)).toBe('minmax(10.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 80px');
-      expect(rowButtons(t)).toEqual(['pay', 'fail']);
+      expect(rowButtons(t)).toEqual(['pay', 'menu']);
     });
 
     it('the floor is the only thing that sent the list to the cards: gone, the list comes back', async () => {

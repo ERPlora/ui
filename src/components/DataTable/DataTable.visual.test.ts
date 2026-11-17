@@ -139,7 +139,7 @@ describe('the painted structure (class names the stylesheet hangs on)', () => {
     const failed = mountTable({ rows: [], columns: [{ key: 'name', label: 'Name' }], error: 'Down' });
     const loading = mountTable({ rows: [], columns: [{ key: 'name', label: 'Name' }], loading: true });
     await settle();
-    for (const cls of ['data-table__cards', 'data-table__card', 'data-table__card-head', 'data-table__card-icon', 'data-table__card-title', 'data-table__card-body', 'data-table__field', 'data-table__field-label', 'data-table__field-value', 'data-table__card-actions']) {
+    for (const cls of ['data-table__cards', 'data-table__card', 'data-table__card-head', 'data-table__card-icon', 'data-table__card-title', 'data-table__card-body', 'data-table__card-meta', 'data-table__card-meta-label', 'data-table__card-meta-value', 'data-table__card-actions']) {
       expect(cardsView.element.querySelector(`.${cls}`), cls).not.toBeNull();
     }
     expect(cardsView.findAll('.data-table__card')).toHaveLength(3);
@@ -302,7 +302,7 @@ describe('the rules that carry the look', () => {
     expect(rule('.data-table__grid')).toMatch(/min-width: min-content/);
     expect(rule('.data-table__actions ion-button')).toMatch(/flex: 0 0 auto/);
     expect(rule('.data-table__actions')).not.toContain('flex-wrap');
-    expect(rule('.data-table__card-actions .data-table__actions')).toContain('flex-wrap: wrap');
+    expect(rule('.data-table__card-actions .data-table__actions')).toBe('width: 100%; flex-wrap: nowrap;');
   });
 
   it('a selected row and the current page out-rank :hover (Vue’s scope attribute raises :hover)', () => {
@@ -465,7 +465,7 @@ describe('nothing of the table is cut off (measured in Chromium)', () => {
     // wraps between words and clips a word that does not fit with «…»; a tap unfolds it, breaking the
     // word anywhere. Its own `overflow-wrap`: Ionic's `body` breaks a long word at the box edge, which
     // splits an email in two with no sign (measured in Chromium).
-    expect(rule('.data-table__field-value')).toBe('font-weight: 500; text-align: right; color: var(--color); min-width: 0;');
+    expect(rule('.data-table__card-meta-value')).toBe('min-width: 0; color: var(--color); font-weight: 500;');
     expect(rule('.data-table__field-text')).toBe('display: block; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal;');
     expect(rule('.data-table__field-text--unfolded')).toBe('overflow-wrap: anywhere;');
   });

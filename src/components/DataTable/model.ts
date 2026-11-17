@@ -305,14 +305,14 @@ export function gridTemplate<T>(input: {
   const track = (c: DataTableColumn<T>): string => {
     if (c.width != null) return c.width;
     const need = input.contentWidths?.[c.key] ?? 0;
-    // 5.5rem (88px) is the narrowest a data column stays readable, unless the column asks for more.
-    const floor = c.minWidth ?? '5.5rem';
-    if (!(need > 0)) return `minmax(${floor},1fr)`;
+    const identity = c.identity || c.priority === 'high';
+    const floor = c.minWidth ?? (identity ? '10rem' : '5.5rem');
+    const share = identity ? '1.4fr' : '1fr';
+    if (!(need > 0)) return `minmax(${floor},${share})`;
     // Whole while the row has room, sharing what is left; when cut, down to the floor and never past
     // its content (the widest text gives its width up first).
     if (input.clipped) return `minmax(${floor},${need}px)`;
-    // `need` is measured against the common floor: content narrower than the column's own floor keeps that floor.
-    return c.minWidth ? `minmax(max(${c.minWidth},${need}px),1fr)` : `minmax(${need}px,1fr)`;
+    return c.minWidth || identity ? `minmax(max(${floor},${need}px),${share})` : `minmax(${need}px,${share})`;
   };
   return [
     input.selectable ? '2.75rem' : null,

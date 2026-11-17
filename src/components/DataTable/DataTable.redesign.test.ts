@@ -5,6 +5,7 @@ import listSource from './DataTableListItem.vue?raw';
 import actionsSource from './DataTableRowActions.vue?raw';
 import stateSource from './DataTableState.vue?raw';
 import source from './DataTable.vue?raw';
+import { gridTemplate } from './model';
 
 const styles = (input: string) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '';
 const table = styles(source);
@@ -27,9 +28,9 @@ describe('the default focused presentation', () => {
     expect(list).toContain('.data-table__row--data > .data-table__cell:not(.data-table__cell--actions) { flex-wrap: wrap;');
   });
 
-  it('keeps every row action at least 44×44, with the pinned action outlined', () => {
+  it('keeps every row action at least 44×44, with the primary action outlined', () => {
     expect(actions).toContain('min-width: 44px; min-height: 44px');
-    expect(actionsSource).toContain("action.pinned ? 'outline' : 'clear'");
+    expect(actionsSource).toContain("primary || action.pinned) ? 'outline' : 'clear'");
   });
 
   it('uses 44px toolbar controls, not desktop-only smaller targets', () => {
@@ -46,5 +47,18 @@ describe('the default focused presentation', () => {
     expect(stateSource).toContain('role="alert"');
     expect(stateSource).toContain("emit('retry')");
     expect(stateSource).toContain("emit('reset')");
+  });
+});
+
+
+describe('identity columns keep their reading width', () => {
+  it('gives high-priority identity columns a 10rem floor and a larger flexible share', () => {
+    const result = gridTemplate({
+      selectable: false,
+      columns: [{ key: 'name', label: 'Name', priority: 'high' }, { key: 'state', label: 'Status' }],
+      hasActions: false,
+      actionsTrackPx: 0,
+    });
+    expect(result).toBe('minmax(10rem,1.4fr) minmax(5.5rem,1fr)');
   });
 });

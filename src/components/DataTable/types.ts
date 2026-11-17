@@ -119,6 +119,14 @@ export type DataTableFilterField = DataTableColumnFilter & {
  *  A filter without a value is absent, never `''`. */
 export type DataTableFilters = Record<string, string>;
 
+/** How a column names its record: an icon in a tile, the column's text and a second, quieter line. */
+export interface DataTableIdentity<T = Record<string, unknown>> {
+  icon: (row: T) => string | undefined;
+  subtitle?: (row: T) => string | number | null | undefined;
+  /** `data-testid` of the second line. */
+  testid?: string;
+}
+
 export interface DataTableColumn<T = Record<string, unknown>> {
   /** Field of the row, or a logical id when `format`/`cell` paint something else. */
   key: string;
@@ -135,9 +143,14 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   /** Name of the scoped slot (`{ row, value, column }`) that paints the cell, list and cards. In the list its
    *  boxes sit side by side while the row has room and wrap under each other when it has not. */
   cell?: string;
+  /** Paints the cell as the record's identity (list, and the head of its card); it takes the widest share of the row. */
+  identity?: DataTableIdentity<T>;
+  /** Icon of the field's line on a card. Default: an information icon. */
+  cardIcon?: string;
   /** Not painted until the person picks it in the column chooser; it still sorts. */
   hidden?: boolean;
-  /** CSS track of the column in the list (`8rem`, `minmax(8rem,1fr)`…). Default `minmax(5.5rem,1fr)`. */
+  /** CSS track of the column in the list (`8rem`, `minmax(8rem,1fr)`…). Default `minmax(5.5rem,1fr)`, and
+   *  `minmax(10rem,1.4fr)` for an `identity` or `high` column, so the name is the last text to be cut. */
   width?: string;
   /** The narrowest this column goes (`10.5rem`), for one whose content must keep some of its text: the
    *  list gives up the next step of its ladder rather than cut it under this. Default `5.5rem`. Ignored with `width`. */
@@ -187,6 +200,7 @@ export interface DataTableActionEvent<T = Record<string, unknown>> {
 export interface DataTableActionSlot<T = Record<string, unknown>> {
   action: DataTableAction<T>;
   gap: boolean;
+  primary?: boolean;
 }
 
 export interface DataTableActionCell<T = Record<string, unknown>> {

@@ -2,10 +2,10 @@
 // The record list: Ionic controls inside, no network and no business logic.
 //
 // What fits is decided by the table's OWN box (a ResizeObserver on it), never by the window: with the
-// side menu open the box is far narrower than the screen. When the list does not fit, it gives up one
-// thing at a time, and takes it back as the box widens: the `priority: 'low'` columns, then the row
-// actions beyond `maxInlineActions` (into «⋮»), then every action that is not `pinned`, then the list
-// itself for cards (when `views` offers them and no view was picked by hand). Only then does the list
+// side menu open the box is far narrower than the screen. When the list does not fit, it gives up the
+// `priority: 'low'` columns and takes them back as the box widens; every row keeps one primary action
+// and a menu. The list becomes cards when it still does not fit (when `views` offers them and no view
+// was picked by hand). Only then does the list
 // scroll sideways inside its box; the page never does. At or below `cardBreakpoint` (a phone) the table
 // is cards whatever its box. The `row-actions` slot never folds: it is only for a control that cannot
 // be an action.
@@ -62,9 +62,7 @@ import {
   pageList,
   pagerState,
   phonePages,
-  rowActionsFolded,
   rowKeyOf,
-  type RowActionsFold,
   sameRecords,
   searchRows,
   slotActions as slotActionsOf,
@@ -347,7 +345,6 @@ const {
   actionsLabelFits,
   rowActionsCollapsed,
   lowColumnsHidden,
-  extraActionsFolded,
   columnsClipped,
   contentWidths,
   contentAfter,
@@ -796,43 +793,12 @@ const alignClass = (column: DataTableColumn<T>): string | undefined =>
   column.align === 'right' ? 'data-table__cell--right' : column.align === 'center' ? 'data-table__cell--center' : undefined;
 
 // ── Row actions ───────────────────────────────────────────────────────────────────────────────
-/** Text of the invisible stand-in of a hidden text action, borrowed from a row showing it. */
-const gapLabels = computed(
-  () =>
-    new Map(
-      props.actions.map((a) => {
-        if (typeof a.label !== 'function') return [a, a.label];
-        const shown = props.rows.find((row) => a.hidden?.(row) !== true);
-        return [a, shown ? a.label(shown) : ''];
-      }),
-    ),
-);
-const fold = computed<RowActionsFold>(() => (rowActionsCollapsed.value ? 'all' : extraActionsFolded.value ? 'extra' : 'none'));
-/** Unfolded or partly folded, every row has the same button places. */
-const listSlots = computed(() => inlineActions(slotActions.value, fold.value, props.maxInlineActions));
-/** What the actions cell of a list row holds. Folded entirely, each row decides on its own: a single
- *  icon action stays a button, as do the pinned ones. */
-function listActions(row: T): DataTableActionCell<T> {
+function focusedActions(row: T): DataTableActionCell<T> {
   const visible = visibleActions(props.actions, row);
-  if (fold.value === 'all') {
-    const folds = rowActionsFolded(true, visible.filter((a) => a.menuOnly !== true && a.pinned !== true));
-    const inline = visible.filter((a) => a.menuOnly !== true && (a.pinned === true || !folds));
-    return { items: inline.map((action) => ({ action, gap: false })), menu: visible.filter((a) => !inline.includes(a)) };
-  }
-  const places = listSlots.value;
+  const primary = visible.find((action) => action.pinned && !action.menuOnly) ?? visible.find((action) => !action.menuOnly);
   return {
-    items: places.map((action) => ({ action, gap: action.hidden?.(row) === true })),
-    menu: visible.filter((a) => !places.includes(a)),
-  };
-}
-/** Some row has a «⋮» (not folded entirely): the others keep its place with a stand-in. */
-const listMenuPlace = computed(() => fold.value !== 'all' && props.rows.some((row) => listActions(row).menu.length > 0));
-/** A card has room for every action: buttons, except the `menuOnly` ones, which stay in «⋮». */
-function cardActions(row: T): DataTableActionCell<T> {
-  const visible = visibleActions(props.actions, row);
-  return {
-    items: visible.filter((a) => a.menuOnly !== true).map((action) => ({ action, gap: false })),
-    menu: visible.filter((a) => a.menuOnly === true),
+    items: primary ? [{ action: primary, gap: false, primary: true }] : [],
+    menu: visible.filter((action) => action !== primary),
   };
 }
 const isBusy = (action: DataTableAction<T>, row: T): boolean => action.loading?.(row) === true;
@@ -853,7 +819,7 @@ const menuRow = computed(() => {
 const menuActions = computed(() => {
   const row = menuRow.value;
   if (!row) return [];
-  return (cardsOn.value ? cardActions(row) : listActions(row)).menu;
+  return focusedActions(row).menu;
 });
 // The box widened under an open menu and every action is a button again: nothing left to offer.
 watch(
@@ -1254,8 +1220,7 @@ onUpdated(nameSearchBox);
           :title-column="cardTitleColumnOf(row)"
           :icon="cardIcon?.(row)"
           :fields="cardFields(row)"
-          :actions="cardActions(row)"
-          :gap-labels="gapLabels"
+          :actions="focusedActions(row)"
           :selectable="selectable"
           :selected="selection.has(keyOf(row))"
           :clickable="rowClickable"
@@ -1360,13 +1325,11 @@ onUpdated(nameSearchBox);
               :row-id="rowId(row, index)"
               :columns="listColumns"
               :template="template"
-              :actions="listActions(row)"
-              :gap-labels="gapLabels"
+              :actions="focusedActions(row)"
               :selectable="selectable"
               :selected="selection.has(keyOf(row))"
               :clickable="rowClickable"
               :has-actions="hasActions"
-              :menu-place="listMenuPlace"
               :select-label="label('selectRow')"
               :more-label="label('moreActions')"
               :testid="testid?.trim() || undefined"

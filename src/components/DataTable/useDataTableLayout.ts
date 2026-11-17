@@ -1,9 +1,7 @@
-// What the list gives up when it does not fit its own box, as a ladder: the `low` columns first, then the actions
-// beyond `maxInlineActions`, then all but the pinned ones, and at last the list is handed over to cards; each rung is
-// tried with every column holding its content whole before the widest text is cut. Everything measured runs after
-// each render and on resize, and only writes a state when it CHANGES, so a measurement never schedules a render loop.
+// Measurements run after render and resize, and write only on change, so none schedules a render loop.
 import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, type Ref, ref, watch } from 'vue';
 
+import { fitWholeRows } from './fitWholeRows';
 import type { DataTableView } from './types';
 
 /** Input of `decideRowActionsFit`: what gets measured of the hole the table lives in. */
@@ -499,8 +497,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   let hostObserver: ResizeObserver | undefined;
   let scrollObserver: ResizeObserver | undefined;
 
-  /** The scroller changes between views: observe the current one and its grid. Inside
-   *  `ion-content` the hole only gets its width after Ionic hydrates. */
+  /** Observe the current scroller and its grid; Ionic may give it its width after hydration. */
   function observeScroll(): void {
     if (typeof ResizeObserver === 'undefined') return;
     const scroll = scrollEl();
@@ -508,6 +505,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
       measureXOverflow();
       measureActionsTrack();
       measureRowActionsFit();
+      fitWholeRows(scroll, source.fill() && !isMobile.value);
     });
     scrollObserver.disconnect();
     if (!scroll) return;
@@ -524,11 +522,13 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     measureActionsLabel();
     measureContentWidths();
     measureRowActionsFit();
+    fitWholeRows(scrollEl(), source.fill() && !isMobile.value);
   }
 
   const onWindowResize = (): void => {
     measureXOverflow();
     measureRowActionsFit();
+    fitWholeRows(scrollEl(), source.fill() && !isMobile.value);
     syncContentAfter();
   };
 

@@ -11,12 +11,11 @@ const props = withDefaults(
     rowId: string;
     items: DataTableActionCell<T>['items'];
     menu: DataTableAction<T>[];
-    menuPlace?: boolean;
     gapLabels?: Map<DataTableAction<T>, string>;
     testid?: string;
     moreLabel: string;
   }>(),
-  { menuPlace: false, gapLabels: undefined, testid: undefined },
+  { gapLabels: undefined, testid: undefined },
 );
 
 const emit = defineEmits<{
@@ -38,17 +37,17 @@ function run(action: DataTableAction<T>): void {
 <template>
   <div class="data-table__actions">
     <template
-      v-for="{ action, gap } in items"
+      v-for="{ action, gap, primary } in items"
       :key="action.id"
     >
       <ion-button
         :class="{
           'data-table__action-gap': gap,
-          'data-table__action--labelled': iconWithLabel(action),
-          'data-table__action--primary': action.pinned && !gap,
+          'data-table__action--labelled': iconWithLabel(action) || primary,
+          'data-table__action--primary': (primary || action.pinned) && !gap,
         }"
         size="small"
-        :fill="!gap && action.pinned ? 'outline' : 'clear'"
+        :fill="!gap && (primary || action.pinned) ? 'outline' : 'clear'"
         :style="toneStyle(action.color ?? 'medium', 'clear')"
         :data-testid="gap ? undefined : hook(action.id)"
         :data-slot-for="gap ? action.id : undefined"
@@ -61,7 +60,7 @@ function run(action: DataTableAction<T>): void {
         @click="!gap && run(action)"
       >
         <ion-spinner
-          v-if="!gap && busy(action) && iconWithLabel(action)"
+          v-if="!gap && busy(action) && (iconWithLabel(action) || primary)"
           slot="start"
           name="dots"
         />
@@ -71,7 +70,7 @@ function run(action: DataTableAction<T>): void {
           name="dots"
         />
         <ion-icon
-          v-else-if="iconWithLabel(action)"
+          v-else-if="action.icon && (iconWithLabel(action) || primary)"
           slot="start"
           :icon="icon(action.icon)"
           aria-hidden="true"
@@ -82,7 +81,7 @@ function run(action: DataTableAction<T>): void {
           :icon="icon(action.icon)"
           aria-hidden="true"
         />
-        <template v-if="gap ? !action.icon || iconWithLabel(action) : iconWithLabel(action) || (!action.icon && !busy(action))">
+        <template v-if="gap ? !action.icon || iconWithLabel(action) : iconWithLabel(action) || primary || (!action.icon && !busy(action))">
           {{ gap ? gapLabels?.get(action) : actionLabel(action, row) }}
         </template>
       </ion-button>
@@ -101,21 +100,6 @@ function run(action: DataTableAction<T>): void {
       :title="moreLabel"
       aria-haspopup="menu"
       @click="emit('menu', $event, row)"
-    >
-      <ion-icon
-        slot="icon-only"
-        :icon="icon(DATA_TABLE_ICONS.more)"
-        aria-hidden="true"
-      />
-    </ion-button>
-    <ion-button
-      v-else-if="menuPlace"
-      class="data-table__action-gap"
-      size="small"
-      fill="clear"
-      data-slot-for="menu"
-      aria-hidden="true"
-      inert
     >
       <ion-icon
         slot="icon-only"

@@ -56,3 +56,11 @@ describe('the list item owns its cell layout', () => {
     expect(source).toMatch(/\.data-table__cell--pinned \{ position: sticky; right: 0;/);
   });
 });
+
+
+describe('the focused row rhythm', () => {
+  it('keeps a comfortable minimum height and vertical separation around actions', () => {
+    expect(source).toMatch(/\.data-table__row--data \{[^}]*min-height: 80px/);
+    expect(source).toMatch(/\.data-table__row--data \{[^}]*padding-top: 0\.75rem; padding-bottom: 0\.75rem/);
+  });
+});

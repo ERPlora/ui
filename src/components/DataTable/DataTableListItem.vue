@@ -2,6 +2,7 @@
 import { IonCheckbox } from '@ionic/vue';
 import { ref, watch } from 'vue';
 
+import DataTableIdentity from './DataTableIdentity.vue';
 import DataTableRowActions from './DataTableRowActions.vue';
 import { cellText } from './model';
 import type { DataTableAction, DataTableActionCell, DataTableColumn } from './types';
@@ -19,12 +20,11 @@ const props = withDefaults(
     selected?: boolean;
     clickable?: boolean;
     hasActions?: boolean;
-    menuPlace?: boolean;
     selectLabel?: string;
     moreLabel?: string;
     testid?: string;
   }>(),
-  { rows: undefined, gapLabels: undefined, selectable: false, selected: false, clickable: false, hasActions: false, menuPlace: false, selectLabel: 'Select', moreLabel: 'More actions', testid: undefined },
+  { rows: undefined, gapLabels: undefined, selectable: false, selected: false, clickable: false, hasActions: false, selectLabel: 'Select', moreLabel: 'More actions', testid: undefined },
 );
 
 const emit = defineEmits<{
@@ -85,8 +85,15 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
       :class="['data-table__cell', alignClass(column), { 'data-table__cell--pinned': column.pinned === 'end' }]"
       role="cell"
     >
+      <DataTableIdentity
+        v-if="column.identity"
+        :title="cellText(column, row)"
+        :icon="column.identity.icon(row)"
+        :subtitle="column.identity.subtitle?.(row)"
+        :testid="column.identity.testid"
+      />
       <slot
-        v-if="column.cell"
+        v-else-if="column.cell"
         :name="column.cell"
         :row="row"
         :value="valueOf(column)"
@@ -112,7 +119,6 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
         :items="actions.items"
         :menu="actions.menu"
         :gap-labels="gapLabels"
-        :menu-place="menuPlace"
         :testid="testid"
         :more-label="moreLabel"
         @action="emit('action', $event)"
@@ -136,7 +142,7 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
 .data-table__cell--pinned { position: sticky; right: 0; z-index: 1; background: inherit; margin-right: -1rem; padding-right: 1rem; }
 .data-table__scroll--overflow .data-table__cell--pinned { box-shadow: -10px 0 10px -10px color-mix(in srgb, var(--color) 45%, transparent); }
 .data-table__select-cell { display: flex; align-items: center; justify-content: center; }
-.data-table__row--data { background: var(--background); border-bottom: 1px solid var(--border-color-soft); padding-top: 0.6rem; padding-bottom: 0.6rem; transition: background-color var(--ep-transition, 150ms ease), color var(--ep-transition, 150ms ease), box-shadow var(--ep-transition, 150ms ease), transform 120ms ease; }
+.data-table__row--data { min-height: 80px; background: var(--background); border-bottom: 1px solid var(--border-color-soft); padding-top: 0.75rem; padding-bottom: 0.75rem; transition: background-color var(--ep-transition, 150ms ease), color var(--ep-transition, 150ms ease), box-shadow var(--ep-transition, 150ms ease), transform 120ms ease; }
 .data-table__row--data:last-child { border-bottom: 0; }
 @media (hover: hover) {
   .data-table__row--data:hover { background: linear-gradient(var(--row-hover), var(--row-hover)), var(--background); }
