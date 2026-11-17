@@ -768,7 +768,7 @@ const ownScroll = computed(() => props.fill && !phoneWidth.value);
 const infinite = computed(() => ({
   disabled: !pager.value.canLoadMore || awaitingRows.value,
   shown: pager.value.visible,
-  failed: loadFailed.value,
+  failed: loadFailed.value, waiting: props.loading,
   label: label('loadingMore'),
 }));
 const recordWord = computed(

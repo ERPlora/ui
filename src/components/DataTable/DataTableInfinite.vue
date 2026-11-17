@@ -9,6 +9,8 @@ const props = defineProps<{
   shown: readonly unknown[];
   /** The last load failed: the table says so, and the end may ask again. */
   failed: boolean;
+  /** The table is loading: rows that change meanwhile are not yet the answer. */
+  waiting: boolean;
   /** What the indicator says while the next rows load, also read aloud. */
   label: string;
 }>();
@@ -19,10 +21,13 @@ const emit = defineEmits<{ more: [] }>();
 const THRESHOLD = 120;
 const scroller = ref<{ $el: HTMLElement & { complete?: () => Promise<void> } }>();
 const pending = ref(false);
+/** How many rows there were when more were last asked for: an answer that adds none is not asked for again by itself. */
+let askedWith = -1;
 
 function askForMore(): void {
   if (pending.value || props.disabled) return;
   pending.value = true;
+  askedWith = props.shown.length;
   emit('more');
 }
 
@@ -33,24 +38,28 @@ async function scrollHost(): Promise<HTMLElement | null> {
   return (host as HTMLElement & { getScrollElement: () => Promise<HTMLElement> }).getScrollElement();
 }
 
-/** Ionic only asks on a scroll: rows that leave the end in view would never get the next ones. */
-async function fillTheHost(): Promise<void> {
-  await nextTick();
-  const host = await scrollHost();
-  if (!host || !(host.clientHeight > 0)) return;
-  if (host.scrollHeight - host.scrollTop - host.clientHeight <= THRESHOLD) askForMore();
+/** Ionic only asks on a scroll: rows that leave the end in view would never get the next ones. Measured on the next
+ *  frame, once the new rows are laid out, and never again after an answer that added no row. */
+function fillTheHost(): void {
+  requestAnimationFrame(async () => {
+    const host = await scrollHost();
+    if (!host || !(host.clientHeight > 0) || props.shown.length <= askedWith) return;
+    if (host.scrollHeight - host.scrollTop - host.clientHeight <= THRESHOLD) askForMore();
+  });
 }
 
 watch(
-  () => [props.shown, props.failed, props.disabled],
+  () => [props.shown, props.failed, props.disabled, props.waiting],
   async () => {
-    if (!pending.value) return;
-    pending.value = false;
-    await scroller.value?.$el.complete?.();
-    if (!props.failed) await fillTheHost();
+    if (pending.value) {
+      if (props.waiting && !props.failed && !props.disabled) return;
+      pending.value = false;
+      await scroller.value?.$el.complete?.();
+    }
+    if (!props.failed) fillTheHost();
   },
 );
-onMounted(fillTheHost);
+onMounted(() => void nextTick(fillTheHost));
 </script>
 
 <template>

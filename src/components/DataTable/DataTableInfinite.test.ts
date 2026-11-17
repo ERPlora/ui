@@ -22,7 +22,7 @@ function host(client: number, content: number, top = 0): HTMLElement {
 
 function mountInfinite(props: Record<string, unknown> = {}, attachTo?: HTMLElement) {
   return mount(DataTableInfinite, {
-    props: { disabled: false, shown: TEN, failed: false, label: 'Loading more apps…', ...props },
+    props: { disabled: false, shown: TEN, failed: false, waiting: false, label: 'Loading more apps…', ...props },
     attachTo,
   });
 }
@@ -90,6 +90,8 @@ describe('DataTableInfinite', () => {
   it('rows that do not fill their scroll host ask for more by themselves, as there is nothing to scroll', async () => {
     const wrapper = mountInfinite({}, host(800, 500));
     await flushPromises();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await flushPromises();
     expect(wrapper.emitted('more')).toHaveLength(1);
   });
 
@@ -101,5 +103,36 @@ describe('DataTableInfinite', () => {
     expect(filled.emitted('more')).toBeUndefined();
     expect(ended.emitted('more')).toBeUndefined();
     expect(unlaid.emitted('more')).toBeUndefined();
+  });
+
+  it('rows that change while the table is still loading do not complete the load: only the answer does', async () => {
+    const wrapper = mountInfinite();
+    const complete = vi.fn(() => Promise.resolve());
+    Object.assign(scroller(wrapper).element, { complete });
+    await scroller(wrapper).trigger('ionInfinite');
+    await wrapper.setProps({ waiting: true, shown: [...TEN] });
+    await flushPromises();
+    expect(complete).not.toHaveBeenCalled();
+    await wrapper.setProps({ waiting: false, shown: [...TEN, { id: 10 }] });
+    await flushPromises();
+    expect(complete).toHaveBeenCalledTimes(1);
+  });
+
+  it('a load that brought no new row does not ask again by itself, even with the end in view', async () => {
+    const wrapper = mountInfinite({}, host(800, 500));
+    await flushPromises();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await flushPromises();
+    expect(wrapper.emitted('more')).toHaveLength(1);
+    await wrapper.setProps({ shown: [...TEN] });
+    await flushPromises();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await flushPromises();
+    expect(wrapper.emitted('more'), 'the same ten rows: no loop').toHaveLength(1);
+    await wrapper.setProps({ shown: [...TEN, ...TEN] });
+    await flushPromises();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await flushPromises();
+    expect(wrapper.emitted('more'), 'more rows and still room: the next ones').toHaveLength(2);
   });
 });
