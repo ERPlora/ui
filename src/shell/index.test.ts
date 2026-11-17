@@ -106,6 +106,12 @@ describe('shell barrel', () => {
     expect(shell.isOlderAppRefusal('Command keep_listening not found')).toBe(true);
   });
 
+  it('exports the action center, so the shell connects its source and the components read it', () => {
+    expect(shell.connectActionCenter).toBeTypeOf('function');
+    expect(shell.useActionCenter().open.value).toBe(false);
+    expect(shell.useQuietActionNotices).toBeTypeOf('function');
+  });
+
   it('exports the print host, so an app keeps a device set up to print draining the queue', () => {
     expect(shell.usePrintHost).toBeTypeOf('function');
     expect(shell.createPrintHost).toBeTypeOf('function');

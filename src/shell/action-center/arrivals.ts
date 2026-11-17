@@ -1,5 +1,5 @@
 // The card a new notice gets under the top bar before it settles in the bell. One card at a time: a graver
-// notice takes the place of the one on screen, and one as grave or less only makes the bell pulse.
+// notice takes the place of the one on screen, and one as grave or less is not shown: the bell tells it instead.
 import { shallowRef } from 'vue';
 import type { Ref } from 'vue';
 

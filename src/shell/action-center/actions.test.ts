@@ -77,9 +77,10 @@ describe('running the action of a notice', () => {
     const run = vi.fn(() => work.promise);
     const busy = notice({ action: { label: 'Retry', run }, secondary: { label: 'Other', run } });
     const first = runner.run(busy, 'primary');
-    await expect(runner.run(busy, 'secondary')).resolves.toBeUndefined();
+    const second = runner.run(busy, 'secondary');
     expect(run).toHaveBeenCalledTimes(1);
     work.resolve();
+    await expect(second).resolves.toBeUndefined();
     await first;
     await runner.run(busy, 'primary');
     expect(run).toHaveBeenCalledTimes(2);
