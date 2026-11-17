@@ -34,6 +34,7 @@ import '@ionic/vue/css/palettes/dark.class.css';
 import './theme/print.css';
 import './theme/variables.css';
 import './theme/palettes.css';
+import './theme/glass.css';
 import './theme/brand.css';
 import './theme/erplora-logo.css';
 import './theme/tabbar.css';

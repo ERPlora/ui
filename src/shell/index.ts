@@ -34,6 +34,7 @@ export {
   setThemeMode,
   setThemePersister,
   setThemeScale,
+  setThemeTransparency,
   THEME_CONTRASTS,
   THEME_PALETTES,
   THEME_SCALES,
@@ -41,6 +42,7 @@ export {
   themeMode,
   themePalette,
   themeScale,
+  themeTransparency,
   toggleTheme,
 } from './theme';
 export type { ThemeContrast, ThemeMode, ThemePalette, ThemeScale } from './theme';

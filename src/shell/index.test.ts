@@ -26,6 +26,8 @@ describe('shell barrel', () => {
       'toastWarning',
       'toast',
       'dismissToast',
+      'setThemeTransparency',
+      'themeTransparency',
     ]) {
       expect(shell, name).toHaveProperty(name);
     }

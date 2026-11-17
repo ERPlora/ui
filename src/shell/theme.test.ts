@@ -14,6 +14,7 @@ import {
   setThemeMode,
   setThemePersister,
   setThemeScale,
+  setThemeTransparency,
   THEME_CONTRASTS,
   THEME_PALETTES,
   THEME_SCALES,
@@ -21,6 +22,7 @@ import {
   themeMode,
   themePalette,
   themeScale,
+  themeTransparency,
   toggleTheme,
 } from './theme';
 
@@ -142,6 +144,33 @@ describe('contrast (brand colours or AA colours)', () => {
     expect(html.hasAttribute('data-ep-contrast')).toBe(false);
     bootTheme({ contrast: 'aa' });
     expect(html.getAttribute('data-ep-contrast')).toBe('aa');
+  });
+});
+
+describe('transparency (the glass of floating surfaces, or the same design opaque)', () => {
+  afterEach(() => setThemeTransparency(true));
+
+  it('is on by default: <html> has no ep-opaque class', () => {
+    expect(themeTransparency.value).toBe(true);
+    expect(html.classList.contains('ep-opaque')).toBe(false);
+  });
+
+  it('off puts ep-opaque on <html>; on takes it away, and the other classes stay', () => {
+    html.classList.add('ion-palette-dark');
+    setThemeTransparency(false);
+    expect(themeTransparency.value).toBe(false);
+    expect(html.classList.contains('ep-opaque')).toBe(true);
+    setThemeTransparency(true);
+    expect(themeTransparency.value).toBe(true);
+    expect(html.classList.contains('ep-opaque')).toBe(false);
+    expect(html.classList.contains('ion-palette-dark')).toBe(true);
+  });
+
+  it('a sign-out turns it back on, so the next person does not inherit the choice', () => {
+    setThemeTransparency(false);
+    resetUserThemePreferences();
+    expect(themeTransparency.value).toBe(true);
+    expect(html.classList.contains('ep-opaque')).toBe(false);
   });
 });
 
