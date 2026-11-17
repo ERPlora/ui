@@ -1,12 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { ids, notice, useCenterTimers } from './__tests__/fixtures';
 import { createState, createView, resetState, watchLeaving } from './state';
 import type { StateOptions } from './state';
-import type { ActionNotice, NoticeSeverity } from './types';
-
-function notice(id: string, severity: NoticeSeverity = 'warning', extra: Partial<ActionNotice> = {}): ActionNotice {
-  return { id, severity, icon: 'ion:alert-circle-outline', label: id, title: id, ...extra };
-}
 
 function setup(options: StateOptions = {}) {
   const state = createState(options);
@@ -15,15 +11,7 @@ function setup(options: StateOptions = {}) {
   return { state, view };
 }
 
-const ids = (list: readonly ActionNotice[]): string[] => list.map((each) => each.id);
-
-beforeEach(() => {
-  vi.useFakeTimers();
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
+useCenterTimers();
 
 describe('the times of the state', () => {
   it('by default, a card 4 s, a solved notice 1.2 s and «all clear» 1.8 s', () => {

@@ -1,21 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { ids, notice, useCenterTimers } from './__tests__/fixtures';
 import { createAllClear, createLinger } from './resolutions';
-import type { ActionNotice } from './types';
 
-function notice(id: string): ActionNotice {
-  return { id, severity: 'warning', icon: 'ion:alert-circle-outline', label: id, title: id };
-}
-
-const ids = (list: readonly ActionNotice[]): string[] => list.map((each) => each.id);
-
-beforeEach(() => {
-  vi.useFakeTimers();
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
+useCenterTimers();
 
 describe('a solved notice lingers', () => {
   it('for a moment, as it was last seen, then leaves', () => {

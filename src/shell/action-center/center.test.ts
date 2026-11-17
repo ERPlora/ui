@@ -1,16 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { effectScope, ref, shallowRef } from 'vue';
 
+import { ids, notice, useCenterTimers } from './__tests__/fixtures';
 import { connectActionCenter, createActionCenter, useActionCenter, useQuietActionNotices } from './center';
 import type { ActionCenterOptions } from './center';
-import type { ActionNotice, NoticeSeverity } from './types';
+import type { ActionNotice } from './types';
 
 const DAY = 24 * 60 * 60 * 1000;
 const START = Date.UTC(2026, 10, 17, 12);
-
-function notice(id: string, severity: NoticeSeverity = 'warning', extra: Partial<ActionNotice> = {}): ActionNotice {
-  return { id, severity, icon: 'ion:alert-circle-outline', label: `${id} row`, title: `${id} title`, ...extra };
-}
 
 function setup(options: ActionCenterOptions = {}) {
   const clock = { now: START };
@@ -26,15 +23,7 @@ function setup(options: ActionCenterOptions = {}) {
   return { center, connect, disconnect, notices, failed, retry, give, clock };
 }
 
-const ids = (list: readonly ActionNotice[]): string[] => list.map((each) => each.id);
-
-beforeEach(() => {
-  vi.useFakeTimers();
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
+useCenterTimers();
 
 describe('the source', () => {
   it('is loading until its first result, and shows nothing meanwhile', () => {

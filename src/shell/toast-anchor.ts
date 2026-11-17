@@ -11,9 +11,12 @@ const NOT_ON_VIEW = '.ion-page-hidden, .overlay-hidden, ion-menu, [aria-hidden="
 
 /** The bottom bar of the screen on view; `undefined` when the screen has none, and the stack keeps the bottom edge. */
 export function toastAnchor(): HTMLElement | undefined {
-  return [...document.querySelectorAll<HTMLElement>('ion-footer')]
-    .reverse()
-    .find((footer) => !footer.closest(NOT_ON_VIEW) && painted(footer));
+  return [...document.querySelectorAll<HTMLElement>('ion-footer')].reverse().find(isOnView);
+}
+
+/** Whether `el` belongs to the screen on view and is painted. */
+export function isOnView(el: HTMLElement): boolean {
+  return !el.closest(NOT_ON_VIEW) && painted(el);
 }
 
 /** Painted: a footer hidden by CSS (immersive mode) measures 0s, and the stack would sit off the screen.

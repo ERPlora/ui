@@ -1,12 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { ids, notice, useCenterTimers } from './__tests__/fixtures';
 import { createIntake } from './intake';
 import { createState, createView, watchLeaving } from './state';
-import type { ActionNotice, NoticeSeverity } from './types';
-
-function notice(id: string, severity: NoticeSeverity = 'warning', extra: Partial<ActionNotice> = {}): ActionNotice {
-  return { id, severity, icon: 'ion:alert-circle-outline', label: id, title: id, ...extra };
-}
+import type { ActionNotice } from './types';
 
 function setup() {
   const state = createState({});
@@ -19,15 +16,7 @@ function setup() {
   return { state, view, intake, give, arrival };
 }
 
-const ids = (list: readonly ActionNotice[]): string[] => list.map((each) => each.id);
-
-beforeEach(() => {
-  vi.useFakeTimers();
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
+useCenterTimers();
 
 describe('the first result', () => {
   it('is taken as it comes, announcing nothing', () => {
