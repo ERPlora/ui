@@ -767,7 +767,7 @@ const phoneWidth = useMediaQuery('(max-width: 640px)');
 const ownScroll = computed(() => props.fill && !phoneWidth.value);
 const infinite = computed(() => ({
   disabled: !pager.value.canLoadMore || awaitingRows.value,
-  shown: pager.value.visible.length,
+  shown: pager.value.visible,
   failed: loadFailed.value,
   label: label('loadingMore'),
 }));

@@ -5,8 +5,8 @@ import { nextTick, onMounted, ref, watch } from 'vue';
 const props = defineProps<{
   /** Every row is on screen: Ionic stops listening. */
   disabled: boolean;
-  /** Rows on screen: when it changes, the load asked for has arrived. */
-  shown: number;
+  /** The rows on screen: other rows (more, or another search's) mean the load asked for has arrived. */
+  shown: readonly unknown[];
   /** The last load failed: the table says so, and the end may ask again. */
   failed: boolean;
   /** What the indicator says while the next rows load, also read aloud. */

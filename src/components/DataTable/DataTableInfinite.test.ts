@@ -7,6 +7,8 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
+const TEN = Array.from({ length: 10 }, (_, i) => ({ id: i }));
+
 /** A scroll host of `client` px showing `content` px, scrolled to `top`. */
 function host(client: number, content: number, top = 0): HTMLElement {
   const el = document.createElement('div');
@@ -20,7 +22,7 @@ function host(client: number, content: number, top = 0): HTMLElement {
 
 function mountInfinite(props: Record<string, unknown> = {}, attachTo?: HTMLElement) {
   return mount(DataTableInfinite, {
-    props: { disabled: false, shown: 10, failed: false, label: 'Loading more apps…', ...props },
+    props: { disabled: false, shown: TEN, failed: false, label: 'Loading more apps…', ...props },
     attachTo,
   });
 }
@@ -49,10 +51,22 @@ describe('DataTableInfinite', () => {
     const complete = vi.fn(() => Promise.resolve());
     Object.assign(scroller(wrapper).element, { complete });
     await scroller(wrapper).trigger('ionInfinite');
-    await wrapper.setProps({ shown: 20 });
+    await wrapper.setProps({ shown: [...TEN, ...TEN] });
     await flushPromises();
     expect(complete).toHaveBeenCalledTimes(1);
     expect(wrapper.find('[role="status"]').text()).toBe('');
+    await scroller(wrapper).trigger('ionInfinite');
+    expect(wrapper.emitted('more')).toHaveLength(2);
+  });
+
+  it('other rows of the same length complete it too (a new search answered while it loaded)', async () => {
+    const wrapper = mountInfinite();
+    const complete = vi.fn(() => Promise.resolve());
+    Object.assign(scroller(wrapper).element, { complete });
+    await scroller(wrapper).trigger('ionInfinite');
+    await wrapper.setProps({ shown: TEN.map((row) => ({ ...row })) });
+    await flushPromises();
+    expect(complete).toHaveBeenCalledTimes(1);
     await scroller(wrapper).trigger('ionInfinite');
     expect(wrapper.emitted('more')).toHaveLength(2);
   });
