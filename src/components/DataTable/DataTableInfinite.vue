@@ -31,6 +31,14 @@ function askForMore(): void {
   emit('more');
 }
 
+/** Ionic reached the end: ask for more, or, when nothing can be asked for now, give Ionic its end back at once (it never
+ *  asks again until its last request is completed). A load already on its way completes it when it arrives. */
+function onInfinite(): void {
+  if (pending.value) return;
+  if (props.disabled) void scroller.value?.$el.complete?.();
+  else askForMore();
+}
+
 /** Ionic's own scroll host: the `ion-content` around the table, or the table's own scroller. */
 async function scrollHost(): Promise<HTMLElement | null> {
   const host = scroller.value?.$el.closest<HTMLElement>('ion-content, .ion-content-scroll-host') ?? null;
@@ -68,7 +76,7 @@ onMounted(() => void nextTick(fillTheHost));
     class="data-table__infinite"
     :threshold="`${THRESHOLD}px`"
     :disabled="disabled"
-    @ion-infinite="askForMore"
+    @ion-infinite="onInfinite"
   >
     <ion-infinite-scroll-content
       loading-spinner="crescent"

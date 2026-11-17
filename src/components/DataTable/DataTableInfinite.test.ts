@@ -135,4 +135,13 @@ describe('DataTableInfinite', () => {
     await flushPromises();
     expect(wrapper.emitted('more'), 'more rows and still room: the next ones').toHaveLength(2);
   });
+
+  it('an end Ionic reaches when nothing can be loaded is completed at once, so Ionic asks again later', async () => {
+    const wrapper = mountInfinite({ disabled: true });
+    const complete = vi.fn(() => Promise.resolve());
+    Object.assign(scroller(wrapper).element, { complete });
+    await scroller(wrapper).trigger('ionInfinite');
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('more')).toBeUndefined();
+  });
 });
