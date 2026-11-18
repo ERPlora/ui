@@ -81,6 +81,76 @@ export function crossBreakpoint(matches: boolean): void {
   for (const listener of mediaListeners) listener({ matches });
 }
 
+/** Width of the table's box (the host and its scroller) that `playBackLayout` plays back. */
+let box = 900;
+let boxObservers: { fire: () => void } = { fire: () => {} };
+
+/**
+ * happy-dom lays nothing out. This plays a layout back on a wide screen: the table and its scroller are as
+ * wide as the box (900px until a test says otherwise), every element is `button` px square, and an element's
+ * `scrollWidth` is what `scrollWidth` answers for it in the box it has. `clearLayout()` undoes it.
+ */
+export function playBackLayout(button: number, scrollWidth: (el: Element, box: number) => number): void {
+  viewport(false);
+  box = 900;
+  boxObservers = mockResizeObserver();
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+    return this.classList.contains('data-table') || this.classList.contains('data-table__scroll') ? box : 0;
+  });
+  vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
+    return scrollWidth(this, box);
+  });
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+    () => ({ width: button, height: button, top: 0, left: 0, right: button, bottom: button, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect,
+  );
+}
+
+/** The box is `width` px for the table mounted next, which measures it as it mounts. */
+export function setBoxWidth(width: number): void {
+  box = width;
+}
+
+/** The table's box takes `width` px (a side menu opening, a window resize…) and the table hears it. */
+export async function resize(width: number): Promise<void> {
+  box = width;
+  boxObservers.fire();
+  await settle();
+}
+
+/** Undoes the globals a test stubbed and empties the page. */
+export function clearPage(): void {
+  vi.unstubAllGlobals();
+  document.body.replaceChildren();
+}
+
+/** Undoes `playBackLayout`, with every other mock of the test, and empties the page. */
+export function clearLayout(): void {
+  vi.restoreAllMocks();
+  clearPage();
+}
+
+/** The widest actions cell of the list: its buttons, `button` px each. */
+export function actionButtonsWidth(scroll: Element, button: number): number {
+  let buttons = 0;
+  for (const cell of scroll.querySelectorAll('.data-table__row--data .data-table__actions')) {
+    buttons = Math.max(buttons, [...cell.children].filter((el) => el.tagName === 'ION-BUTTON').length);
+  }
+  return buttons * button;
+}
+
+/** What a row needs for the template its head paints: each track at its minimum plus the side padding, never less than the box. */
+export function templateWidth(scroll: Element, pad: number, trackMin: (track: string) => number): number {
+  const head = scroll.querySelector<HTMLElement>('.data-table__row--head');
+  const tracks = (head?.style.gridTemplateColumns ?? '').split(' ').filter(Boolean);
+  return Math.max(pad + tracks.reduce((sum, track) => sum + trackMin(track), 0), box);
+}
+
+/** A text of a data cell or of a header is as wide as its characters, whatever its box; anything else is `undefined`. */
+export function cellTextWidth(el: Element, char: number): number | undefined {
+  if (el.tagName !== 'SPAN' || !el.parentElement?.matches('.data-table__cell:not(.data-table__cell--actions)')) return undefined;
+  return (el.textContent?.trim().length ?? 0) * char;
+}
+
 export interface MountOptions {
   locale?: 'en' | 'es';
   slots?: Record<string, unknown>;
@@ -143,4 +213,16 @@ export async function click(el: Element | null | undefined): Promise<void> {
   if (!el) throw new Error('nothing to click');
   el.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
   await settle();
+}
+
+/** A text clipped by its box (380px of text in 90px), or one that fits in it. */
+export function clip(el: HTMLElement, clipped: boolean): void {
+  Object.defineProperty(el, 'scrollWidth', { configurable: true, get: () => (clipped ? 380 : 90) });
+  Object.defineProperty(el, 'clientWidth', { configurable: true, get: () => 90 });
+}
+
+/** A tap with a finger or a click with a mouse, as the browser sends them. */
+export async function tap(el: HTMLElement, pointerType: 'touch' | 'mouse'): Promise<void> {
+  el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType }));
+  await click(el);
 }

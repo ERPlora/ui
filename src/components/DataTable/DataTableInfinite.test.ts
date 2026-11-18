@@ -33,6 +33,20 @@ async function mountInfinite(props: Record<string, unknown> = {}, attachTo?: HTM
   return wrapper;
 }
 const scroller = (wrapper: ReturnType<typeof mountNow>) => wrapper.find('ion-infinite-scroll');
+/** Mounted and at its end once, with Ionic's `complete` recorded. */
+async function atTheEnd(props: Record<string, unknown> = {}) {
+  const wrapper = await mountInfinite(props);
+  const complete = vi.fn(() => Promise.resolve());
+  Object.assign(scroller(wrapper).element, { complete });
+  await scroller(wrapper).trigger('ionInfinite');
+  return { wrapper, complete };
+}
+/** Lets the component patch, measure its scroll host on the next frame and answer. */
+async function nextFrame(): Promise<void> {
+  await flushPromises();
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  await flushPromises();
+}
 
 describe('DataTableInfinite', () => {
   it('is an Ionic infinite scroll with its loading text', async () => {
@@ -53,10 +67,7 @@ describe('DataTableInfinite', () => {
   });
 
   it('the next rows complete the load: the status goes quiet and the end can ask again', async () => {
-    const wrapper = await mountInfinite();
-    const complete = vi.fn(() => Promise.resolve());
-    Object.assign(scroller(wrapper).element, { complete });
-    await scroller(wrapper).trigger('ionInfinite');
+    const { wrapper, complete } = await atTheEnd();
     await wrapper.setProps({ shown: [...TEN, ...TEN] });
     await flushPromises();
     expect(complete).toHaveBeenCalledTimes(1);
@@ -66,10 +77,7 @@ describe('DataTableInfinite', () => {
   });
 
   it('other rows of the same length complete it too (a new search answered while it loaded)', async () => {
-    const wrapper = await mountInfinite();
-    const complete = vi.fn(() => Promise.resolve());
-    Object.assign(scroller(wrapper).element, { complete });
-    await scroller(wrapper).trigger('ionInfinite');
+    const { wrapper, complete } = await atTheEnd();
     await wrapper.setProps({ shown: TEN.map((row) => ({ ...row })) });
     await flushPromises();
     expect(complete).toHaveBeenCalledTimes(1);
@@ -79,10 +87,7 @@ describe('DataTableInfinite', () => {
 
   it('a failed load or the end of the rows completes it too', async () => {
     for (const change of [{ failed: true }, { disabled: true }]) {
-      const wrapper = await mountInfinite();
-      const complete = vi.fn(() => Promise.resolve());
-      Object.assign(scroller(wrapper).element, { complete });
-      await scroller(wrapper).trigger('ionInfinite');
+      const { wrapper, complete } = await atTheEnd();
       await wrapper.setProps(change);
       await flushPromises();
       expect(complete).toHaveBeenCalledTimes(1);
@@ -95,9 +100,7 @@ describe('DataTableInfinite', () => {
 
   it('rows that do not fill their scroll host ask for more by themselves, as there is nothing to scroll', async () => {
     const wrapper = await mountInfinite({}, host(800, 500));
-    await flushPromises();
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await flushPromises();
+    await nextFrame();
     expect(wrapper.emitted('more')).toHaveLength(1);
   });
 
@@ -112,10 +115,7 @@ describe('DataTableInfinite', () => {
   });
 
   it('rows that change while the table is still loading do not complete the load: only the answer does', async () => {
-    const wrapper = await mountInfinite();
-    const complete = vi.fn(() => Promise.resolve());
-    Object.assign(scroller(wrapper).element, { complete });
-    await scroller(wrapper).trigger('ionInfinite');
+    const { wrapper, complete } = await atTheEnd();
     await wrapper.setProps({ waiting: true, shown: [...TEN] });
     await flushPromises();
     expect(complete).not.toHaveBeenCalled();
@@ -126,27 +126,18 @@ describe('DataTableInfinite', () => {
 
   it('a load that brought no new row does not ask again by itself, even with the end in view', async () => {
     const wrapper = await mountInfinite({}, host(800, 500));
-    await flushPromises();
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await flushPromises();
+    await nextFrame();
     expect(wrapper.emitted('more')).toHaveLength(1);
     await wrapper.setProps({ shown: [...TEN] });
-    await flushPromises();
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await flushPromises();
+    await nextFrame();
     expect(wrapper.emitted('more'), 'the same ten rows: no loop').toHaveLength(1);
     await wrapper.setProps({ shown: [...TEN, ...TEN] });
-    await flushPromises();
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await flushPromises();
+    await nextFrame();
     expect(wrapper.emitted('more'), 'more rows and still room: the next ones').toHaveLength(2);
   });
 
   it('an end Ionic reaches when nothing can be loaded is completed at once, so Ionic asks again later', async () => {
-    const wrapper = await mountInfinite({ disabled: true });
-    const complete = vi.fn(() => Promise.resolve());
-    Object.assign(scroller(wrapper).element, { complete });
-    await scroller(wrapper).trigger('ionInfinite');
+    const { wrapper, complete } = await atTheEnd({ disabled: true });
     expect(complete).toHaveBeenCalledTimes(1);
     expect(wrapper.emitted('more')).toBeUndefined();
   });

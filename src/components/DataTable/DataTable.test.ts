@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import InlineFeedback from '../InlineFeedback/InlineFeedback.vue';
-import { byTestId, cards, click, dataRows, ionChange, mountTable, settle, text, type, viewport } from './__tests__/harness';
+import { byTestId, cards, clearPage, click, clip, dataRows, ionChange, mountTable, settle, tap, text, type, viewport } from './__tests__/harness';
 
 type Row = Record<string, unknown>;
 
@@ -10,8 +10,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
-  document.body.replaceChildren();
+  clearPage();
   document.documentElement.lang = '';
 });
 
@@ -105,14 +104,6 @@ describe('a clipped cell can be read in full', () => {
   const COLUMNS = [{ key: 'name', label: 'Nombre' }, { key: 'mode', label: 'Cómo se vende' }, { key: 'note', label: 'Nota' }];
   const span = (t: ReturnType<typeof mountTable>, key: string, col: number) =>
     t.element.querySelector(`[data-testid="combos-row"][data-id="${key}"]`)?.querySelectorAll('.data-table__cell')[col]?.querySelector(':scope > span') as HTMLElement;
-  const clip = (el: HTMLElement, clipped: boolean) => {
-    Object.defineProperty(el, 'scrollWidth', { configurable: true, get: () => (clipped ? 380 : 90) });
-    Object.defineProperty(el, 'clientWidth', { configurable: true, get: () => 90 });
-  };
-  async function tap(el: HTMLElement, pointerType: 'touch' | 'mouse') {
-    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType }));
-    await click(el);
-  }
 
   it('carries the full painted (formatted) text as the native title; an empty cell has none', async () => {
     const t = mountTable({ columns: [COLUMNS[0], { ...COLUMNS[1], format: (v: unknown) => `» ${String(v)}` }, COLUMNS[2]], rows: ROWS, testid: 'combos' });

@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { cards, click, ionChange, mountTable, settle, text, viewport } from './__tests__/harness';
+import { cards, clearPage, click, clip, ionChange, mountTable, settle, tap, text, viewport } from './__tests__/harness';
 
 type Row = Record<string, unknown>;
 
@@ -8,10 +8,7 @@ beforeEach(() => {
   viewport(false);
 });
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-  document.body.replaceChildren();
-});
+afterEach(clearPage);
 
 const fields = (t: ReturnType<typeof mountTable>) =>
   cards(t).map((card) =>
@@ -186,14 +183,6 @@ describe('a card value too long for its card can be read in full', () => {
     [...(t.element.querySelector(`[data-testid="staff-row"][data-id="${id}"]`)?.querySelectorAll('.data-table__card-meta') ?? [])]
       .find((f) => text(f.querySelector('.data-table__card-meta-label')) === label)
       ?.querySelector('.data-table__card-meta-value > .data-table__field-text') as HTMLElement;
-  const clip = (el: HTMLElement, clipped: boolean) => {
-    Object.defineProperty(el, 'scrollWidth', { configurable: true, get: () => (clipped ? 380 : 90) });
-    Object.defineProperty(el, 'clientWidth', { configurable: true, get: () => 90 });
-  };
-  async function tap(el: HTMLElement, pointerType: 'touch' | 'mouse') {
-    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType }));
-    await click(el);
-  }
 
   it('keeps the whole painted text as title and omits empty metadata', async () => {
     const t = mountTable({ ...base, columns: [COLUMNS[0], { ...COLUMNS[1], format: (v: unknown) => `<${String(v)}>` }, COLUMNS[2]] });

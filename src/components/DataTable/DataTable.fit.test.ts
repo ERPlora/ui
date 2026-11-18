@@ -2,7 +2,10 @@
 // ResizeObserver mock plays the box's resizes back.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { byTestId, cards, click, dataRows, ionChange, mockResizeObserver, mountTable, settle, text, viewport } from './__tests__/harness';
+import {
+  actionButtonsWidth, byTestId, cards, cellTextWidth, clearLayout, click, dataRows, ionChange, mountTable,
+  playBackLayout, resize, setBoxWidth, settle, templateWidth, text, viewport,
+} from './__tests__/harness';
 
 type Row = Record<string, unknown>;
 type Table = ReturnType<typeof mountTable>;
@@ -12,55 +15,20 @@ const COLUMN = 100; // a data column at its floor
 const BUTTON = 40; // a button of the actions cell (a stand-in and «⋮» too)
 const CHECKBOX = 44; // the selection column
 
-/** Width of the table's box (the host and its scroller). */
-let box = 900;
-
 /** What the grid needs: its columns at their floor plus the widest actions cell. */
 function gridWidth(scroll: Element): number {
   const head = scroll.querySelector('.data-table__row--head');
   if (!head) return 0;
   const columns = head.querySelectorAll('.data-table__cell--header:not(.data-table__cell--actions)').length;
   const select = head.querySelector('.data-table__select-cell') ? CHECKBOX : 0;
-  let buttons = 0;
-  for (const cell of scroll.querySelectorAll('.data-table__row--data .data-table__actions')) {
-    buttons = Math.max(buttons, [...cell.children].filter((el) => el.tagName === 'ION-BUTTON').length);
-  }
-  return PAD + select + columns * COLUMN + buttons * BUTTON;
-}
-
-function playBackLayout(): void {
-  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
-    return this.classList.contains('data-table') || this.classList.contains('data-table__scroll') ? box : 0;
-  });
-  vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
-    return this.classList.contains('data-table__scroll') ? Math.max(gridWidth(this), box) : 0;
-  });
-  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
-    () => ({ width: BUTTON, height: BUTTON, top: 0, left: 0, right: BUTTON, bottom: BUTTON, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect,
-  );
-}
-
-let observers: { fire: () => void };
-
-/** The table's box takes `width` px (a side menu opening, a window resize…). */
-async function resize(width: number): Promise<void> {
-  box = width;
-  observers.fire();
-  await settle();
+  return PAD + select + columns * COLUMN + actionButtonsWidth(scroll, BUTTON);
 }
 
 beforeEach(() => {
-  viewport(false);
-  box = 900;
-  observers = mockResizeObserver();
-  playBackLayout();
+  playBackLayout(BUTTON, (el, box) => (el.classList.contains('data-table__scroll') ? Math.max(gridWidth(el), box) : 0));
 });
 
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-  document.body.replaceChildren();
-});
+afterEach(clearLayout);
 
 const COLUMNS = [
   { key: 'name', label: 'Business', priority: 'high' },
@@ -108,7 +76,7 @@ const cardFieldLabels = (t: Table, index = 0) =>
 const segment = (t: Table) => t.element.querySelector('.data-table__view-segment') as HTMLElement;
 
 async function mountAt(width: number, extra: Record<string, unknown> = {}): Promise<Table> {
-  box = width;
+  setBoxWidth(width);
   const t = mountTable(props(extra));
   await settle();
   return t;
@@ -404,31 +372,17 @@ describe('a column holds its content whole while the row has room', () => {
     if (px) return Number(px[1]);
     const rem = track.match(/^([\d.]+)rem$/);
     if (rem) return Number(rem[1]) * 16;
-    if (track === 'max-content') {
-      let buttons = 0;
-      for (const cell of scroll.querySelectorAll('.data-table__row--data .data-table__actions')) {
-        buttons = Math.max(buttons, [...cell.children].filter((el) => el.tagName === 'ION-BUTTON').length);
-      }
-      return buttons * BUTTON;
-    }
+    if (track === 'max-content') return actionButtonsWidth(scroll, BUTTON);
     throw new Error(`the fake engine does not size «${track}»`);
   }
 
   beforeEach(() => {
     const scrollWidth = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollWidth')!.get!;
     vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
-      if (this.classList.contains('data-table__scroll')) {
-        const head = this.querySelector<HTMLElement>('.data-table__row--head');
-        const tracks = (head?.style.gridTemplateColumns ?? '').split(' ').filter(Boolean);
-        return Math.max(PAD + tracks.reduce((sum, track) => sum + trackMin(track, this), 0), box);
-      }
+      if (this.classList.contains('data-table__scroll')) return templateWidth(this, PAD, (track) => trackMin(track, this));
       // An unfolded text wraps to its column: on one line it would be wider than it now says.
       if (this.classList.contains('data-table__text--unfolded')) return FLOOR;
-      // A text of a data cell or of a header: as wide as its characters, whatever its box.
-      if (this.tagName === 'SPAN' && this.parentElement?.matches('.data-table__cell:not(.data-table__cell--actions)')) {
-        return (this.textContent?.trim().length ?? 0) * CHAR;
-      }
-      return scrollWidth.call(this);
+      return cellTextWidth(this, CHAR) ?? scrollWidth.call(this);
     });
   });
 
