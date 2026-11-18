@@ -22,6 +22,12 @@ describe('shell barrel', () => {
       'toggleTheme',
       'toastError',
       'toastSuccess',
+      'toastInfo',
+      'toastWarning',
+      'toast',
+      'dismissToast',
+      'setThemeTransparency',
+      'themeTransparency',
     ]) {
       expect(shell, name).toHaveProperty(name);
     }
@@ -106,6 +112,16 @@ describe('shell barrel', () => {
     expect(shell.isOlderAppRefusal('Command keep_listening not found')).toBe(true);
   });
 
+  it('exports the action center, so the shell connects its source and the components read it', () => {
+    expect(shell.connectActionCenter).toBeTypeOf('function');
+    expect(shell.useActionCenter().open.value).toBe(false);
+    expect(shell.useQuietActionNotices).toBeTypeOf('function');
+    // The bell, the card and the panel are the shell's, mounted once by `createShell({ actionNotices })`.
+    for (const name of ['ActionBell', 'ActionArrival', 'ActionPanel', 'ActionFeatured', 'ActionRow', 'ActionLayer']) {
+      expect(shell, name).not.toHaveProperty(name);
+    }
+  });
+
   it('exports the print host, so an app keeps a device set up to print draining the queue', () => {
     expect(shell.usePrintHost).toBeTypeOf('function');
     expect(shell.createPrintHost).toBeTypeOf('function');
@@ -117,6 +133,10 @@ describe('shell barrel', () => {
     expect(shell.useMyApps).toBeTypeOf('function');
     expect(shell.iconName('people')).toBe('ion:people');
     expect(shell.iconName('mdi:account')).toBe('mdi:account');
+  });
+
+  it("exports the bar's phone menu, so a project's piece of the bar paints itself as a row of «⋮»", () => {
+    expect(shell.useTopbarMenu).toBeTypeOf('function');
   });
 
   it('exports the Home route and the Hub logout for the user menu', () => {
@@ -137,7 +157,7 @@ describe('shell barrel', () => {
   it('imports the boot hooks before any module that loads @ionic/vue', () => {
     const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'index.ts'), 'utf8');
     const firstIonicUser = Math.min(
-      ...["'./toast'", "'./createShell'", "'./AppPage.vue'", "'./router'"].map((m) => source.indexOf(m)),
+      ...["'./createShell'", "'./AppPage.vue'", "'./router'"].map((m) => source.indexOf(m)),
     );
     for (const hook of ['ionic-fill', 'ionic-select-text', 'ionic-select-interface']) {
       const at = source.indexOf(`import './boot/${hook}.boot';`);

@@ -8,6 +8,11 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import cardSource from './DataTableCard.vue?raw';
+import identitySource from './DataTableIdentity.vue?raw';
+import listSource from './DataTableListItem.vue?raw';
+import actionsSource from './DataTableRowActions.vue?raw';
+import stateSource from './DataTableState.vue?raw';
 import source from './DataTable.vue?raw';
 
 // From disk: Vitest's CSS handling empties a `.css?raw` import.
@@ -119,7 +124,7 @@ const PORTED: Record<string, string> = {
   '.grow': '.data-table__row',
   '.ghead': '.data-table__row--head',
   '.gcell': '.data-table__cell',
-  '.gcell > span': '.data-table__cell > :deep(span)',
+  '.gcell > span': '.data-table__cell > .data-table__text',
   '.gcell > span.unfolded': '.data-table__cell > .data-table__text--unfolded',
   '.gcell.right': '.data-table__cell--right',
   '.gcell.center': '.data-table__cell--center',
@@ -149,34 +154,19 @@ const PORTED: Record<string, string> = {
   'ion-card-header.rcard-head': '.data-table__card-head',
   '.rcard-head .rc-icon': '.data-table__card-icon',
   'ion-card-content.rcard-body': '.data-table__card-body',
-  '.rrow': '.data-table__field',
-  '.rrow .rk': '.data-table__field-label',
-  '.rrow .rv': '.data-table__field-value',
   '.ractions': '.data-table__card-actions',
   '.ractions .actions': '.data-table__card-actions .data-table__actions',
-  '.empty': '.data-table__empty',
-  '.load-error': '.data-table__error',
-  '.loading-state': '.data-table__loading',
-  '.loading-state ion-spinner': '.data-table__loading ion-spinner',
-  '.load-error .load-error-title': '.data-table__error .data-table__error-title',
-  '.load-error .empty-ic': '.data-table__error .data-table__state-icon',
-  '.load-error ion-button': '.data-table__error ion-button',
-  '.empty .empty-ic, .load-error .empty-ic': '.data-table__empty .data-table__state-icon, .data-table__error .data-table__state-icon',
   '.actions': '.data-table__actions',
   '.actions ion-button': '.data-table__actions ion-button',
-  '.actions .action-gap': '.data-table__actions .data-table__action-gap',
   '.sr-only': '.data-table__sr-only',
-  '@media (pointer: coarse), (max-width: 834px) || .actions ion-button': '@media (pointer: coarse), (max-width: 834px) || .data-table__actions ion-button',
   '@media (pointer: coarse), (max-width: 834px) || .add-btn': '@media (pointer: coarse), (max-width: 834px) || .data-table__add-button',
   '@media (pointer: coarse), (max-width: 834px) || .pager .nav ion-button': '@media (pointer: coarse), (max-width: 834px) || .data-table__pager-nav ion-button',
-  '@media (pointer: coarse), (max-width: 834px) || .load-error ion-button': '@media (pointer: coarse), (max-width: 834px) || .data-table__error ion-button',
   '.actions ion-spinner': '.data-table__actions ion-spinner',
   '.pager': '.data-table__pager',
   '.pager .left': '.data-table__pager-info',
   '.pager .strong': '.data-table__pager-count',
   '.psize': '.data-table__pager-size',
   '.pager .nav': '.data-table__pager-nav',
-  '.pager .load-more': '.data-table__load-more',
   '.pnum': '.data-table__page',
   '.pnum:hover': '.data-table__page:hover',
   '.pnum.on': '.data-table__page.data-table__page--current',
@@ -212,6 +202,18 @@ drop(
   '.rcard-head .rc-title',
 );
 drop(
+  'status, description and icon-led metadata replace the label/value rows',
+  '.rrow',
+  '.rrow .rk',
+  '.rrow .rv',
+);
+drop(
+  'Ionic skeletons replace the spinner, and 44px targets apply at every width instead of a touch-only override',
+  '.loading-state ion-spinner',
+  '@media (pointer: coarse), (max-width: 834px) || .actions ion-button',
+  '@media (pointer: coarse), (max-width: 834px) || .load-error ion-button',
+);
+drop(
   'filters panel: its scrim is never painted, the panel pushes the list from 834 px and is a whole sheet below (the Lit table kept it for a browser without media queries)',
   '.tk-scrim',
   '@media (min-width: 834px) || .card.has-panel > .tk-scrim',
@@ -234,6 +236,18 @@ drop(
   '.filters-grow input, .filters-grow select',
   '.range',
 );
+drop('the next rows load at the end of the scroll (`ion-infinite-scroll`): there is no «Load more» button', '.pager .load-more');
+drop(
+  'the library’s EmptyState and InlineFeedback paint the empty list and the failed load; the table gives them room',
+  '.empty',
+  '.load-error',
+  '.loading-state',
+  '.load-error .load-error-title',
+  '.load-error .empty-ic',
+  '.load-error ion-button',
+  '.empty .empty-ic, .load-error .empty-ic',
+);
+drop('a row action hidden for the row is not there: no invisible stand-in keeps its place', '.actions .action-gap');
 drop('never painted by the Lit render either (dead CSS in the original)', '.panel', '.vsep', '.pager .nav .pp');
 drop(
   'the list/cards switch is an ion-segment, not a bordered box of square tool buttons (the only ones)',
@@ -303,6 +317,36 @@ const ADDED: Record<string, string> = {
   '.data-table__pager-nav > ion-button.data-table__page.data-table__page--current': 'the current Ionic page button uses the primary tint',
   '.data-table > .data-table__surface > .data-table__pager > .data-table__pager-info > .data-table__pager-size':
     'the standalone rows-per-page control is Ionic too',
+  '.data-table__cell--header > span': 'only header text is clipped; slotted status content can wrap',
+  '.data-table__cell > :deep(span)': 'slotted content can shrink without hiding its status text',
+  '@media (prefers-reduced-motion: reduce) || .data-table__row--data:hover, .data-table__row--data:active':
+    'row motion is disabled with reduced motion in its own component',
+  '.data-table__actions .data-table__action--main': 'the card’s main action reads as such',
+  '.data-table__empty, .data-table__error, .data-table__loading': 'the table gives the library’s notices their room',
+  '.data-table__loading': 'the skeletons sit centred under their label',
+  '.data-table__empty ion-button, .data-table__error ion-button': 'the empty and failed states’ actions have a 44px target',
+  '.data-table__loading-label': 'the skeleton loading state keeps its visible loading label',
+  '.data-table__skeletons': 'loading placeholders follow the responsive card grid',
+  '.data-table__skeleton-card': 'a loading placeholder preserves the card shape',
+  '.data-table__skeleton-icon': 'the placeholder icon matches the tiled card icon',
+  '.data-table__skeleton-lines': 'placeholder lines occupy the card content',
+  '.data-table__skeleton-lines ion-skeleton-text': 'Ionic skeletons paint the placeholder lines',
+  '.data-table__card-status': 'the status sits under the card heading without a field label',
+  '.data-table__card-description': 'the description is a full-width paragraph',
+  '.data-table__card-meta': 'secondary values form discreet icon-led lines',
+  '.data-table__card-meta-icon': 'metadata uses the baked icon of its column',
+  '.data-table__card-meta-label': 'the field name remains available to assistive technology',
+  '.data-table__card-meta-value': 'metadata text can shrink and unfold without clipping',
+  '.data-table__card-actions :deep(.data-table__action--main)': 'the card’s main action takes the available width',
+  '.data-table__identity': 'the shared identity cell aligns its icon and text',
+  '.data-table__identity-icon': 'the identity icon uses the theme tile',
+  '.data-table__identity-text': 'the identity text can shrink around its icon',
+  '.data-table__identity-title': 'the identity name wraps in the theme text colour',
+  '.data-table__identity-subtitle': 'the second line uses the accessible muted token',
+  '.data-table__cell-note': 'why a cell’s switch cannot change sits under it, from the cell’s start edge',
+  '.data-table__cell-note--danger': 'a failure note reads in the danger text token',
+  '.data-table__card-note--danger, .data-table__card-note--danger .data-table__card-meta-icon, .data-table__card-note--danger .data-table__card-meta-value':
+    'a failure note on a card reads in the danger text token',
 };
 
 /** Declarations a port carries on top of its Lit rule, with why. */
@@ -320,12 +364,33 @@ const EXTRA: Record<string, string[]> = {
   '.data-table__selection-clear': ['padding: revert'], // normalize.css `button { padding: 0 }` neither
   // Ionic clips its native button: the count pill on the corner was cut in half (measured in Chromium).
   '.data-table__filter-button': ['--overflow: visible'],
-  // A flex item never shrinks below its longest word: without this a long email runs past its card.
-  '.data-table__field-value': ['min-width: 0'],
+  '.data-table__actions ion-button': ['min-width: 44px', 'min-height: 44px', 'margin: 0'],
+};
+
+// The focused presentation deliberately changes these declarations; every other port stays verbatim.
+const RESTYLED: Record<string, string[]> = {
+  ':where(.data-table__search) ion-searchbar': ['--background: var(--background)', '--border-radius: 10px', 'padding: 0', 'min-height: 44px'],
+  '.data-table__add-button': ['min-height: 44px', '--border-radius: 10px', '--padding-start: 0.9rem', '--padding-end: 1rem', 'margin: 0', 'font-weight: 600'],
+  '.data-table__columns-select': ['min-width: 6.5rem', 'max-width: 9rem', 'min-height: 44px', 'font-size: 13px', 'background: var(--background)', 'color: var(--color)', 'border: 1px solid var(--control-border)', 'border-radius: 10px', '--padding-start: 0.6rem', '--padding-end: 0.4rem', '--padding-top: 0.3rem', '--padding-bottom: 0.3rem'],
+  '.data-table__page-size-select': ['min-width: 4.25rem', 'max-width: 5.5rem', 'min-height: 44px', 'font-size: 13px', 'background: var(--background)', 'color: var(--color)', 'border: 1px solid var(--control-border)', 'border-radius: 10px', '--padding-start: 0.6rem', '--padding-end: 0.4rem', '--padding-top: 0.35rem', '--padding-bottom: 0.35rem'],
+  '.data-table__filter': ['min-width: 8.5rem', 'max-width: 13rem', 'min-height: 44px', 'font-size: 13px', 'background: var(--background)', 'color: var(--color)', 'border: 1px solid var(--control-border)', 'border-radius: 10px', '--padding-start: 0.7rem', '--padding-end: 0.5rem', '--padding-top: 0.35rem', '--padding-bottom: 0.35rem'],
+  '.data-table__filter-button': ['position: relative', '--padding-start: 0', '--padding-end: 0', '--border-radius: 10px', 'width: 44px', 'height: 44px', 'margin: 0'],
+  '.data-table__card-icon': ['display: inline-grid', 'place-items: center', 'flex: none', 'width: 44px', 'height: 44px', 'border-radius: var(--ep-radius-sm)', 'color: var(--ep-primary-text)', 'background: var(--ep-primary-tint)', 'font-size: 22px'],
+  '.data-table__row--data': ['min-height: 80px', 'background: var(--background)', 'border-bottom: 1px solid var(--border-color-soft)', 'padding-top: 0.75rem', 'padding-bottom: 0.75rem', 'transition: background-color var(--ep-transition, 150ms ease), color var(--ep-transition, 150ms ease), box-shadow var(--ep-transition, 150ms ease), transform 120ms ease'],
+  '.data-table__card-body': ['display: flex', 'flex: 1 1 auto', 'flex-direction: column', 'gap: 0.75rem'],
+  // A table that fills its page and ends after its last whole row keeps its pager at the bottom.
+  '.data-table__pager': ['display: flex', 'align-items: center', 'justify-content: space-between', 'gap: 0.75rem', 'margin-top: auto', 'padding: 0.55rem 1rem', 'border-top: 1px solid var(--border-color)', 'background: var(--header-background)', 'font-size: 12.5px', 'color: var(--color-muted)'],
+  // Cards of a grid row are as tall as the tallest, with their footers on one line, and wide enough for a head with a switch.
+  '.data-table__cards': ['display: grid', 'grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr))', 'gap: 0.75rem', 'padding: 1rem', 'grid-auto-rows: max-content', 'align-content: start', 'align-items: stretch'],
+  'ion-card.data-table__card': ['display: flex', 'flex-direction: column', 'margin: 0'],
+  '.data-table__card-actions': ['display: flex', 'justify-content: flex-end', 'gap: 0.25rem', 'padding: 0.75rem', 'border-top: 1px solid var(--border-color-soft)'],
+  '.data-table__card-actions .data-table__actions': ['width: 100%', 'flex-wrap: nowrap'],
 };
 
 const LIT = parse(litCss);
-const scoped = source.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '';
+const scoped = [source, cardSource, listSource, actionsSource, stateSource, identitySource]
+  .map((input) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '')
+  .join('\n');
 const weak = source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
 const VUE = new Map([...parse(scoped), ...parse(weak)]);
 
@@ -339,7 +404,7 @@ describe('DataTable stylesheet ↔ the Lit original, rule by rule', () => {
     expect(unaccounted).toEqual([]);
   });
 
-  it('every ported rule has exactly the Lit declarations, in order (--ok-* resolved as the shell paints them)', () => {
+  it('ported rules keep the Lit declarations except for the listed focused restyling', () => {
     const mismatches: string[] = [];
     for (const [lit, vue] of Object.entries(PORTED)) {
       const from = LIT.get(lit);
@@ -348,7 +413,7 @@ describe('DataTable stylesheet ↔ the Lit original, rule by rule', () => {
       if (!to) mismatches.push(`no DataTable rule «${vue}» (port of «${lit}»)`);
       if (!from || !to) continue;
       const extras = EXTRA[vue] ?? [];
-      const expected = from.declarations.map(resolveOkTokens);
+      const expected = RESTYLED[vue] ?? from.declarations.map(resolveOkTokens);
       const actual = to.declarations.filter((d) => !extras.includes(d));
       if (JSON.stringify(actual) !== JSON.stringify(expected)) {
         mismatches.push(`«${vue}»\n    Lit: ${expected.join('; ')}\n    Vue: ${actual.join('; ')}`);
@@ -364,15 +429,15 @@ describe('DataTable stylesheet ↔ the Lit original, rule by rule', () => {
     expect(invented).toEqual([]);
   });
 
-  it('the toolbar selects are the Lit rules, word for word (the list/cards switch is an ion-segment)', () => {
+  it('the toolbar selects keep the Lit layout with 44px targets and an ion-segment', () => {
     const body = (k: string) => VUE.get(k)?.declarations.join('; ');
     expect(VUE.has('.data-table__view-switch')).toBe(false);
     expect(VUE.has('.data-table__tool-button')).toBe(false);
     expect(body('.data-table__columns-select')).toBe(
-      'min-width: 6.5rem; max-width: 9rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem',
+      'min-width: 6.5rem; max-width: 9rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem',
     );
     expect(body('.data-table__page-size-select')).toBe(
-      'min-width: 4.25rem; max-width: 5.5rem; min-height: 38px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem',
+      'min-width: 4.25rem; max-width: 5.5rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem',
     );
   });
 });

@@ -175,13 +175,12 @@ describe('createShell: sidebar', () => {
   });
 });
 
-// The project's own pieces of the chrome (the hub's bell, «Upgrade plan» and blocking strip), mounted
-// by the shell; none by default.
+// The project's own pieces of the chrome, mounted by the shell; none by default.
 describe('createShell: chrome', () => {
   const Piece = { name: 'ProjectPiece', render: () => h('span') };
 
   it('is provided app-wide, next to the rest of the config', async () => {
-    const chrome = { topbar: Piece, sidebarFooter: Piece, notice: Piece };
+    const chrome = { topbar: Piece, sidebarFooter: Piece };
     const { app } = await boot('es', { home: true, chrome });
     expect(provides(app)[SHELL_CONFIG_KEY as symbol]).toEqual({ homePath: '/demo/items', home: true, chrome });
   });
@@ -189,6 +188,20 @@ describe('createShell: chrome', () => {
   it('unset by default: no piece of the project anywhere', async () => {
     const { app } = await boot();
     expect((provides(app)[SHELL_CONFIG_KEY as symbol] as { chrome?: unknown }).chrome).toBeUndefined();
+  });
+});
+
+describe('createShell: action notices', () => {
+  it('provides the optional source factory without connecting it before the layer mounts', async () => {
+    const actionNotices = vi.fn(() => ({ notices: ref([]), failed: ref(false) }));
+    const { app } = await boot('es', { actionNotices });
+    expect(provides(app)[SHELL_CONFIG_KEY as symbol]).toEqual({ homePath: '/demo/items', actionNotices });
+    expect(actionNotices).not.toHaveBeenCalled();
+  });
+
+  it('leaves the config unchanged without action notices', async () => {
+    const { app } = await boot();
+    expect(provides(app)[SHELL_CONFIG_KEY as symbol]).toEqual({ homePath: '/demo/items' });
   });
 });
 
@@ -225,7 +238,7 @@ describe('createShell.ts import order', () => {
     const sheets = [...source.matchAll(/^import '([^']+\.css)';$/gm)].map((m) => m[1]);
     expect(sheets.length).toBeGreaterThan(10);
     expect(sheets.filter((sheet) => !sheet.startsWith('./theme/') && !sheet.startsWith('@ionic/vue/css/'))).toEqual([]);
-    const order = ['print', 'variables', 'palettes', 'brand', 'erplora-logo', 'tabbar', 'polish', 'global'].map((sheet) =>
+    const order = ['print', 'variables', 'palettes', 'glass', 'brand', 'erplora-logo', 'tabbar', 'polish', 'order-ticket', 'order-board', 'global'].map((sheet) =>
       source.indexOf(`import './theme/${sheet}.css';`),
     );
     expect(order.every((at) => at > -1), String(order)).toBe(true);

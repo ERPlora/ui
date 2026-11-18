@@ -3,6 +3,7 @@
 // hub) «Home» goes first whatever state the list is in, because a screen of an app has no Back and this
 // sheet is the way out of it. An app's page is a lazy chunk: one that did not arrive is handled by the
 // shell router (`view-load.ts`); a page that fails for any other reason is said here, naming the app.
+// On a phone the bar lists «My apps» in its «⋮»: there the launcher paints no button and opens through `open`.
 import {
   IonButton,
   IonButtons,
@@ -12,7 +13,7 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/vue';
-import { computed, shallowRef } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -24,6 +25,9 @@ import { useShellConfig } from './shell-config';
 import { toast } from './toast';
 import { isViewLoadError } from './view-load';
 
+withDefaults(defineProps<{ showButton?: boolean }>(), { showButton: true });
+const isOpen = defineModel<boolean>('open', { default: false });
+
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
@@ -31,7 +35,6 @@ const { me, status } = useSession();
 const { home, homePath } = useShellConfig();
 const apps = useMyApps();
 
-const isOpen = shallowRef(false);
 const view = computed<'apps' | 'empty' | 'loading' | 'error'>(() => {
   if (me.value) return apps.value.length > 0 ? 'apps' : 'empty';
   return status.value === 'error' ? 'error' : 'loading';
@@ -56,11 +59,17 @@ async function open(app: MyApp): Promise<void> {
     // The router already opened it in a fresh document, or said why it could not (`view-load.ts`).
     if (isViewLoadError(error)) return;
     console.error(`shell: could not open the app ${app.id}`, error);
-    void toast(t('launcher.openFailed', { app: app.name }), 'danger', 0, 'apps-launcher-open', {
-      text: t('launcher.retry'),
-      // The browser keeps a failed dynamic import failed for the life of the document, so a retry
-      // inside the SPA fails again: load the app's page afresh (Vite's advice for a lost chunk).
-      handler: () => window.location.assign(router.resolve(path).href),
+    toast({
+      message: t('launcher.openFailed', { app: app.name }),
+      tone: 'error',
+      duration: 0,
+      id: 'apps-launcher-open',
+      action: {
+        label: t('launcher.retry'),
+        // The browser keeps a failed dynamic import failed for the life of the document, so a retry
+        // inside the SPA fails again: load the app's page afresh (Vite's advice for a lost chunk).
+        run: () => window.location.assign(router.resolve(path).href),
+      },
     });
   }
 }
@@ -68,6 +77,7 @@ async function open(app: MyApp): Promise<void> {
 
 <template>
   <ion-button
+    v-if="showButton"
     data-testid="topbar-apps"
     :aria-label="t('launcher.title')"
     aria-haspopup="dialog"

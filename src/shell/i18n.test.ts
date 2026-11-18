@@ -11,8 +11,30 @@ function keys(tree: Record<string, unknown>, prefix = ''): string[] {
 }
 
 describe('shell catalogues', () => {
-  it('carry only what the shell and its components say (topbar, tabbar, home, apps launcher, side menu and its QR, user menu, a screen that could not open, 404, not in the app, banner and toast close, the ask for the device\'s notices and the ongoing notification while it listens)', () => {
+  it('carries the shell texts, including every state of the action center', () => {
     expect(keys(en).sort()).toEqual([
+      'actionCenter.actionFailed',
+      'actionCenter.arrival.close',
+      'actionCenter.bell.empty',
+      'actionCenter.bell.failed',
+      'actionCenter.bell.loading',
+      'actionCenter.bell.pending',
+      'actionCenter.panel.close',
+      'actionCenter.panel.count',
+      'actionCenter.panel.emptyBody',
+      'actionCenter.panel.emptyTitle',
+      'actionCenter.panel.errorBody',
+      'actionCenter.panel.errorTitle',
+      'actionCenter.panel.loading',
+      'actionCenter.panel.retry',
+      'actionCenter.panel.stale',
+      'actionCenter.panel.subtitle',
+      'actionCenter.panel.title',
+      'actionCenter.processing',
+      'actionCenter.resolved',
+      'actionCenter.severity.danger',
+      'actionCenter.severity.info',
+      'actionCenter.severity.warning',
       'home.empty.body',
       'home.empty.title',
       'home.state.activating',
@@ -51,6 +73,7 @@ describe('shell catalogues', () => {
       'sidebar.system',
       'tabbar.label',
       'toast.close',
+      'toast.region',
       'topbar.back',
       'topbar.collapseMenu',
       'topbar.expandMenu',
@@ -129,8 +152,8 @@ describe('createShellI18n', () => {
 // from its catalogue in the language of the page, which createShell keeps in `<html lang>`.
 describe('shellText', () => {
   it('reads a shell text in the given language, or in the language of the page', () => {
-    expect(shellText('toast.close', 'es-ES')).toBe('Aceptar');
-    expect(shellText('toast.close', 'en')).toBe('OK');
+    expect(shellText('toast.close', 'es-ES')).toBe('Cerrar');
+    expect(shellText('toast.close', 'en')).toBe('Close');
     document.documentElement.lang = 'es';
     expect(shellText('topbar.back')).toBe('Atrás');
     document.documentElement.lang = 'en';
@@ -138,7 +161,7 @@ describe('shellText', () => {
   });
 
   it('falls back to English for an unsupported language, and to the key for an unknown text', () => {
-    expect(shellText('toast.close', 'fr')).toBe('OK');
+    expect(shellText('toast.close', 'fr')).toBe('Close');
     expect(shellText('toast.nope', 'es')).toBe('toast.nope');
     expect(shellText('toast', 'es')).toBe('toast');
   });

@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { compileStyle, parse } from 'vue/compiler-sfc';
 
 const THEME = join(dirname(fileURLToPath(import.meta.url)), '../../shell/theme');
 const require = createRequire(import.meta.url);
@@ -22,6 +23,15 @@ const themeCss = (file: string): string => plain(readFileSync(join(THEME, file),
 export function componentCss(sfcPath: string): string {
   const sfc = readFileSync(sfcPath, 'utf8');
   return plain([...sfc.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n'));
+}
+
+/** The `<style>` blocks of a single-file component as the browser gets them, once Vue has scoped them. */
+export function compiledComponentCss(sfcPath: string): string {
+  const { descriptor } = parse(readFileSync(sfcPath, 'utf8'), { filename: sfcPath });
+  const compiled = descriptor.styles.map(
+    (style) => compileStyle({ source: style.content, filename: sfcPath, id: 'data-v-test', scoped: style.scoped }).code,
+  );
+  return plain(compiled.join('\n'));
 }
 
 /** Body of every rule whose selector is exactly `selector`. */

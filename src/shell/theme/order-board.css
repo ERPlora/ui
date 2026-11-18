@@ -1,0 +1,181 @@
+/* The board of order tickets on a kitchen display: the grid of tickets (order-ticket.css), the bar above it, the totals
+ * of what is left to cook and the grey tickets while it loads. Each app writes its own components and puts these
+ * classes on Ionic's pieces.
+ *
+ *   .ep-order-board                  the grid of tickets, and of the loading ones
+ *   .ep-order-board-bar              the bar, sticky while the board scrolls
+ *     __main, __views, __stations    its first row, the ion-segment of the views and the ion-segment of the stations
+ *     __count, __fullscreen          the count beside a view's name, the ion-button of «Full screen»
+ *   .ep-order-board-totals, __num    the table of what is left of each dish, its right-aligned quantities
+ *   .ep-order-board-skeleton         the loading board: __text, __card, __head, __icon, __lines, __title, __sub,
+ *                                    __dish (and __dish--short) and __foot, the ion-skeleton-text of a grey ticket
+ *
+ * Every rule starts with its block, so it styles nothing else. Loaded after order-ticket.css by createShell. */
+
+.ep-order-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.ep-order-board-bar {
+  container-type: inline-size;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-bottom: 0.75rem;
+  padding: 0 0 0.5rem;
+  border-bottom: 1px solid var(--ion-border-color);
+  background: var(--ion-background-color);
+}
+.ep-order-board-bar .ep-order-board-bar__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+/* The views never shrink below their words: on a narrow bar «Full screen» wraps instead of a tab being clipped. */
+.ep-order-board-bar .ep-order-board-bar__views {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: fit-content;
+  max-width: 32rem;
+}
+.ep-order-board-bar .ep-order-board-bar__stations {
+  width: 100%;
+  margin-top: 0.4rem;
+}
+.ep-order-board-bar ion-segment-button {
+  --padding-start: 0.6rem;
+  --padding-end: 0.6rem;
+  min-width: var(--ep-touch-min);
+  min-height: var(--ep-touch-min);
+  text-transform: none;
+}
+.ep-order-board-bar ion-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+.ep-order-board-bar .ep-order-board-bar__count {
+  min-width: 1.6rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--ep-radius-pill);
+  background: var(--ion-color-step-100);
+  color: var(--ion-text-color);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.ep-order-board-bar .ep-order-board-bar__fullscreen {
+  --padding-start: 0;
+  --padding-end: 0;
+  --border-radius: var(--ep-radius-md);
+  flex: none;
+  width: var(--ep-touch-min);
+  min-height: var(--ep-touch-min);
+  margin: 0;
+  font-size: 1.3rem;
+}
+@container (max-width: 26rem) {
+  .ep-order-board-bar ion-segment-button {
+    --padding-start: 0.3rem;
+    --padding-end: 0.3rem;
+  }
+  .ep-order-board-bar ion-label {
+    gap: 0.25rem;
+    font-size: 0.8rem;
+  }
+  .ep-order-board-bar .ep-order-board-bar__count {
+    min-width: 1.4rem;
+    padding: 0.1rem 0.3rem;
+  }
+}
+
+.ep-order-board-totals {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid var(--ion-border-color);
+  border-radius: var(--ep-radius-lg);
+  background: var(--ion-card-background, var(--ion-background-color));
+  font-size: 1.2rem;
+}
+.ep-order-board-totals th,
+.ep-order-board-totals td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--ion-border-color);
+  text-align: left;
+}
+.ep-order-board-totals tbody tr:last-child td {
+  border-bottom: none;
+}
+.ep-order-board-totals th {
+  background: var(--ion-color-step-50);
+  color: var(--ep-text-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ep-order-board-totals .ep-order-board-totals__num {
+  text-align: right;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-order-board-skeleton .ep-order-board-skeleton__text {
+  margin: 0 0 0.75rem;
+}
+.ep-order-board-skeleton .ep-order-board-skeleton__card {
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--ion-border-color);
+  border-top: 6px solid var(--ion-border-color);
+  border-radius: var(--ep-radius-lg);
+  box-shadow: none;
+}
+.ep-order-board-skeleton__card ion-skeleton-text {
+  margin: 0;
+  border-radius: 6px;
+}
+.ep-order-board-skeleton .ep-order-board-skeleton__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.ep-order-board-skeleton .ep-order-board-skeleton__icon {
+  flex: none;
+  width: 48px;
+  height: 48px;
+}
+.ep-order-board-skeleton .ep-order-board-skeleton__lines {
+  flex: 1;
+  display: grid;
+  gap: 0.5rem;
+}
+.ep-order-board-skeleton .ep-order-board-skeleton__title {
+  width: 60%;
+  height: 22px;
+}
+.ep-order-board-skeleton .ep-order-board-skeleton__sub {
+  width: 40%;
+  height: 14px;
+}
+.ep-order-board-skeleton .ep-order-board-skeleton__dish {
+  width: 90%;
+  height: 20px;
+  margin-top: 1.25rem;
+}
+.ep-order-board-skeleton .ep-order-board-skeleton__dish--short {
+  width: 70%;
+  margin-top: 0.75rem;
+}
+.ep-order-board-skeleton .ep-order-board-skeleton__foot {
+  width: 100%;
+  height: 52px;
+  margin-top: 1.25rem;
+}

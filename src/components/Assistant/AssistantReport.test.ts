@@ -9,7 +9,7 @@ import type { Bubble } from './history';
 
 vi.mock('../../shell/toast', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../shell/toast')>()),
-  toastSuccess: vi.fn(() => Promise.resolve()),
+  toastSuccess: vi.fn(() => 'toast-id'),
 }));
 vi.mock('@ionic/vue', async (importOriginal) => {
   const { IonModalStub } = await import('../FormModal/__tests__/ionModalStub');

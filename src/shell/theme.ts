@@ -139,6 +139,7 @@ export function applyUserThemePreferences(
 /** Clears the state on sign-out so it does not leak to the next user. */
 export function resetUserThemePreferences(): void {
   applyUserThemePreferences(null, null);
+  setThemeTransparency(true);
 }
 
 /**
@@ -169,6 +170,17 @@ export function setThemeContrast(contrast: ThemeContrast): void {
   const root = document.documentElement;
   if (_contrast.value === 'aa') root.setAttribute('data-ep-contrast', 'aa');
   else root.removeAttribute('data-ep-contrast');
+}
+
+const _transparency = ref(true);
+
+/** `true` while floating surfaces are glass (theme/glass.css); `false` paints the same design opaque. */
+export const themeTransparency = computed<boolean>(() => _transparency.value);
+
+/** Applies the person's choice to <html>: off sets the `ep-opaque` class, on removes it. */
+export function setThemeTransparency(on: boolean): void {
+  _transparency.value = on;
+  if (typeof document !== 'undefined') document.documentElement.classList.toggle('ep-opaque', !on);
 }
 
 /**

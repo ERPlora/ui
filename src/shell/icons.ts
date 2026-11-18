@@ -5,9 +5,8 @@
 //     them with `addIcons(ION_ICONS)`, so a template's `ion-icon` with a `name` paints offline.
 //   - The other Iconify sets (`lucide:`, `mdi:`, `material-symbols:`) come from `unplugin-icons`
 //     (`~icons/<set>/<name>`, the SVG rendered from the installed `@iconify-json/*` by `erploraVite()`).
-// Only what is listed here exists: an icon that is not registered paints nothing, and `icons.test.ts`
-// fails when a template, an `ionIconSrc`/`resolveIcon` call, an `icon:` key or a `*_ICONS` table names
-// another one. Adding an icon is one import plus one entry.
+// Only what is registered here, or in a table spread into ION_ICONS, exists; anything else paints nothing and fails
+// `icons.test.ts` when a template, an `ionIconSrc`/`resolveIcon` call, an `icon:` key or a `*_ICONS` table names it.
 import {
   add,
   addOutline,
@@ -118,7 +117,6 @@ import {
   playCircleOutline,
   checkmarkDoneOutline,
   pricetag,
-  // Employees' tabs: «Roles» and «Approvals».
   shieldCheckmarkOutline,
   fingerPrintOutline,
 } from 'ionicons/icons';
@@ -156,6 +154,7 @@ import lucideUser from '~icons/lucide/user';
 import lucideUserX from '~icons/lucide/user-x';
 import materialSymbolsPointOfSale from '~icons/material-symbols/point-of-sale';
 import mdiCart from '~icons/mdi/cart';
+import { HELP_ION_ICONS } from './help-icons';
 
 /** The Ionicons of the shell and its apps, by their bare kebab-case name (what `addIcons` takes). */
 export const ION_ICONS: Readonly<Record<string, string>> = Object.freeze({
@@ -270,6 +269,7 @@ export const ION_ICONS: Readonly<Record<string, string>> = Object.freeze({
   pricetag,
   'shield-checkmark-outline': shieldCheckmarkOutline,
   'finger-print-outline': fingerPrintOutline,
+  ...HELP_ION_ICONS,
 });
 
 /** `<svg …>` → the data URL format of ionicons' own icons, which `ion-icon` parses inline. */

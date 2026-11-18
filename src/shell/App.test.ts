@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { defineComponent, h, ref } from 'vue';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { h, ref } from 'vue';
 
 const toastError = vi.hoisted(() => vi.fn());
 vi.mock('./toast', () => ({ toastError }));
@@ -17,17 +17,7 @@ import SidebarInstallQr from './SidebarInstallQr.vue';
 import { applySurface } from './surface';
 import { resetUserThemePreferences, setThemePersister, themeMode } from './theme';
 import { type ShellUserMenu, USER_MENU_KEY } from './user-menu';
-
-/** `ion-popover` presents itself only in a real browser: the stub shows its content while open. */
-const PopoverStub = defineComponent({
-  name: 'IonPopover',
-  inheritAttrs: false,
-  props: { isOpen: Boolean, event: { type: null, default: undefined } },
-  emits: ['didDismiss'],
-  setup(props, { slots, attrs }) {
-    return () => (props.isOpen ? h('div', { ...attrs, 'data-stub': 'ion-popover' }, slots.default?.()) : null);
-  },
-});
+import { IonPopoverStub } from './__tests__/ionPopoverStub';
 
 type El = HTMLElement & Record<string, unknown>;
 
@@ -93,7 +83,7 @@ function mountApp(
         [SHELL_CONFIG_KEY as symbol]: config,
         ...(userMenu ? { [USER_MENU_KEY as symbol]: userMenu } : {}),
       },
-      stubs: { IonRouterOutlet: { template: '<div class="router-outlet-stub" />' }, IonPopover: PopoverStub },
+      stubs: { IonRouterOutlet: { template: '<div class="router-outlet-stub" />' }, IonPopover: IonPopoverStub },
     },
   });
 }

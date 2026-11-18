@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { cards, click, ionChange, mountTable, settle, text, viewport } from './__tests__/harness';
+import { cards, clearPage, click, clip, ionChange, mountTable, settle, tap, text, viewport } from './__tests__/harness';
 
 type Row = Record<string, unknown>;
 
@@ -8,15 +8,12 @@ beforeEach(() => {
   viewport(false);
 });
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-  document.body.replaceChildren();
-});
+afterEach(clearPage);
 
 const fields = (t: ReturnType<typeof mountTable>) =>
   cards(t).map((card) =>
-    [...card.querySelectorAll('.data-table__field')].map(
-      (f) => `${text(f.querySelector('.data-table__field-label'))}=${text(f.querySelector('.data-table__field-value'))}`,
+    [...card.querySelectorAll('.data-table__card-meta')].map(
+      (f) => `${text(f.querySelector('.data-table__card-meta-label'))}=${text(f.querySelector('.data-table__card-meta-value'))}`,
     ),
   );
 const titles = (t: ReturnType<typeof mountTable>) => [...t.element.querySelectorAll('.data-table__card-title')].map((e) => text(e));
@@ -35,7 +32,7 @@ describe('a card shows its name once: as the title, not again as a field', () =>
     const t = mountTable({ ...base, rows: [...base.rows, { id: '2', code: 'L2', name: null, currency: 'USD' }] });
     await settle();
     expect(titles(t)).toEqual(['Tarifa mayorista 1', 'L2']);
-    expect(fields(t)).toEqual([['Código=L1', 'Divisa=EUR'], ['Nombre=', 'Divisa=USD']]);
+    expect(fields(t)).toEqual([['Código=L1', 'Divisa=EUR'], ['Divisa=USD']]);
   });
 
   it('matches what the cell SHOWS (formatted, numeric, trimmed), and only ONE field', async () => {
@@ -53,16 +50,16 @@ describe('a card shows its name once: as the title, not again as a field', () =>
     expect(fields(twice)).toEqual([['Nombre=VIP', 'Divisa=EUR']]);
   });
 
-  it('keeps every field for an empty title, and a column painted by a slot', async () => {
+  it('keeps metadata for an empty title, omits empty values and paints a slot', async () => {
     const empty = mountTable({ ...base, rows: [{ id: '1', code: 'L1', name: '', currency: 'EUR' }], cardTitle: (r: Row) => r.name });
     const slotted = mountTable(
       { ...base, columns: [COLUMNS[0], { ...COLUMNS[1], cell: 'name' }] },
       { slots: { name: '<template #name="{ value }"><em>{{ value }}</em></template>' } },
     );
     await settle();
-    expect(fields(empty)).toEqual([['Código=L1', 'Nombre=', 'Divisa=EUR']]);
+    expect(fields(empty)).toEqual([['Código=L1', 'Divisa=EUR']]);
     expect(fields(slotted)).toEqual([['Código=L1', 'Nombre=Tarifa mayorista 1']]);
-    expect(slotted.find('.data-table__field-value em').text()).toBe('Tarifa mayorista 1');
+    expect(slotted.find('.data-table__card-meta-value em').text()).toBe('Tarifa mayorista 1');
   });
 
   it('a format that returns something that is not text still paints the cards', async () => {
@@ -73,7 +70,7 @@ describe('a card shows its name once: as the title, not again as a field', () =>
     });
     await settle();
     expect(titles(t)).toEqual(['Tarifa mayorista 1']);
-    expect(fields(t)).toEqual([['Código=', 'Prioridad=7']]);
+    expect(fields(t)).toEqual([['Prioridad=7']]);
   });
 
   it('the `card` slot replaces the body (what `renderCard` did)', async () => {
@@ -160,11 +157,13 @@ describe('the card opens the record like the row', () => {
     expect(selecting.emitted('update:selected')).toEqual([[['1']]]);
   });
 
-  it('every action of a busy card is there (the row wraps instead of clipping, see the visual test)', async () => {
+  it('keeps every action available with one primary button and the rest in the menu', async () => {
     const actions = Array.from({ length: 8 }, (_, i) => ({ id: `a${i}`, label: `Action ${i}`, icon: 'ellipse' }));
     const t = mountTable({ ...base, actions });
     await settle();
-    expect(cards(t)[0].querySelectorAll('.data-table__card-actions ion-button')).toHaveLength(8);
+    expect(cards(t)[0].querySelectorAll('.data-table__card-actions ion-button')).toHaveLength(2);
+    await click(cards(t)[0].querySelector('[aria-haspopup="menu"]'));
+    expect(t.element.querySelectorAll('.data-table__row-menu ion-item')).toHaveLength(7);
   });
 });
 
@@ -181,31 +180,23 @@ describe('a card value too long for its card can be read in full', () => {
   const base = { rows: ROWS, columns: COLUMNS, views: true, defaultView: 'cards', cardTitle: (r: Row) => r.name, testid: 'staff' };
   /** The default text of a field, by its card and its label. */
   const value = (t: ReturnType<typeof mountTable>, id: string, label: string) =>
-    [...(t.element.querySelector(`[data-testid="staff-row"][data-id="${id}"]`)?.querySelectorAll('.data-table__field') ?? [])]
-      .find((f) => text(f.querySelector('.data-table__field-label')) === label)
-      ?.querySelector('.data-table__field-value > .data-table__field-text') as HTMLElement;
-  const clip = (el: HTMLElement, clipped: boolean) => {
-    Object.defineProperty(el, 'scrollWidth', { configurable: true, get: () => (clipped ? 380 : 90) });
-    Object.defineProperty(el, 'clientWidth', { configurable: true, get: () => 90 });
-  };
-  async function tap(el: HTMLElement, pointerType: 'touch' | 'mouse') {
-    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType }));
-    await click(el);
-  }
+    [...(t.element.querySelector(`[data-testid="staff-row"][data-id="${id}"]`)?.querySelectorAll('.data-table__card-meta') ?? [])]
+      .find((f) => text(f.querySelector('.data-table__card-meta-label')) === label)
+      ?.querySelector('.data-table__card-meta-value > .data-table__field-text') as HTMLElement;
 
-  it('the default text is its own box, with the whole painted (formatted) text as title; an empty one has none', async () => {
+  it('keeps the whole painted text as title and omits empty metadata', async () => {
     const t = mountTable({ ...base, columns: [COLUMNS[0], { ...COLUMNS[1], format: (v: unknown) => `<${String(v)}>` }, COLUMNS[2]] });
     await settle();
     expect(value(t, '1', 'Email').textContent).toBe(`<${EMAIL}>`);
     expect(value(t, '1', 'Email').getAttribute('title')).toBe(`<${EMAIL}>`);
-    expect(value(t, '1', 'Phone').hasAttribute('title')).toBe(false);
-    expect(value(t, '2', 'Phone').hasAttribute('title')).toBe(false);
+    expect(value(t, '1', 'Phone')).toBeUndefined();
+    expect(value(t, '2', 'Phone')).toBeUndefined();
   });
 
   it('a slot paints the value as it is: no box of ours around it, no title', async () => {
     const t = mountTable({ ...base, columns: [COLUMNS[0], { ...COLUMNS[1], cell: 'email' }] }, { slots: { email: '<template #email="{ value }"><a class="own">{{ value }}</a></template>' } });
     await settle();
-    const cell = cards(t)[0].querySelectorAll('.data-table__field-value')[0] as HTMLElement;
+    const cell = cards(t)[0].querySelectorAll('.data-table__card-meta-value')[0] as HTMLElement;
     expect([...cell.children].map((el) => el.className)).toEqual(['own']);
     expect(cell.hasAttribute('title')).toBe(false);
   });
@@ -216,7 +207,7 @@ describe('a card value too long for its card can be read in full', () => {
     clip(value(t, '1', 'Email'), true);
     await tap(value(t, '1', 'Email'), 'touch');
     expect(value(t, '1', 'Email').className).toBe('data-table__field-text data-table__field-text--unfolded');
-    expect(value(t, '1', 'Phone').className).toBe('data-table__field-text');
+    expect(value(t, '1', 'Phone')).toBeUndefined();
     expect(value(t, '2', 'Email').className).toBe('data-table__field-text');
     expect(t.emitted('rowClick')).toBeUndefined();
   });
@@ -280,5 +271,25 @@ describe('cardTitleColumn: the column the card title stands for', () => {
     const t = mountTable({ ...base, rows: [{ ...ROW, region: 'Standard VAT' }], cardTitle: (r: Row) => r.category_name, cardTitleColumn: 'nope' });
     await settle();
     expect(fields(t)).toEqual([['Category=VAT_STD', 'Rate=21 %']]);
+  });
+});
+
+
+describe('a slotted title column in the card head', () => {
+  it('paints the existing cell slot as the title and leaves that column out of the fields', async () => {
+    const t = mountTable(
+      {
+        rows: [{ id: '1', name: 'Invoicing', category: 'Finance' }],
+        columns: [{ key: 'name', label: 'App', cell: 'app' }, { key: 'category', label: 'Category' }],
+        views: true,
+        defaultView: 'cards',
+        cardTitle: (row: Row) => row.name,
+        cardTitleColumn: 'name',
+      },
+      { slots: { app: '<template #app="{ row }"><strong class="app-heading">{{ row.name }}</strong></template>' } },
+    );
+    await settle();
+    expect(t.find('.data-table__card-title .app-heading').exists()).toBe(true);
+    expect(fields(t)).toEqual([['Category=Finance']]);
   });
 });

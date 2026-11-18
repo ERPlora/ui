@@ -2,18 +2,21 @@
 // With the hub's sidebar the bar also carries the rail toggle and «My apps» (the modules are not in the
 // menu); both, and the project's piece of the bar (`chrome.topbar`), are authenticated chrome, only
 // behind its gate (useChromeVisible).
-// On a phone (≤767 px) two or more actions of the view fold into «⋮» («More actions»): three text
-// actions leave the title as «Flo…» at 390 px. Material's top app bar, Apple's navigation bars and
-// Polaris' page header roll them up the same way.
-import { IonButton, IonButtons, IonHeader, IonMenuButton, IonPopover, IonTitle, IonToolbar } from '@ionic/vue';
+// On a phone (≤767 px) the end of the bar holds two buttons, the bell always one of them: when the view's actions,
+// «My apps» and the project's piece do not fit beside it, or the view brings two or more actions (three text actions
+// leave the title as «Flo…» at 390 px), they all go into one «⋮» («More actions»). Material's top app bar, Apple's
+// navigation bars and Polaris' page header roll them up the same way.
+import { IonButton, IonButtons, IonHeader, IonMenuButton, IonTitle, IonToolbar } from '@ionic/vue';
 import { Comment, computed, Fragment, onBeforeUnmount, ref, Text, useSlots, type VNode } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
+import ActionBell from './action-center/ActionBell.vue';
 import AppsLauncher from './AppsLauncher.vue';
 import HubIcon from './HubIcon.vue';
 import { useChromeVisible, useShellConfig } from './shell-config';
 import { railCollapsed } from './sidebar';
+import TopbarMore from './TopbarMore.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -37,13 +40,17 @@ const props = withDefaults(
 
 const { t } = useI18n();
 const router = useRouter();
-const { sidebar, chrome } = useShellConfig();
+const { sidebar, chrome, actionNotices } = useShellConfig();
 const chromeVisible = useChromeVisible();
 
 /** The hub's chrome of the bar (rail toggle, «My apps»): with its sidebar, behind the gate. */
 const hubChrome = computed(() => Boolean(sidebar) && chromeVisible.value);
+/** The project's piece of the bar (the assistant), behind the same gate. */
+const piece = computed(() => (chromeVisible.value ? chrome?.topbar : undefined));
+const bell = computed(() => Boolean(actionNotices) && chromeVisible.value);
+const appsOpen = ref(false);
 
-/** The window width at or below which the view's actions fold into «⋮». */
+/** The window width at or below which the end of the bar folds into «⋮». */
 const PHONE_QUERY = '(max-width: 767px)';
 const phone = ref(false);
 const phoneQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(PHONE_QUERY) : null;
@@ -64,13 +71,11 @@ function countNodes(nodes: VNode[]): number {
   }, 0);
 }
 /** Called while rendering, so it follows what the view's slot shows. */
-const foldActions = (): boolean => phone.value && countNodes(slots.actions?.() ?? []) > 1;
-
-const moreOpen = ref(false);
-const moreEvent = ref<Event>();
-function openMore(event: Event): void {
-  moreEvent.value = event;
-  moreOpen.value = true;
+function folded(): boolean {
+  if (!phone.value) return false;
+  const actions = countNodes(slots.actions?.() ?? []);
+  const others = [hubChrome.value, piece.value, bell.value].filter(Boolean).length;
+  return actions > 1 || actions + others > 2;
 }
 
 function goBack(): void {
@@ -140,45 +145,42 @@ function goBack(): void {
       </ion-title>
 
       <ion-buttons slot="end">
-        <template v-if="foldActions()">
+        <TopbarMore
+          v-if="folded()"
+          v-slot="{ closeThen }"
+        >
+          <slot name="actions" />
           <ion-button
-            fill="clear"
-            data-testid="topbar-more"
-            aria-haspopup="true"
-            :aria-expanded="String(moreOpen)"
-            :aria-label="t('topbar.moreActions')"
-            @click="openMore"
+            v-if="hubChrome"
+            data-testid="topbar-more-apps"
+            @click="closeThen(() => (appsOpen = true))"
           >
             <HubIcon
-              slot="icon-only"
-              name="ion:ellipsis-vertical"
+              slot="start"
+              name="ion:apps-outline"
             />
+            {{ t('launcher.title') }}
           </ion-button>
-          <ion-popover
-            :is-open="moreOpen"
-            :event="moreEvent"
-            @did-dismiss="moreOpen = false"
-          >
-            <!-- A button group, as in the bar, so Ionic paints them clear: a menu, not solid blocks.
-                 Choosing an action runs it (its own click) and closes the list. -->
-            <ion-buttons
-              class="topbar-more"
-              data-testid="topbar-more-menu"
-              @click="moreOpen = false"
-            >
-              <slot name="actions" />
-            </ion-buttons>
-          </ion-popover>
-        </template>
+          <component
+            :is="piece"
+            v-if="piece"
+          />
+        </TopbarMore>
         <slot
           v-else
           name="actions"
         />
-        <AppsLauncher v-if="hubChrome" />
-        <component
-          :is="chrome.topbar"
-          v-if="chrome?.topbar && chromeVisible"
+        <!-- Its sheet stays in the bar when «My apps» is a row of «⋮»: the menu's content goes when the menu closes. -->
+        <AppsLauncher
+          v-if="hubChrome"
+          v-model:open="appsOpen"
+          :show-button="!folded()"
         />
+        <component
+          :is="piece"
+          v-if="piece && !folded()"
+        />
+        <ActionBell v-if="bell" />
       </ion-buttons>
     </ion-toolbar>
   </ion-header>
@@ -205,34 +207,12 @@ function goBack(): void {
   padding-inline: 4px;
 }
 
-/* On a phone the three equal thirds left the title 127 px between two groups of two icons:
-   there each group takes only what its buttons need, both at least two buttons wide so the title
-   stays centred, and the title takes the rest — about what Ionic's own ios bar gives it. */
+/* On a phone the three equal thirds left the title 127 px. There the title's box takes what its text needs and the
+   two groups share the rest alike: centred while it fits, whatever each group holds (the bell grows into a pill),
+   and a longer one takes all the room the buttons leave, cut with «…» only past it, as iOS's navigation bar does. */
 @media (max-width: 767px) {
-  .app-topbar ion-toolbar.ios > ion-buttons {
-    flex: 0 0 auto;
-    min-width: 5.5rem;
+  .app-topbar ion-toolbar.ios::part(content) {
+    flex: 0 1 auto;
   }
-}
-
-/* The folded actions, one per row, as a menu: each one as wide as the list, its label at the start
-   (Material's menu and iOS's menus lead with the label). Ionic centres the label inside `.button-inner`,
-   which spans the whole button and is out of reach (`native` is the only part): as a grid that does
-   not stretch its track, `native` sizes that inner box to its label and places it at the start. */
-.topbar-more {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  padding-block: 4px;
-}
-
-.topbar-more :deep(ion-button) {
-  margin: 0;
-  --border-radius: 0;
-}
-
-.topbar-more :deep(ion-button)::part(native) {
-  display: grid;
-  justify-content: start;
 }
 </style>

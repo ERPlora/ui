@@ -16,10 +16,7 @@ import FormModal from './FormModal.vue';
 import * as entry from './index';
 import type { IonModalStubApi } from './__tests__/ionModalStub';
 
-vi.mock('@ionic/vue', async (importOriginal) => {
-  const { IonModalStub } = await import('./__tests__/ionModalStub');
-  return { ...(await importOriginal<typeof import('@ionic/vue')>()), IonModal: IonModalStub };
-});
+vi.mock('@ionic/vue', async (importOriginal) => (await import('./__tests__/ionModalStub')).ionicVueWithModalStub(importOriginal));
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // The menu lists the sections of `base.session.me` (the SaaS) or the sidebar the project hands to
-// `createShell({ sidebar })` (the hub, sidebar.ts). The project's background piece (`chrome.background`)
-// and each app's (`backgrounds`, a route marked `meta.background`) are mounted once beside the pane while
-// a person is signed in, keyed on them.
+// `createShell({ sidebar })` (the hub, sidebar.ts). The project's background piece (`chrome.background`),
+// each app's (`backgrounds`, a route marked `meta.background`) and the action center's layer are mounted once
+// beside the pane while a person is signed in, keyed on them.
 import {
   IonApp,
   IonContent,
@@ -22,12 +22,14 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
+import ActionLayer from './action-center/ActionLayer.vue';
 import HubIcon from './HubIcon.vue';
 import { useSession } from './session';
 import { useChromeVisible, useShellConfig } from './shell-config';
 import { railCollapsed, type ShellSidebarItem, useSidebarGroups } from './sidebar';
 import SidebarInstallQr from './SidebarInstallQr.vue';
 import { useSurface } from './surface';
+import ToastStack from './ToastStack.vue';
 import UserMenuPopover from './UserMenuPopover.vue';
 
 /** Stable id of the main menu, so we never depend on which one Ionic considers "open". */
@@ -35,7 +37,7 @@ const SHELL_MENU_ID = 'shell-navigation';
 
 const { user, menu } = useSession();
 const config = useShellConfig();
-const { homePath, home, sidebar, chrome, backgrounds } = config;
+const { homePath, home, sidebar, chrome, backgrounds, actionNotices } = config;
 const { isWeb } = useSurface();
 const { t } = useI18n();
 const route = useRoute();
@@ -328,5 +330,11 @@ function openUserMenuFromKeyboard(event: KeyboardEvent): void {
         :key="`${screenKey}:${index}`"
       />
     </template>
+    <ToastStack />
+    <ActionLayer
+      v-if="actionNotices && user"
+      :key="`${screenKey}:action-center`"
+      :action-notices="actionNotices"
+    />
   </ion-app>
 </template>

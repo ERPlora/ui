@@ -1,5 +1,5 @@
 // The three `boot/*.boot.ts` side-effect modules come first: an entry that imports this barrel must hook
-// `customElements.define` before `./toast`, `./createShell` or the pages load `@ionic/vue`, which registers its
+// `customElements.define` before `./createShell` or the pages load `@ionic/vue`, which registers its
 // elements on import. `index.test.ts` guards the order.
 import './boot/ionic-fill.boot';
 import './boot/ionic-select-text.boot';
@@ -34,6 +34,7 @@ export {
   setThemeMode,
   setThemePersister,
   setThemeScale,
+  setThemeTransparency,
   THEME_CONTRASTS,
   THEME_PALETTES,
   THEME_SCALES,
@@ -41,6 +42,7 @@ export {
   themeMode,
   themePalette,
   themeScale,
+  themeTransparency,
   toggleTheme,
 } from './theme';
 export type { ThemeContrast, ThemeMode, ThemePalette, ThemeScale } from './theme';
@@ -50,8 +52,9 @@ export {
   toastError,
   toastInfo,
   toastSuccess,
+  toastWarning,
 } from './toast';
-export type { ToastAction, ToastColor } from './toast';
+export type { ToastAction, ToastOptions, ToastPosition, ToastTone } from './toast-store';
 export { createShell } from './createShell';
 export type { CreateShellOptions } from './createShell';
 export { createAuthGate, createShellRouter, HOME_ROUTE, NOT_FOUND_ROUTE, NOT_IN_APP_ROUTE, webOnlyGate } from './router';
@@ -95,6 +98,18 @@ export { createDevicePrinter } from './device-printer';
 export type { DevicePrinterDeps } from './device-printer';
 export { createPrintHost, printChannelUrl, usePrintHost } from './print-host';
 export type { PrintHost, PrintHostDeps, UsePrintHostOptions } from './print-host';
+export { connectActionCenter, useActionCenter, useQuietActionNotices } from './action-center/center';
+export type { ActionCenter } from './action-center/center';
+export type { NoticeActionSlot } from './action-center/actions';
+export type { ArrivalHold } from './action-center/arrivals';
+export type {
+  ActionNotice,
+  ActionNoticeSource,
+  NoticeAction,
+  NoticeDestination,
+  NoticeDue,
+  NoticeSeverity,
+} from './action-center/types';
 export { iconName, useMyApps } from './my-apps';
 export { OPEN_EXTERNAL_COMMAND, openExternalLink } from './open-external';
 export type { MyApp } from './my-apps';
@@ -106,6 +121,8 @@ export type { Surface, SurfaceState, SurfaceWindow } from './surface';
 export { bindTabbar, syncTabbarOverflow, tabbarOverflow } from './tabbar';
 export type { ShellTab, TabbarOverflow } from './tabbar';
 export { bindTabbarPeek } from './tabbar-peek';
+export { useTopbarMenu } from './topbar-menu';
+export type { TopbarMenu } from './topbar-menu';
 export { provideUserMenu, USER_MENU_KEY, useUserMenu } from './user-menu';
 export type { ShellUserMenu, ShellUserMenuItem } from './user-menu';
 export { createShellI18n, SHELL_LOCALES, shellLocale } from './i18n';

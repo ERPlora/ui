@@ -1,0 +1,84 @@
+/* Glass: the material of what floats over the screen, translucent over what is behind.
+ * Turned off it is the same design opaque: by the person (`ep-opaque` on <html>, theme.ts), by the system
+ * (less transparency) or by a browser without backdrop-filter. The side menu, the top bar and the cards
+ * stay solid.
+ *
+ * Nothing above a glass surface may animate opacity or carry filter or will-change: opacity: Chromium then
+ * stops blurring what is behind it. Glass comes and goes by transform, and the blur radius never animates.
+ *
+ * On an Ionic overlay the class does not go on the host, which covers the whole screen: its surface is a
+ * part, so the same tokens go on `::part(content)` (popover, modal) or on its `--background`.
+ *
+ * Load order: after variables.css and palettes.css, whose colours it mixes (createShell.ts). */
+
+:root {
+  --ep-glass-opacity: 72%;
+  --ep-glass-bg: color-mix(in srgb, var(--ion-card-background) var(--ep-glass-opacity), transparent);
+  --ep-glass-backdrop: blur(20px) saturate(180%);
+  --ep-glass-border: color-mix(in srgb, var(--ion-card-background) 72%, transparent);
+  --ep-glass-highlight: color-mix(in srgb, var(--ion-card-background) 82%, transparent);
+  --ep-glass-muted: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-card-background));
+  --ep-action-bg: var(--ep-primary-text);
+  --ep-action-text: var(--ion-card-background);
+  --ep-shadow-float: 0 3px 10px rgba(17, 24, 39, 0.12), 0 28px 80px rgba(17, 24, 39, 0.18);
+
+  /* A toast is the inverse of the page: dark on a light theme, light on a dark one. */
+  --ep-toast-solid: var(--ion-text-color);
+  --ep-toast-opacity: 88%;
+  --ep-toast-bg: color-mix(in srgb, var(--ep-toast-solid) var(--ep-toast-opacity), transparent);
+  --ep-toast-text: var(--ion-background-color);
+  --ep-toast-muted: color-mix(in srgb, var(--ep-toast-text) 74%, var(--ep-toast-solid));
+  --ep-toast-border: color-mix(in srgb, var(--ep-toast-text) 16%, transparent);
+  /* Each tone mixed into the pill's text as far as it stays AA on the pill in every palette. */
+  --ep-toast-success: color-mix(in srgb, var(--ion-color-success) 55%, var(--ep-toast-text));
+  --ep-toast-info: color-mix(in srgb, var(--ion-color-primary) 45%, var(--ep-toast-text));
+  --ep-toast-warning: color-mix(in srgb, var(--ion-color-warning) 70%, var(--ep-toast-text));
+  --ep-toast-error: color-mix(in srgb, var(--ion-color-danger) 50%, var(--ep-toast-text));
+
+  /* A sober spring (a little overshoot, no bounce back) and the curve of short exits. */
+  --ep-spring: linear(0, 0.25 8%, 0.65 18%, 0.9 30%, 1.03 43%, 1 58%, 1);
+  --ep-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root.ion-palette-dark {
+  --ep-glass-opacity: 68%;
+  --ep-glass-border: color-mix(in srgb, var(--ion-text-color) 15%, transparent);
+  --ep-glass-highlight: color-mix(in srgb, var(--ion-text-color) 16%, transparent);
+  --ep-shadow-float: 0 3px 12px rgba(0, 0, 0, 0.5), 0 30px 90px rgba(0, 0, 0, 0.48);
+  --ep-toast-opacity: 86%;
+  --ep-toast-border: color-mix(in srgb, var(--ep-toast-solid) 42%, transparent);
+  --ep-toast-success: color-mix(in srgb, var(--ion-color-success) 45%, var(--ep-toast-text));
+  --ep-toast-info: color-mix(in srgb, var(--ion-color-primary) 30%, var(--ep-toast-text));
+  --ep-toast-warning: color-mix(in srgb, var(--ion-color-warning) 40%, var(--ep-toast-text));
+  --ep-toast-error: color-mix(in srgb, var(--ion-color-danger) 55%, var(--ep-toast-text));
+}
+
+:root.ep-opaque {
+  --ep-glass-bg: var(--ion-card-background);
+  --ep-toast-bg: var(--ep-toast-solid);
+  --ep-glass-backdrop: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --ep-glass-bg: var(--ion-card-background);
+    --ep-toast-bg: var(--ep-toast-solid);
+    --ep-glass-backdrop: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --ep-glass-bg: var(--ion-card-background);
+    --ep-toast-bg: var(--ep-toast-solid);
+    --ep-glass-backdrop: none;
+  }
+}
+
+.ep-glass {
+  background: var(--ep-glass-bg);
+  -webkit-backdrop-filter: var(--ep-glass-backdrop);
+  backdrop-filter: var(--ep-glass-backdrop);
+  border: 1px solid var(--ep-glass-border);
+  box-shadow: inset 0 1px 0 var(--ep-glass-highlight), var(--ep-shadow-float);
+}

@@ -237,7 +237,7 @@ export interface PagerInput<T> {
   page: number;
   pageSize: number;
   isMobile: boolean;
-  /** Client mode on a phone: rows «Load more» has accumulated (0 = one page). */
+  /** Client mode, windowed: rows the end of the scroll has accumulated (0 = one page). */
   mobileShown: number;
   /** Server mode on a phone: the most rows the parent can hold in one window; a longer query pages. */
   maxWindow?: number;
@@ -265,13 +265,13 @@ export function pagerState<T>(input: PagerInput<T>): PagerState<T> {
   const pages = Math.max(1, Math.ceil(count / ps));
   const current = Math.min(page, pages - 1);
   if (phonePages(input)) {
-    // A window grown by «Load more» before the query outgrew it: its first page only, as the footer says.
+    // A window grown at the end of the scroll before the query outgrew it: its first page only, as the footer says.
     return { visible: rows.slice(0, ps), pages, current, count, rangeFrom: current * ps + 1, rangeTo: Math.min((current + 1) * ps, count), canLoadMore: false };
   }
   if (serverSide && isMobile) {
-    // Server mode on a phone: `rows` is the WINDOW the parent keeps live, from the row of
-    // `page` (0 on a phone) and grown one page per «Load more» (`loadMore`). The footer and «Load
-    // more» follow the rows shown against the total; an empty window keeps that page's range.
+    // Server mode, windowed (cards, a phone): `rows` is the WINDOW the parent keeps live, from the row of
+    // `page` (0 when windowed) and grown one page at the end of the scroll (`loadMore`). The footer and the
+    // end of the scroll follow the rows shown against the total; an empty window keeps that page's range.
     const from = current * ps + 1;
     const to = rows.length ? Math.min(from + rows.length - 1, count) : Math.min((current + 1) * ps, count);
     return { visible: rows, pages, current, count, rangeFrom: from, rangeTo: to, canLoadMore: to < count };
@@ -296,27 +296,27 @@ export function gridTemplate<T>(input: {
   columns: readonly DataTableColumn<T>[];
   hasActions: boolean;
   actionsTrackPx: number;
-  /** px a column without its own width asks for to hold its content whole, by key (0 or missing = its
-   *  floor holds it, or not measured yet). */
+  /** px a column without its own width asks for to hold its content whole, by key (0 = the common floor
+   *  holds it; missing = not measured yet). */
   contentWidths?: Readonly<Record<string, number>>;
-  /** The row has no room for every column whole: they may cut their text. */
-  clipped?: boolean;
+  /** The row has no room for every column whole: they may cut their text (`'tight'`: a name below its 10rem too). */
+  clipped?: boolean | 'tight';
 }): string {
   const track = (c: DataTableColumn<T>): string => {
     if (c.width != null) return c.width;
     const need = input.contentWidths?.[c.key] ?? 0;
-    // 5.5rem (88px) is the narrowest a data column stays readable, unless the column asks for more.
-    const floor = c.minWidth ?? '5.5rem';
-    if (!(need > 0)) return `minmax(${floor},1fr)`;
+    const identity = c.identity || c.priority === 'high';
+    const floor = c.minWidth ?? (identity && input.contentWidths?.[c.key] !== 0 ? '10rem' : '5.5rem');
+    const share = identity ? '1.4fr' : '1fr';
+    if (!(need > 0)) return `minmax(${floor},${share})`;
     // Whole while the row has room, sharing what is left; when cut, down to the floor and never past
     // its content (the widest text gives its width up first).
-    if (input.clipped) return `minmax(${floor},${need}px)`;
-    // `need` is measured against the common floor: content narrower than the column's own floor keeps that floor.
-    return c.minWidth ? `minmax(max(${c.minWidth},${need}px),1fr)` : `minmax(${need}px,1fr)`;
+    if (input.clipped) return `minmax(${identity && !c.minWidth ? `min(${floor},${need}px)` : floor},${need}px)`;
+    return c.minWidth ? `minmax(max(${floor},${need}px),${share})` : `minmax(${need}px,${share})`;
   };
   return [
     input.selectable ? '2.75rem' : null,
-    ...input.columns.map(track),
+    ...input.columns.map((c) => track(input.clipped === 'tight' && !c.minWidth ? { ...c, minWidth: '5.5rem' } : c)),
     // A LENGTH, not `max-content`: header and rows are separate grids sharing this string, and
     // a content-sized track resolves against each one's content (the header slid off its columns).
     // `max-content` only until the first measurement of the buttons lands.
