@@ -86,7 +86,7 @@
   color: var(--ep-primary-text);
   font-size: 1.6rem;
 }
-.ep-order-ticket .ep-order-ticket__title {
+.ep-order-ticket .ep-order-ticket__headline .ep-order-ticket__title {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -98,14 +98,14 @@
   font-size: 1.45rem;
   line-height: 1.1;
   font-weight: 800;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 /* Who sent it is read whole (a name or, without one, an e-mail): it wraps on a narrow card, never cut. */
 .ep-order-ticket .ep-order-ticket__waiter {
   color: var(--ep-text-muted);
   font-size: 0.95rem;
   font-weight: 500;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .ep-order-ticket .ep-order-ticket__clock {
   --color: var(--ion-text-color);

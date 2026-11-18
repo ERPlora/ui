@@ -372,8 +372,9 @@ propio, solo pone las clases sobre las piezas de Ionic.
   `__headline`, `__icon`, `__title`, `__label`, `__waiter`, `__clock`, `__timer`, `__wait`, `__number`, `__flags`,
   `__pill` sobre `StatusPill`), el cuerpo (`__body`, `__notes`), el menú (`__menu` y sus partes), cada plato (`__dish`
   con `data-status`, `__dish--menu`, `__qty`, `__dish-body`, `__name`, `__modifiers`, `__dish-note`, `__void`, `__meta`,
-  `__state`) y el pie (`__foot`, `__step`, `__more`). `ep-order-ticket-steps` es el `ion-popover` de los demás pasos, y
-  `ep-station-dot` el color de una estación delante de su nombre.
+  `__state`) y el pie (`__foot`, `__step`, `__more`). En la cabecera, `__label` pone el destino en grande en su
+  propia línea y `__waiter` va debajo, aparte; ambos ajustan primero por palabras enteras. `ep-order-ticket-steps` es
+  el `ion-popover` de los demás pasos, y `ep-station-dot` el color de una estación delante de su nombre.
 - **`ep-order-board`:** la rejilla de comandas, y alrededor la barra fija con las vistas y las estaciones
   (`ep-order-board-bar`), la tabla de lo que queda por hacer (`ep-order-board-totals`) y las comandas grises mientras
   carga (`ep-order-board-skeleton`).
