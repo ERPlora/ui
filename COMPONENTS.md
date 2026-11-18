@@ -32,6 +32,8 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - las acciones de una pantalla en la barra → el slot `actions` de `AppPage`; en el teléfono van al «⋮» único de la
   barra, nunca a un botón de «más» propio
 - algo que solo se enseña en la web (lo que vende) → `WebOnly` / `v-web-only`
+- una comanda, en la cocina o en el TPV → las clases `ep-order-ticket` y `ep-order-board` (ver «Clases de la comanda»); el
+  componente es de cada app
 - el plano de mesas: el plano / el teléfono / la carga / el resumen de la zona / las zonas → `FloorTile` /
   `FloorCards` / `FloorSkeleton` / `FloorSummary` / `FloorZoneTabs`; una mesa dibujada fuera del plano → `TableGlyph`
 - un vídeo de YouTube que no pide nada a Google hasta pulsarlo → `YouTubeEmbed`
@@ -170,7 +172,7 @@ habla de un sitio concreto de la pantalla → en línea.
 - **Úsalo cuando** «Guardado», «No se pudo enviar» o un aviso con una acción («Deshacer») después de una orden.
 - **No lo uses cuando** el aviso solo tiene sentido junto a lo que afecta → `InlineFeedback`; exige una acción hasta resolverse → el centro de avisos (`useActionCenter`).
 - **API:** síncronas. `toast({ message, tone?, duration?, id?, action?: { label, run }, position?: 'bottom' | 'top' })` devuelve el id; `toastSuccess`, `toastError`, `toastInfo` y `toastWarning(message, options?)`; `dismissToast(id)` devuelve `false` si ya no estaba. Tonos `success`, `error`, `info` (por defecto) y `warning`; dura 3 s (éxito e info), 4 s (aviso) o 5 s (error), `duration: 0` lo deja fijo hasta cerrarlo y el mismo `id` sustituye al anterior.
-- **Ionic:** `ion-button` (acción y cerrar), no `ion-toast`: los pinta la pila que el shell monta una sola vez, abajo y arriba en el centro: una píldora de cristal con el más nuevo delante y hasta dos asomando detrás, que con el ratón, el foco o un toque se despliega en lista y para sus tiempos, y que se descarta deslizándola. Un aviso nuevo entra al momento.
+- **Ionic:** `ion-button` (acción y cerrar), no `ion-toast`: los pinta la pila que el shell monta una sola vez, abajo y arriba en el centro: una píldora de cristal con el más nuevo delante y hasta dos asomando detrás, que con el ratón, el foco o un toque se despliega en lista y para sus tiempos, y que se descarta deslizándola. Caben tres a la vista en cada borde. Con los tres ocupados, uno nuevo cierra el más antiguo de los que se van solos (con tiempo y sin acción), primero uno que no sea error, y uno que no es error nunca cierra un error. Si no hay ninguno que cerrar, un error entra igualmente y devuelve a la espera, con el tiempo que le quedaba, al más antiguo, primero uno que no sea error; cualquier otro aviso espera su turno, así que con los tres fijos o con acción uno que no es error espera. Cuando se libera un sitio entra primero el error que espera.
 
 ### `useActionCenter`, `useQuietActionNotices`, `ActionBell`, `connectActionCenter`
 `import { useActionCenter, useQuietActionNotices } from '@erplora/ui/shell'`
@@ -358,6 +360,26 @@ El host lo configura una vez al arrancar (`configureAssistant`) y suma `assistan
 - **API:** props `text`, `screenExists(path)` y `nameOf(path)`; evento `go(path)`, con el que la página navega.
 - **Ionic:** ninguno.
 
+## Clases de la comanda
+
+La comanda es uno de los tipos de tarjeta, con un componente en cada app que la enseña (la pantalla de cocina, las
+comandas del TPV): comparten el aspecto, no el contrato. El aspecto vive aquí, como clases que el shell carga con el tema
+(`src/shell/theme/order-ticket.css` y `order-board.css`, desde `createShell`); la app no importa nada ni lleva `<style>`
+propio, solo pone las clases sobre las piezas de Ionic.
+
+- **`ep-order-ticket`:** la tarjeta. El `article` lleva `data-sem` (`ok`, `warning`, `critical`) y pinta la franja de
+  arriba según la espera; su `ion-card` va con `ep-surface`, opaca y nunca de cristal. Dentro: la cabecera (`__head`,
+  `__headline`, `__icon`, `__title`, `__label`, `__waiter`, `__clock`, `__timer`, `__wait`, `__number`, `__flags`,
+  `__pill` sobre `StatusPill`), el cuerpo (`__body`, `__notes`), el menú (`__menu` y sus partes), cada plato (`__dish`
+  con `data-status`, `__dish--menu`, `__qty`, `__dish-body`, `__name`, `__modifiers`, `__dish-note`, `__void`, `__meta`,
+  `__state`) y el pie (`__foot`, `__step`, `__more`). `ep-order-ticket-steps` es el `ion-popover` de los demás pasos, y
+  `ep-station-dot` el color de una estación delante de su nombre.
+- **`ep-order-board`:** la rejilla de comandas, y alrededor la barra fija con las vistas y las estaciones
+  (`ep-order-board-bar`), la tabla de lo que queda por hacer (`ep-order-board-totals`) y las comandas grises mientras
+  carga (`ep-order-board-skeleton`).
+- **Úsalo cuando** una app enseña comandas; la cabecera de cada hoja lista sus clases.
+- **No lo uses cuando** la tarjeta es de otro tipo: la fila de una lista es la del `DataTable`, y la mesa es `FloorCard`.
+
 ## Fuera del catálogo
 
 `@erplora/ui/shell` exporta también el arranque del shell (`createShell`, rutas, sesión, tema, superficie, avisos e
@@ -366,8 +388,7 @@ impresora del dispositivo, `useMyApps`), que no pinta pantallas; los datos van p
 
 ## Lo que aún no existe
 
-Las tarjetas de entidad, la tarjeta de cifra, la baldosa táctil genérica, la comanda y el panel de ajustes están en
-diseño. La fila como tarjeta ya existe: es la tarjeta del propio `DataTable`, y no se monta a mano. De la baldosa
+Las tarjetas de entidad, la tarjeta de cifra, la baldosa táctil genérica y el panel de ajustes están en diseño. La fila como tarjeta ya existe: es la tarjeta del propio `DataTable`, y no se monta a mano. De la baldosa
 táctil (una superficie, un único toque) ya existe la de la mesa en el teléfono, `FloorCard`; la mesa que se arrastra en
 el plano, `FloorTile`, no es un tipo de tarjeta. Mientras no existan, no se maqueta una tarjeta
 nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño de la pieza común.
