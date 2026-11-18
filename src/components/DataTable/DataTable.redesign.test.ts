@@ -85,4 +85,9 @@ describe('identity columns keep their reading width', () => {
     expect(measured(300, true)).toBe('minmax(min(10rem,300px),300px)');
     expect(measured(100, true)).toBe('minmax(min(10rem,100px),100px)');
   });
+
+  it('a text measured within the common floor (a short date) keeps that floor, never 10rem, whole or cut', () => {
+    expect(measured(0, false)).toBe('minmax(5.5rem,1.4fr)');
+    expect(measured(0, true)).toBe('minmax(5.5rem,1.4fr)');
+  });
 });

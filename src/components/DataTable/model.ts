@@ -296,8 +296,8 @@ export function gridTemplate<T>(input: {
   columns: readonly DataTableColumn<T>[];
   hasActions: boolean;
   actionsTrackPx: number;
-  /** px a column without its own width asks for to hold its content whole, by key (0 or missing = its
-   *  floor holds it, or not measured yet). */
+  /** px a column without its own width asks for to hold its content whole, by key (0 = the common floor
+   *  holds it; missing = not measured yet). */
   contentWidths?: Readonly<Record<string, number>>;
   /** The row has no room for every column whole: they may cut their text. */
   clipped?: boolean;
@@ -306,7 +306,7 @@ export function gridTemplate<T>(input: {
     if (c.width != null) return c.width;
     const need = input.contentWidths?.[c.key] ?? 0;
     const identity = c.identity || c.priority === 'high';
-    const floor = c.minWidth ?? (identity ? '10rem' : '5.5rem');
+    const floor = c.minWidth ?? (identity && input.contentWidths?.[c.key] !== 0 ? '10rem' : '5.5rem');
     const share = identity ? '1.4fr' : '1fr';
     if (!(need > 0)) return `minmax(${floor},${share})`;
     // Whole while the row has room, sharing what is left; when cut, down to the floor and never past
