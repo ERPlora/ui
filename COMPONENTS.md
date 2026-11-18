@@ -42,11 +42,14 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 
 ### `DataTable`
 `import { DataTable } from '@erplora/ui/components'`
-- **Para qué sirve:** la lista de registros de una pantalla: búsqueda, filtros por columna, orden, páginas (en el cliente o en el servidor), acciones de fila y selección; lo que no cabe se pliega y en el teléfono pasa a tarjetas.
+- **Para qué sirve:** la lista de registros de una pantalla: búsqueda, filtros por columna, orden, acciones de fila, interruptor de estado y selección. Lo que cabe lo decide su propia caja: primero retira las columnas `priority: 'low'`, después las acciones que no están fijadas y, si `views` ofrece tarjetas, pasa a tarjetas; en el teléfono (hasta `cardBreakpoint`, 640 px) son tarjetas siempre que `views` las ofrezca. La lista vacía, la búsqueda sin resultados y la carga fallida se pintan con `EmptyState` e `InlineFeedback`.
+- **Acciones de fila:** como mucho dos botones visibles por fila, de solo icono, con la etiqueta como nombre accesible y como título (`showLabel` pinta también el texto; una acción sin icono, su texto). La fijada (`pinned`) va primero; el resto, y siempre las delicadas (`menuOnly`), van al menú «⋮» de la fila, con icono y texto, que solo aparece si le queda algo. La tarjeta lleva su acción principal con texto a todo el ancho y el «⋮» al lado.
+- **Interruptor:** la opción `toggle` de una columna enciende o apaga la fila con un `ion-toggle` (al principio de la celda en la lista, al final de la cabecera de la tarjeta), con su nombre accesible, su progreso y su motivo debajo; al moverlo emite `toggle`, y si el cambio se cancela o falla vuelve al estado real. `hidden` lo quita en una fila y deja su motivo.
+- **Tarjetas y scroll infinito:** el tipo de tarjeta «fila como tarjeta» es la tarjeta del propio `DataTable` y no se monta a mano: la identidad de la columna `identity` en la cabecera, el estado (columna `state` o `status`) como etiqueta, la descripción (`summary` o `description`) a todo el ancho y los demás datos en líneas con el icono de `cardIcon`, sin pintar los vacíos; el slot `card` cambia su cuerpo. Las tarjetas y la lista del teléfono cargan las siguientes al llegar al final (`ion-infinite-scroll`; en modo servidor emiten `loadMore`): ya no hay «Cargar más». La lista de escritorio conserva su paginador.
 - **Úsalo cuando** una pantalla lista registros de una entidad; el alta va por `addable` (emite `add` y la página abre su formulario).
-- **No lo uses cuando** son unos pocos puntos fijos sin búsqueda ni acciones → `ion-list`.
-- **API:** `columns`, `rows`, `rowKey`, `loading`, `error`, `searchable`, `filters`/`filterFields` (tipos `text`, `select`, `date`, `daterange`, `range`, `boolean` y `lookup`, uno entre muchos), `serverSide` con `total`/`page`/`sort`/`maxWindow`, `actions`, `addable`, `rowClickable`, `selectable`, `views`, `fill`, `testid`; slots de celda (el `cell` de cada columna), `card`, `row-actions`, `toolbar`, `filters`, `empty`; eventos `add`, `action`, `rowClick`, `pageChange`, `pageSizeChange`, `sortChange`, `loadMore`, `retry`, `update:search`, `update:filters`.
-- **Ionic:** `ion-searchbar`, `ion-select`, `ion-checkbox`, `ion-segment`, `ion-popover`, `ion-card`, `ion-chip`, `ion-button`, `ion-spinner`.
+- **No lo uses cuando** son unos pocos puntos fijos sin búsqueda ni acciones → `ion-list`; una tarjeta de registro fuera de una lista: aún no existe (ver al final).
+- **API:** `columns` (con `identity`, `cardIcon`, `toggle`, `priority`, `cell`, `filter`…), `rows`, `rowKey`, `loading`, `error`, `searchable`, `filters`/`filterFields` (tipos `text`, `select`, `date`, `daterange`, `range`, `boolean` y `lookup`, uno entre muchos), `serverSide` con `total`/`page`/`sort`/`maxWindow`, `actions` (`id`, `label`, `icon`, `showLabel`, `color`, `disabled`, `loading`, `hidden`, `pinned`, `menuOnly`), `maxInlineActions` (2, el máximo), `addable`, `primaryAction`, `rowClickable`, `selectable`, `views`, `cardBreakpoint`, `entityLabel`, `fill`, `testid`; slots de celda (el `cell` de cada columna), `card`, `row-actions` (solo para un control que no puede ser una acción: nunca se pliega), `toolbar`, `filters`, `empty`; eventos `add`, `action`, `toggle`, `rowClick`, `pageChange`, `pageSizeChange`, `sortChange`, `loadMore`, `retry`, `update:search`, `update:filters`. Las pruebas de una página leen y pulsan las acciones de una fila, estén en sus botones o en su «⋮», con `offeredRowActions` y `pressRowAction` de `@erplora/ui/testing/data-table`.
+- **Ionic:** `ion-searchbar`, `ion-select`, `ion-checkbox`, `ion-segment`, `ion-popover`, `ion-list` e `ion-item` (el «⋮»), `ion-card`, `ion-chip`, `ion-toggle`, `ion-infinite-scroll`, `ion-button`, `ion-spinner`.
 
 ### `AlignedCardGrid`
 `import { AlignedCardGrid } from '@erplora/ui/components'`
@@ -364,8 +367,9 @@ impresora del dispositivo, `useMyApps`), que no pinta pantallas; los datos van p
 ## Lo que aún no existe
 
 Las tarjetas de entidad, la tarjeta de cifra, la baldosa táctil genérica, la comanda y el panel de ajustes están en
-diseño. De la baldosa táctil (una superficie, un único toque) ya existe la de la mesa en el teléfono, `FloorCard`; la
-mesa que se arrastra en el plano, `FloorTile`, no es un tipo de tarjeta. Mientras no existan, no se maqueta una tarjeta
+diseño. La fila como tarjeta ya existe: es la tarjeta del propio `DataTable`, y no se monta a mano. De la baldosa
+táctil (una superficie, un único toque) ya existe la de la mesa en el teléfono, `FloorCard`; la mesa que se arrastra en
+el plano, `FloorTile`, no es un tipo de tarjeta. Mientras no existan, no se maqueta una tarjeta
 nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño de la pieza común.
 
 ## Reglas
