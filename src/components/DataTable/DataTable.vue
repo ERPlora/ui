@@ -315,7 +315,7 @@ const layout = useDataTableLayout({
   defaultView: () => props.defaultView,
   hasActions: () => hasActions.value,
   fitSteps: () => fitSteps.value,
-  clipKeys: () => visibleColumns.value.filter((c) => c.width == null).map((c) => c.key),
+  clipColumns: () => visibleColumns.value.filter((c) => c.width == null),
   columnKeys: () => listColumns.value.map((c) => (c.width == null ? c.key : null)),
   rowsKey: () => pager.value.visible.map((row) => keyOf(row)).join('\u241f'),
   deps: () => [props.columns, props.actions, columnChoice.value, props.selectable, props.maxInlineActions, fitStepsKey.value],

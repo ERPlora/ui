@@ -67,7 +67,7 @@ describe('identity columns keep their reading width', () => {
     expect(result).toBe('minmax(10rem,1.4fr) minmax(5.5rem,1fr)');
   });
 
-  const measured = (need: number, clipped: boolean) =>
+  const measured = (need: number, clipped: boolean | 'tight') =>
     gridTemplate({
       selectable: false,
       columns: [{ key: 'name', label: 'Name', priority: 'high' }],
@@ -84,6 +84,10 @@ describe('identity columns keep their reading width', () => {
   it('cut, a name keeps 10rem before its text is cut, or its whole text when shorter', () => {
     expect(measured(300, true)).toBe('minmax(min(10rem,300px),300px)');
     expect(measured(100, true)).toBe('minmax(min(10rem,100px),100px)');
+  });
+
+  it('cut to the bone (`tight`), a name gives up its 10rem down to the common floor', () => {
+    expect(measured(300, 'tight')).toBe('minmax(5.5rem,300px)');
   });
 
   it('a text measured within the common floor (a short date) keeps that floor, never 10rem, whole or cut', () => {

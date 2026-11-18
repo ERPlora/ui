@@ -299,8 +299,8 @@ export function gridTemplate<T>(input: {
   /** px a column without its own width asks for to hold its content whole, by key (0 = the common floor
    *  holds it; missing = not measured yet). */
   contentWidths?: Readonly<Record<string, number>>;
-  /** The row has no room for every column whole: they may cut their text. */
-  clipped?: boolean;
+  /** The row has no room for every column whole: they may cut their text (`'tight'`: a name below its 10rem too). */
+  clipped?: boolean | 'tight';
 }): string {
   const track = (c: DataTableColumn<T>): string => {
     if (c.width != null) return c.width;
@@ -316,7 +316,7 @@ export function gridTemplate<T>(input: {
   };
   return [
     input.selectable ? '2.75rem' : null,
-    ...input.columns.map(track),
+    ...input.columns.map((c) => track(input.clipped === 'tight' && !c.minWidth ? { ...c, minWidth: '5.5rem' } : c)),
     // A LENGTH, not `max-content`: header and rows are separate grids sharing this string, and
     // a content-sized track resolves against each one's content (the header slid off its columns).
     // `max-content` only until the first measurement of the buttons lands.

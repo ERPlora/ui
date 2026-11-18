@@ -1,6 +1,7 @@
 // Measurements run after render and resize, and write only on change, so none schedules a render loop.
 import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, type Ref, ref, watch } from 'vue';
 
+import { ladderLength, type LadderColumn, ladderPhases, ladderRung } from './fitLadder';
 import { fitWholeRows } from './fitWholeRows';
 import type { DataTableView } from './types';
 
@@ -77,19 +78,6 @@ export function decideRowActionsFit(input: RowActionsFitInput): RowActionsFitDec
   const { containerWidth, contentWidth, collapsed, decidedAtWidth } = input;
   const next = decideFitLevel({ containerWidth, contentWidth, level: collapsed ? 1 : 0, steps: 1, decidedAtWidth, settled: true });
   return { collapsed: next.level > 0, decidedAtWidth: next.decidedAtWidth };
-}
-
-/** A rung of the ladder: how many of its steps are given up (`base`) and
- *  whether the columns may cut their text to fit (`clipped`). With `clip` (a column needs more than its floor)
- *  every step is first tried with each column whole, then cut: whole, cut, step 1 whole, step 1 cut… Without
- *  it each rung is one step and nothing is held whole. PURE. */
-export function ladderRung(level: number, clip: boolean): { base: number; clipped: boolean } {
-  return clip ? { base: Math.floor(level / 2), clipped: level % 2 === 1 } : { base: level, clipped: false };
-}
-
-/** The top rung of a ladder of `steps` steps (see `ladderRung`). */
-export function ladderLength(steps: number, clip: boolean): number {
-  return clip ? 2 * steps + 1 : steps;
 }
 
 /** The px a column asks for to hold its content whole: nothing while its
@@ -173,8 +161,8 @@ export interface DataTableLayoutSource {
   /** The table's ladder, in order. Default: `['foldAll']`, the row actions folded alone. */
   fitSteps?: () => readonly DataTableFitStep[];
   /** The visible columns sized by their content, those a rung hides too: one
-   *  that asks for more than its floor (`contentWidths`) makes every rung be tried whole first (`ladderRung`). */
-  clipKeys?: () => readonly string[];
+   *  that asks for more than its floor (`contentWidths`) makes every rung be tried whole first (`ladderPhases`). */
+  clipColumns?: () => readonly LadderColumn[];
   /** The list's columns in the order they are painted: the key of one sized
    *  by its content, `null` for one with its own width (never measured). */
   columnKeys?: () => readonly (string | null)[];
@@ -207,11 +195,11 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   /** Rung of the ladder on screen (0 = the whole list; `ladderRung` reads it). */
   const fitLevel = ref(0);
   const fitSteps = (): readonly DataTableFitStep[] => source.fitSteps?.() ?? ['foldAll'];
-  const clip = computed(() => (source.clipKeys?.() ?? []).some((key) => (contentWidths.value[key] ?? 0) > 0));
-  const rung = computed(() => ladderRung(fitLevel.value, clip.value));
+  const phases = computed(() => ladderPhases(source.clipColumns?.() ?? [], contentWidths.value));
+  const rung = computed(() => ladderRung(fitLevel.value, phases.value));
   /** Is `step` given up right now? */
   const fitApplied = (step: DataTableFitStep): boolean => fitSteps().slice(0, rung.value.base).includes(step);
-  /** The columns may cut their text: the rung whole did not fit. */
+  /** The columns may cut their text (`'tight'`: the name down to the common floor too): the rung whole did not fit. */
   const columnsClipped = computed(() => rung.value.clipped);
   const lowColumnsHidden = computed(() => fitApplied('hideLow'));
   const rowActionsCollapsed = computed(() => fitApplied('foldAll'));
@@ -422,7 +410,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     }
     const containerWidth = scroll.clientWidth;
     const contentWidth = scroll.scrollWidth;
-    const steps = ladderLength(fitSteps().length, clip.value);
+    const steps = ladderLength(fitSteps().length, phases.value);
     const atTop = fitLevel.value >= steps;
     const foldedOnScreen = atTop && fitDecidedAtWidth === containerWidth && !renderPending && pinnedTrackIsHonest();
     const next = decideFitLevel({

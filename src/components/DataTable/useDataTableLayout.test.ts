@@ -11,8 +11,6 @@ import {
   decideCardsForFit,
   decideFitLevel,
   decideRowActionsFit,
-  ladderLength,
-  ladderRung,
   nextNeeds,
   sameNeeds,
   useDataTableLayout,
@@ -179,34 +177,7 @@ describe('decideFitLevel: the list gives up one step at a time, judged by its bo
 const FOLDED_MIN = 748;
 const idle = { fitCards: false, fitWidth: 0 };
 
-// ── ladderRung / columnNeed ─────────────────────────────────────────────────────────────────────
-// Cart & Checkout › Orders at 834px cut «ana@example.c…» beside a half-empty Payment: before giving anything up,
-// each step of the ladder is tried with every column whole, and only then with the widest text cut.
-describe('ladderRung: each step of the ladder is first tried with every column whole', () => {
-  it('no column needs more than its floor: the ladder of before, nothing cut', () => {
-    expect([0, 1, 2, 3].map((level) => ladderRung(level, false))).toEqual([
-      { base: 0, clipped: false },
-      { base: 1, clipped: false },
-      { base: 2, clipped: false },
-      { base: 3, clipped: false },
-    ]);
-    expect(ladderLength(3, false)).toBe(3);
-  });
-  it('one does: whole, then cut, before each step gives anything else up; the top is the fold cut', () => {
-    expect([0, 1, 2, 3, 4, 5, 6].map((level) => ladderRung(level, true))).toEqual([
-      { base: 0, clipped: false },
-      { base: 0, clipped: true },
-      { base: 1, clipped: false },
-      { base: 1, clipped: true },
-      { base: 2, clipped: false },
-      { base: 2, clipped: true },
-      { base: 3, clipped: false },
-    ]);
-    expect(ladderLength(3, true)).toBe(7);
-    expect(ladderLength(0, true), 'a table with nothing to fold can still cut').toBe(1);
-  });
-});
-
+// ── columnNeed ─────────────────────────────────────────────────────────────────────────────────
 describe('columnNeed: what a column asks beyond its floor', () => {
   it('content within the floor asks nothing; wider, its width rounded up plus a pixel of slack', () => {
     expect(columnNeed(0, 88)).toBe(0);
