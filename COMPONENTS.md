@@ -245,7 +245,7 @@ habla de un sitio concreto de la pantalla → en línea.
 
 ### `AppTopbar`, `useTopbarMenu`
 `import { AppTopbar, useTopbarMenu } from '@erplora/ui/shell'`
-- **Para qué sirve:** la barra superior del shell: menú, título, sección, Atrás, las acciones de la vista, «Mis apps» (con la barra lateral del Hub), la pieza de barra del proyecto (`chrome.topbar` de `createShell`, el botón del asistente) y la campana del centro de avisos (con `createShell({ actionNotices })`). En el teléfono (hasta 767 px) la derecha lleva como mucho dos botones y la campana es uno de ellos; el título queda centrado mientras cabe.
+- **Para qué sirve:** la barra superior del shell: el botón del menú (solo donde el shell pinta el menú lateral; sin sesión, o en una pantalla con su propio marco, queda oculto), título, sección, Atrás, las acciones de la vista, «Mis apps» (con la barra lateral del Hub), la pieza de barra del proyecto (`chrome.topbar` de `createShell`, el botón del asistente) y la campana del centro de avisos (con `createShell({ actionNotices })`). En el teléfono (hasta 767 px) la derecha lleva como mucho dos botones y la campana es uno de ellos; el título queda centrado mientras cabe.
 - **El «⋮»:** el «⋮» único de la barra en el teléfono. Cuando las acciones de la vista, «Mis apps» y la pieza del proyecto no caben junto a la campana, o la vista trae dos o más acciones, van todas a él, una fila cada una; una app no pone su propio botón de «más».
 - **Úsalo cuando** una vista monta su propio `ion-page` y no puede usar `AppPage`; `useTopbarMenu` solo lo llama la pieza de barra del proyecto.
 - **No lo uses cuando** es una pantalla normal → `AppPage`, que ya la pinta.
