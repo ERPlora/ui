@@ -1,5 +1,8 @@
+import { defineComponent, h, provide } from 'vue';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import HubIcon from '../../shell/HubIcon.vue';
+import { TOPBAR_MENU_KEY } from '../../shell/topbar-menu';
 import { accessibleName, configure, flush, memoryStorage, mountAssistant, OWNER } from './__tests__/mount-assistant';
 import AssistantButton from './AssistantButton.vue';
 import { configureAssistant } from './config';
@@ -36,6 +39,32 @@ describe('AssistantButton', () => {
     expect(pressed(wrapper.get('[data-testid="assistant-button"]').element)).toBe('true');
     await wrapper.get('[data-testid="assistant-button"]').trigger('click');
     expect(assistant.state.open).toBe(false);
+  });
+
+  // In the menu the panel waits for the menu to go: opened at once, it lost the keyboard to the menu's focus trap.
+  it('listed in the bar «⋮» of a phone: a row with its label, that opens the panel once the menu has gone', async () => {
+    let afterClose: (() => void) | undefined;
+    const InMenu = defineComponent({
+      setup() {
+        provide(TOPBAR_MENU_KEY, { closeThen: (action: () => void) => (afterClose = action) });
+        return () => h(AssistantButton);
+      },
+    });
+    const { wrapper } = await mountAssistant(InMenu, { locale: 'es' });
+    const row = wrapper.get('[data-testid="assistant-button"]');
+    expect(row.text()).toBe('Asistente');
+    expect(row.getComponent(HubIcon).attributes('slot')).toBe('start');
+    await row.trigger('click');
+    expect(assistant.state.open).toBe(false);
+    afterClose?.();
+    expect(assistant.state.open).toBe(true);
+  });
+
+  it('in the bar itself, the sparkles alone', async () => {
+    const { wrapper } = await mountAssistant(AssistantButton);
+    const button = wrapper.get('[data-testid="assistant-button"]');
+    expect(button.text()).toBe('');
+    expect(button.getComponent(HubIcon).attributes('slot')).toBe('icon-only');
   });
 
   it('not there for a person the host does not let use the assistant', async () => {

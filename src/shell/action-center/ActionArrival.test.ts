@@ -96,6 +96,23 @@ describe('ActionArrival', () => {
     expect(card.get('.action-arrival__line').text()).toBe('3 days left');
   });
 
+  // A counter of the hub («3 appointments to confirm») brings no phrase and no chip: an empty line left a gap
+  // between the title and the button.
+  it('without a phrase or a chip keeps no line under the title: icon, title and its button', async () => {
+    mountArrival();
+    await show({ ...notice, body: undefined, chip: undefined });
+    const card = wrapper!.get('[data-testid="action-arrival"]');
+    expect(card.find('.action-arrival__line').exists()).toBe(false);
+    expect(card.get('h3').text()).toBe('An invoice needs paying');
+    expect(card.get('.action-arrival__action').text()).toBe('Pay invoice');
+    // Alone, the title sits on the middle of its icon: at its top it left the icon's height empty under it.
+    expect(card.get('.action-arrival__top').classes()).toContain('is-title-only');
+    const css = componentCss(`${__dirname}/ActionArrival.vue`);
+    expect(declaration(css, '.action-arrival__top.is-title-only', 'align-items')).toBe('center');
+    await show({ ...notice, id: 'with-phrase' });
+    expect(wrapper!.get('.action-arrival__top').classes()).not.toContain('is-title-only');
+  });
+
   it('does not steal focus', async () => {
     const outside = document.createElement('button');
     outside.textContent = 'Current screen';

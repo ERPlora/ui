@@ -98,6 +98,18 @@ describe('ActionFeatured', () => {
     expect(declaration(css, '.action-featured__ring::before', 'mask')).toContain('radial-gradient');
   });
 
+  // The phrase carried the room above the button, so a notice without one glued its button to the title.
+  it('without a phrase, a figure or a deadline paints none of them and keeps its button apart from the title', () => {
+    const wrapper = mountFeatured({ body: undefined, figure: undefined, due: undefined });
+    expect(wrapper.find('.action-featured__body').exists()).toBe(false);
+    expect(wrapper.find('.action-featured__data').exists()).toBe(false);
+    expect(wrapper.get('.action-featured__primary').text()).toContain('Pay invoice');
+    const css = componentCss(`${__dirname}/ActionFeatured.vue`);
+    expect(declaration(css, '.action-featured__body', 'margin')).toBe('4px 0 0');
+    expect(declaration(css, '.action-featured__actions', 'margin-top')).toBe('14px');
+    expect(declaration(css, '.action-featured__done', 'margin-top')).toBe('14px');
+  });
+
   it('paints a notice without a primary action with no buttons at all', () => {
     const wrapper = mountFeatured({ action: undefined });
     expect(wrapper.findAll('ion-button')).toHaveLength(0);

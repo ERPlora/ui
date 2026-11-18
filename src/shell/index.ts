@@ -122,6 +122,8 @@ export type { Surface, SurfaceState, SurfaceWindow } from './surface';
 export { bindTabbar, syncTabbarOverflow, tabbarOverflow } from './tabbar';
 export type { ShellTab, TabbarOverflow } from './tabbar';
 export { bindTabbarPeek } from './tabbar-peek';
+export { useTopbarMenu } from './topbar-menu';
+export type { TopbarMenu } from './topbar-menu';
 export { provideUserMenu, USER_MENU_KEY, useUserMenu } from './user-menu';
 export type { ShellUserMenu, ShellUserMenuItem } from './user-menu';
 export { createShellI18n, SHELL_LOCALES, shellLocale } from './i18n';

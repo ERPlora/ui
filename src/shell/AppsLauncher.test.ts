@@ -62,9 +62,11 @@ function mountLauncher(
   status: SessionStatus = 'live',
   locale = 'en',
   config: ShellConfig = { homePath: '/' },
+  props: Record<string, unknown> = {},
 ) {
   const session = ref<SessionMe | undefined>(data ?? undefined);
   const wrapper = mount(AppsLauncher, {
+    props,
     global: {
       plugins: [router, createShellI18n({ locale })],
       provide: { [SESSION_KEY as symbol]: createShellSession(session, ref(status)), [SHELL_CONFIG_KEY as symbol]: config },
@@ -171,6 +173,20 @@ describe('AppsLauncher (the topbar door to the apps: «My apps» sheet, nav laun
     ionModalStubOf(sheet(wrapper).element).dismiss('backdrop');
     await flushPromises();
     expect(trigger(wrapper).attributes('aria-expanded')).toBe('false');
+    wrapper.unmount();
+  });
+
+  // On a phone «My apps» is a row of the bar's «⋮»: the bar keeps the sheet and opens it from there.
+  it('without its own button, its sheet opens and closes through `open` (v-model)', async () => {
+    const closed = vi.fn();
+    const { wrapper } = mountLauncher(me(), 'live', 'en', { homePath: '/' }, { showButton: false, 'onUpdate:open': closed });
+    expect(wrapper.find('[data-testid="topbar-apps"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="apps-launcher"]').exists()).toBe(true);
+    await wrapper.setProps({ open: true });
+    await flushPromises();
+    expect(tiles(wrapper)).toHaveLength(3);
+    await wrapper.get('[data-testid="apps-launcher-close"]').trigger('click');
+    expect(closed).toHaveBeenLastCalledWith(false);
     wrapper.unmount();
   });
 

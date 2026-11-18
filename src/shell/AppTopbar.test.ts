@@ -9,6 +9,7 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { unnamedButtons, unnamedIcons } from '../testing/a11y';
+import { IonPopoverStub } from './__tests__/ionPopoverStub';
 import AppTopbar from './AppTopbar.vue';
 import { IonModalStub } from '../components/FormModal/__tests__/ionModalStub';
 import HubIcon from './HubIcon.vue';
@@ -153,24 +154,15 @@ describe('AppTopbar: a long title never covers the buttons', () => {
     );
   });
 
-  it('on a phone (≤767 px) each button group takes only what its buttons need, both alike, and the title the rest', () => {
-    // At 390 the three thirds left the title 127 px between two groups of two icons.
+  it('on a phone (≤767 px) the title takes what its text needs and both groups the rest alike: centred while it fits', () => {
+    // Three thirds left the title 127 px at 390; groups of a fixed width put it off centre beside the bell's pill.
     const phone = /@media\s*\(max-width:\s*767px\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     const rule = (selector: string) =>
       (new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(phone)?.[1] ?? '')
         .replace(/\s+/g, ' ')
         .trim();
-    expect(rule('.app-topbar ion-toolbar.ios > ion-buttons')).toContain('flex: 0 0 auto;');
-    expect(rule('.app-topbar ion-toolbar.ios > ion-buttons')).toContain('min-width: 5.5rem;');
-  });
-
-  it('lists each folded action with its label at the start, as a menu (not centred like a bar button)', () => {
-    // Ionic centres the label in `.button-inner`, a box as wide as the button that no `::part` reaches; a
-    // `justify-content` on `native` alone changed nothing (measured at 375: «Edit» 85 px in, «Delete» 74 px
-    // in). As a grid whose track does not stretch, `native` sizes that box to the label and leads with it.
-    const rule = /\.topbar-more :deep\(ion-button\)::part\(native\)\s*\{([^}]*)\}/.exec(css)?.[1]?.replace(/\s+/g, ' ').trim() ?? '';
-    expect(rule).toContain('display: grid;');
-    expect(rule).toContain('justify-content: start;');
+    expect(rule('.app-topbar ion-toolbar.ios::part(content)')).toBe('flex: 0 1 auto;');
+    expect(rule('.app-topbar ion-toolbar.ios > ion-buttons')).toBe('');
   });
 
   it('scopes the rules to this component, and they reach the rendered title and button groups', () => {
@@ -183,17 +175,6 @@ describe('AppTopbar: a long title never covers the buttons', () => {
     expect(scope(wrapper.get('ion-title').element)).toContain(id);
     for (const group of wrapper.findAll('ion-buttons')) expect(scope(group.element)).toContain(id);
   });
-});
-
-/** `ion-popover` presents itself only in a real browser: the stub shows its content while open. */
-const PopoverStub = defineComponent({
-  name: 'IonPopover',
-  inheritAttrs: false,
-  props: { isOpen: Boolean, event: { type: null, default: undefined }, alignment: { type: String, default: undefined } },
-  emits: ['didDismiss'],
-  setup(props, { slots, attrs }) {
-    return () => (props.isOpen ? h('div', { ...attrs, 'data-stub': 'ion-popover' }, slots.default?.()) : null);
-  },
 });
 
 // The topbar with the hub's sidebar: the drawer button below lg, Back only on a detail (`backHref`:
@@ -241,7 +222,7 @@ describe("AppTopbar with the hub's sidebar", () => {
           [SHELL_CONFIG_KEY as symbol]: { homePath: '/', ...config },
           [SESSION_KEY as symbol]: createShellSession(ref(me ?? undefined), ref('live')),
         },
-        stubs: { IonModal: IonModalStub, IonPopover: PopoverStub },
+        stubs: { IonModal: IonModalStub, IonPopover: IonPopoverStub },
       },
     });
   }
@@ -321,9 +302,9 @@ describe("AppTopbar with the hub's sidebar", () => {
     expect(framed.find('[data-testid="topbar-rail"]').exists()).toBe(false);
   });
 
-  // The project's piece of the bar (the hub's bell) closes it, after «My apps»; it is authenticated
-  // chrome like the apps (useChromeVisible).
-  const Bell = { name: 'ProjectBell', render: () => h('button', { 'data-testid': 'bell', 'aria-label': 'Bell' }) };
+  // The project's piece of the bar (the assistant) comes after «My apps»; it is authenticated chrome like the apps
+  // (useChromeVisible).
+  const Bell = defineComponent({ name: 'ProjectPiece', render: () => h('button', { 'data-testid': 'bell', 'aria-label': 'Bell' }) });
 
   it("ends with the project's piece of the bar, after the view actions and «My apps»", () => {
     const wrapper = mountHubTopbar(
@@ -409,7 +390,7 @@ describe('AppTopbar: on a phone, two or more actions fold into «More actions» 
     return mount(AppTopbar, {
       props: { title: 'Table 4', backHref: '/demo/items' },
       slots: { actions: slot },
-      global: { plugins: [router, createShellI18n({ locale })], stubs: { IonPopover: PopoverStub } },
+      global: { plugins: [router, createShellI18n({ locale })], stubs: { IonPopover: IonPopoverStub } },
     });
   }
 

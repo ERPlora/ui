@@ -20,6 +20,8 @@ const gesturing = shallowRef(false);
 const drag = shallowRef(0);
 const flying = shallowRef(false);
 const paused = computed(() => hovered.value || focused.value || gesturing.value);
+/** The one line under the title: the phrase, or the chip without one; a hub counter brings neither. */
+const line = computed(() => arrival.value?.body || arrival.value?.chip);
 let swipe: ReturnType<typeof createSwipe> | undefined;
 let suppressClick = false;
 
@@ -126,7 +128,10 @@ onBeforeUnmount(() => {
           @keydown.enter.prevent="open"
           @keydown.space.prevent="open"
         >
-          <div class="action-arrival__top">
+          <div
+            class="action-arrival__top"
+            :class="{ 'is-title-only': !line }"
+          >
             <span class="action-arrival__symbol">
               <HubIcon
                 class="action-arrival__icon"
@@ -135,8 +140,11 @@ onBeforeUnmount(() => {
             </span>
             <div>
               <h3>{{ arrival.title }}</h3>
-              <p class="action-arrival__line">
-                {{ arrival.body || arrival.chip }}
+              <p
+                v-if="line"
+                class="action-arrival__line"
+              >
+                {{ line }}
               </p>
             </div>
           </div>
@@ -205,6 +213,7 @@ onBeforeUnmount(() => {
 .action-arrival__body { cursor: pointer; border-radius: 14px; }
 .action-arrival__body:focus-visible { outline: 2px solid var(--tone); outline-offset: 4px; }
 .action-arrival__top { display: flex; align-items: flex-start; gap: 12px; }
+.action-arrival__top.is-title-only { align-items: center; }
 .action-arrival__symbol {
   display: grid;
   place-items: center;

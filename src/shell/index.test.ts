@@ -137,6 +137,10 @@ describe('shell barrel', () => {
     expect(shell.iconName('mdi:account')).toBe('mdi:account');
   });
 
+  it("exports the bar's phone menu, so a project's piece of the bar paints itself as a row of «⋮»", () => {
+    expect(shell.useTopbarMenu).toBeTypeOf('function');
+  });
+
   it('exports the Home route and the Hub logout for the user menu', () => {
     for (const name of ['HOME_ROUTE', 'logout']) {
       expect(shell, name).toHaveProperty(name);
