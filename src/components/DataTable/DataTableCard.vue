@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends object">
 import { IonCard, IonCardContent, IonCardHeader, IonCheckbox, IonIcon } from '@ionic/vue';
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 
 import HubIcon from '../../shell/HubIcon.vue';
 import { ionIconSrc } from '../../shell/icons';
@@ -10,47 +10,29 @@ import DataTableIdentity from './DataTableIdentity.vue';
 import DataTableRowActions from './DataTableRowActions.vue';
 import DataTableToggle from './DataTableToggle.vue';
 import { cellText } from './model';
-import type { DataTableAction, DataTableActionCell, DataTableColumn, DataTableToggleEvent } from './types';
+import type { DataTableColumn } from './types';
+import { DATA_ROW_DEFAULTS, type DataRowEmits, type DataRowProps, useDataRow } from './useDataRow';
 
 const props = withDefaults(
-  defineProps<{
-    row: T;
-    rows?: T[];
-    rowId: string;
+  defineProps<DataRowProps<T> & {
     title: string | number;
     titleColumn?: DataTableColumn<T>;
     icon?: string;
     fields?: DataTableColumn<T>[];
-    actions: DataTableActionCell<T>;
-    selectable?: boolean;
-    selected?: boolean;
-    clickable?: boolean;
-    hasActions?: boolean;
-    selectLabel?: string;
-    moreLabel?: string;
-    testid?: string;
   }>(),
-  { rows: undefined, titleColumn: undefined, icon: undefined, fields: () => [], selectable: false, selected: false, clickable: false, hasActions: false, selectLabel: 'Select', moreLabel: 'More actions', testid: undefined },
+  { ...DATA_ROW_DEFAULTS, titleColumn: undefined, icon: undefined, fields: () => [] },
 );
 
-const emit = defineEmits<{
-  open: [row: T];
-  select: [key: string];
-  action: [payload: { action: DataTableAction<T>; row: T }];
-  menu: [event: Event, row: T];
-  toggle: [payload: DataTableToggleEvent<T>];
-}>();
+const emit = defineEmits<DataRowEmits<T>>();
 defineSlots<{ card?: (props: { row: T }) => unknown; 'row-actions'?: (props: { row: T }) => unknown; [cell: string]: unknown }>();
 
-const unfolded = ref(new Set<string>());
-let pointerType = '';
+const { valueOf, isUnfolded, open, onKeydown, onPointerdown, onCellTap } = useDataRow<T>(props, (row) => emit('open', row));
+
 const iconSrc = ionIconSrc;
 /** The field whose switch sits at the end of the head; its note is a line of the body. */
 const toggleField = computed(() => props.fields.find((column) => column.toggle));
 const note = computed(() => toggleNote(toggleField.value?.toggle, props.row));
 const hasHead = () => !!(props.title || props.titleColumn || props.icon || props.selectable || hasToggle(toggleField.value?.toggle, props.row));
-const valueOf = (column: DataTableColumn<T>) => (props.row as Record<string, unknown>)[column.key];
-const cellId = (column: DataTableColumn<T>) => `${props.rowId}␟${column.key}`;
 const statusField = computed(() => props.fields.find((column) => ['state', 'status'].includes(column.key)));
 const descriptionField = computed(() => props.fields.find((column) => ['summary', 'description'].includes(column.key)));
 const metaFields = computed(() => props.fields.filter((column) => column !== statusField.value && column !== descriptionField.value && hasValue(column)));
@@ -60,21 +42,6 @@ function hasValue(column: DataTableColumn<T>): boolean {
   const text = cellText(column, props.row).trim();
   return text !== '' && text !== '—';
 }
-
-function open(): void {
-  if (props.clickable) emit('open', props.row);
-}
-function onKeydown(event: KeyboardEvent): void {
-  if (!props.clickable || !['Enter', ' ', 'Spacebar'].includes(event.key)) return;
-  event.preventDefault();
-  emit('open', props.row);
-}
-function onCellTap(event: MouseEvent, column: DataTableColumn<T>): void {
-  const span = event.currentTarget as HTMLElement;
-  if (props.clickable || pointerType !== 'touch' || span.scrollWidth <= span.clientWidth) return;
-  unfolded.value = new Set(unfolded.value).add(cellId(column));
-}
-watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
 </script>
 
 <template>
@@ -188,9 +155,9 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
             />
             <span
               v-else
-              :class="['data-table__field-text', { 'data-table__field-text--unfolded': unfolded.has(cellId(column)) }]"
+              :class="['data-table__field-text', { 'data-table__field-text--unfolded': isUnfolded(column) }]"
               :title="cellText(column, row) || undefined"
-              @pointerdown="pointerType = $event.pointerType"
+              @pointerdown="onPointerdown"
               @click="onCellTap($event, column)"
             >{{ cellText(column, row) }}</span>
           </span>

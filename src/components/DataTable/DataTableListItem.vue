@@ -1,62 +1,21 @@
 <script setup lang="ts" generic="T extends object">
 import { IonCheckbox } from '@ionic/vue';
-import { ref, watch } from 'vue';
 
 import { hasToggle, toggleNote, toggleState } from './columnToggle';
 import DataTableIdentity from './DataTableIdentity.vue';
 import DataTableRowActions from './DataTableRowActions.vue';
 import DataTableToggle from './DataTableToggle.vue';
 import { cellText } from './model';
-import type { DataTableAction, DataTableActionCell, DataTableColumn, DataTableToggleEvent } from './types';
+import type { DataTableColumn } from './types';
+import { DATA_ROW_DEFAULTS, type DataRowEmits, type DataRowProps, useDataRow } from './useDataRow';
 
-const props = withDefaults(
-  defineProps<{
-    row: T;
-    rows?: T[];
-    rowId: string;
-    columns: DataTableColumn<T>[];
-    template: string;
-    actions: DataTableActionCell<T>;
-    selectable?: boolean;
-    selected?: boolean;
-    clickable?: boolean;
-    hasActions?: boolean;
-    selectLabel?: string;
-    moreLabel?: string;
-    testid?: string;
-  }>(),
-  { rows: undefined, selectable: false, selected: false, clickable: false, hasActions: false, selectLabel: 'Select', moreLabel: 'More actions', testid: undefined },
-);
+const props = withDefaults(defineProps<DataRowProps<T> & { columns: DataTableColumn<T>[]; template: string }>(), DATA_ROW_DEFAULTS);
 
-const emit = defineEmits<{
-  open: [row: T];
-  select: [key: string];
-  action: [payload: { action: DataTableAction<T>; row: T }];
-  menu: [event: Event, row: T];
-  toggle: [payload: DataTableToggleEvent<T>];
-}>();
+const emit = defineEmits<DataRowEmits<T>>();
 defineSlots<{ 'row-actions'?: (props: { row: T }) => unknown; [cell: string]: unknown }>();
 
-const unfolded = ref(new Set<string>());
-let pointerType = '';
-const valueOf = (column: DataTableColumn<T>) => (props.row as Record<string, unknown>)[column.key];
-const cellId = (column: DataTableColumn<T>) => `${props.rowId}␟${column.key}`;
+const { valueOf, isUnfolded, open, onKeydown, onPointerdown, onCellTap } = useDataRow<T>(props, (row) => emit('open', row));
 const alignClass = (column: DataTableColumn<T>) => column.align ? `data-table__cell--${column.align}` : undefined;
-
-function open(): void {
-  if (props.clickable) emit('open', props.row);
-}
-function onKeydown(event: KeyboardEvent): void {
-  if (!props.clickable || !['Enter', ' ', 'Spacebar'].includes(event.key)) return;
-  event.preventDefault();
-  emit('open', props.row);
-}
-function onCellTap(event: MouseEvent, column: DataTableColumn<T>): void {
-  const span = event.currentTarget as HTMLElement;
-  if (props.clickable || pointerType !== 'touch' || span.scrollWidth <= span.clientWidth) return;
-  unfolded.value = new Set(unfolded.value).add(cellId(column));
-}
-watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
 </script>
 
 <template>
@@ -108,9 +67,9 @@ watch(() => [props.row, props.rows], () => { unfolded.value = new Set(); });
       />
       <span
         v-else
-        :class="['data-table__text', { 'data-table__text--unfolded': unfolded.has(cellId(column)) }]"
+        :class="['data-table__text', { 'data-table__text--unfolded': isUnfolded(column) }]"
         :title="cellText(column, row) || undefined"
-        @pointerdown="pointerType = $event.pointerType"
+        @pointerdown="onPointerdown"
         @click="onCellTap($event, column)"
       >{{ cellText(column, row) }}</span>
       <span
