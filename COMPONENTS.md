@@ -22,15 +22,21 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - confirmar algo que la persona acaba de hacer → `toastSuccess`, `toastError`…
 - un aviso que solo tiene sentido junto a lo que afecta (un error de carga, el rechazo de un formulario) → `InlineFeedback`
 - un aviso que exige una acción y sigue siendo verdad hasta que se resuelve → el centro de avisos del shell
-  (`createShell({ actionNotices })`, `ActionBell`), nunca un toast ni una caja suelta en la página
+  (`createShell({ actionNotices })`, `useActionCenter`), nunca un toast ni una caja suelta en la página
 - pedir confirmación antes de algo irreversible → `useConfirm` (o `ConfirmDialog`)
 - el estado de un registro en una etiqueta de color → `StatusPill`
 - cuánto se ha gastado de un límite / una cifra de uso → `UsageMeter` / `UsageCounter`
 - informar de un problema sin salir de la app → `ReportProblemModal`
 - la persona / un icono → `UserAvatar` / `HubIcon`
 - el marco de una pantalla (barra superior, Atrás, acciones, pestañas) → `AppPage`
+- las acciones de una pantalla en la barra → el slot `actions` de `AppPage`; en el teléfono van al «⋮» único de la
+  barra, nunca a un botón de «más» propio
 - algo que solo se enseña en la web (lo que vende) → `WebOnly` / `v-web-only`
-- el chat del asistente → `AssistantPanel`, `AssistantButton`, `AssistantEmpty`
+- el plano de mesas: el plano / el teléfono / la carga / el resumen de la zona / las zonas → `FloorTile` /
+  `FloorCards` / `FloorSkeleton` / `FloorSummary` / `FloorZoneTabs`; una mesa dibujada fuera del plano → `TableGlyph`
+- un vídeo de YouTube que no pide nada a Google hasta pulsarlo → `YouTubeEmbed`
+- el chat del asistente → `AssistantPanel`, `AssistantButton`, `AssistantEmpty`; un texto en Markdown que enlaza a
+  pantallas de la app → `AssistantMarkdown`
 
 ## Listas y tablas
 
@@ -65,7 +71,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **Para qué sirve:** un formulario corto en un diálogo, con Guardar y Cancelar, su estado de envío y el error del servidor (el mensaje arriba y el de cada campo en el slot).
 - **Úsalo cuando** se crea o edita algo de pocos campos sin salir de la pantalla.
 - **No lo uses cuando** el formulario de una entidad es largo → una página con `AppPage`; es una pregunta de sí o no → `useConfirm`.
-- **API:** `v-model:open`, `title`, `submitLabel`, `pending`, `error`, `size` (`sm`, `md`), `phoneLayout` (`sheet`, `card`), `submitDisabled`, `readonly`, `canDismiss`, `testid`; slot por defecto con `{ fieldErrors, pending }` y slot `footer`; eventos `submit` (no cierra: la página pone `open = false` cuando su orden sale bien) y `cancel`. `useRefusal` mantiene los errores de un rechazo mientras se corrige.
+- **API:** `v-model:open`, `title`, `submitLabel`, `pending`, `error`, `size` (`sm` 420 px, `md` 480 px, `lg` 640 px para una ventana de lectura), `phoneLayout` (`sheet`, `card`), `submitDisabled`, `readonly`, `canDismiss`, `testid`; slot por defecto con `{ fieldErrors, pending }` y slot `footer`; eventos `submit` (no cierra: la página pone `open = false` cuando su orden sale bien) y `cancel`. `useRefusal` mantiene los errores de un rechazo mientras se corrige.
 - **Ionic:** `ion-modal`, `ion-header`, `ion-toolbar`, `ion-title`, `ion-buttons`, `ion-button`, `ion-spinner`.
 
 ### `SettingsFormFooter`
@@ -144,6 +150,9 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 
 ## Estados y avisos
 
+Hay tres tipos de aviso. Regla para elegir: se resuelve solo → toast; exige una acción y persiste → centro de avisos;
+habla de un sitio concreto de la pantalla → en línea.
+
 ### `EmptyState`
 `import { EmptyState } from '@erplora/ui/components'`
 - **Para qué sirve:** decir que no hay datos, con un icono, un título, una frase y la acción para empezar.
@@ -152,21 +161,30 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **API:** props `icon`, `heading`, `message`; slot `action` (bajo el texto, normalmente un `ion-button`) y slot por defecto.
 - **Ionic:** `ion-icon`.
 
-### `InlineFeedback`
-`import { InlineFeedback } from '@erplora/ui/components'`
-- **Para qué sirve:** un aviso que se queda en el flujo de la pantalla (información, éxito, advertencia o error), con acciones a su lado.
-- **Úsalo cuando** tiene que seguir visible mientras dure lo que dice: un error de carga con «Reintentar», un rechazo, una advertencia.
-- **No lo uses cuando** confirma lo que la persona acaba de hacer → `toast`; exige una acción hasta resolverse → el centro de avisos (`ActionBell`); pregunta algo → `useConfirm`.
-- **API:** props `tone` (`info`, `success`, `warning`, `danger`, `neutral`), `heading`, `icon`, `dismissible` (evento `dismiss`), `role` (`status`, `alert`); slot por defecto y slot `actions`.
-- **Ionic:** `ion-icon`.
-
 ### `toast`, `toastSuccess`, `toastError`, `toastWarning`, `toastInfo`, `dismissToast`
 `import { toastSuccess, toastError, toast, dismissToast } from '@erplora/ui/shell'` (y `toastWarning`, `toastInfo`)
-- **Para qué sirve:** el aviso pasajero que confirma lo que la persona acaba de hacer. Lo pinta la pila que el shell monta una sola vez: ninguna pantalla monta un toast.
+- **Para qué sirve:** aviso efímero de una acción (guardado, error, información pasajera). La pantalla solo pasa datos (`message`, `tone`, `duration`, `id`, `action`); nunca se monta un `ion-toast` ni se usa `toastController` directo.
 - **Úsalo cuando** «Guardado», «No se pudo enviar» o un aviso con una acción («Deshacer») después de una orden.
-- **No lo uses cuando** el aviso solo tiene sentido junto a lo que afecta → `InlineFeedback`; exige una acción hasta resolverse → el centro de avisos (`ActionBell`); nunca un `ion-toast` ni un `toastController` propios.
+- **No lo uses cuando** el aviso solo tiene sentido junto a lo que afecta → `InlineFeedback`; exige una acción hasta resolverse → el centro de avisos (`useActionCenter`).
 - **API:** síncronas. `toast({ message, tone?, duration?, id?, action?: { label, run }, position?: 'bottom' | 'top' })` devuelve el id; `toastSuccess`, `toastError`, `toastInfo` y `toastWarning(message, options?)`; `dismissToast(id)` devuelve `false` si ya no estaba. Tonos `success`, `error`, `info` (por defecto) y `warning`; dura 3 s (éxito e info), 4 s (aviso) o 5 s (error), `duration: 0` lo deja fijo hasta cerrarlo y el mismo `id` sustituye al anterior.
-- **Ionic:** `ion-button` (acción y cerrar) dentro de la pila propia del shell; no usa `ion-toast`.
+- **Ionic:** `ion-button` (acción y cerrar), no `ion-toast`: los pinta la pila que el shell monta una sola vez, abajo y arriba en el centro: una píldora de cristal con el más nuevo delante y hasta dos asomando detrás, que con el ratón, el foco o un toque se despliega en lista y para sus tiempos, y que se descarta deslizándola. Un aviso nuevo entra al momento.
+
+### `useActionCenter`, `useQuietActionNotices`, `ActionBell`, `connectActionCenter`
+`import { useActionCenter, useQuietActionNotices } from '@erplora/ui/shell'`
+- **Para qué sirve:** avisos permanentes que exigen que el usuario haga algo y siguen siendo verdad al recargar (factura sin pagar, datos fiscales que faltan). La app entrega una fuente de `ActionNotice`; no monta campana, tira fija ni banner propios. La campana los resume y abre su panel; un aviso nuevo llega como tarjeta bajo la barra superior.
+- **Úsalo cuando** el proyecto da la fuente de sus avisos a `createShell({ actionNotices })`: el shell pinta la campana en `AppTopbar`, la tarjeta de llegada y el panel. `useQuietActionNotices` silencia las llegadas del centro de avisos mientras hay un flujo delicado abierto (el cobro).
+- **No lo uses cuando** confirma lo que la persona acaba de hacer → `toast`; solo tiene sentido junto a lo que afecta → `InlineFeedback`.
+- **Piezas internas:** `ActionBell` es una pieza interna del centro de avisos, como la tarjeta de llegada y el panel (que no se exportan); las monta el shell. Una app no las usa directamente.
+- **API:** `actionNotices: () => ({ notices, failed, retry? })`, con avisos `{ id, severity, icon, label, title, body?, figure?, chip?, count?, due?, action?, secondary? }`, `severity` `danger`, `warning` o `info` y acciones `{ label, to | href | run }`; `useQuietActionNotices(active)`: mientras `active`, un aviso nuevo no tapa la pantalla y solo late la campana; `useActionCenter()` lee su estado y lo abre (`total`, `openPanel(id?)`…); `connectActionCenter(source)` lo llama el shell, no una pantalla. `ActionBell` no tiene props.
+- **Ionic:** `ion-button`, `ion-badge` e `ion-chip` en la campana; `ion-modal`, `ion-list` e `ion-item` en el panel.
+
+### `InlineFeedback`
+`import { InlineFeedback } from '@erplora/ui/components'`
+- **Para qué sirve:** aviso contextual, pegado a un campo o a un bloque de la pantalla (validación, error de carga de una sección). No para confirmaciones ni para avisos globales.
+- **Úsalo cuando** tiene que seguir visible mientras dure lo que dice: un error de carga con «Reintentar», un rechazo, una advertencia.
+- **No lo uses cuando** confirma lo que la persona acaba de hacer → `toast`; exige una acción hasta resolverse → el centro de avisos (`useActionCenter`); pregunta algo → `useConfirm`.
+- **API:** props `tone` (`info`, `success`, `warning`, `danger`, `neutral`), `heading`, `icon`, `dismissible` (evento `dismiss`), `role` (`status`, `alert`); slot por defecto y slot `actions`.
+- **Ionic:** `ion-icon`.
 
 ### `ConfirmDialog`, `useConfirm`
 `import { ConfirmDialog, useConfirm } from '@erplora/ui/components'`
@@ -183,14 +201,6 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **No lo uses cuando** es una etiqueta sin estado (categoría, filtro) → `ion-chip`; el aviso necesita una frase → `InlineFeedback`.
 - **API:** props `label`, `tone` (`success`, `info`, `warning`, `danger`, `neutral`), `dot`, `busy`, `size` (`sm`, `md`); slot por defecto en lugar de `label`.
 - **Ionic:** ninguno (HTML con los tokens `--ep-*`, contraste AA comprobado).
-
-### `ActionBell`, `useActionCenter`, `useQuietActionNotices`, `connectActionCenter`
-`import { ActionBell, useActionCenter, useQuietActionNotices } from '@erplora/ui/shell'`
-- **Para qué sirve:** el centro de avisos: lo que exige una acción y sigue siendo verdad hasta que se resuelve (una factura sin pagar, una impresora sin conexión, citas por confirmar). La campana lo resume y abre su panel; un aviso nuevo llega como tarjeta bajo la barra superior.
-- **Úsalo cuando** el proyecto da la fuente de sus avisos a `createShell({ actionNotices })`: el shell pinta la campana en `AppTopbar`, la tarjeta de llegada y el panel. Una pantalla no monta la tarjeta ni el panel; `ActionBell` a mano solo va en una pantalla con cabecera propia, sin `AppTopbar`.
-- **No lo uses cuando** confirma lo que la persona acaba de hacer → `toast`; solo tiene sentido junto a lo que afecta → `InlineFeedback`; nunca una banda ni una caja suelta en la página.
-- **API:** `actionNotices: () => ({ notices, failed, retry? })`, con avisos `{ id, severity, icon, label, title, body?, figure?, chip?, count?, due?, action?, secondary? }`, `severity` `danger`, `warning` o `info` y acciones `{ label, to | href | run }`; `useQuietActionNotices(active)`: mientras `active`, un aviso nuevo no tapa la pantalla y solo late la campana (una hoja de cobro); `useActionCenter()` lee su estado y lo abre (`total`, `openPanel(id?)`…); `connectActionCenter(source)` lo llama el shell, no una pantalla. `ActionBell` no tiene props.
-- **Ionic:** `ion-button`, `ion-badge` e `ion-chip` en la campana; `ion-modal`, `ion-list` e `ion-item` en el panel.
 
 ### `ReportProblemModal`
 `import { ReportProblemModal } from '@erplora/ui/components'`
@@ -225,15 +235,16 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **Para qué sirve:** el marco de toda pantalla: la barra superior con título, Atrás y acciones, un solo `ion-content` con los márgenes del shell y las pestañas de sección abajo.
 - **Úsalo cuando** siempre, como raíz de cada página de una app del Hub o del panel del SaaS.
 - **No lo uses cuando** el contenido va en un diálogo → `FormModal`; nunca un `ion-page` o `ion-header` propios en una pantalla normal.
-- **API:** props `title`, `backHref` (enseña Atrás: vista de detalle), `contentLayout` (`fluid`, `detail`, `detail-fill`, `fill` para una lista `DataTable fill`), `headingOnScreen`, `tabs` con `v-model:tab`, `tabsLabel`; slots por defecto, `actions` (en la barra; en el teléfono se pliegan en «⋮») y `footer`.
+- **API:** props `title`, `backHref` (enseña Atrás: vista de detalle), `contentLayout` (`fluid`, `detail`, `detail-fill`, `fill` para una lista `DataTable fill`), `headingOnScreen`, `tabs` con `v-model:tab`, `tabsLabel`; slots por defecto, `actions` (en la barra; en el teléfono, al «⋮» de `AppTopbar` cuando no caben) y `footer`.
 - **Ionic:** `ion-page`, `ion-content`, `ion-footer`, `ion-toolbar`, `ion-segment`, con `AppTopbar`.
 
-### `AppTopbar`
-`import { AppTopbar } from '@erplora/ui/shell'`
-- **Para qué sirve:** la barra superior del shell: menú, título, sección, Atrás, las acciones de la vista (dos o más se pliegan en «⋮» en el teléfono) la campana del centro de avisos (con `createShell({ actionNotices })`) y las piezas del proyecto, como el lanzador de apps.
-- **Úsalo cuando** una vista monta su propio `ion-page` y no puede usar `AppPage`.
+### `AppTopbar`, `useTopbarMenu`
+`import { AppTopbar, useTopbarMenu } from '@erplora/ui/shell'`
+- **Para qué sirve:** la barra superior del shell: menú, título, sección, Atrás, las acciones de la vista, «Mis apps» (con la barra lateral del Hub), la pieza de barra del proyecto (`chrome.topbar` de `createShell`, el botón del asistente) y la campana del centro de avisos (con `createShell({ actionNotices })`). En el teléfono (hasta 767 px) la derecha lleva como mucho dos botones y la campana es uno de ellos; el título queda centrado mientras cabe.
+- **El «⋮»:** el «⋮» único de la barra en el teléfono. Cuando las acciones de la vista, «Mis apps» y la pieza del proyecto no caben junto a la campana, o la vista trae dos o más acciones, van todas a él, una fila cada una; una app no pone su propio botón de «más».
+- **Úsalo cuando** una vista monta su propio `ion-page` y no puede usar `AppPage`; `useTopbarMenu` solo lo llama la pieza de barra del proyecto.
 - **No lo uses cuando** es una pantalla normal → `AppPage`, que ya la pinta.
-- **API:** props `title`, `section`, `backHref`, `titleIsHeading`; slot `actions`.
+- **API:** props `title`, `section`, `backHref`, `titleIsHeading`; slot `actions`. `useTopbarMenu()` devuelve el menú cuando la pieza está listada en el «⋮» (`undefined` en la barra): la pieza se pinta entonces como fila con su nombre y abre lo suyo con `closeThen(action)`, que espera a que el menú se haya ido.
 - **Ionic:** `ion-header`, `ion-toolbar`, `ion-buttons`, `ion-menu-button`, `ion-title`, `ion-button`, `ion-popover`.
 
 ### `WebOnly`, `vWebOnly`
@@ -243,6 +254,70 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **No lo uses cuando** es una ruta entera → `meta.webOnly` de la ruta; un solo elemento que debe seguir en el DOM → la directiva `v-web-only`.
 - **API:** slots por defecto (solo en la web) y `app` (solo en la app); `v-web-only` lo muestra u oculta como `v-show`.
 - **Ionic:** ninguno.
+
+## Plano de mesas
+
+Son piezas de presentación: reciben cada mesa con sus textos ya escritos en el idioma de la persona (`FloorTable`:
+número, estado, plazas, reserva, tiempo y la frase entera para un lector de pantalla) y avisan de la que se elige; los
+datos y las órdenes son de la app. `FLOOR_STATUS_ICONS` y `FLOOR_STAT_ICONS` dan el icono de cada estado y de cada cifra.
+
+### `TableGlyph`
+`import { TableGlyph } from '@erplora/ui/components'`
+- **Para qué sirve:** el dibujo de una mesa cuadrada, redonda o rectangular: una silla por plaza alrededor (en una mesa alargada, en sus lados largos), llenas según los comensales (en proporción por encima de doce plazas), y en una mesa ocupada el arco del tiempo que lleva. Es decorativo: el nombre lo dice quien lo contiene.
+- **Úsalo cuando** una mesa se dibuja fuera del plano, como en el selector de mesas del TPV; `variant="mini"` dibuja también la mesa en su forma y su estado.
+- **No lo uses cuando** la mesa va en el plano → `FloorTile`, que ya la dibuja; en el teléfono → `FloorCards`.
+- **API:** props `table` (`FloorGlyphTable`: `status`, `shape`, `capacity`, `guests`, `ratio`, `tone`, `progress` de 0 a 100) y `variant` (`plan`, `mini`).
+- **Ionic:** ninguno (HTML y SVG con los tokens del tema).
+
+### `FloorTile`
+`import { FloorTile } from '@erplora/ui/components'`
+- **Para qué sirve:** la mesa del plano, en su sitio y a su tamaño: el número y una línea dentro (el tiempo, la hora de la reserva o el estado), las sillas y el arco alrededor, y debajo su etiqueta (el estado con las plazas y, si la hay, la reserva, que corta un nombre largo con puntos suspensivos y nunca la hora). Es la pieza que se arrastra al editar el plano: queda fuera de los tipos de tarjeta.
+- **Úsalo cuando** se pinta el plano de una zona en tableta y escritorio.
+- **No lo uses cuando** es el teléfono → `FloorCards`; la mesa se dibuja sin plano → `TableGlyph`.
+- **API:** props `table` (`FloorTable`), `box` (`FloorBox`: `x`, `y`, `width`, `height` en px y `slot`, el ancho de su sitio y el límite de su etiqueta), `inactiveLabel` (la apaga en gris con su nota), `editing` (se agarra para moverla), `dragging` (levantada mientras se arrastra). Mientras se elige un destino, `table.pickable` la marca (`true`) o la atenúa y la deja fuera de alcance (`false`). No emite eventos: el plano escucha el toque, el teclado y el arrastre sobre ella.
+- **Ionic:** ninguno (un `<button>` propio por mesa), con `TableGlyph` y `HubIcon`.
+
+### `FloorCards`, `FloorCard`
+`import { FloorCards } from '@erplora/ui/components'` (y `FloorCard`, la tarjeta suelta)
+- **Para qué sirve:** las mesas en el teléfono, dos por fila y ordenadas por número, en una lista con nombre. Cada `FloorCard` es una baldosa táctil: una superficie con un único toque, sin botones ni acciones dentro, con el dibujo de la mesa, el número con sus plazas o su reserva y el estado escrito con su tiempo; borde del color de su estado (discontinuo si está reservada) y contorno primario cuando es destino.
+- **Úsalo cuando** el plano de mesas se ve en un teléfono.
+- **No lo uses cuando** hay sitio para el plano → `FloorTile`; la tarjeta es de otra cosa: aún no hay baldosa táctil genérica, y se avisa antes de maquetar una.
+- **API:** `FloorCards`: props `tables` (`FloorTable[]`) y `label` (el nombre de la lista); evento `select(id)`. `FloorCard`: prop `table`; evento `select(id)`, que no sale de una mesa con `pickable: false` (atenuada y anunciada como no disponible, nunca apagada).
+- **Ionic:** `ion-card` con `button` (al menos 112 px de alto, superficie opaca y nunca cristal), con `TableGlyph`.
+
+### `FloorSkeleton`
+`import { FloorSkeleton } from '@erplora/ui/components'`
+- **Para qué sirve:** lo que ocupa el sitio del plano mientras carga: mesas de las dos formas con brillo, o en el teléfono tarjetas dos por fila, con un nombre para el lector de pantalla.
+- **Úsalo cuando** el plano o sus tarjetas aún no han llegado.
+- **No lo uses cuando** la carga es de una lista → el `loading` de `DataTable`; no se pudo cargar → `InlineFeedback`.
+- **API:** props `label` (lo que se anuncia) y `variant` (`plan`, `cards`).
+- **Ionic:** `ion-skeleton-text`.
+
+### `FloorSummary`
+`import { FloorSummary } from '@erplora/ui/components'`
+- **Para qué sirve:** el resumen de una zona: su nombre en su color, cuántas mesas están ocupadas y cada cifra (libres, ocupadas, reservadas, comensales) con su icono.
+- **Úsalo cuando** encabeza el plano de la zona elegida.
+- **No lo uses cuando** son cifras de uso de un plan → `UsageCounter`.
+- **API:** props `label` (el nombre de la sección), `title`, `subtitle`, `color` (el nombre de un color de Ionic; sin él, `primary`), `stats` (`FloorStat[]`: `key`, `value`, `label`). `zoneColor(color)` da el color CSS de una zona.
+- **Ionic:** ninguno; `HubIcon`.
+
+### `FloorZoneTabs`
+`import { FloorZoneTabs } from '@erplora/ui/components'`
+- **Para qué sirve:** las pestañas de las zonas del plano, cada una con un punto de su color y sus mesas ocupadas sobre las que están en servicio; la tira se desplaza y difumina el borde que tiene más zonas detrás.
+- **Úsalo cuando** el plano tiene más de una zona y se elige cuál ver.
+- **No lo uses cuando** son las secciones de una pantalla → `tabs` de `AppPage`.
+- **API:** props `zones` (`FloorZoneTab[]`), `active` (el id o `null`), `label`; evento `change(zoneId)`. `useScrollEdges(element)` dice qué bordes de una caja con desplazamiento tienen más contenido detrás, para el mismo difuminado.
+- **Ionic:** `ion-segment` desplazable, `ion-segment-button`, `ion-label`.
+
+## Vídeo
+
+### `YouTubeEmbed`
+`import { YouTubeEmbed } from '@erplora/ui/components'`
+- **Para qué sirve:** un vídeo de YouTube que no pide nada a Google hasta pulsarlo: antes solo pinta un póster propio, con el título, la duración y el aviso de que se carga desde YouTube; al pulsar, el reproductor `youtube-nocookie` en línea, sin pantalla completa y sin que su logo saque la ventana de la app a youtube.com. Sin conexión enseña una tarjeta en su lugar, y un id que no es de YouTube no pinta nada.
+- **Úsalo cuando** un vídeo explicativo va dentro de una página o de una ventana de ayuda.
+- **No lo uses cuando** el vídeo no está en YouTube: aún no hay componente, y se avisa antes de crear uno.
+- **API:** props `videoId` (los 11 caracteres de YouTube), `title` (el del póster y el nombre del reproductor), `duration` (como la escribe la página, «2 min»), `icon`.
+- **Ionic:** ninguno (botón propio y un `iframe` con sandbox), con `HubIcon`.
 
 ## Asistente
 
@@ -272,6 +347,14 @@ El host lo configura una vez al arrancar (`configureAssistant`) y suma `assistan
 - **API:** props `text`, `shortcuts`; evento `ask(text)`.
 - **Ionic:** ninguno; `HubIcon`.
 
+### `AssistantMarkdown`
+`import { AssistantMarkdown } from '@erplora/ui/components'`
+- **Para qué sirve:** un texto en Markdown (negrita, cursiva, código, títulos, listas, tablas en su propia caja con desplazamiento, citas y separadores) pintado con elementos de Vue, nunca con `v-html`: nada de lo que trae el texto llega a ser HTML. Un enlace solo lleva a una pantalla que la app sirve, con el nombre que le da el menú si no trae texto; cualquier otra ruta queda como texto.
+- **Úsalo cuando** un texto con formato que enlaza a pantallas de la app se enseña fuera del chat, como en la ayuda.
+- **No lo uses cuando** es el chat del asistente → `AssistantPanel`, que ya lo usa en cada respuesta; un texto sin formato → un párrafo.
+- **API:** props `text`, `screenExists(path)` y `nameOf(path)`; evento `go(path)`, con el que la página navega.
+- **Ionic:** ninguno.
+
 ## Fuera del catálogo
 
 `@erplora/ui/shell` exporta también el arranque del shell (`createShell`, rutas, sesión, tema, superficie, avisos e
@@ -280,17 +363,18 @@ impresora del dispositivo, `useMyApps`), que no pinta pantallas; los datos van p
 
 ## Lo que aún no existe
 
-Las tarjetas de entidad, la tarjeta de cifra, la baldosa táctil, la comanda y el panel de ajustes están en diseño.
-Mientras no existan, no se maqueta una tarjeta nueva a mano sin avisarlo en la issue o en la PR, para que entre en el
-diseño de la pieza común.
+Las tarjetas de entidad, la tarjeta de cifra, la baldosa táctil genérica, la comanda y el panel de ajustes están en
+diseño. De la baldosa táctil (una superficie, un único toque) ya existe la de la mesa en el teléfono, `FloorCard`; la
+mesa que se arrastra en el plano, `FloorTile`, no es un tipo de tarjeta. Mientras no existan, no se maqueta una tarjeta
+nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño de la pieza común.
 
 ## Reglas
 
 - Los componentes compartidos se construyen sobre componentes de Ionic, personalizados con sus variables CSS y
   `::part`, y con los tokens `--ep-*` del tema; nada de colores ni medidas sueltas.
-- El material translúcido es la clase `.ep-glass` de `src/shell/theme/glass.css` y solo va en superficies flotantes
-  (en un overlay de Ionic, sus tokens `--ep-glass-*` en `::part(content)` o en `--background`); un componente no
-  declara cristal propio.
+- `.ep-glass` (tokens `--ep-glass-*`): material de cristal solo para superficies flotantes; se apaga con la preferencia
+  «Efectos de transparencia». Es la clase de `src/shell/theme/glass.css`; en un overlay de Ionic, sus tokens van en
+  `::part(content)` o en `--background`, y un componente no declara cristal propio.
 - Ningún prefijo `ok-`.
 - Una pieza sube a la librería cuando la necesita una segunda app (o el Hub y el SaaS): `src/components/<Nombre>/`,
   con su test, sus textos en `en` y `es`, su export en `src/components/index.ts` y su entrada en este catálogo. Lo que
