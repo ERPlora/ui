@@ -152,8 +152,8 @@ const hasAction = computed(() => props.notice.action !== undefined);
   mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
 }
 .action-featured__ring ion-icon { font-size: 20px; }
-.action-featured__body { margin: 4px 0 14px; color: var(--ep-glass-muted); font-size: 13px; line-height: 1.55; }
-.action-featured__actions { display: grid; gap: 2px; }
+.action-featured__body { margin: 4px 0 0; color: var(--ep-glass-muted); font-size: 13px; line-height: 1.55; }
+.action-featured__actions { display: grid; gap: 2px; margin-top: 14px; }
 .action-featured__primary {
   min-height: 50px;
   margin: 0;
@@ -167,7 +167,7 @@ const hasAction = computed(() => props.notice.action !== undefined);
 .action-featured__primary:active::part(native), .action-featured__secondary:active::part(native) { transform: scale(0.97); }
 .action-featured__primary ion-spinner { width: 19px; height: 19px; }
 .action-featured__check { clip-path: inset(0 100% 0 0); animation: action-featured-check 400ms var(--ep-ease-out) forwards; }
-.action-featured__done { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 50px; color: var(--ep-success-text); font-size: 15px; font-weight: 700; }
+.action-featured__done { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 50px; margin-top: 14px; color: var(--ep-success-text); font-size: 15px; font-weight: 700; }
 .action-featured__done ion-icon { font-size: 22px; }
 @keyframes action-featured-in { from { transform: translateY(-8px) scale(0.98); } to { transform: translateY(0) scale(1); } }
 @keyframes action-featured-check { to { clip-path: inset(0 0 0 0); } }

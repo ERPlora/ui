@@ -31,7 +31,11 @@ export interface ShellConfig {
  * authenticated chrome (`useChromeVisible`). Each one reads its own data and decides itself when to paint nothing.
  */
 export interface ShellChrome {
-  /** At the end of the topbar, after «My apps» (the hub's notification bell). */
+  /**
+   * At the end of the topbar, after «My apps» and before the bell (the assistant's button). On a phone, when it does
+   * not fit beside the bell, it is listed in the bar's «⋮»: there `useTopbarMenu()` gives the menu, and the piece
+   * paints itself as a row with its label and acts through `closeThen`.
+   */
   topbar?: Component;
   /** In the side menu's footer, between the QR and the brand (the hub's «Upgrade plan»). */
   sidebarFooter?: Component;
