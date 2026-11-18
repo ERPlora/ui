@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// A table on the floor plan, at its box: its number and one line inside (the time occupied, the hour of its
-// reservation or its status), its seats and its arc around it, and its label under it. The plan around it owns
-// the pointer and the keys; this only paints.
 import { computed } from 'vue';
 
 import FloorTileCaption from './FloorTileCaption.vue';

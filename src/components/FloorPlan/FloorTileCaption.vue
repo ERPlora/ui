@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// The label under a table on the plan: its status with its icon and its seats, who holds its reservation and
-// from what hour (a long name is cut, the hour never), and why it is greyed out. It never leaves the place
-// the table owns on the plan (`--tile-slot`), so it never runs into the next table.
 import HubIcon from '../../shell/HubIcon.vue';
 import { FLOOR_STATUS_ICONS, type FloorTable } from './model';
 

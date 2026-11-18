@@ -1,6 +1,4 @@
 <script setup lang="ts">
-// The zone at a glance, above its plan: its name in its colour, how many of its tables are occupied, and how
-// many are free, occupied and reserved and how many guests are seated.
 import HubIcon from '../../shell/HubIcon.vue';
 import { FLOOR_STAT_ICONS, type FloorStat, zoneColor } from './model';
 

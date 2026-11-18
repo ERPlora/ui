@@ -1,5 +1,4 @@
-// What the floor plan's pieces paint. The page computes every text in the person's language and the
-// components only lay it out: a table, its seats and its time, the phone's cards, the zone tabs and the summary.
+// Every text arrives in the person's language: the components only lay it out.
 
 export type FloorTableStatus = 'available' | 'occupied' | 'reserved' | 'blocked';
 export type FloorTableShape = 'square' | 'round' | 'rectangle';

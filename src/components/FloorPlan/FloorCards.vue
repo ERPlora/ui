@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// A zone on a phone: a card per table, by number, two to a row.
 import { computed } from 'vue';
 
 import FloorCard from './FloorCard.vue';

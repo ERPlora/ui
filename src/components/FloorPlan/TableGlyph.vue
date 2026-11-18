@@ -1,6 +1,4 @@
 <script setup lang="ts">
-// A table's seats, one per place and filled by its guests, and, occupied, the arc of its time. On the plan the
-// tile around it is the table; the `mini` variant of a phone's card draws the table itself too.
 import { computed } from 'vue';
 
 import type { FloorGlyphTable } from './model';

@@ -1,7 +1,4 @@
 <script setup lang="ts">
-// A table as a phone's card: one touch target in three zones, the drawing of the table with its seats, its
-// number with its guests or its reservation, and its status written with the time it has been occupied.
-// While a destination is picked, a table that cannot be picked is dimmed and says so, and a tap on it does nothing.
 import { IonCard } from '@ionic/vue';
 import { onMounted, useTemplateRef, watch } from 'vue';
 

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-// The zones of a floor plan as a strip of tabs, each with a dot of its colour and its occupied tables over those in
-// service; the strip fades the edge with more zones behind it, since a hard cut reads «no more zones».
 import { IonLabel, IonSegment, IonSegmentButton } from '@ionic/vue';
 import { computed, nextTick, useTemplateRef, watch } from 'vue';
 

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// What stands for the floor plan while it loads: the plan's tables, or on a phone its cards, shimmering.
 import { IonSkeletonText } from '@ionic/vue';
 
 withDefaults(defineProps<{ label: string; variant?: 'plan' | 'cards' }>(), { variant: 'plan' });

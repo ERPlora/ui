@@ -1,4 +1,3 @@
-/* A table's colours by its status: the plan's tile and the card's miniature paint the same table. */
 [data-status] {
   --table-bg: var(--ion-card-background);
   --table-ink: var(--ion-text-color);
