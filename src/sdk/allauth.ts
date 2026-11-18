@@ -1,32 +1,7 @@
-/**
- * Client of allauth.headless's browser API (`/_allauth/browser/v1`), for the SaaS's account pages.
- * Only transport: the session, the password login and the sign-up (two calls, `login` for allauth's
- * login and `signup` for allauth's sign-up; whether either may create or open an account is allauth's
- * and the SaaS's decision), the code steps that follow (the email verification of a sign-up, the code
- * mailed at every password sign-in), the logout, the password reset by link, two-factor
- * authentication (the login's 2FA step and its «Trust this browser» answer, TOTP, recovery codes and
- * reauthentication), the password
- * change and the linked provider accounts; allauth decides everything.
- *
- * - Same-origin session cookie; unsafe methods carry Django's CSRF token from the header provider
- *   (the SPA's HTML sets the cookie, and so does `GET …/auth/session`).
- * - A 200 is the signed-in user. A 401 is not an error: it is the anonymous state, with the `flows`
- *   the visitor can take; a login that needs another step (2FA, email verification) answers it with
- *   that flow `is_pending` (named in `pendingFlow`).
- * - A 401 of a signed-in user (`meta.is_authenticated`) is not the anonymous state: a protected
- *   account call needs a recent login, and it rejects with `ReauthenticationRequiredError`.
- * - Account calls (`/account/…`) answer data: a 401 of a signed-out session rejects with
- *   `not_authenticated`; a 404 is "none yet" only where the method says so (TOTP setup, recovery
- *   codes) and otherwise rejects with status 404 (2FA switched off on the server).
- * - Anything else rejects with the SDK's `ApiError`: allauth's `errors[{param, code, message}]`
- *   become `fields` per input (an error without `param` under `__all__`, as in Django forms),
- *   `unexpected_response` for a body that is not JSON (Django's HTML 403 of a missing CSRF token)
- *   and `network_error` (status 0) when the request never got an answer. What the SDK words itself
- *   (those two, an error without allauth's message, the signed-out 401) is a sentence for a person in
- *   their language (`sdkMessage`, hub#2281).
- * - The provider redirect (`…/auth/provider/redirect`) is a synchronous form post, never a fetch:
- *   `providerRedirectForm` only builds the form the page submits.
- */
+// Transport for allauth.headless's browser API, used by the SaaS's account pages: allauth decides everything. The
+// session cookie is same-origin, and unsafe methods carry Django's CSRF token from the header provider (the SPA's HTML
+// sets the cookie, and so does `GET …/auth/session`). Failures reject with the SDK's `ApiError`, allauth's
+// `errors[{param, code, message}]` becoming its `fields` per input.
 import type { SpaConfig } from "./config";
 import { ApiError, type FieldErrors } from "./errors";
 import { createHeaderProvider, type HeaderProvider, readCookie } from "./headers";
@@ -292,7 +267,10 @@ interface Reply {
 export function createAllauthClient(cfg: AllauthConfig, overrides: Partial<AllauthDeps> = {}): AllauthClient {
   const deps: AllauthDeps = { ...browserDeps(cfg), ...overrides };
 
-  /** One round trip: a JSON object answer, or the transport errors and the reauthentication. */
+  /**
+   * One round trip: a JSON object answer, or the transport errors. A 401 of a signed-in user (`meta.is_authenticated`)
+   * is not the anonymous state: a protected account call needs a recent login.
+   */
   async function send(method: string, path: string, body?: object, extra: Record<string, string> = {}): Promise<Reply> {
     const headers: Record<string, string> = { ...deps.headers.apiHeaders(method), Accept: "application/json", ...extra };
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -323,7 +301,10 @@ export function createAllauthClient(cfg: AllauthConfig, overrides: Partial<Allau
     return { status: res.status, payload };
   }
 
-  /** A call whose answer is the session: the signed-in user, or the anonymous state on a 401. */
+  /**
+   * A call whose answer is the session: the signed-in user, or on a 401 the anonymous state with the `flows` the
+   * visitor can take; a login that needs another step (2FA, email verification) marks that flow `is_pending`.
+   */
   async function authState(method: string, path: string, body?: object): Promise<AuthState> {
     const { status, payload } = await send(method, path, body);
     const data = isRecord(payload.data) ? payload.data : {};
@@ -336,7 +317,10 @@ export function createAllauthClient(cfg: AllauthConfig, overrides: Partial<Allau
     throw errorOf(status, payload.errors);
   }
 
-  /** A call of a signed-in user: the reply on a 200 (or a 404 when `notFoundIsAnswer`), else it rejects. */
+  /**
+   * A call of a signed-in user: the reply on a 200, or on a 404 when `notFoundIsAnswer` («none yet» of the TOTP setup
+   * and the recovery codes); elsewhere a 404 means two-factor authentication is switched off on the server.
+   */
   async function account(method: string, path: string, body?: object, notFoundIsAnswer = false): Promise<Reply> {
     const reply = await send(method, path, body);
     if (reply.status === 200 || (notFoundIsAnswer && reply.status === 404)) return reply;

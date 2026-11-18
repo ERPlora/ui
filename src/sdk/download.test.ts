@@ -1,8 +1,3 @@
-// A file the API answers as an attachment (an invoice's PDF, the CSV of a list), asked for with the session
-// cookie and its `Accept`, and handed back only when the answer IS that file: an error, a proxy's page or JSON
-// is thrown as the API's error, never returned as the file (audit 2026-10-14, R-05: a 503 saved as `pdf.json`).
-// A request that never got an answer says so in the person's language, like every other call of the SDK
-// (hub#2281), never «Network error (Failed to fetch)».
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { attachmentName, fetchFile } from "./download";
 import { ApiError } from "./errors";
@@ -88,7 +83,7 @@ describe("fetchFile", () => {
     expect(failure).toMatchObject({ status: 200, code: "unexpected_response" });
   });
 
-  describe("without network: the SDK's sentence in the person's language, never an English internal text (hub#2281)", () => {
+  describe("without network: the SDK's sentence in the person's language, never an English internal text", () => {
     it.each([
       ["es", es.sdk.errors.network],
       ["es-ES", es.sdk.errors.network],

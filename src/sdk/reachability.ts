@@ -1,6 +1,6 @@
-// Whether the server answers at all (gh:hub#438). `navigator.onLine` only knows about the device's link: a flaky
-// network leaves it `true` (hub#2489). Before the shell leaves a screen for a fresh document, it asks the server for
-// the file that failed; any answer, a 404 included, means a fresh document will load.
+// `navigator.onLine` only knows about the device's link: a flaky network leaves it `true`. Before the shell leaves a
+// screen for a fresh document, it asks the server for the file that failed; any answer, a 404 included, means a fresh
+// document will load.
 
 /** True when the server answers `url` (any status) within `withinMs`; false without an answer or once it is over. */
 export async function serverAnswers(url: string, withinMs: number): Promise<boolean> {

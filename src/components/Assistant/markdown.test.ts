@@ -1,5 +1,3 @@
-// BASE-G113: the answer of the assistant read with its format (bold, lists, tables, links), never as HTML. Cases of
-// the old hub's `assistant-markdown.test.ts`.
 import { describe, expect, it } from 'vitest';
 
 import { type Block, type Inline, linkPaths, parseMarkdown, spokenText } from './markdown';
@@ -105,7 +103,7 @@ describe('parseMarkdown', () => {
     expect(parseMarkdown('<img src=x onerror=alert(1)>')).toEqual([paragraph(text('<img src=x onerror=alert(1)>'))]);
   });
 
-  // QA battery 2026-10-31 (B21, B25): the model sets its warnings apart as quotes; read as text they showed «> ⚠️ …».
+  // The model sets its warnings apart as quotes; read as text they showed «> ⚠️ …».
   it('a quote is a block of its own, without its «>», and what is inside it is read', () => {
     expect(parseMarkdown('Antes.\n> ⚠️ Solo **una** sesión abierta.\nDespués.')).toEqual([
       paragraph(text('Antes.')),
@@ -153,7 +151,7 @@ describe('parseMarkdown', () => {
     ]);
   });
 
-  // QA battery 2026-10-31 (B25, ui#55): the model parts an answer with «---»; read as text it showed a literal «---».
+  // The model parts an answer with «---»; read as text it showed a literal «---».
   it('a line of three dashes, asterisks or underscores alone is a rule, never its marks', () => {
     for (const mark of ['---', '***', '___', '- - -', '* * *', '_ _ _', '-----', '   ***  ']) {
       expect(parseMarkdown(`Pasos.\n\n${mark}\n\nAjustes.`), mark).toEqual([
@@ -215,7 +213,7 @@ describe('linkPaths', () => {
   });
 });
 
-describe('spokenText (BASE-G113, «Read aloud»)', () => {
+describe('spokenText («Read aloud»)', () => {
   it('reads the words of an answer, never its marks, a path or the table’s lines', () => {
     const text = '## Ventas\n\nHoy **120 €**, ver [Ajustes](/settings) o /customer/customers.\n\n- uno\n- dos\n\n| Día | Total |\n|---|---|\n| Lunes | 80 € |';
     const nameOf = (path: string) => (path === '/customer/customers' ? 'Clientes' : undefined);

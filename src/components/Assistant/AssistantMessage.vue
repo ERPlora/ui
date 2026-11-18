@@ -1,11 +1,8 @@
 <script setup lang="ts">
-// A bubble of the assistant's panel. The person's: what it wrote, as it wrote it, and the names of its files. The
-// assistant's: three dots until something arrives, then the answer with its format (BASE-G113) and, below, what the
-// panel adds and the model never writes — «Go to …» for up to four screens of this app it names (BASE-G114), the
-// notices of what it said against what ran (BASE-G117), a receipt of each action of the turn, a failure with its way
-// out (BASE-G124; a spent allowance with its numbers and the plan, BASE-G122) and, under a finished answer, «Read
-// aloud» (with a line when it could not be read) and, for a host that takes reports, «Report a problem» (BASE-G123). A receipt says its action by the host's
-// verb (`AssistantConfig.verbKey`) and where it happened by the host's screen (`placeKey`) or the app's menu name.
+// Under the assistant's answer goes what the panel adds and the model never writes: «Go to …» for up to four screens it
+// names, the notices of what it said against what ran, a receipt of each action of the turn and a failure with its way
+// out. A receipt says its action by the host's verb (`AssistantConfig.verbKey`) and where it happened by the host's
+// screen (`placeKey`) or the app's menu name.
 import { IonButton, IonIcon } from '@ionic/vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -87,10 +84,9 @@ const receipts = computed(() =>
   })),
 );
 
-/** Where an action happened, in the language the screen is in, never in the one of its turn (a receipt kept from a
- *  turn in English read «Rectificar en Invoicing» in Spanish): the platform by its screen, an app by its menu; one
- *  neither names (an app the menu does not list, a receipt kept from before it carried its screen), as the server
- *  named it then. */
+/** Where an action happened, in the language the screen is in, never in the one of its turn: the platform by its
+ *  screen, an app by its menu; one neither names (an app the menu does not list, a receipt kept from before it
+ *  carried its screen), as the server named it then. */
 function placeOf(row: { app: string; app_name?: string; screen?: string }): string {
   const key = config.placeKey?.(row.screen) ?? null;
   return key ? t(key) : props.appNameOf(row.app) || row.app_name || row.app;
@@ -123,7 +119,7 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
     class="assistant-row"
     data-testid="assistant-answer"
   >
-    <!-- A failure before any word has no bubble: its sentence is the answer (BASE-G124). -->
+    <!-- A failure before any word has no bubble: its sentence is the answer. -->
     <div
       v-if="!(bubble.error && !bubble.text)"
       class="assistant-bubble"
@@ -407,7 +403,7 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
   align-items: center;
   gap: 6px;
 }
-/* The text in the readable grey (WCAG AA on white, hub#1291); the colour says it in the icon only. */
+/* The text in the readable grey (WCAG AA on white); the colour says it in the icon only. */
 .assistant-receipts li {
   color: var(--ion-color-medium-shade, #5f6368);
 }

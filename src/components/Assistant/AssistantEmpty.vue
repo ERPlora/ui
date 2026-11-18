@@ -1,7 +1,5 @@
 <script setup lang="ts">
-// The empty conversation (BASE-G111; the old hub's empty drawer): the sparkles, the sentence and the shortcuts, each
-// asked at once (`ask`). The words are the host's — the Hub's: its setup's sentence and «How do I set up “…”?» for the
-// steps left (BASE-G121), through `AssistantPanel`'s `empty` slot —; without them, the chat's own sentence.
+// The words are the host's, through `AssistantPanel`'s `empty` slot; without them, the chat's own sentence.
 import { useI18n } from 'vue-i18n';
 
 import HubIcon from '../../shell/HubIcon.vue';

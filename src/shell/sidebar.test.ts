@@ -28,8 +28,6 @@ afterEach(() => {
   railCollapsed.value = false;
 });
 
-// FIX-SHELL-SPLIT-PANE (PLAN-MIGRATIONS §16): the hub's side menu is the old hub's, and an entry only
-// shows when its screen exists — never a link to the 404, never a «coming soon».
 describe('sidebarGroups', () => {
   it('keeps an entry whose route is registered and drops one that would land on the 404', () => {
     const groups = sidebarGroups(router, {
@@ -60,8 +58,6 @@ describe('sidebarGroups', () => {
     expect(sidebarGroups(router, { groups: [[item('files', '/files')], [item('system', '/system')]] })).toEqual([]);
   });
 
-  // APP-BASE-5: an entry may say when it shows (`visible`): the person may open its screen, or a setting
-  // is on. What does not show goes like a missing screen, and so does a group left empty.
   it('drops an entry its predicate hides, and a group left without entries', () => {
     const hidden = new Set(['employees', 'settings']);
     const groups = sidebarGroups(

@@ -1,10 +1,7 @@
 <script setup lang="ts">
-// An answer of the assistant with its format (BASE-G113): the tree of `markdown.ts` painted with Vue's
-// own elements — never `v-html`, so nothing the model writes is a tag. A link only to a screen this app serves
-// (`screenExists`), named as the menu names it when the answer gave it no label (`nameOf`, BASE-G114); clicking it
-// emits `go` (the panel navigates). Any other path is text. A table fits the bubble, or scrolls inside its own box; a
-// quote (`> …`, the model's warnings) is a block set apart, with the answer's own format inside it; a rule (`---`) is
-// a thin line between two parts.
+// The tree of `markdown.ts` painted with Vue's own elements, never `v-html`, so nothing the model writes is a tag. A
+// link goes only to a screen this app serves (`screenExists`), named as the menu names it when the answer gave it no
+// label; any other path is text.
 import { computed, type FunctionalComponent, h, type VNodeChild } from 'vue';
 
 import { type Block, type Inline, parseMarkdown } from './markdown';
@@ -124,7 +121,7 @@ const Blocks: FunctionalComponent<{ blocks: Block[] }> = (inner) => inner.blocks
   cursor: pointer;
 }
 /* A table fits the bubble, its long cells broken between words; one that still cannot (many columns) scrolls inside
-   its own box: at 390 px the panel never moves sideways (BASE-G113). */
+   its own box: at 390 px the panel never moves sideways. */
 .assistant-md :deep(.assistant-table) {
   max-width: 100%;
   margin: 0 0 8px;

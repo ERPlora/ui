@@ -85,7 +85,7 @@ describe('useDataTableLabels', () => {
 
   it("with the shell's vue-i18n, its locale wins over the document", () => {
     document.documentElement.lang = 'en';
-    expect(probe('loadMore', { plugins: [createShellI18n({ locale: 'es' })] }).text()).toBe('Cargar más');
+    expect(probe('loadingMore', { plugins: [createShellI18n({ locale: 'es' })] }).text()).toBe('Cargando más…');
   });
 
   it('follows a change of locale at runtime', async () => {

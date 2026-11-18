@@ -1,19 +1,8 @@
 <script setup lang="ts">
-// ConfirmDialog — the confirmation of a destructive or consequential action (remove a member,
-// transfer the ownership, delete a business; mockups `mockups/saas-panel/business.html`): our own
-// `ion-modal` (a FormModal with `role="alertdialog"`), not `ion-alert`, so it looks like every other
-// dialog of the panel. Title, message (or the default slot), optional consequences, an optional
-// «type the name to confirm», and Cancel / the action in its tone.
-//   <ConfirmDialog v-model:open="removing" :title="…" :message="…" :confirm-label="…"
-//                  :pending="remove.pending.value" :error="remove.error.value" @confirm="run" />
-// Like FormModal, `confirm` does not close it: the page closes it when its action is done (and
-// shows `pending` and `error` meanwhile). For a plain yes/no, `useConfirm()` does all of that.
-//   - `requireText`: the action stays disabled until the person types that text (spaces around and
-//     case ignored, accents not); the input is focused on opening and starts empty every time.
-//     `v-model:typed` hands the page what was typed, for a server that checks it again.
-//   - Without it, Cancel has the focus: the safe choice on a destructive dialog.
-//   - A centred card at every width, also on a phone (R-29, UX audit 2; Material 3 and iOS confirm in
-//     a centred dialog and keep the sheet for tasks).
+// A FormModal with `role="alertdialog"`, not `ion-alert`, so it looks like every other dialog. Like FormModal,
+// `confirm` does not close it: the page does when its action is done (for a plain yes/no, `useConfirm()` does all
+// of that). Without `requireText`, Cancel has the focus: the safe choice on a destructive dialog. A centred card at
+// every width, also on a phone, as Material 3 and iOS confirm in a centred dialog and keep the sheet for tasks.
 import { IonInput } from '@ionic/vue';
 import { computed, useId, watch } from 'vue';
 import { Translation, useI18n } from 'vue-i18n';

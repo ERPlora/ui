@@ -1,7 +1,3 @@
-// The filters sheet of a phone or a portrait tablet (< 834 px) covers the content area, strictly between the
-// app's header and its tab bar (outfitkit#75/#197): CSS cannot know where that area is, so the table measures
-// the closest `ion-content` against the sheet's containing block (the `ion-page`, `contain: layout`) and hands
-// both offsets to its stylesheet as custom properties, again on every resize while the sheet is open.
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, ref, type Ref } from 'vue';
@@ -73,7 +69,7 @@ describe('sheetInsets', () => {
 });
 
 describe('useFilterSheet', () => {
-  it('outfitkit#197: while open, the sheet ends above the tab bar (and the tab bar keeps the safe area)', async () => {
+  it('while open, the sheet ends above the tab bar (and the tab bar keeps the safe area)', async () => {
     const { open, el } = mountProbe(page(box(0, 844), box(56, 778)));
     await nextTick();
     expect(vars(el())).toEqual({ top: '', bottom: '', safe: '' });

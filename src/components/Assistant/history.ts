@@ -1,7 +1,6 @@
-// The conversation (BASE-G120): only in this tab of the person's browser (`sessionStorage`, `HISTORY_KEY`), never on
-// the Hub nor on erplora.com (no IndexedDB, CLAUDE.md); a reload brings it back, closing the tab loses it. It belongs to
-// one person: another one on the same till (a switch by PIN) starts empty and the other's is removed (gh:hub#2538).
-// An attachment's data travels once, with its question: kept, it is its name. A storage that refuses is ignored.
+// The conversation lives only in this tab of the person's browser (`sessionStorage`), never on a server: a reload
+// brings it back, closing the tab loses it. It belongs to one person, so another one on the same till (a switch by PIN)
+// starts empty and the other's is removed. An attachment's data travels once, with its question; kept, it is its name.
 import type { GroundingNotice } from './grounding';
 
 export const HISTORY_KEY = 'erplora.assistant.history';
@@ -46,7 +45,7 @@ export interface Bubble {
   question?: string;
   /** What ran in the turn, for the receipts under the bubble. */
   executed?: { name: string; app: string; app_name?: string; screen?: string; outcome: string }[];
-  /** Whether its turn brought pages of the web (any round of it, saas#287), said with its report; unknown — kept before
+  /** Whether its turn brought pages of the web (any round of it), said with its report; unknown — kept before
    *  the mark, a host that does not say — when not there. */
   web?: boolean;
 }
@@ -55,7 +54,7 @@ export interface Thread {
   user: string;
   conversation: ChatMessage[];
   bubbles: Bubble[];
-  /** The panel was opened to set up the business (BASE-G121): the checklist goes to the model. */
+  /** The panel was opened to set up the business: the checklist goes to the model. */
   setup: boolean;
 }
 

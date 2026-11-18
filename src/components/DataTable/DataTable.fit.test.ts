@@ -1,24 +1,19 @@
-// W-19 (mockups/saas-panel/README.md §3b, UX-AUDIT-3): what fits is decided by the table's OWN box
-// (a `ResizeObserver` on it), never by the viewport. As the box narrows the list gives up, in this
-// order: the `priority: 'low'` columns → the row actions beyond `maxInlineActions` (into «⋮») →
-// every action that is not `pinned` → the list itself, for cards. happy-dom lays nothing out: a
-// fake layout engine sizes the grid from what is painted, and the ResizeObserver mock plays the
-// box's resizes back.
+// happy-dom lays nothing out: a fake layout engine sizes the grid from what is painted, and the
+// ResizeObserver mock plays the box's resizes back.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { byTestId, cards, click, dataRows, ionChange, mockResizeObserver, mountTable, settle, text, viewport } from './__tests__/harness';
+import {
+  actionButtonsWidth, byTestId, cards, cellTextWidth, clearLayout, click, dataRows, ionChange, mountTable,
+  playBackLayout, resize, setBoxWidth, settle, templateWidth, text, viewport,
+} from './__tests__/harness';
 
 type Row = Record<string, unknown>;
 type Table = ReturnType<typeof mountTable>;
 
-// ── Fake layout engine ────────────────────────────────────────────────────────────────────────
 const PAD = 32; // side padding of a row
 const COLUMN = 100; // a data column at its floor
 const BUTTON = 40; // a button of the actions cell (a stand-in and «⋮» too)
 const CHECKBOX = 44; // the selection column
-
-/** Width of the table's box (the host and its scroller). */
-let box = 900;
 
 /** What the grid needs: its columns at their floor plus the widest actions cell. */
 function gridWidth(scroll: Element): number {
@@ -26,48 +21,15 @@ function gridWidth(scroll: Element): number {
   if (!head) return 0;
   const columns = head.querySelectorAll('.data-table__cell--header:not(.data-table__cell--actions)').length;
   const select = head.querySelector('.data-table__select-cell') ? CHECKBOX : 0;
-  let buttons = 0;
-  for (const cell of scroll.querySelectorAll('.data-table__row--data .data-table__actions')) {
-    buttons = Math.max(buttons, [...cell.children].filter((el) => el.tagName === 'ION-BUTTON').length);
-  }
-  return PAD + select + columns * COLUMN + buttons * BUTTON;
-}
-
-function playBackLayout(): void {
-  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
-    return this.classList.contains('data-table') || this.classList.contains('data-table__scroll') ? box : 0;
-  });
-  vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
-    return this.classList.contains('data-table__scroll') ? Math.max(gridWidth(this), box) : 0;
-  });
-  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
-    () => ({ width: BUTTON, height: BUTTON, top: 0, left: 0, right: BUTTON, bottom: BUTTON, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect,
-  );
-}
-
-let observers: { fire: () => void };
-
-/** The table's box takes `width` px (a side menu opening, a window resize…). */
-async function resize(width: number): Promise<void> {
-  box = width;
-  observers.fire();
-  await settle();
+  return PAD + select + columns * COLUMN + actionButtonsWidth(scroll, BUTTON);
 }
 
 beforeEach(() => {
-  viewport(false);
-  box = 900;
-  observers = mockResizeObserver();
-  playBackLayout();
+  playBackLayout(BUTTON, (el, box) => (el.classList.contains('data-table__scroll') ? Math.max(gridWidth(el), box) : 0));
 });
 
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-  document.body.replaceChildren();
-});
+afterEach(clearLayout);
 
-// ── The businesses of the SaaS panel ──────────────────────────────────────────────────────────
 const COLUMNS = [
   { key: 'name', label: 'Business', priority: 'high' },
   { key: 'status', label: 'Status' },
@@ -86,8 +48,8 @@ const ROWS: Row[] = [
   { id: 'b1', name: 'Bar La Plaza', status: 'Active', plan: 'Pro', address: 'bar-la-plaza.erplora.com', role: 'Owner', lastUsed: 'Today' },
   { id: 'b2', name: 'Panadería López', status: 'Past due', plan: 'Free', address: 'panaderia.erplora.com', role: 'Admin', lastUsed: '12 days ago' },
 ];
-// Widths the fake engine gives this table: all out 792 · without the low columns 592 · two actions
-// out and «⋮» 552 · only the pinned one and «⋮» 512.
+// Widths the fake engine gives this table: all out (two actions and «⋮») 752 · without the low columns
+// 552 · only the pinned one and «⋮» 512.
 const props = (extra: Record<string, unknown> = {}) => ({
   rows: ROWS,
   columns: COLUMNS,
@@ -100,66 +62,62 @@ const props = (extra: Record<string, unknown> = {}) => ({
 const isCards = (t: Table) => !!t.element.querySelector('.data-table__cards');
 const headers = (t: Table) =>
   [...t.element.querySelectorAll('.data-table__row--head .data-table__cell--header:not(.data-table__cell--actions)')].map((h) => text(h));
-/** The buttons of a row's actions cell by their hook suffix; a stand-in as `gap:<slot>`. */
+/** The buttons of a row's actions cell by their hook suffix. */
 const rowButtons = (t: Table, index = 0) =>
-  [...(dataRows(t)[index]?.querySelectorAll('.data-table__actions > ion-button') ?? [])].map((b) => {
-    const hook = b.getAttribute('data-testid');
-    return hook ? hook.replace(/^biz-row-[^-]+-/, '') : `gap:${b.getAttribute('data-slot-for') ?? '?'}`;
-  });
+  [...(dataRows(t)[index]?.querySelectorAll('.data-table__actions > ion-button') ?? [])].map((b) =>
+    (b.getAttribute('data-testid') ?? '').replace(/^biz-row-[^-]+-/, ''),
+  );
 const scroller = (t: Table) => t.element.querySelector('.data-table__scroll') as HTMLElement;
 const menuItems = (t: Table) => [...t.element.querySelectorAll('.data-table__row-menu ion-item')] as HTMLElement[];
 /** Stencil patches `textContent` of its scoped `ion-label`: read its markup. */
 const menuLabels = (t: Table) => menuItems(t).map((item) => item.querySelector('ion-label')?.innerHTML.trim());
 const cardFieldLabels = (t: Table, index = 0) =>
-  [...cards(t)[index].querySelectorAll('.data-table__field-label')].map((l) => text(l));
+  [...cards(t)[index].querySelectorAll('.data-table__card-meta-label')].map((l) => text(l));
 const segment = (t: Table) => t.element.querySelector('.data-table__view-segment') as HTMLElement;
 
 async function mountAt(width: number, extra: Record<string, unknown> = {}): Promise<Table> {
-  box = width;
+  setBoxWidth(width);
   const t = mountTable(props(extra));
   await settle();
   return t;
 }
 
-describe('the list fits its BOX: low columns → extra actions → all but pinned → cards (W-19)', () => {
+describe('the list fits its BOX: low columns → all but pinned → cards', () => {
   it('gives up one thing at a time as the box narrows, and takes it all back when it widens', async () => {
     const t = await mountAt(900);
     expect(headers(t), '900: everything fits').toEqual(['Business', 'Status', 'Plan', 'Web address', 'Role', 'Last used']);
-    expect(rowButtons(t)).toEqual(['open', 'manage', 'pay', 'menu']);
+    expect(rowButtons(t), 'two buttons, the rest in «⋮»').toEqual(['open', 'manage', 'menu']);
 
     await resize(700);
     expect(headers(t), '700: the low columns go first').toEqual(['Business', 'Status', 'Plan', 'Last used']);
-    expect(rowButtons(t), 'the actions are untouched').toEqual(['open', 'manage', 'pay', 'menu']);
+    expect(rowButtons(t), 'the actions are untouched').toEqual(['open', 'manage', 'menu']);
 
-    await resize(560);
+    await resize(540);
     expect(headers(t)).toEqual(['Business', 'Status', 'Plan', 'Last used']);
-    expect(rowButtons(t), '560: beyond maxInlineActions (2) into «⋮»').toEqual(['open', 'manage', 'menu']);
-
-    await resize(520);
-    expect(rowButtons(t), '520: only the pinned one stays out').toEqual(['open', 'menu']);
+    expect(rowButtons(t), '540: only the pinned one stays out').toEqual(['open', 'menu']);
     expect(isCards(t)).toBe(false);
 
-    await resize(480);
-    expect(isCards(t), '480: not even folded: cards').toBe(true);
+    await resize(500);
+    expect(isCards(t), '500: not even folded: cards').toBe(true);
     expect((segment(t) as HTMLElement & { value?: string }).value, 'the switch says so').toBe('cards');
 
     await resize(900);
     expect(isCards(t), 'wide again: the list').toBe(false);
     expect(headers(t)).toEqual(['Business', 'Status', 'Plan', 'Web address', 'Role', 'Last used']);
-    expect(rowButtons(t)).toEqual(['open', 'manage', 'pay', 'menu']);
+    expect(rowButtons(t)).toEqual(['open', 'manage', 'menu']);
     expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
   });
 
   it('a hidden low column is still a field of the cards (the cards have room for it)', async () => {
     const t = await mountAt(480);
     expect(isCards(t)).toBe(true);
-    expect(cardFieldLabels(t)).toEqual(['Business', 'Status', 'Plan', 'Web address', 'Role', 'Last used']);
+    expect(cardFieldLabels(t)).toEqual(['Business', 'Plan', 'Web address', 'Role', 'Last used']);
     expect(text(cards(t)[0])).toContain('bar-la-plaza.erplora.com');
   });
 
   it('it is the box, not the window: a wide window with a narrow box still gives up', async () => {
-    const t = await mountAt(560);
-    expect(rowButtons(t)).toEqual(['open', 'manage', 'menu']);
+    const t = await mountAt(540);
+    expect(rowButtons(t)).toEqual(['open', 'menu']);
     expect(headers(t)).not.toContain('Role');
   });
 
@@ -169,13 +127,14 @@ describe('the list fits its BOX: low columns → extra actions → all but pinne
     expect(isCards(t)).toBe(true);
   });
 
-  it('`maxInlineActions` says how many buttons stay out at the first fold (2 by default)', async () => {
+  it('`maxInlineActions` lowers how many buttons a row keeps: two by default, and never more', async () => {
     const columns = COLUMNS.filter((c) => c.priority !== 'low');
-    // 4 columns: all out 592 · two out 552 · one out 512.
-    const byDefault = await mountAt(560, { columns });
-    const one = await mountAt(560, { columns, maxInlineActions: 1 });
+    const byDefault = await mountAt(900, { columns });
+    const one = await mountAt(900, { columns, maxInlineActions: 1 });
+    const four = await mountAt(900, { columns, maxInlineActions: 4 });
     expect(rowButtons(byDefault)).toEqual(['open', 'manage', 'menu']);
     expect(rowButtons(one), 'the pinned one takes the only place').toEqual(['open', 'menu']);
+    expect(rowButtons(four)).toEqual(['open', 'manage', 'menu']);
   });
 
   it('when even the cards cannot be had, the list scrolls INSIDE its box, never the page', async () => {
@@ -187,11 +146,10 @@ describe('the list fits its BOX: low columns → extra actions → all but pinne
   });
 });
 
-// hub#94 (Time clock › Records at 834px): folded into «⋮», the list still did not fit, yet it stayed a
-// list scrolled sideways, with the pinned «⋮» over its last column, instead of handing over to the
-// cards. The «Actions» header no longer fitting its narrower track was written while the actions were
-// folded, a state the render does not read: no render followed, and the ladder waited for one forever.
-describe('a measurement that paints nothing never stalls the ladder (hub#94)', () => {
+// The «Actions» header no longer fitting its narrower track is written while the actions are folded, a
+// state the render does not read: no render follows, and a ladder waiting for one would leave the list
+// scrolled sideways under «⋮» instead of handing over to the cards.
+describe('a measurement that paints nothing never stalls the ladder', () => {
   const LABEL = 60; // the «Actions» header label, wider than «⋮» alone
   const COLUMNS_4 = COLUMNS.filter((c) => c.priority !== 'low');
   const LABELLED = [
@@ -230,7 +188,7 @@ describe('a measurement that paints nothing never stalls the ladder (hub#94)', (
     expect(isCards(t)).toBe(false);
     expect(rowButtons(t)).toEqual(['menu']);
     expect((t.element.querySelector('.data-table__row--head') as HTMLElement).style.gridTemplateColumns).toBe(
-      'minmax(5.5rem,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 40px',
+      'minmax(10rem,1.4fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 40px',
     );
     expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
   });
@@ -258,22 +216,22 @@ describe('a measurement that paints nothing never stalls the ladder (hub#94)', (
 
 });
 
-describe('a refresh of the rows keeps what the box decided (W-19)', () => {
+describe('a refresh of the rows keeps what the box decided', () => {
   it('the same rows again (a live update) do not paint the hidden columns back, not even for a moment', async () => {
     const address = vi.fn((value: unknown) => String(value));
     const columns = COLUMNS.map((c) => (c.key === 'address' ? { ...c, format: address } : c));
-    const t = await mountAt(560, { columns });
-    expect(rowButtons(t)).toEqual(['open', 'manage', 'menu']);
+    const t = await mountAt(540, { columns });
+    expect(rowButtons(t)).toEqual(['open', 'menu']);
     address.mockClear();
     await t.setProps({ rows: ROWS.map((r) => ({ ...r })) });
     await settle();
     expect(address).not.toHaveBeenCalled();
     expect(headers(t)).not.toContain('Web address');
-    expect(rowButtons(t)).toEqual(['open', 'manage', 'menu']);
+    expect(rowButtons(t)).toEqual(['open', 'menu']);
   });
 });
 
-describe('the person’s own view is never overridden by the fit (W-19)', () => {
+describe('the person’s own view is never overridden by the fit', () => {
   it('the list picked by hand in a box too narrow stays a list (scrolling inside), at any width', async () => {
     const t = await mountAt(480);
     expect(isCards(t)).toBe(true);
@@ -294,14 +252,14 @@ describe('the person’s own view is never overridden by the fit (W-19)', () => 
   });
 });
 
-describe('`pinned` and `menuOnly` row actions (§3b: the main action stays, the delicate ones live in «⋮»)', () => {
+describe('`pinned` and `menuOnly` row actions: the main action stays, the delicate ones live in «⋮»', () => {
   it('a `menuOnly` action never gets a button: «⋮» offers it, hooked, and emits for that row', async () => {
     const t = await mountAt(900);
     expect(byTestId(t, 'biz-row-b2-transfer')).toHaveLength(0);
     await click(byTestId(t, 'biz-row-b2-menu')[0]);
-    expect(menuLabels(t)).toEqual(['Transfer ownership']);
+    expect(menuLabels(t)).toEqual(['Pay', 'Transfer ownership']);
     expect(byTestId(t, 'biz-row-b2-transfer').map((el) => el.tagName)).toEqual(['ION-ITEM']);
-    await click(menuItems(t)[0]);
+    await click(menuItems(t).find((item) => item.getAttribute('data-testid') === 'biz-row-b2-transfer'));
     expect(t.emitted('action')).toEqual([[{ actionId: 'transfer', row: ROWS[1] }]]);
   });
 
@@ -314,23 +272,21 @@ describe('`pinned` and `menuOnly` row actions (§3b: the main action stays, the 
     expect(t.emitted('action')?.[0]).toEqual([{ actionId: 'open', row: ROWS[0] }]);
   });
 
-  it('a row without anything for «⋮» keeps an invisible stand-in, so the buttons stay in their column', async () => {
-    const actions = ACTIONS.map((a) => (a.id === 'transfer' ? { ...a, hidden: (r: Row) => r.role !== 'Owner' } : a));
+  it('a row with nothing left for «⋮» has no «⋮» and no invisible stand-in', async () => {
+    const actions = ACTIONS.filter((a) => a.id !== 'pay').map((a) => (a.id === 'transfer' ? { ...a, hidden: (r: Row) => r.role !== 'Owner' } : a));
     const t = await mountAt(900, { actions });
-    expect(rowButtons(t, 0)).toEqual(['open', 'manage', 'pay', 'menu']);
-    expect(rowButtons(t, 1)).toEqual(['open', 'manage', 'pay', 'gap:menu']);
-    const gap = dataRows(t)[1].querySelector('[data-slot-for="menu"]') as HTMLElement;
-    expect(gap.getAttribute('aria-hidden')).toBe('true');
-    expect(gap.hasAttribute('inert')).toBe(true);
+    expect(rowButtons(t, 0)).toEqual(['open', 'manage', 'menu']);
+    expect(rowButtons(t, 1)).toEqual(['open', 'manage']);
+    expect(t.element.querySelector('[data-slot-for]')).toBeNull();
   });
 
-  it('cards: every action is a button except the `menuOnly` ones, which stay in the card’s «⋮»', async () => {
+  it('cards keep one primary button and every secondary action in the menu', async () => {
     const t = await mountAt(900, { defaultView: 'cards' });
     const buttons = [...cards(t)[0].querySelectorAll('.data-table__card-actions ion-button')].map((b) => b.getAttribute('data-testid'));
-    expect(buttons).toEqual(['biz-row-b1-open', 'biz-row-b1-manage', 'biz-row-b1-pay', 'biz-row-b1-menu']);
+    expect(buttons).toEqual(['biz-row-b1-open', 'biz-row-b1-menu']);
     await click(byTestId(t, 'biz-row-b1-menu')[0]);
-    expect(menuLabels(t)).toEqual(['Transfer ownership']);
-    await click(menuItems(t)[0]);
+    expect(menuLabels(t)).toEqual(['Manage', 'Pay', 'Transfer ownership']);
+    await click(menuItems(t).find((item) => item.getAttribute('data-testid') === 'biz-row-b1-transfer'));
     expect(t.emitted('action')).toEqual([[{ actionId: 'transfer', row: ROWS[0] }]]);
   });
 });
@@ -356,12 +312,12 @@ describe('the column chooser and the low columns the box hid', () => {
     expect(headers(t)).toEqual(['Business', 'Status', 'Plan', 'Role', 'Last used']);
     await resize(480);
     expect(isCards(t)).toBe(true);
-    expect(cardFieldLabels(t)).toEqual(['Business', 'Status', 'Plan', 'Role', 'Last used']);
+    expect(cardFieldLabels(t)).toEqual(['Business', 'Plan', 'Role', 'Last used']);
   });
 });
 
-describe('no regression: server mode and selection while folded', () => {
-  it('sorts, selects and runs a folded action exactly as before', async () => {
+describe('server mode and selection while folded', () => {
+  it('sorts, selects and runs a folded action', async () => {
     const columns = COLUMNS.map((c) => (c.key === 'name' ? { ...c, sortable: true } : c));
     // With the checkbox column: 4 columns, the pinned one and «⋮» = 556.
     const t = await mountAt(560, { columns, serverSide: true, total: 30, pageSize: 2, selectable: true });
@@ -377,12 +333,11 @@ describe('no regression: server mode and selection while folded', () => {
   });
 });
 
-// FIX-UI-DATATABLE-EMAIL-COLUMN-834 (Cart & Checkout › Orders at 834px): every column without its own width took the
-// same share of the row, so a long email was cut («ana@example.c…») beside a half-empty Payment. Each rung of the
-// ladder is now first tried with every column holding its content whole (and sharing what is left, as before); only
-// when that does not fit is the widest text cut, down to the floor, before the ladder gives anything else up. This
-// fake engine sizes the grid from the TEMPLATE the head paints (each track's minimum) and a text from its length.
-describe('a column holds its content whole while the row has room (FIX-UI-DATATABLE-EMAIL-COLUMN-834)', () => {
+// Each rung of the ladder is first tried with every column holding its content whole (and sharing what
+// is left); only when that does not fit is the widest text cut, down to the floor, before the ladder gives
+// anything else up. This fake engine sizes the grid from the TEMPLATE the head paints (each track's
+// minimum) and a text from its length.
+describe('a column holds its content whole while the row has room', () => {
   const CHAR = 8; // px per character of a text
   const FLOOR = 88; // 5.5rem
   const EMAIL = 'ana.garcia.lopez@example.com'; // 28 characters: 224px of text, a 225px column
@@ -417,35 +372,21 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     if (px) return Number(px[1]);
     const rem = track.match(/^([\d.]+)rem$/);
     if (rem) return Number(rem[1]) * 16;
-    if (track === 'max-content') {
-      let buttons = 0;
-      for (const cell of scroll.querySelectorAll('.data-table__row--data .data-table__actions')) {
-        buttons = Math.max(buttons, [...cell.children].filter((el) => el.tagName === 'ION-BUTTON').length);
-      }
-      return buttons * BUTTON;
-    }
+    if (track === 'max-content') return actionButtonsWidth(scroll, BUTTON);
     throw new Error(`the fake engine does not size «${track}»`);
   }
 
   beforeEach(() => {
     const scrollWidth = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollWidth')!.get!;
     vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
-      if (this.classList.contains('data-table__scroll')) {
-        const head = this.querySelector<HTMLElement>('.data-table__row--head');
-        const tracks = (head?.style.gridTemplateColumns ?? '').split(' ').filter(Boolean);
-        return Math.max(PAD + tracks.reduce((sum, track) => sum + trackMin(track, this), 0), box);
-      }
-      // #217 - An unfolded text wraps to its column: on one line it would be wider than it now says.
+      if (this.classList.contains('data-table__scroll')) return templateWidth(this, PAD, (track) => trackMin(track, this));
+      // An unfolded text wraps to its column: on one line it would be wider than it now says.
       if (this.classList.contains('data-table__text--unfolded')) return FLOOR;
-      // A text of a data cell or of a header: as wide as its characters, whatever its box.
-      if (this.tagName === 'SPAN' && this.parentElement?.matches('.data-table__cell:not(.data-table__cell--actions)')) {
-        return (this.textContent?.trim().length ?? 0) * CHAR;
-      }
-      return scrollWidth.call(this);
+      return cellTextWidth(this, CHAR) ?? scrollWidth.call(this);
     });
   });
 
-  it('with room, the long email keeps its 225px and the rest share what is left, as before', async () => {
+  it('with room, the long email keeps its 225px and the rest share what is left', async () => {
     const t = await mountAt(720, props834);
     expect(template(t)).toBe('minmax(225px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
     expect(headers(t)).toEqual(['Email', 'Status', 'Total', 'Note']);
@@ -453,7 +394,7 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
   });
 
-  it('out of room, the email gives its width up first; the ladder of before follows, each rung tried whole first', async () => {
+  it('out of room, the email gives its width up first; then the ladder follows, each rung tried whole first', async () => {
     const t = await mountAt(720, props834);
 
     await resize(600);
@@ -482,7 +423,7 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     expect(rowButtons(t)).toEqual(['pay', 'fail']);
   });
 
-  it('a cut email unfolded by a tap (#217) leaves its column as it was: wrapped, it no longer tells its width', async () => {
+  it('a cut email unfolded by a tap leaves its column as it was: wrapped, it no longer tells its width', async () => {
     const t = await mountAt(600, props834);
     const cut = 'minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px';
     expect(template(t)).toBe(cut);
@@ -508,7 +449,7 @@ describe('a column holds its content whole while the row has room (FIX-UI-DATATA
     expect(template(t)).toBe('minmax(121px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
   });
 
-  // hub#703: the row gives up what comes next on its ladder before it cuts this column under its own floor.
+  // The row gives up what comes next on its ladder before it cuts this column under its own floor.
   describe('a column on its own floor (`minWidth`)', () => {
     /** The columns of this table with `minWidth` on one of them. */
     const flooredOn = (key: string) => COLUMNS_834.map((c) => (c.key === key ? { ...c, minWidth: '10.5rem' } : c));

@@ -1,14 +1,9 @@
-// SettingsFormFooter: the end of a settings page's form, the one every «Settings» tab of the Hub had copied
-// (hub#897; APPOINTMENT-F19, RESERVATION-F03, ONLINE_BOOKING-F07, STAFF-F22, TABLE-F08, KITCHEN-F26,
-// ATTENDANCE-F04, SERVICE-F11): the refusal's red notice, «saved» and «Save», painted from what
-// useSettingsForm gives and from the page's own texts. Its variants are the pages' (Staff and Attendance:
-// a spinner on Save; Attendance: its icon, Save on without changes and only for whoever may change them).
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
-import { defineComponent, effectScope, h, ref, shallowRef, type EffectScope, type PropType } from 'vue';
+import { defineComponent, h, ref, shallowRef, type PropType } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
 import { resolveIcon } from '../../shell/icons';
@@ -16,6 +11,7 @@ import * as components from '../index';
 import SettingsFormFooter, { type SettingsFormFooterState } from './SettingsFormFooter.vue';
 import { useSettingsForm } from './settingsForm';
 import type { FormModalError } from './types';
+import { settingsFormOn, stopSettingsForms } from './__tests__/settings-form';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -157,8 +153,7 @@ describe('SettingsFormFooter', () => {
     expect([...row.children]).toEqual([hook('save').element]);
   });
 
-  // As FormModal's footer, and as Staff and Attendance had it: on a wide page a «Save» as wide as the form (the
-  // other six pages, a grid child stretched) was a bar 1168 px long at 1440x900.
+  // A «Save» stretched as a grid child is as wide as the form: a bar 1168 px long on a 1440x900 page.
   it('«Save» sits at the end of its row, at its own width, as FormModal\'s does', () => {
     const { hook } = mountFooter(state());
     const source = readFileSync(join(HERE, 'SettingsFormFooter.vue'), 'utf8');
@@ -229,41 +224,16 @@ describe('SettingsFormFooter', () => {
   });
 
   describe('with useSettingsForm', () => {
-    const scopes: EffectScope[] = [];
-    afterEach(() => {
-      for (const scope of scopes.splice(0)) scope.stop();
-    });
+    afterEach(stopSettingsForms);
 
     interface Out {
       name: string;
     }
     type Form = Out;
 
-    /** A command as `useCommand` gives it: pending while on its way, its error after a refusal. */
-    function command(answer: (input: Partial<Out>) => Promise<Out>) {
-      const pending = ref(false);
-      const error = shallowRef<FormModalError | null>(null);
-      const run = vi.fn(async (input: Partial<Out>): Promise<Out> => {
-        pending.value = true;
-        error.value = null;
-        try {
-          return await answer(input);
-        } catch (err) {
-          error.value = err as FormModalError;
-          throw err;
-        } finally {
-          pending.value = false;
-        }
-      });
-      return { run, pending, error };
-    }
-
     function mountPage(answer: (input: Partial<Out>) => Promise<Out>) {
       const data = shallowRef<Out>({ name: 'Old' });
-      const cmd = command(answer);
-      const scope = effectScope();
-      scopes.push(scope);
-      const settings = scope.run(() => useSettingsForm(data, cmd, { toForm: (out: Out): Form => ({ name: out.name }) }))!;
+      const { cmd, settings } = settingsFormOn<Out, Form, Partial<Out>>(data, answer, { toForm: (out: Out): Form => ({ name: out.name }) });
       const { hook } = mountFooter(settings, { errorHeading: 'The settings were not saved' });
       return { cmd, settings, hook };
     }

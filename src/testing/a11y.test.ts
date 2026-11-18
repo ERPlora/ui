@@ -1,7 +1,3 @@
-// The accessible-name guardrail (UX audit 2, R-03): what axe's `role-img-alt` and `button-name`
-// check, in a DOM happy-dom can build. Ionic paints every `ion-icon` as `role="img"`, so an icon is
-// either hidden from assistive tech (`aria-hidden="true"`, the decorative case) or named; a button
-// is named by its text or its `aria-label`, never by an icon alone.
 import { describe, expect, it } from 'vitest';
 
 import { bareIonIcons, unnamedButtons, unnamedIcons } from './a11y';

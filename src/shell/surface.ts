@@ -1,4 +1,4 @@
-// Where the shell is running (PLAN-SAAS §3.6, point 5; mockups README §4). Four surfaces:
+// Where the shell is running. Four surfaces:
 //   - `web`      a browser: everything, selling included;
 //   - `desktop`  the desktop app (Tauri on Windows);
 //   - `mobile`   the mobile app (Tauri on Android; or any WebView that announces itself);
@@ -6,7 +6,7 @@
 //                with the doors to buying closed, like inside the app.
 // Everything that sells is web only (`<WebOnly>`, `v-web-only`, a route's `meta.webOnly`); the other
 // three surfaces get the in-app rules. `createShell` boots it: `<html data-surface="…">` and, off the
-// web, `html.in-app-shell` (the class the SaaS templates already used, saas#2083), for CSS hooks.
+// web, `html.in-app-shell` (the class the SaaS templates use), for CSS hooks.
 //
 // How each surface is told, strongest signal first:
 //   1. `createShell({ surface })`: the entry knows (the server's `spa-config`, a test).
@@ -28,7 +28,7 @@ import { computed, type ComputedRef, type ObjectDirective, readonly, type Ref, r
 export const SURFACES = ['web', 'desktop', 'mobile', 'account'] as const;
 export type Surface = (typeof SURFACES)[number];
 
-/** Class on `<html>` off the web (the SaaS templates' convention, saas#2083). */
+/** Class on `<html>` off the web (the SaaS templates' convention). */
 export const IN_APP_CLASS = 'in-app-shell';
 
 /** Token a native WebView appends to its user agent to say it is the app. */

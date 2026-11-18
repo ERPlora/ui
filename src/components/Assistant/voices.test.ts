@@ -1,6 +1,4 @@
-// The assistant's voices: the catalogue of server voices is the host's (`AssistantConfig.voices`, none today: no engine
-// reads aloud, PLAN-SAAS round 2026-11-04c), the device's own voice is the other choice, and the person's choice is
-// remembered by the device, one per language. The voices here are made up: the package names none of its own.
+// The voices here are made up: the package names none of its own.
 import { describe, expect, it, vi } from 'vitest';
 
 import { memoryStorage } from './__tests__/mount-assistant';

@@ -1,11 +1,7 @@
 <script setup lang="ts">
-// The assistant's composer, at the foot of its panel (BASE-G111, G112; the old hub's drawer foot): attach, dictate, the
-// box and «Send» — «Stop» while the answer comes. Enter sends on a keyboard; Shift+Enter, and Enter on a touch screen,
-// are a new line. The files erplora.com reads become chips that can be removed before sending; a refusal (type, size,
-// microphone, an empty dictation) is one line above the box until the next try. A dictation (`useDictation`: one
-// recording per tap, only for a host that transcribes) lands in the box after what was written and is never sent by
-// itself. What is written outlives
-// the panel (it is the assistant's `draft`).
+// Enter sends on a keyboard; Shift+Enter, and Enter on a touch screen, are a new line. A refusal (type, size,
+// microphone, an empty dictation) is one line above the box until the next try. A dictation lands in the box after what
+// was written and is never sent by itself. What is written outlives the panel (it is the assistant's `draft`).
 import { IonButton, IonIcon, IonSpinner, IonTextarea } from '@ionic/vue';
 import { computed, shallowRef, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';

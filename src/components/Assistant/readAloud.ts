@@ -1,17 +1,11 @@
-// «Read aloud» of an answer (round 2026-11-03m): in the server's voice the person chose — the host's `speak` gives
-// its mp3, played from a `blob:` URL that is freed as soon as it ends, fails or is stopped —, else
-// in the device's own voice (`nativeVoice.ts`: the system's in the installed app, else the browser's): when the person
-// chose it, when the host has no server voice, or when the server or its audio fails before a word of it was heard
-// (never the whole answer again after a part). One reading at a time: a new one or «Stop reading» stops the one before
-// and aborts its request to the server. It fails, for the panel to say so, when nothing could read it (an Android app
-// without a system voice for the language) or the server's audio broke halfway; never silent without a word.
-// The server's player is unlocked in the click itself by playing a silent clip in it: iOS lets a player start later
-// (when the server's audio arrives) only when `play()` was called on it inside a gesture.
+// «Read aloud» of an answer: in the server voice the person chose (the host's `speak` gives its mp3), else in the
+// device's own voice (`nativeVoice.ts`), which also reads when the server or its audio fails before a word was heard,
+// never the whole answer again after a part. One reading at a time: a new one or «Stop reading» stops the one before and
+// aborts its request. It fails, for the panel to say so, when nothing could read it or the server's audio broke halfway.
 import type { AssistantSpeech } from './config';
 import type { DeviceReader } from './deviceVoice';
 import { type AssistantLanguage, DEVICE_VOICE } from './voices';
 
-/** Where a `blob:` URL is made and freed (the page's `URL`). */
 export interface AudioUrls {
   create(blob: Blob): string;
   revoke(url: string): void;
@@ -32,7 +26,6 @@ export interface ReadAloud {
    *  reading ends or is stopped, and fails when nothing could read it. Called in the click: the server's player is
    *  made and unlocked before anything is awaited. */
   read(text: string, language: AssistantLanguage, voice: string): Promise<void>;
-  /** Stops what is being read, if anything. */
   stop(): void;
 }
 
@@ -41,7 +34,6 @@ const PAGE_URLS: AudioUrls = {
   revoke: (url) => URL.revokeObjectURL(url),
 };
 
-/** The page's audio player, where it has one. */
 export function browserAudio(): (() => HTMLAudioElement) | undefined {
   return typeof globalThis.Audio === 'function' ? () => new Audio() : undefined;
 }
@@ -89,7 +81,8 @@ export function createReadAloud({ speak, device, audio, urls = PAGE_URLS }: Read
     device?.cancel();
   }
 
-  /** Unlocks the player inside the click: plays the silent clip in it, synchronously. Gives what frees the clip. */
+  /** Unlocks the player inside the click by playing the silent clip in it, synchronously: iOS lets a player start later
+   *  (when the server's audio arrives) only if `play()` was called on it inside a gesture. Gives what frees the clip. */
   function unlock(player: HTMLAudioElement): () => void {
     const url = urls.create(silentClip());
     let freed = false;

@@ -1,7 +1,5 @@
-/* Footer tabbar: an `ion-segment` used as the footer NAVIGATION bar (not as iOS's filter pill).
- * Ported 1:1 from OutfitKit's `tabbar.css` (0.1.136; PLAN §16.11): `.ok-tabbar` is `.tabbar` and
- * its tokens are `--ep-*`. It fills a real gap of Ionic instead of wrapping it: Ionic has no
- * strategy for a tabbar with more tabs than fit, and its geometry changes with the mode.
+/* Footer tabbar: an `ion-segment` used as the footer navigation bar (not as iOS's filter pill).
+ * Ionic has no strategy for a tabbar with more tabs than fit, and its geometry changes with the mode.
  *
  * Whoever wires the tabbar puts the `.tabbar` class on the segment and keeps `data-overflow`
  * (`start` | `end` | `both`), the one thing CSS cannot work out alone (whether it overflows and
@@ -26,8 +24,8 @@
   /* With few tabs the `1fr` wins and they fill the width; with many the minimum wins and they are
      NOT squashed. 64px lets five tabs fit a 360px phone (a 352px strip: 4px of padding each side and
      four 4px gaps leave 65.6px a tab), as a bottom bar does (iOS tab bar, Material's navigation bar:
-     up to five destinations, all on screen; FIX-UI-TABBAR-375). It is only a floor: a label whose
-     longest word does not fit widens every tab (`bindTabbarPeek`, hub#2414) and the strip scrolls,
+     up to five destinations, all on screen). It is only a floor: a label whose
+     longest word does not fit widens every tab (`bindTabbarPeek`) and the strip scrolls,
      peeking at the next tab. Each product can tune it with `--ep-tabbar-min`: scrolling beats cut
      labels. */
   grid-auto-columns: minmax(var(--ep-tabbar-min, 64px), 1fr);

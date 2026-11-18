@@ -1,7 +1,3 @@
-// Behaviour spec of InlineFeedback, the Vue port of OutfitKit's `ok-inline-feedback`
-// (ERPlora/outfitkit origin/main `src/components/ok-inline-feedback/ok-inline-feedback.ts`, which
-// had no tests of its own): a persistent banner in the flow of the content, with a tone, an
-// optional heading, a body (default slot), actions (`actions` slot) and an optional close button.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { createShellI18n } from '../../shell/i18n';
 import { ionIconSrc, resolveIcon } from '../../shell/icons';
+import { blocks, componentCss, declaration, vars, type Vars } from '../__tests__/themeContrast';
 import InlineFeedback from './InlineFeedback.vue';
 import * as barrel from './index';
 
@@ -41,7 +38,7 @@ describe('InlineFeedback', () => {
     expect(barrel.InlineFeedback).toBe(InlineFeedback);
   });
 
-  it('renders the same DOM as ok-inline-feedback: root, status box, tone icon, body', () => {
+  it('renders its root, the status box, the tone icon and the body', () => {
     const wrapper = mountFeedback();
     const root = wrapper.get('.inline-feedback');
     expect(root.element).toBe(wrapper.element);
@@ -111,7 +108,7 @@ describe('InlineFeedback', () => {
 
   it('the close button is labelled in the user language and has the close icon', () => {
     const close = mountFeedback({ dismissible: true }).get('.box > button.close');
-    // Light DOM now: inside a <form> (the demo's item modal) a default button would submit it.
+    // Inside a <form>, a button of the default type would submit it.
     expect(close.attributes('type')).toBe('button');
     expect(close.attributes('aria-label')).toBe('Dismiss');
     const icon = close.get('ion-icon');
@@ -143,12 +140,29 @@ describe('InlineFeedback', () => {
     expect(wrapper.get('.inline-feedback').attributes('hidden')).toBeUndefined();
   });
 
-  it('passes attributes such as data-testid to its root, like the host element did', () => {
+  it('passes attributes such as data-testid to its root', () => {
     const wrapper = mount(InlineFeedback, {
       attrs: { 'data-testid': 'demo-items-error' },
       global: { plugins: [createShellI18n()] },
     });
     expect(wrapper.get('[data-testid="demo-items-error"]').element).toBe(wrapper.element);
+  });
+
+  it('a role given by the page replaces the status role of the box, so the banner has a single role', () => {
+    const wrapper = mount(InlineFeedback, {
+      attrs: { role: 'alert' },
+      slots: { default: () => 'Card declined' },
+      global: { plugins: [createShellI18n()] },
+    });
+    expect(wrapper.get('.box').attributes('role')).toBe('alert');
+    expect(wrapper.get('.inline-feedback').attributes('role')).toBeUndefined();
+    expect(wrapper.findAll('[role]')).toHaveLength(1);
+  });
+
+  it('without a role from the page, only the box is a status region', () => {
+    const wrapper = mountFeedback();
+    expect(wrapper.get('.inline-feedback').attributes('role')).toBeUndefined();
+    expect(wrapper.findAll('[role]').map((node) => node.attributes('role'))).toEqual(['status']);
   });
 });
 
@@ -158,19 +172,75 @@ describe('InlineFeedback styles', () => {
   const theme = readFileSync(join(HERE, '../../shell/theme/variables.css'), 'utf8');
   const values = (name: string): string[] =>
     [...theme.matchAll(new RegExp(`${name}:\\s*([^;]+);`, 'g'))].map((m) => m[1].trim());
-
-  it('are scoped and read our --ep-* tokens, never OutfitKit --ok-* ones', () => {
-    expect(style).toContain('.inline-feedback');
-    expect(style).not.toMatch(/--ok-/);
-    expect(style).toMatch(/var\(--ep-radius,/);
+  const css = componentCss(join(HERE, 'InlineFeedback.vue'));
+  const toneVars = (tone: string): Vars => ({
+    ...vars(css, '.inline-feedback'),
+    ...vars(css, `.inline-feedback[data-tone='${tone}']`),
   });
 
-  it('reads the theme value of the --ep-* tokens the shell defines and falls back for the rest (same look)', () => {
+  it('are scoped and read our --ep-* tokens, never --ok-* ones', () => {
+    expect(style).toContain('.inline-feedback');
+    expect(style).not.toMatch(/--ok-/);
+  });
+
+  it('reads the theme value of the --ep-* tokens the shell defines and falls back for the rest', () => {
     const tokens = new Set([...style.matchAll(/var\((--ep-[a-z0-9-]+)/g)].map((m) => m[1]));
     for (const token of tokens) {
       if (!values(token).length) expect(style, `${token} has no theme value: it needs its fallback`).toContain(`var(${token},`);
     }
-    // The 14px radius the shell gave OutfitKit's element (PLAN §16.11: --ep-* keep those values).
-    expect(values('--ep-radius')).toEqual(['14px']);
+  });
+
+  it('round the box with the 12px radius token of the theme', () => {
+    expect(values('--ep-radius-md')).toEqual(['12px']);
+    expect(vars(css, '.inline-feedback')['--border-radius']).toBe('var(--ep-radius-md, 12px)');
+    expect(declaration(css, '.box', 'border-radius')).toBe('var(--border-radius)');
+  });
+
+  it('draw no accent border and no glass: the tone shows in a soft tint of the theme', () => {
+    expect(css).not.toMatch(/border-(?:inline-start|left)\s*:/);
+    expect(css).not.toContain('--accent-width');
+    expect(css).not.toContain('backdrop-filter');
+    expect(declaration(css, '.box', 'background')).toBe(
+      'color-mix(in srgb, var(--tone-tint) var(--background-opacity), transparent)',
+    );
+  });
+
+  it('every tone reads the tint and text pair of the theme, and its icon takes the text colour', () => {
+    const pairs = { info: 'primary', success: 'success', warning: 'warning', danger: 'danger' } as const;
+    for (const [tone, colour] of Object.entries(pairs)) {
+      const own = toneVars(tone);
+      expect(own['--tone-tint'], tone).toMatch(new RegExp(`^var\\(--ep-${colour}-tint, #[0-9a-f]{6}\\)$`, 'i'));
+      expect(own['--tone-text'], tone).toMatch(new RegExp(`^var\\(--ep-${colour}-text, #[0-9a-f]{6}\\)$`, 'i'));
+    }
+    // Neutral has no pair in the theme: a grey of its step ramp, with the secondary text of the notice.
+    expect(toneVars('neutral')['--tone-tint']).toMatch(/^var\(--ion-color-step-\d+, #[0-9a-f]{6}\)$/i);
+    expect(toneVars('neutral')['--tone-text']).toBe('var(--color-secondary)');
+    expect(toneVars('info')['--color-secondary']).toMatch(/^color-mix\(in srgb, var\(--ep-text-muted, #[0-9a-f]{6}\) \d+%, var\(--color\)\)$/i);
+    expect(declaration(css, '.icon', 'color')).toBe('var(--tone-text)');
+  });
+
+  it('set the heading in weight 600 and the body under a heading in the secondary colour', () => {
+    expect(declaration(css, '.heading', 'font-weight')).toBe('600');
+    expect(declaration(css, '.heading + .body', 'color')).toBe('var(--color-secondary)');
+  });
+
+  it('paint the slotted action buttons as text in the tone colour, with a 48px touch area', () => {
+    const action = blocks(css, '.actions :slotted(ion-button)').join(';');
+    expect(action).toMatch(/--background:\s*transparent/);
+    expect(action).toMatch(/--border-width:\s*0/);
+    expect(action).toMatch(/--box-shadow:\s*none/);
+    expect(action).toMatch(/--color:\s*var\(--tone-text\)/);
+    expect(action).toMatch(/min-height:\s*var\(--ep-touch-min, 48px\)/);
+  });
+
+  it('keep a discreet close button with a 48px touch area', () => {
+    expect(declaration(css, '.close', 'width')).toBe('var(--ep-touch-min, 48px)');
+    expect(declaration(css, '.close', 'height')).toBe('var(--ep-touch-min, 48px)');
+    expect(declaration(css, '.close', 'color')).toBe('var(--color-secondary)');
+  });
+
+  it('drop the actions below the text on a phone (640px and narrower)', () => {
+    const phone = /@media \(max-width: 640px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(declaration(phone, '.row', 'flex-direction')).toBe('column');
   });
 });

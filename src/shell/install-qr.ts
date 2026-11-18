@@ -1,12 +1,10 @@
-// hub#1715 — the address the sidebar QR carries («Open on your phone», SidebarInstallQr.vue). A QR is
-// only worth its place if ANOTHER device can act on what it reads, and a wrong address still paints a
-// perfectly scannable code: the person only finds out with the phone in their hand. Hence a function
-// with tests rather than an expression in the template.
+// The address the sidebar QR carries («Open on your phone»). A wrong address still paints a perfectly scannable
+// code and the person only finds out with the phone in their hand, hence a tested function rather than an
+// expression in the template.
 import type QRCode from 'qrcode';
 
 /** The slice of `window.location` this needs; the rest (`href`…) is ignored on purpose. */
 export interface QrLocation {
-  /** Scheme, host and port, as the browser reports them. */
   origin: string;
   href?: string;
 }

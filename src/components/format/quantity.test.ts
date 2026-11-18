@@ -1,6 +1,3 @@
-// A quantity as the person reads it (units, kilos, sessions): in their language, up to three decimals and none it
-// does not need, the thousands grouped as an amount groups them. The server sends one as a number or as the text of a
-// decimal («2.500», as JSON writes it). The assistant's card says a line's quantity so (hub#970).
 import { describe, expect, it } from 'vitest';
 
 import { formatQuantity } from './quantity';

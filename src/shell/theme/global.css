@@ -1,33 +1,20 @@
-/* App globals. The brand theme (--ion-* variables) lives in theme/variables.css.
-   Component base = Ionic; here only Tailwind + minimal globals. */
-
-/* Tailwind reads class names ONLY where we say (PoC issue B). With automatic detection it scanned
-   the whole project: a `.py` change made `@tailwindcss/vite` send `full-reload` to every open tab,
-   and the comments of `tests/e2e/*.ts` turned into classes. Here: the UI package's own components
-   (`src/`), tests excluded. Each project's sources (`frontend/` and `apps/<id>/frontend/`) are added by
-   `erploraVite()` (`erplora:tailwind-sources`, src/vite.ts). */
+/* Tailwind reads class names only where we say: with automatic detection it scanned the whole project, so a `.py`
+   change reloaded every open tab and the comments of e2e tests turned into classes. Here, the UI package's own
+   components without their tests; `erploraVite()` (src/vite.ts) adds each project's sources. */
 @import "tailwindcss" source(none);
 @source "../../**/*.{vue,ts}";
 @source not "../../**/*.test.ts";
 
-/* Tailwind's preflight resets `padding: 0` on `*`, and a document rule always beats a shadow
-   `:host` rule: it wiped the 20px side padding Ionic gives `ion-title` in md, so md titles sat
-   flush against the sheet edge (hub#2314). `revert-layer` inside the SAME `base` layer drops the
-   reset and lets Ionic's own `:host` padding through. md only: in ios Ionic's 90px leaves an
-   ordinary title 164px on a 360px phone and cuts it («Movimientos del bono» needs 166px in
-   Roboto), so ios keeps padding 0 until its titles are laid out between the buttons.
-   Same reset, same cure for `ion-badge` (PoC issue D, e2e screenshots of 2026-10-13): «Open»/«Done»
-   measured 30.8 × 11.5 px with padding 0, text against the pill's edge; its `:host` padding (the
-   `--padding-*` that brand.css sets) comes back. Here and not in polish.css: that sheet loads
-   BEFORE this one, and a `base` block there would declare `base` ahead of Tailwind's
-   `theme, base, components, utilities` order.
-   Same reset, same cure for the sides of `ion-chip` (FIX-UI-SHELL-ION-CHIP-PADDING-WIPED-BY-PREFLIGHT):
-   a service of «New appointment» and the table's «Clear filters» measured padding 0, the text against
-   the pill's edge, and Inventory's categories carried a padding of their own; Ionic's 12px (both
-   modes) comes back on each side. Not its 6px on top and below: a chip of text is Ionic's 32px
-   `min-height` either way, and a chip with its 40px remove button grew from 40 to 52px, nearly the
-   56px of its field. Preflight's `margin: 0` keeps Ionic's 4px margin off, as each row of chips sets
-   its own gap. A component's own rule still wins: it is not layered. */
+/* Tailwind's preflight sets `padding: 0` on `*`, and a document rule always beats a shadow `:host` rule, so it wipes
+   the padding Ionic gives these hosts. `revert-layer` inside the same `base` layer drops the reset and lets Ionic's
+   own `:host` padding through (for `ion-badge`, the `--padding-*` that brand.css sets). This lives here and not in
+   polish.css: that sheet loads before this one, and a `base` block there would declare `base` ahead of Tailwind's
+   `theme, base, components, utilities` order. A component's own rule still wins: it is not layered.
+   - `ion-title`, md only: in ios Ionic's 90px leaves an ordinary title 164px on a 360px phone and cuts it, so ios
+     keeps padding 0.
+   - `ion-chip`, only its sides: Ionic's 6px on top and below would grow a chip with its 40px remove button to 52px,
+     while a chip of text is Ionic's 32px `min-height` either way. Ionic's 4px margin stays off, as each row of chips
+     sets its own gap. */
 @layer base {
   ion-title.md {
     padding: revert-layer;
@@ -41,28 +28,19 @@
     padding-inline: revert-layer;
   }
 
-  /* Same reset, same cure for the icon of a chip: preflight's `margin: 0` beat ion-chip's
-     `::slotted(ion-icon:first-child|last-child)` margins, so a chip's icon sat against its text
-     («⚠Not configured» of Inventory, `margin-inline-end` measured 0px and a gap of 0px,
-     FIX-UI-SHELL-ION-CHIP-ICON-MARGIN-WIPED-BY-PREFLIGHT). The whole margin comes back (Ionic's, both
-     modes): `:first-child`/`:last-child` picks the side of the 8px gap to the text, and the 4px pull
-     toward the edge leaves the icon 8px from it with the 12px padding above, as Ionic draws it. Its
-     4px into the padding on top and below keeps the chip at its 32px (measured: gap 8px, icon 8px
-     from the edge, chip 32px tall). Only a child of the chip: the icon of its remove button (an
-     ion-button inside it) is the button's. A component's own rule still wins: it is not layered. */
+  /* Preflight's `margin: 0` also beats ion-chip's `::slotted(ion-icon:first-child|last-child)` margins, which would
+     leave the icon against the text. The whole margin comes back: `:first-child`/`:last-child` picks the side of the
+     8px gap to the text, and the 4px pull toward the edge leaves the icon 8px from it, as Ionic draws it. Only a
+     child of the chip: the icon of its remove button (an ion-button inside it) is the button's. */
   ion-chip > ion-icon {
     margin: revert-layer;
   }
 
-  /* Same reset, same cure for the icon of a button: preflight's `margin: 0` beat ion-button's
-     `::slotted(ion-icon[slot=start|end])` margins, so every `HubIcon slot="start"` sat against its
-     label («⊘Deactivate» in a confirmation, FIX-UI-CONFIRMDIALOG-ICON-GAP). Only the side of the gap
-     comes back (Ionic's 0.3em of the icon, both modes): Ionic's pull on the outer side stays 0, as
-     before, because the SaaS sets its own gap on that one side (`buttons.css`) and the whole margin
-     pulled its icons 4.5–5.3 px into the padding (saas#54). A spinner in the icon's place while a
-     command runs gets no slotted margin from Ionic: it takes the icon's gap, in ems of the icon,
-     which is 1.35em of its button. A component's own rule (DataTable, the SaaS) still wins: it is
-     not layered. */
+  /* Preflight's `margin: 0` also beats ion-button's `::slotted(ion-icon[slot=start|end])` margins, which would leave
+     the icon against its label. Only the side of the gap comes back (Ionic's 0.3em of the icon): the outer side stays
+     0, because the SaaS sets its own gap on that side (`buttons.css`) and the whole margin would pull its icons
+     4.5–5.3 px into the padding. Ionic gives a spinner in the icon's place no slotted margin, so it takes the icon's
+     gap in ems of the icon, which is 1.35em of its button. */
   ion-button > ion-icon[slot="start"] {
     margin-inline-end: revert-layer;
   }
@@ -86,16 +64,12 @@ body,
   height: 100%;
 }
 
-/* In ios Ionic lays a title out `position: absolute` across the WHOLE toolbar and keeps it off the
-   buttons with a fixed `padding: 0 90px`. Tailwind's preflight (`padding: 0` on `*`, a document rule
-   that always beats a shadow `:host` rule) wipes that padding, so a long sheet title ran under the
-   «Cancel»/«Close» button (hub#2344, combos#29); and Ionic's 90px is no cure, it leaves an ordinary
-   title 164px on a 360px phone. So a sheet's title goes back into the toolbar's flex row, BETWEEN
-   the start and end buttons: centred in the room they leave and cut with «…» when it does not fit,
-   like native iOS sheets. 4px on top of the toolbar's own 12px lines a long title up with the
-   16px body.
-   Sheets only (`ion-modal`, where the modules' inline sheets land too): the shell's topbar keeps
-   Ionic's centring and deals with its own buttons (AppTopbar.vue). */
+/* In ios Ionic lays a title out `position: absolute` across the whole toolbar and keeps it off the buttons with a
+   fixed `padding: 0 90px`. Preflight wipes that padding, so a long sheet title would run under «Cancel»/«Close»; and
+   90px is no cure, it leaves an ordinary title 164px on a 360px phone. So a sheet's title goes back into the
+   toolbar's flex row between the start and end buttons, centred in the room they leave and cut with «…», like native
+   iOS sheets; 4px added to the toolbar's own 12px lines a long title up with the 16px body. Sheets only (`ion-modal`,
+   where the modules' inline sheets land too): the shell's topbar keeps Ionic's centring (AppTopbar.vue). */
 @layer base {
   ion-modal ion-title.ios {
     position: relative;

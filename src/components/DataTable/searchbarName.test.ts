@@ -1,7 +1,6 @@
-// outfitkit#182 — Ionic 8's `ion-searchbar` names its inner <input> with a constant
-// `aria-label="search text"`, so screen readers announce «search text» instead of the visible hint.
-// FIX-UI-SEARCHBAR-CLEAR-BUTTON-SAYS-RESET — its clear button is a constant `aria-label="reset"`, in
-// English whatever the person's language.
+// Ionic 8's `ion-searchbar` names its inner <input> with a constant `aria-label="search text"`, so screen
+// readers announce «search text» instead of the visible hint, and its clear button with a constant
+// `aria-label="reset"`, in English whatever the person's language.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { syncSearchbarInputName } from './searchbarName';

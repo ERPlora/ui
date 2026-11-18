@@ -1,11 +1,6 @@
-// The page wires its footer strip whenever it appears (hub#1734), ported from ERPlora hub
-// `AppPage.late-tabbar.hub1734.test.ts`: `bindTabbar` (overflow fade, checked tab in view, mouse
-// drag) and `bindTabbarPeek` (the next tab peeks on a phone, hub#1830). Both for the strip AppPage
-// paints from `tabs` and for one a view puts in the `#footer` slot (a module's own tabs, which can
-// arrive over the network after the layout mounted):
-//   • a strip that arrives LATE is wired all the same;
-//   • a strip already there is wired exactly once, however the screen re-renders;
-//   • a strip that goes away is unwired, and leaving the screen unwires and stops watching.
+// `bindTabbar` (overflow fade, checked tab in view, mouse drag) and `bindTabbarPeek` (the next tab peeks on a phone)
+// wire both the strip AppPage paints from `tabs` and one a view puts in the `#footer` slot, which can arrive over the
+// network after the layout mounted.
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, nextTick, ref } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
@@ -79,7 +74,7 @@ afterEach(() => {
 describe.each([
   ['the tabs AppPage paints', false],
   ['a strip the view puts in #footer', true],
-])('AppPage wires %s whenever it appears (hub#1734)', (_name, own) => {
+])('AppPage wires %s whenever it appears', (_name, own) => {
   it('wires a strip that arrives AFTER mount, with both binders', async () => {
     const s = mountScreen(own);
     await nextTick();

@@ -3,6 +3,7 @@
 // (`configureAssistant`) and merges its words (`assistantMessages`) into its catalogues.
 export { default as AssistantButton } from './AssistantButton.vue';
 export { default as AssistantEmpty } from './AssistantEmpty.vue';
+export { default as AssistantMarkdown } from './AssistantMarkdown.vue';
 export { default as AssistantPanel } from './AssistantPanel.vue';
 export { cardLine, fieldLabelKey, fieldLines, fieldText, typedMatches } from './card';
 export type { AssistantCard, AssistantField, CardFormat } from './card';

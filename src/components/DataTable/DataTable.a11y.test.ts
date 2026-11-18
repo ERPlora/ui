@@ -1,9 +1,5 @@
-// Accessibility of the DataTable chrome, from the second UX audit of the SaaS panel (2026-10-14):
-//   - R-03: 392 of the 740 unnamed icons were this table's. Ionic paints `ion-icon` as `role="img"`,
-//     so every icon is decorative (`aria-hidden="true"`) and every icon-only button carries its name
-//     (`aria-label`): the toolbar, the sort carets, the row actions, the cards, the states, the pager.
-//   - R-13: the selection checkboxes are 24×24 (Ionic's ios box is 22) with a 44px target on touch.
-//   - R-12: the search box shows where the focus is (the theme's accent ring).
+// Ionic paints `ion-icon` as `role="img"`, so every icon of the table must be decorative (`aria-hidden="true"`)
+// and every icon-only button must carry its name (`aria-label`).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { unnamedButtons, unnamedIcons } from '../../testing/a11y';
@@ -60,7 +56,7 @@ const ariaLabel = (el: Element): string | null | undefined =>
 const describeAll = (els: Element[]): string[] =>
   els.map((el) => `${el.tagName.toLowerCase()}.${el.className} ${el.outerHTML.slice(0, 120)}`);
 
-describe('R-03: no unnamed icon and no unnamed button in the DataTable', () => {
+describe('no unnamed icon and no unnamed button in the DataTable', () => {
   it('the list with its whole chrome: toolbar, selection bar, sort caret, row actions, «⋮» menu, pager', async () => {
     const t = await fullTable();
     await click(t.element.querySelector('.data-table__cell--sortable'));
@@ -83,7 +79,7 @@ describe('R-03: no unnamed icon and no unnamed button in the DataTable', () => {
   it('the failed load, the empty list and the search that finds nothing', async () => {
     for (const props of [{ error: 'The service did not answer.' }, { rows: [] }, { rows: ROWS, search: 'zzz' }]) {
       const t = await fullTable(props);
-      expect(t.element.querySelector('.data-table__state-icon ion-icon'), JSON.stringify(props)).not.toBeNull();
+      expect(t.element.querySelector('.data-table__error ion-icon, .data-table__empty ion-icon'), JSON.stringify(props)).not.toBeNull();
       expect(describeAll(unnamedIcons(t.element)), JSON.stringify(props)).toEqual([]);
       expect(describeAll(unnamedButtons(t.element)), JSON.stringify(props)).toEqual([]);
       t.unmount();
@@ -114,9 +110,8 @@ describe('R-03: no unnamed icon and no unnamed button in the DataTable', () => {
   });
 });
 
-// The stylesheet carries R-12 and R-13: happy-dom lays nothing out, so the rules are read from it.
+// happy-dom lays nothing out, so the checkbox size and the focus ring are read from the stylesheet.
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
-const SCOPED = stripComments(source.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\s+/g, ' ');
 const WEAK = stripComments(source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\s+/g, ' ');
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** Body of the first rule whose selector list is exactly `selector`, and where it starts. */
@@ -124,17 +119,6 @@ function rule(selector: string, css: string): { body: string; at: number } {
   const found = new RegExp(`(?:^|[}{;])\\s*${escape(selector)}\\s*\\{([^}]*)\\}`).exec(css);
   if (!found) throw new Error(`no rule for «${selector}»`);
   return { body: found[1].trim(), at: found.index };
-}
-/** Text of the first `@media <query> { … }` block. */
-function media(query: string, css: string): string {
-  const start = css.indexOf(`@media ${query} {`);
-  if (start === -1) throw new Error(`no @media ${query}`);
-  let depth = 0;
-  for (let i = css.indexOf('{', start); i < css.length; i++) {
-    if (css[i] === '{') depth++;
-    if (css[i] === '}' && --depth === 0) return css.slice(css.indexOf('{', start) + 1, i);
-  }
-  throw new Error('unbalanced @media');
 }
 
 describe('the remaining table controls are Ionic too', () => {
@@ -154,23 +138,19 @@ describe('the remaining table controls are Ionic too', () => {
   });
 });
 
-describe('R-13: the selection checkboxes are big enough to hit', () => {
-  it('the box is 24×24 at every width (Ionic ios paints 22)', () => {
-    expect(rule('.data-table ion-checkbox', SCOPED).body).toMatch(/--size:\s*24px/);
-  });
-
-  it('on touch (and up to 834px) the target is 44×44, without growing the row: the extra is a negative margin', () => {
-    const touch = rule('.data-table ion-checkbox', media('(pointer: coarse), (max-width: 834px)', SCOPED)).body;
-    expect(touch).toMatch(/width:\s*44px/);
-    expect(touch).toMatch(/height:\s*44px/);
-    expect(touch).toMatch(/margin:\s*-10px/);
-    // The box centred in its target: the whole host toggles (Ionic listens on it).
-    expect(touch).toMatch(/display:\s*grid/);
-    expect(touch).toMatch(/place-items:\s*center/);
+describe('the selection checkboxes are big enough to hit', () => {
+  it('the box is 24×24 and its target is 44×44 at every width', () => {
+    const checkbox = rule('.data-table ion-checkbox', WEAK).body;
+    expect(checkbox).toMatch(/--size:\s*24px/);
+    expect(checkbox).toMatch(/width:\s*44px/);
+    expect(checkbox).toMatch(/height:\s*44px/);
+    expect(checkbox).toMatch(/margin:\s*-10px/);
+    expect(checkbox).toMatch(/display:\s*grid/);
+    expect(checkbox).toMatch(/place-items:\s*center/);
   });
 });
 
-describe('R-12: the search box shows where the focus is', () => {
+describe('the search box shows where the focus is', () => {
   const FOCUS = ':where(.data-table__search) ion-searchbar:focus-within, :where(.data-table__search) ion-searchbar.searchbar-has-focus';
 
   it('focused (with the keyboard or not), its field takes the accent ring of the theme', () => {

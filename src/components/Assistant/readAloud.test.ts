@@ -1,6 +1,3 @@
-// «Read aloud» of an answer (round 2026-11-03m): in the server's voice the person chose (the host's `speak` gives its
-// mp3, played from a `blob:` URL freed as soon as it ends or fails), else in the device's own voice; a new reading or
-// «Stop reading» stops the one before; it fails, to be told, only when neither the server nor the device could read.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AssistantSpeech } from './config';

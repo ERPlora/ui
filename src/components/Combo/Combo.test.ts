@@ -1,8 +1,3 @@
-// Combo — an ion-input with a searchable dropdown (hub-next apps/tax/UI-REQUESTS.md: the `ok-combo`
-// of today, for the 249 countries of a tax rule and the categories, which the server pages): the
-// options as a listbox in an ion-popover, filtered while typing (static `options`) or asked for
-// (`search(query)`, debounced 150 ms, with its loading, empty and error states), arrow keys + Enter,
-// Escape, `v-model` of the chosen `{ id, label, hint? }`, clearable, and «Create …» when allowed.
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
@@ -246,7 +241,7 @@ describe('Combo: static options', () => {
   });
 });
 
-// hub#537 — on a tablet, choosing «Restaurant — food · 10%» with a finger left the field focused and the
+// On a tablet, choosing «Restaurant — food · 10%» with a finger left the field focused and the
 // on-screen keyboard up, and the first tap on the form's Save did not save. A choice made with a finger (or
 // a pen) lets go of the focus, so the keyboard goes away (MUI Autocomplete's `blurOnSelect="touch"`); a
 // mouse or the keyboard keep it in the field, to go on with Tab.
@@ -404,9 +399,9 @@ describe('Combo: the keyboard', () => {
     document.body.removeEventListener('keydown', outside);
   });
 
-  // FIX-UI-COMBO-ENTER-WHILE-SEARCHING-SUBMITS: an open list with nothing to choose let Enter through,
-  // and the FormModal around it saved. Open, Enter is always the combo's (WAI-ARIA APG, Headless UI,
-  // React Aria, Downshift, Tom Select…); with no option to take, it does nothing and the list stays.
+  // An open list with nothing to choose let Enter through, and the FormModal around it saved. Open, Enter is
+  // always the combo's (WAI-ARIA APG, Headless UI, React Aria, Downshift, Tom Select…); with no option to take,
+  // it does nothing and the list stays.
   it('Enter on an open list with nothing to choose (no matches) stays here: no submit, the list stays open', async () => {
     const w = mountCombo({ modelValue: COUNTRIES[0] });
     await settle();
@@ -608,8 +603,7 @@ describe('Combo: asking the server (search)', () => {
     expect(optionLabels(w)).toEqual(['Alemania']);
   });
 
-  // FIX-UI-COMBO-ENTER-WHILE-SEARCHING-SUBMITS (the reviewer's probe of CLOSE-STAFF, hub#179): a role
-  // typed and Enter before the server answered saved the staff member's sheet with the old role.
+  // A role typed and Enter before the server answered saved the staff member's sheet with the old role.
   it('Enter while the search is loading stays here (never submits the form) and chooses nothing, not even when the answer comes', async () => {
     let answerNow: (options: ComboOption[]) => void = () => {};
     const search = vi.fn(() => new Promise<ComboOption[]>((resolve) => (answerNow = resolve)));
@@ -651,7 +645,7 @@ describe('Combo: asking the server (search)', () => {
   });
 });
 
-// hub#443: Ionic places the popover once, when it presents, and a list the server fills was measured
+// Ionic places the popover once, when it presents, and a list the server fills was measured
 // while it only said «Loading…»: on a tablet held landscape the categories then grew down past the
 // window and the last ones could not be reached. The combo places its list itself, beside the field
 // and inside the window, and keeps doing it on every frame while it is open.

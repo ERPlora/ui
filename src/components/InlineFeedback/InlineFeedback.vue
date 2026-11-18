@@ -1,12 +1,6 @@
 <script setup lang="ts">
-// InlineFeedback — a banner/callout that stays in the flow of the content (the gap Ionic leaves:
-// ion-toast and ion-alert are ephemeral or modal, not a persistent embedded notice). Bootstrap
-// "alert" / Tailwind "callout" style. Vue port of OutfitKit's `ok-inline-feedback` (PLAN §16.11),
-// same DOM and same look; the light DOM replaces the shadow root.
-//   - default slot     → the message
-//   - `actions` slot   → action buttons (to the right; they drop below the text on a phone)
-// Layout: [icon] | (heading + message + actions) [· close]. Closing hides it and emits `dismiss`;
-// `v-model:hidden` lets the parent show it again.
+// A notice that stays in the flow of the content, which Ionic lacks: ion-toast and ion-alert are ephemeral or modal.
+// The `actions` slot sits to the right of the text and drops below it on a phone.
 import { IonIcon } from '@ionic/vue';
 import { Comment, computed, Fragment, Text, type VNode } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -19,14 +13,15 @@ const props = withDefaults(
   defineProps<{
     /** Tone of the banner: sets its colour and its default icon. */
     tone?: InlineFeedbackTone;
-    /** Bold title (optional). */
     heading?: string;
     /** Icon (`ion:` by default, any baked set, or inline SVG) replacing the tone's one. */
     icon?: string;
     /** Shows the close button. */
     dismissible?: boolean;
+    /** Live-region role of the notice: `alert` interrupts the screen reader, `status` waits its turn. */
+    role?: 'status' | 'alert';
   }>(),
-  { tone: 'info', heading: undefined, icon: undefined, dismissible: false },
+  { tone: 'info', heading: undefined, icon: undefined, dismissible: false, role: 'status' },
 );
 
 /** Hidden state: the close button sets it; the parent may bind it (`v-model:hidden`). */
@@ -76,7 +71,7 @@ function dismiss(): void {
   >
     <div
       class="box"
-      role="status"
+      :role="role"
     >
       <ion-icon
         class="icon"
@@ -122,17 +117,19 @@ function dismiss(): void {
 
 <style scoped>
 .inline-feedback {
-  /* Overridable vars (Ionic style), default = chain --ep-* → --ion-* → hex. --tone-color is
-     reassigned per tone below. */
-  --tone-color: var(--ep-primary, var(--ion-color-primary, #3880ff));
-  --background-opacity: 0.1;
+  /* Overridable, Ionic style. Each tone sets the theme's pair of tint and AA text; the tint is
+     washed over whatever surface holds the notice, so it reads as part of the page, not a box. */
+  --tone-tint: var(--ep-primary-tint, #e3f2fa);
+  --tone-text: var(--ep-primary-text, #0b5f8a);
+  --background-opacity: 55%;
   --color: var(--ep-text, var(--ion-text-color, #1c1b17));
-  --border-radius: var(--ep-radius, var(--ion-border-radius, 8px));
-  --padding: var(--ep-spacing, var(--ion-padding, 16px));
-  --accent-width: 4px;
+  /* The muted grey alone falls just under AA on the tints of some palettes; a touch of the text
+     colour lifts it in light and in dark. */
+  --color-secondary: color-mix(in srgb, var(--ep-text-muted, #646b78) 90%, var(--color));
+  --border-radius: var(--ep-radius-md, 12px);
+  --padding: 0.75rem 1rem;
   --font: var(--ep-font, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
 
-  /* Responsive: the banner takes the width of its container. */
   display: block;
   width: 100%;
   font-family: var(--font);
@@ -140,43 +137,36 @@ function dismiss(): void {
 }
 .inline-feedback[hidden] { display: none; }
 
-/* Tone → Ionic colour (info / no tone → primary, the default above). */
-.inline-feedback[data-tone='success'] { --tone-color: var(--ep-success, var(--ion-color-success, #2dd55b)); }
-.inline-feedback[data-tone='warning'] { --tone-color: var(--ep-warning, var(--ion-color-warning, #ffc409)); }
-.inline-feedback[data-tone='danger']  { --tone-color: var(--ep-danger, var(--ion-color-danger, #c5000f)); }
-.inline-feedback[data-tone='neutral'] { --tone-color: var(--ep-medium, var(--ion-color-medium, #5f5f5f)); }
+.inline-feedback[data-tone='success'] { --tone-tint: var(--ep-success-tint, #e5f2ea); --tone-text: var(--ep-success-text, #176b38); }
+.inline-feedback[data-tone='warning'] { --tone-tint: var(--ep-warning-tint, #fcf5e3); --tone-text: var(--ep-warning-text, #7a4f00); }
+.inline-feedback[data-tone='danger'] { --tone-tint: var(--ep-danger-tint, #fae8ea); --tone-text: var(--ep-danger-text, #b42f3f); }
+.inline-feedback[data-tone='neutral'] { --tone-tint: var(--ion-color-step-150, #e3e5ea); --tone-text: var(--color-secondary); }
 
 .box {
-  position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
+  min-height: 3.5rem;
   padding: var(--padding);
+  box-sizing: border-box;
   border-radius: var(--border-radius);
-  border-inline-start: var(--accent-width) solid var(--tone-color);
-  /* Tonal background: the tone colour at low opacity. */
-  background: color-mix(in srgb, var(--tone-color) calc(var(--background-opacity) * 100%), transparent);
+  background: color-mix(in srgb, var(--tone-tint) var(--background-opacity), transparent);
   color: var(--color);
 }
 
 .icon {
   flex: 0 0 auto;
-  font-size: 1.4rem;
-  line-height: 1;
-  color: var(--tone-color);
-  margin-top: 0.05rem;
+  font-size: 1.5rem;
+  color: var(--tone-text);
 }
 
 .content {
   flex: 1 1 auto;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 .row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
 }
 .text {
@@ -184,54 +174,77 @@ function dismiss(): void {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.125rem;
 }
 .heading {
-  font-weight: 700;
-  font-size: 0.98rem;
-  line-height: 1.3;
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.35;
 }
 .body {
   font-size: 0.92rem;
   line-height: 1.45;
 }
+.heading + .body { color: var(--color-secondary); }
+
+/* The buttons' 48px touch area reaches into the box padding, so actions add no height. */
 .actions {
   flex: 0 0 auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
+  margin: -0.5rem -0.5rem -0.5rem 0;
 }
-/* With nothing in the actions slot, the container takes no room. */
 .actions.empty { display: none; }
+.actions :slotted(ion-button) {
+  --background: transparent;
+  --background-hover: var(--tone-text);
+  --background-hover-opacity: 0.08;
+  --background-activated: var(--tone-text);
+  --background-activated-opacity: 0.12;
+  --background-focused: var(--tone-text);
+  --background-focused-opacity: 0.12;
+  --border-width: 0;
+  --box-shadow: none;
+  --color: var(--tone-text);
+  --padding-start: 0.75rem;
+  --padding-end: 0.75rem;
+  min-height: var(--ep-touch-min, 48px);
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
 
 .close {
   flex: 0 0 auto;
-  background: none;
+  display: grid;
+  place-items: center;
+  width: var(--ep-touch-min, 48px);
+  height: var(--ep-touch-min, 48px);
+  margin: -0.5rem -0.5rem -0.5rem 0;
+  padding: 0;
   border: 0;
+  border-radius: var(--ep-radius-sm, 10px);
+  background: none;
+  color: var(--color-secondary);
+  font-size: 1.25rem;
   cursor: pointer;
-  padding: 0.15rem;
-  margin: -0.15rem -0.15rem 0 0;
-  color: inherit;
-  opacity: 0.6;
-  font-size: 1.2rem;
-  line-height: 1;
-  border-radius: 4px;
   transition: background-color var(--ep-transition, 150ms ease), color var(--ep-transition, 150ms ease),
-    border-color var(--ep-transition, 150ms ease), box-shadow var(--ep-transition, 150ms ease),
-    opacity 0.15s ease, transform 120ms ease;
+    transform 120ms ease;
 }
 @media (hover: hover) {
-  .close:hover { opacity: 1; background: rgba(var(--ion-text-color-rgb, 24, 24, 27), 0.07); }
+  .close:hover { background: color-mix(in srgb, var(--color-secondary) 12%, transparent); color: var(--color); }
 }
+.close:focus-visible { outline: 2px solid var(--tone-text); outline-offset: -2px; }
 .close:active { transform: scale(var(--ep-press-scale, 0.97)); }
 
-/* Phone: the actions drop below the text (stacked, full width). */
 @media (max-width: 640px) {
-  .row { flex-direction: column; align-items: stretch; }
-  .actions { width: 100%; }
+  .row { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+  .actions { margin: 0 0 -0.5rem -0.75rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .close:hover,
+  .close { transition: none; }
   .close:active { transform: none; }
 }
 </style>

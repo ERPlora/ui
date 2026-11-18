@@ -1,26 +1,8 @@
 <script setup lang="ts">
-// The assistant's panel (APP-BASE-9; the old hub's AssistantDrawer, HUB_SHELL-F185…F199), mounted once beside the
-// pane while a person is signed in (the Hub's `chrome.background`, keyed on them), as the host configured the chat
-// (`configureAssistant`). On the right: from 768 px it docks beside the
-// screen and pushes it (the screen keeps working); on a phone it covers the screen over a veil. It closes with ×,
-// Escape, the veil, the topbar's button again or «Go to …»; open or closed is remembered by the device (BASE-G110).
-// With a keyboard and a mouse it opens with the cursor in the box (not on a touch screen, where the keyboard would
-// jump up), and closing with the focus in it gives the focus back to what opened it (ui#86).
-// - Head: «Assistant», «New conversation» once there is one, ×.
-// - Thread: the empty conversation — the host's, in the `empty` slot (`{ setup, ask }`; the Hub's setup shortcuts,
-//   BASE-G121), else the chat's own sentence —, or the bubbles (BASE-G111, G113, G114, G117, G124), following the
-//   answer as it is written.
-// - Foot: no connection (BASE-G124), what is left of the month's messages from 80 % or a plan without the assistant
-//   (BASE-G122, read once per opening with the host's `usage`; nothing when it cannot be read or the host does not
-//   count them), and the composer (BASE-G111, G112).
-// - Over everything, even with the panel closed: the card of a write (BASE-G115, G116, G119); the report (BASE-G123),
-//   for a host that takes reports.
-// «Read aloud» (round 2026-11-03m) reads in the server voice the person chooses in the head (the host's `speak` and
-// `voices`: the language's and the device's, remembered by the device per language), else in the device's own voice, and says
-// so under the answer when neither could; the conversation is this person's (BASE-G120: `forUser`). The device's voice
-// is the system's in the installed app, else the browser's (round 2026-11-04a, `nativeVoice.ts`): in the Android app,
-// whose webview has none of its own, it is offered once the app says it has a voice for the language, which it is
-// first asked when the panel opens.
+// Mounted once beside the shell's pane while a person is signed in, as the host configured the chat
+// (`configureAssistant`). From 768 px it docks on the right and pushes the screen, which keeps working; on a phone it
+// covers the screen over a veil. The device remembers whether it is open. The card of a write and the report dialog
+// show over everything, even with the panel closed.
 import { IonButton, IonSelect, IonSelectOption } from '@ionic/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -70,8 +52,6 @@ const thread = useTemplateRef<HTMLElement>('thread');
 const reporting = shallowRef<Bubble | null>(null);
 const speaking = ref<string | null>(null);
 
-// ── Who, and the screens of this app ──
-
 watch(
   () => session.user.value?.id,
   (id) => {
@@ -94,12 +74,9 @@ const appNameOf = (app: string) => session.menu.value.find((section) => section.
 
 const planUrl = config.planUrl?.() ?? '';
 const openPlan = (event: Event) => config.openPlan?.(client, event);
-// gh:hub#1259: the plan is upgraded by whoever the host says (the Hub: who administers the business), and only on
-// the web (it sells).
+// The plan is upgraded only on the web, where it is sold, and only by whoever the host says.
 const canUpgrade = computed(() => isWeb.value && (config.canUpgrade?.(session) ?? false));
 const canReport = config.report !== undefined;
-
-// ── Docked or over the screen ──
 
 function media(query: string): MediaQueryList | undefined {
   try {
@@ -119,8 +96,6 @@ wideQuery?.addEventListener?.('change', onWide);
 const docked = computed(() => state.open && wide.value);
 watch(docked, (on) => document.documentElement.classList.toggle(DOCKED_CLASS, on), { immediate: true });
 
-// ── The connection ──
-
 const offline = ref(globalThis.navigator?.onLine === false);
 const onConnection = () => {
   offline.value = globalThis.navigator?.onLine === false;
@@ -130,8 +105,6 @@ onMounted(() => {
   window.addEventListener('offline', onConnection);
   document.addEventListener('keydown', onKeydown);
 });
-
-// ── The month's messages (read once per opening) ──
 
 async function readUsage(): Promise<void> {
   if (!config.usage) {
@@ -161,7 +134,7 @@ const usageText = computed(() =>
   note.value
     ? [
         note.value.left > 0
-          ? // By what is left, the singular or the plural of the sentence (ui#117).
+          ? // The third argument picks the singular or the plural of the sentence by what is left.
             t('assistant.usage', { left: note.value.left, limit: note.value.limit }, note.value.left)
           : t('assistant.usageSpent', { limit: note.value.limit }),
         renews.value,
@@ -171,8 +144,6 @@ const usageText = computed(() =>
     : '',
 );
 const noPlan = computed(() => state.usage !== null && state.usage.limit <= 0 && !state.usage.demo);
-
-// ── Opening and closing ──
 
 function close(): void {
   assistant.setOpen(false);
@@ -216,15 +187,13 @@ watch(
 /** The overlays whose Escape is their own (the card, the report, a menu): never the panel's. */
 const OVERLAYS = 'ion-modal, ion-popover, ion-alert, ion-action-sheet, ion-picker-legacy';
 
-/** Escape closes the panel wherever the focus is (the old panel had no handler), never from a dialog over it. */
+/** Escape closes the panel wherever the focus is, never from a dialog over it. */
 function onKeydown(event: KeyboardEvent): void {
   if (event.key !== 'Escape' || event.defaultPrevented || !state.open) return;
   if (event.target instanceof Element && event.target.closest(OVERLAYS)) return;
   event.preventDefault();
   close();
 }
-
-// ── The thread ──
 
 function scrollDown(): void {
   const element = thread.value;
@@ -253,8 +222,6 @@ function signIn(): void {
   window.location.reload();
 }
 
-// ── Read aloud (the server voice the person chose, else the device's; a host that turns it off touches neither) ──
-
 const readAloud = config.readAloud !== false;
 const browserVoice = readAloud ? deviceEnv() : null;
 const deviceReader = readAloud
@@ -277,7 +244,6 @@ const failedRead = ref<string | null>(null);
 const voiceStorage = browserStorage('localStorage');
 const language = computed(() => languageOf(locale.value));
 const voiceChoice = ref(DEVICE_VOICE);
-/** The host's server voices (with `speak`); none: nothing to choose. */
 const serverVoices = config.voices ?? [];
 watch(
   language,
@@ -292,8 +258,8 @@ watch(
   { immediate: true },
 );
 
-// Only the app's voice: asked, with the panel open, whether it reads the language; the choice kept for it is read again
-// once it does.
+// With only the app's voice, the app is asked once the panel opens whether it reads the language; when it does, the
+// choice kept for the language is read again.
 watch(
   [() => state.open, language],
   ([open, current]) => {
@@ -640,7 +606,7 @@ onBeforeUnmount(() => {
 </style>
 
 <style>
-/* Docked from 768 px (BASE-G110): the shell's pane leaves the panel its width, so the screen beside keeps working. */
+/* Docked from 768 px: the shell's pane leaves the panel its width, so the screen beside keeps working. */
 :root {
   --assistant-width: clamp(360px, 30vw, 420px);
 }

@@ -1,12 +1,7 @@
-// Public types of `DataTable`, the Vue port of OutfitKit's `ok-data-table` (PLAN §16.11).
-// Same surface as the Lit original, in Vue idioms: `header` is `label`, `format` also receives the
-// cell value, `render`/`renderCard` are slots (`cell`, `card`) and events are Vue emits.
 import type en from './locales/en.json';
 
-/** How the rows are presented: a list (CSS grid) or cards. */
 export type DataTableView = 'table' | 'cards';
 
-/** Direction of a sort. */
 export type DataTableSortDir = 'asc' | 'desc';
 
 /** Payload of `sortChange` (server mode). */
@@ -16,7 +11,7 @@ export interface DataTableSort {
 }
 
 /**
- * How much a column matters when the table's box is narrow (W-19). `low` (a secondary column: a web
+ * How much a column matters when the table's box is narrow. `low` (a secondary column: a web
  * address, a role, a last access) is the first thing the list gives up when it does not fit its box;
  * it stays offered in the column chooser and is still a field of the cards. `high` (the column that
  * names the row) and `normal` are never given up for width.
@@ -24,8 +19,8 @@ export interface DataTableSort {
 export type DataTableColumnPriority = 'high' | 'normal' | 'low';
 
 /**
- * How a column filters (ERPlora's rule, ADR-0125: free text by «contains», a closed domain by
- * equality, never the other way round):
+ * How a column filters (free text by «contains», a closed domain by equality, never the other way
+ * round):
  *   - `text`: free text, «contains», case-insensitive, on what the cell paints;
  *   - `select`: a closed domain (`options`), exact equality on the row's field;
  *   - `date`: one day (`YYYY-MM-DD`), the local day of the row's date or date-time;
@@ -57,7 +52,6 @@ export interface DataTableTextFilter extends DataTableFilterBase {
 
 export interface DataTableSelectFilter extends DataTableFilterBase {
   type: 'select';
-  /** The closed domain offered, in order. */
   options?: DataTableFilterOption[];
 }
 
@@ -73,7 +67,6 @@ export interface DataTableRangeFilter extends DataTableFilterBase {
   type: 'range';
   /** The names of its two ends in `filters` (`['priceMin', 'priceMax']`). Default `<key>_from`/`<key>_to`. */
   keys?: readonly [string, string];
-  /** Bounds and step of the number boxes (the schema's). */
   min?: number;
   max?: number;
   step?: number;
@@ -109,18 +102,16 @@ export type DataTableColumnFilter =
 
 /**
  * A filter with no column of its own (`filterFields` of the table): a field the list does not paint
- * (customer `is_active`, a date, an amount). The same filters as a column's, with their name in `filters`
- * (`key`) and the label the panel shows. Order of a table's filters, in the panel and in the filter row:
- * the columns' own first, in column order, then `filterFields`, in theirs. They count on the funnel, are
- * sent like the others (only declared names, outfitkit#116), take `filterErrors`, filter `rows` in client
- * mode by `row[key]`, and the column chooser never offers them. One name, one control: a field whose `key`
- * or names in `filters` a column's filter (or an earlier field) already takes is left out, with a warning
+ * (customer `is_active`, a date, an amount). Order of a table's filters, in the panel and in the filter
+ * row: the columns' own first, in column order, then `filterFields`, in theirs. They count on the funnel,
+ * are sent like the others (only declared names), take `filterErrors`, filter `rows` in client mode by
+ * `row[key]`, and the column chooser never offers them. One name, one control: a field whose `key` or
+ * names in `filters` a column's filter (or an earlier field) already takes is left out, with a warning
  * in the console in development — the column wins.
  */
 export type DataTableFilterField = DataTableColumnFilter & {
   /** Its name in `filters` (a range: `<key>_from`/`<key>_to` unless `keys`) and the row field it reads. */
   key: string;
-  /** What the panel and the filter row call it. */
   label: string;
 };
 
@@ -128,34 +119,71 @@ export type DataTableFilterField = DataTableColumnFilter & {
  *  A filter without a value is absent, never `''`. */
 export type DataTableFilters = Record<string, string>;
 
+/** How a column names its record: an icon in a tile, the column's text and a second, quieter line. */
+export interface DataTableIdentity<T = Record<string, unknown>> {
+  icon: (row: T) => string | undefined;
+  subtitle?: (row: T) => string | number | null | undefined;
+  /** `data-testid` of the second line. */
+  testid?: string;
+}
+
+/** A switch for the row's own on/off state, in its column: at the start of the cell in the list and at the end of
+ *  the card's head. Flipping it emits `toggle`; it shows `checked` again unless the change is on its way (`busy`). */
+export interface DataTableColumnToggle<T = Record<string, unknown>> {
+  checked: (row: T) => boolean;
+  /** Accessible name, which says what flipping it does («Turn Invoicing off»). */
+  label: (row: T) => string;
+  disabled?: (row: T) => boolean;
+  busy?: (row: T) => boolean;
+  /** What its spinner says to assistive technology. */
+  busyLabel?: string;
+  /** Why it cannot change, or what went wrong: a small line under the cell, a line of the card. */
+  note?: (row: T) => string | null | undefined;
+  /** `danger` for a failure; muted by default. */
+  noteTone?: (row: T) => 'muted' | 'danger';  /** No switch for this row (who may not change it); its note still shows. */
+  hidden?: (row: T) => boolean;
+}
+
+/** Payload of `toggle`. */
+export interface DataTableToggleEvent<T = Record<string, unknown>> {
+  column: string;
+  row: T;
+  checked: boolean;
+}
+
 export interface DataTableColumn<T = Record<string, unknown>> {
   /** Field of the row, or a logical id when `format`/`cell` paint something else. */
   key: string;
-  /** Column header. */
   label: string;
   /** Text to paint; receives `row[key]` and the row. Without it the raw value is painted. */
   format?: (value: unknown, row: T) => string;
-  /** What a client-side sort compares (outfitkit#256): e.g. a status sorted by rank. Without it a
-   *  formatted column compares `row[key]` when it is data (number, boolean, Date, ISO date/time or
-   *  numeric string; null last) and the painted text for anything else. */
+  /** What a client-side sort compares: e.g. a status sorted by rank. Without it a formatted column
+   *  compares `row[key]` when it is data (number, boolean, Date, ISO date/time or numeric string; null
+   *  last) and the painted text for anything else. */
   sortValue?: (row: T) => unknown;
-  /** Alignment of the cell content. */
   align?: 'left' | 'right' | 'center';
   /** Client mode: sortable unless `false`. Server mode: only when `true` (emits `sortChange`). */
   sortable?: boolean;
   /** Name of the scoped slot (`{ row, value, column }`) that paints the cell, list and cards. In the list its
    *  boxes sit side by side while the row has room and wrap under each other when it has not. */
   cell?: string;
+  /** Paints the cell as the record's identity (list, and the head of its card); it takes the widest share of the row. */
+  identity?: DataTableIdentity<T>;
+  /** Icon of the field's line on a card. Without it the line is its value alone. */
+  cardIcon?: string;
+  /** A switch for the row's state in this column (see `DataTableColumnToggle`). */
+  toggle?: DataTableColumnToggle<T>;
   /** Not painted until the person picks it in the column chooser; it still sorts. */
   hidden?: boolean;
-  /** CSS track of the column in the list (`8rem`, `minmax(8rem,1fr)`…). Default `minmax(5.5rem,1fr)`. */
+  /** CSS track of the column in the list (`8rem`, `minmax(8rem,1fr)`…). Default `minmax(5.5rem,1fr)`, and
+   *  `minmax(10rem,1.4fr)` for an `identity` or `high` column, so the name is the last text to be cut. */
   width?: string;
-  /** hub#703 - The narrowest this column goes (`10.5rem`), for one whose content must keep some of its text: the
+  /** The narrowest this column goes (`10.5rem`), for one whose content must keep some of its text: the
    *  list gives up the next step of its ladder rather than cut it under this. Default `5.5rem`. Ignored with `width`. */
   minWidth?: string;
   /** Pins the column to the end edge, like the row actions column. */
   pinned?: 'end';
-  /** W-19 - `low`: hidden first when the list does not fit its box. Default `normal`. */
+  /** Default `normal`. */
   priority?: DataTableColumnPriority;
   /** A control in the table's filter row, or in its filters panel with `filterable`. Client mode filters
    *  `rows`; server mode emits `filtersChange`. */
@@ -172,8 +200,8 @@ export interface DataTableAction<T = Record<string, unknown>> {
   label: DataTableActionLabel<T>;
   /** Icon name (`ion:` by default, any baked set). Icon actions are icon-only buttons unless `showLabel`. */
   icon?: string;
-  /** An icon action that also paints its label («Open», «Pay»), in the list and the cards. The
-   *  «⋮» menu always shows labels. Default: icon-only (the universal ones: bin, PDF). */
+  /** An icon action that also paints its label in the list, for one whose icon does not say it alone
+   *  («See plans», «Retry»). The card's main button and the «⋮» menu always show labels. Default: icon-only. */
   showLabel?: boolean;
   /** Theme tone (`danger`, `primary`…), painted from its `--ion-color-*` token. Default `medium`. */
   color?: string;
@@ -181,9 +209,9 @@ export interface DataTableAction<T = Record<string, unknown>> {
   disabled?: (row: T) => boolean;
   /** In progress for the row: spinner instead of the icon, and disabled. */
   loading?: (row: T) => boolean;
-  /** Does not apply to the row: not rendered (the list keeps an invisible gap of its width). */
+  /** Does not apply to the row: not rendered. */
   hidden?: (row: T) => boolean;
-  /** The row's main action («Open», «Pay»): stays a button when the others fold into «⋮». */
+  /** The row's main action («Open», «Pay»): the card's main button, and a list button when the others fold into «⋮». */
   pinned?: boolean;
   /** A delicate action («Transfer ownership»): never a button, always inside «⋮» (list and cards). */
   menuOnly?: boolean;
@@ -193,6 +221,17 @@ export interface DataTableAction<T = Record<string, unknown>> {
 export interface DataTableActionEvent<T = Record<string, unknown>> {
   actionId: string;
   row: T;
+}
+
+export interface DataTableActionSlot<T = Record<string, unknown>> {
+  action: DataTableAction<T>;
+  /** The card's main button: full width, with its text. */
+  primary?: boolean;
+}
+
+export interface DataTableActionCell<T = Record<string, unknown>> {
+  items: DataTableActionSlot<T>[];
+  menu: DataTableAction<T>[];
 }
 
 /** The highlighted button of the toolbar (emits `primaryAction`). */
@@ -206,7 +245,6 @@ export interface DataTablePrimaryAction {
  *  of the count that returns the noun (an i18n plural). Without it, «record(s)». */
 export type DataTableEntityLabel = { one: string; many: string } | ((count: number) => string);
 
-/** Stable key of a row: one of its fields, or a function of it. */
 export type DataTableRowKey<T> = (keyof T & string) | ((row: T) => string);
 
 /** Every human text of the table chrome (`{n}`, `{from}`, `{to}` are filled in by the table; a text with

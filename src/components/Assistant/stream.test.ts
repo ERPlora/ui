@@ -1,7 +1,3 @@
-// The turn's transport (BASE-G06: the old hub's SSE client): one POST that answers as a stream of frames, read as
-// they come with `fetch` + `ReadableStream` (no EventSource, no second stream), from the same origin and with the
-// SDK's headers, to the route the host gives (`AssistantConfig.turnUrl`). Cases of the old hub's `assistant.test.ts` and
-// `assistant-auth.test.ts`.
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../sdk/errors';
@@ -73,7 +69,7 @@ describe('postTurn', () => {
   });
 });
 
-describe('a turn repeated after an approval (the Hub\'s manager approval, BASE-G118)', () => {
+describe('a turn repeated after an approval (the Hub\'s manager approval)', () => {
   const done = () =>
     new Response('data: {"type":"done","append":[],"pending":[],"continuation":null}\n\n', { headers: { 'Content-Type': 'text/event-stream' } });
 
@@ -101,7 +97,7 @@ describe('a turn repeated after an approval (the Hub\'s manager approval, BASE-G
   });
 });
 
-// saas#287, ui#103: whether an answer may quote pages of the web, round by round of its turn. erplora.com does not mail
+// Whether an answer may quote pages of the web, round by round of its turn (ui#103). erplora.com does not mail
 // support the text of a reported answer that did, nor of one that does not say while its search is on (Brave's terms).
 describe('where an answer came from, a round more (fromTheWeb)', () => {
   it('a round that brought pages marks the answer, and a later round that brought none never unmarks it', () => {

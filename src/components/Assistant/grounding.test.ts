@@ -1,5 +1,3 @@
-// BASE-G117: what the assistant says, checked against what really ran in the turn (gh:hub#1039). Cases of the old
-// hub's `assistant-grounding.test.ts` and `assistant-claims.test.ts`.
 import { describe, expect, it } from 'vitest';
 
 import { type Executed, groundingNotices } from './grounding';
@@ -15,8 +13,8 @@ function notices(answer: string, executed: Executed[] = [], extra: { results?: s
   return groundingNotices({ answer, executed, results: extra.results ?? [], question: extra.question ?? '', screenExists: () => true });
 }
 
-// Real answers of the QA battery of 2026-10-31 (B25 «¿Cómo abro y cierro la caja?», B21 «¿Cómo doy de alta a un empleado
-// con su PIN?»): instructions read from the docs, no write in the turn. B25 showed «claimed a change».
+// Real answers that read instructions from the docs, with no write in the turn: the panel must not take them for a
+// claimed change.
 const HOW_TO_CASH_REGISTER = [
   'Abrir y cerrar la caja',
   'Abrir la caja',
@@ -184,7 +182,7 @@ describe('a change claimed', () => {
     expect(notices('The price is updated every night.')).toEqual([]);
   });
 
-  it('a how-to answer read from the docs is no claim (QA battery 2026-10-31, B25 and B21)', () => {
+  it('a how-to answer read from the docs is no claim', () => {
     const docs = ran('ok', 'query');
     expect(notices(HOW_TO_CASH_REGISTER, [docs])).toEqual([]);
     expect(notices(HOW_TO_STAFF_PIN, [docs])).toEqual([]);
@@ -254,8 +252,7 @@ describe('a change claimed', () => {
   });
 });
 
-// ui#67: the real answer of the QA run with the real model (probe `en-web-accounts.preferences.update-1` of the SaaS,
-// after saas#193): the person declined the card, nothing changed, and the answer told the change as done.
+// A real answer of the model: the person declined the card, nothing changed, and the answer told the change as done.
 const declined = (outcome: Executed['outcome']): Executed => ({ name: 'accounts.preferences.update', kind: 'command', outcome });
 const NOT_THROUGH = ['cancelled', 'error', 'refused'] as const;
 const SWITCHED_TO_DARK =
@@ -472,7 +469,7 @@ describe('a screen', () => {
   });
 });
 
-// ui#92: an answer built on what erplora.com's own tools found (web search and currency rates, ASSISTANT-F14, saas#202).
+// An answer built on what erplora.com's own tools found (web search and currency rates, ui#92).
 // Their results stay on the server, so the panel never reads them: the answer names its sources by their web address,
 // written by the model or by the gateway under it (`server_tools.source_line`: a blank line, then one address per line).
 const LAW = 'https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-0190';

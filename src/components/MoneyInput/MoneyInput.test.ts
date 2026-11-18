@@ -1,10 +1,3 @@
-// MoneyInput — the one money field of every form (a price, a cost, a supplement, a payment, a rule's amount): an
-// outlined md text field with the decimal keyboard, in the field's `money`. It hands the page what is typed and, on
-// leaving it, rewrites a readable amount in the page format; what is not an amount says so under the field (or both
-// readings of «1.250») once the person leaves it or tries to save, and the server's message for the field wins. Until
-// its money is known the field neither rewrites nor judges what was typed: «150» is not made «150.00» and «¥1500» or
-// «12,50 zł» are not called «not an amount» before the business says its currency (hub#918, hub#921, hub#945). A
-// `signed` amount (a supplement) may be negative, with a ± button for a phone's decimal keyboard, which has no minus.
 import { flushPromises, mount } from '@vue/test-utils';
 import { IonInput } from '@ionic/vue';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -12,13 +5,10 @@ import { nextTick } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
 import { formatMoney, type Money } from '../format';
+import { EUR, JPY, KWD, PLN } from './__tests__/moneys';
 import MoneyInput from './MoneyInput.vue';
 
 type Control = HTMLElement & { errorText?: string; disabled?: boolean };
-
-const EUR: Money = { currency: 'EUR', decimals: 2 };
-const PLN: Money = { currency: 'PLN', decimals: 2 };
-const JPY: Money = { currency: 'JPY', decimals: 0 };
 
 const NOT_AMOUNT = 'This is not an amount. Type a figure, for example 12.50.';
 const NOT_AMOUNT_SIGNED = 'This is not an amount. Type a figure, for example 1.50, or -0.50 for a discount.';
@@ -139,10 +129,25 @@ describe('MoneyInput: once its money is known', () => {
     const s = await setup({ money: JPY }, 'es');
     await s.type('1,5');
     await s.leave();
-    expect(s.errorText()).toBe(NOT_AMOUNT_ES);
+    expect(s.errorText()).toBe('Esto no es un importe. Escribe una cifra, por ejemplo 12.');
     await s.type('¥1500');
     await s.leave();
     expect([s.model.value, s.errorText()]).toEqual(['1500', undefined]);
+  });
+
+  // «12,50» is no amount in yen: the example has the decimals of the field's money, and follows it (ui#140).
+  it('what is not an amount gives an example with the decimals of its money: «12» in yen, «12.500» in dinars', async () => {
+    const s = await setup({ money: JPY, modelValue: 'abc', showError: true });
+    expect(s.errorText()).toBe('This is not an amount. Type a figure, for example 12.');
+    await s.money(KWD);
+    expect(s.errorText()).toBe('This is not an amount. Type a figure, for example 12.500.');
+    await s.money(EUR);
+    expect(s.errorText()).toBe(NOT_AMOUNT);
+  });
+
+  it('…in Spanish too: «12,500» in dinars', async () => {
+    const s = await setup({ money: KWD, modelValue: 'abc', showError: true }, 'es');
+    expect(s.errorText()).toBe('Esto no es un importe. Escribe una cifra, por ejemplo 12,500.');
   });
 
   it('«1.250» gives both readings, in the field’s currency', async () => {
@@ -177,8 +182,8 @@ describe('MoneyInput: once its money is known', () => {
   });
 });
 
-// hub#918, hub#921, hub#945: the field's money (the business's, or a list's) may still be on its way. Its decimals and
-// its sign are unknown until it arrives, so leaving the field keeps what was typed and nothing is judged: «¥1500»
+// The field's money (the business's, or a list's) may still be on its way. Its decimals and its sign are unknown
+// until it arrives, so leaving the field keeps what was typed and nothing is judged: «¥1500»
 // cannot be read without the yen. Once it arrives, what was left is read in it.
 describe('MoneyInput: until its money is known', () => {
   it('leaving keeps what was typed: no decimals invented, and «150» left before the yen is still 150', async () => {
@@ -231,6 +236,14 @@ describe('MoneyInput: a signed amount (a supplement)', () => {
   it('what is not an amount tells how to write a discount', async () => {
     const s = await setup({ money: EUR, signed: true, modelValue: '--2', showError: true });
     expect(s.errorText()).toBe(NOT_AMOUNT_SIGNED);
+  });
+
+  it('…with the decimals of its money, a discount never 0: «1, or -1» in yen, «1,500, o -0,500» in dinars (ui#140)', async () => {
+    const yen = await setup({ money: JPY, signed: true, modelValue: '--2', showError: true });
+    expect(yen.errorText()).toBe('This is not an amount. Type a figure, for example 1, or -1 for a discount.');
+    yen.wrapper.unmount();
+    const dinar = await setup({ money: KWD, signed: true, modelValue: '--2', showError: true }, 'es');
+    expect(dinar.errorText()).toBe('Esto no es un importe. Escribe una cifra, por ejemplo 1,500, o -0,500 para descontar.');
   });
 
   it("a ± button turns a supplement into a discount and back: a phone's decimal keyboard has no minus", async () => {

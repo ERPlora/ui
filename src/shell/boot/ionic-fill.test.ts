@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { bootIonicFillMode, FILL_MODE_CONTROLS } from './ionic-fill';
 
-// hub#1060: `fill` only paints a box in Ionic's `md` mode, so a control declaring `fill`
-// without a mode must be forced to `mode="md"` at registration time.
+// `fill` only paints a box in Ionic's `md` mode, so a control declaring `fill` without a mode must be
+// forced to `mode="md"` at registration time.
 describe('bootIonicFillMode', () => {
   const make = (tag: string, attrs: Record<string, string> = {}): HTMLElement => {
     const el = document.createElement(tag);

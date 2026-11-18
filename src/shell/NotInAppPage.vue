@@ -1,8 +1,7 @@
 <script setup lang="ts">
-// NotInAppPage — what a deep link to something that sells (the Store, `meta.webOnly`) shows inside
-// the apps (PLAN-SAAS §3.6, point 5; mockups README §4): a neutral screen, with no price and no link
-// out (what Google Play admits of a consumption-only app), inside the shell layout and with ONE way
-// out, Home. The router mounts it keeping the address, like the 404 (router.ts).
+// What a deep link to something that sells (`meta.webOnly`) shows inside the native apps: no price and
+// no link out, which is what Google Play allows a consumption-only app. The router mounts it keeping
+// the address, like the 404.
 import { IonButton } from '@ionic/vue';
 import { useI18n } from 'vue-i18n';
 

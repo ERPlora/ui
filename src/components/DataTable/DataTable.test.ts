@@ -1,19 +1,7 @@
-// DataTable: the list, its states, search, sort, row click and selection. Cases ported from the Lit
-// tests of OutfitKit's `ok-data-table` (issue numbers are ERPlora/outfitkit unless stated).
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  byTestId,
-  cards,
-  click,
-  dataRows,
-  ionChange,
-  mountTable,
-  settle,
-  text,
-  type,
-  viewport,
-} from './__tests__/harness';
+import InlineFeedback from '../InlineFeedback/InlineFeedback.vue';
+import { byTestId, cards, clearPage, click, clip, dataRows, ionChange, mountTable, settle, tap, text, type, viewport } from './__tests__/harness';
 
 type Row = Record<string, unknown>;
 
@@ -22,8 +10,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
-  document.body.replaceChildren();
+  clearPage();
   document.documentElement.lang = '';
 });
 
@@ -46,7 +33,7 @@ describe('the list (CSS grid, not <table>)', () => {
     expect([...row.querySelectorAll('[role="cell"]')].map((c) => text(c))).toEqual(['Ana', 'Vigo']);
   });
 
-  it('header and every row share the same track list (#121)', async () => {
+  it('header and every row share the same track list', async () => {
     const t = mountTable({ columns: [...NAME, { key: 'n', label: 'N', width: '8rem' }], rows: PEOPLE, selectable: true });
     await settle();
     const head = (t.find('.data-table__row--head').element as HTMLElement).style.gridTemplateColumns;
@@ -108,7 +95,7 @@ describe('the list (CSS grid, not <table>)', () => {
   });
 });
 
-describe('a clipped cell can be read in full (#217)', () => {
+describe('a clipped cell can be read in full', () => {
   const LONG = 'Se consume en el local (servicio de restauración)';
   const ROWS = [
     { id: '1', name: 'Menú del día', mode: LONG, note: '' },
@@ -117,14 +104,6 @@ describe('a clipped cell can be read in full (#217)', () => {
   const COLUMNS = [{ key: 'name', label: 'Nombre' }, { key: 'mode', label: 'Cómo se vende' }, { key: 'note', label: 'Nota' }];
   const span = (t: ReturnType<typeof mountTable>, key: string, col: number) =>
     t.element.querySelector(`[data-testid="combos-row"][data-id="${key}"]`)?.querySelectorAll('.data-table__cell')[col]?.querySelector(':scope > span') as HTMLElement;
-  const clip = (el: HTMLElement, clipped: boolean) => {
-    Object.defineProperty(el, 'scrollWidth', { configurable: true, get: () => (clipped ? 380 : 90) });
-    Object.defineProperty(el, 'clientWidth', { configurable: true, get: () => 90 });
-  };
-  async function tap(el: HTMLElement, pointerType: 'touch' | 'mouse') {
-    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType }));
-    await click(el);
-  }
 
   it('carries the full painted (formatted) text as the native title; an empty cell has none', async () => {
     const t = mountTable({ columns: [COLUMNS[0], { ...COLUMNS[1], format: (v: unknown) => `» ${String(v)}` }, COLUMNS[2]], rows: ROWS, testid: 'combos' });
@@ -180,7 +159,7 @@ describe('a clipped cell can be read in full (#217)', () => {
   });
 });
 
-describe('«still loading» is not «empty» (#268)', () => {
+describe('«still loading» is not «empty»', () => {
   const base = { serverSide: true, rows: [], total: 0, columns: NAME, title: 'Customers', emptyMessage: 'No customers.' };
   const loading = (t: ReturnType<typeof mountTable>) => t.element.querySelector('[data-role="loading"]');
   const pager = (t: ReturnType<typeof mountTable>) => text(t.element.querySelector('.data-table__pager'));
@@ -194,7 +173,7 @@ describe('«still loading» is not «empty» (#268)', () => {
     expect(t.find('.data-table__pager').exists(), 'the page-size selector lives in the toolbar').toBe(false);
     expect(loading(t)?.getAttribute('role')).toBe('status');
     expect(text(loading(t))).toBe('Loading…');
-    expect(loading(t)?.querySelector('ion-spinner')).not.toBeNull();
+    expect(loading(t)?.querySelectorAll('ion-skeleton-text').length).toBeGreaterThan(2);
     expect(t.find('.data-table__surface').attributes('aria-busy')).toBe('true');
   });
 
@@ -253,16 +232,16 @@ describe('«still loading» is not «empty» (#268)', () => {
     expect(loading(worded)?.getAttribute('data-testid')).toBe('customers-loading');
   });
 
-  it('on a phone: no count and no «Load more» while the first load is in flight', async () => {
+  it('on a phone: no count and nothing loading at the end while the first load is in flight', async () => {
     viewport(true);
     const t = mountTable({ ...base, total: 40, loading: true });
     await settle();
-    expect(t.find('.data-table__load-more').exists()).toBe(false);
+    expect(t.find('ion-infinite-scroll').exists()).toBe(false);
     expect(t.text()).not.toMatch(/\brecords\b/);
   });
 });
 
-describe('«could not load» is not «empty» (ERPlora/pm#530)', () => {
+describe('«could not load» is not «empty»', () => {
   const REASON = 'The hub is not responding. Try again in a moment.';
   const base = { serverSide: true, rows: [], total: 0, columns: NAME, title: 'Customers', emptyMessage: 'No customers.' };
   const errorBlock = (t: ReturnType<typeof mountTable>) => t.element.querySelector('[data-role="load-error"]');
@@ -274,7 +253,7 @@ describe('«could not load» is not «empty» (ERPlora/pm#530)', () => {
     expect(t.text()).not.toContain('No customers.');
     expect(t.text()).not.toMatch(/\b0 records\b/);
     expect(t.find('.data-table__title-count').exists()).toBe(false);
-    expect(errorBlock(t)?.getAttribute('role')).toBe('alert');
+    expect(t.findComponent(InlineFeedback).props()).toMatchObject({ tone: 'danger', heading: "Couldn't load the data" });
     expect(text(errorBlock(t))).toContain("Couldn't load the data");
     expect(text(errorBlock(t))).toContain(REASON);
     expect(text(retry(t))).toBe('Retry');
@@ -329,9 +308,38 @@ describe('«could not load» is not «empty» (ERPlora/pm#530)', () => {
     expect(text(retry(worded))).toBe('Try again');
     expect(retry(worded)?.getAttribute('data-testid')).toBe('customers-retry');
   });
+
+  // Pages hand the same text as the title (`labels.loadError`) and as the reason (`error`):
+  // the notice said it twice in a row. A reason that only repeats the title is not painted again.
+  it('a reason that repeats the title is said once, with Retry: worded, Spanish, default title, case and full stop aside', async () => {
+    const times = (t: ReturnType<typeof mountTable>, phrase: string) => text(errorBlock(t)).split(phrase).length - 1;
+    const reason = (t: ReturnType<typeof mountTable>) => errorBlock(t)?.querySelector('.data-table__error-reason');
+    const same = mountTable({ ...base, error: 'The tasks could not be loaded.', labels: { loadError: 'The tasks could not be loaded.' } });
+    const es = mountTable({ ...base, error: 'No se han podido cargar las tareas.', labels: { loadError: 'No se han podido cargar las tareas.', retry: 'Reintentar' } }, { locale: 'es' });
+    const fallback = mountTable({ ...base, error: "Couldn't load the data" });
+    const loose = mountTable({ ...base, error: '  could not load  the tickets. ', labels: { loadError: 'Could not load the tickets' } });
+    await settle();
+    expect(times(same, 'The tasks could not be loaded.')).toBe(1);
+    expect(times(es, 'No se han podido cargar las tareas.')).toBe(1);
+    expect(times(fallback, "Couldn't load the data")).toBe(1);
+    expect(times(loose, 'Could not load the tickets')).toBe(1);
+    expect(loose.findComponent(InlineFeedback).props('heading')).toBe('Could not load the tickets');
+    for (const t of [same, es, fallback, loose]) {
+      expect(reason(t)).toBeNull();
+      expect(t.findComponent(InlineFeedback).props('tone')).toBe('danger');
+      expect(retry(t)).not.toBeNull();
+    }
+    expect(text(retry(es))).toBe('Reintentar');
+  });
+
+  it('a reason that says more than the title is still painted under it', async () => {
+    const t = mountTable({ ...base, error: 'The tasks could not be loaded. The hub is not responding.', labels: { loadError: 'The tasks could not be loaded.' } });
+    await settle();
+    expect(text(errorBlock(t)?.querySelector('.data-table__error-reason'))).toBe('The tasks could not be loaded. The hub is not responding.');
+  });
 });
 
-describe('«no matches» is not «empty» (#171)', () => {
+describe('«no matches» is not «empty»', () => {
   const ROWS = [{ id: 1, name: 'Restaurant' }, { id: 2, name: 'Hair salon' }];
   const base = { rows: ROWS, columns: NAME, searchKeys: ['name'], emptyMessage: 'No templates published yet' };
   const empty = (t: ReturnType<typeof mountTable>) => text(t.element.querySelector('.data-table__empty'));
@@ -416,7 +424,7 @@ describe('search (client filters in memory; server only tells)', () => {
     expect(t.emitted('update:search')).toEqual([['gar']]);
   });
 
-  it('server mode emits what was typed and leaves the rows alone (#112)', async () => {
+  it('server mode emits what was typed and leaves the rows alone', async () => {
     const t = mountTable({ rows: ROWS, columns: NAME, serverSide: true, searchable: true, total: 2 });
     await settle();
     await type(t, 'Gar');
@@ -521,7 +529,7 @@ describe('sorting', () => {
   });
 });
 
-describe('a row opens its record when the consumer asks for it (#67, #74)', () => {
+describe('a row opens its record when the consumer asks for it', () => {
   const ACTIONS = [{ id: 'open', label: 'Open' }];
 
   it('`rowClickable`: a click on the row emits rowClick with the record; it looks and acts as a control', async () => {
@@ -619,7 +627,7 @@ describe('selection', () => {
   });
 });
 
-describe('data-testid hooks of the chrome (#143)', () => {
+describe('data-testid hooks of the chrome', () => {
   const ROWS = Array.from({ length: 12 }, (_, i) => ({ id: `r${i + 1}`, name: `Producto ${i + 1}` }));
   const props = { columns: NAME, rows: ROWS, actions: [{ id: 'edit', label: 'Editar', icon: 'create-outline' }], searchKeys: ['name'], addable: true };
   const hooks = (t: ReturnType<typeof mountTable>) => [...t.element.querySelectorAll('[data-testid]')].map((el) => el.getAttribute('data-testid'));
@@ -668,14 +676,14 @@ describe('data-testid hooks of the chrome (#143)', () => {
     expect(t.emitted('add')).toHaveLength(1);
   });
 
-  it('names the rows in the cards view, and «load more» on a phone', async () => {
+  it('names the rows in the cards view; a phone loads the next ones at the end of the scroll', async () => {
     viewport(true);
     const t = mountTable({ ...props, testid: 'products-table', views: true });
     await settle();
     expect(cards(t)).toHaveLength(10);
     expect(row(t, 'r1')[0].tagName).toBe('ION-CARD');
     expect(byTestId(t, 'products-table-row')).toHaveLength(10);
-    expect(byTestId(t, 'products-table-load-more')).toHaveLength(1);
+    expect(t.element.querySelectorAll('.data-table__cards ion-infinite-scroll')).toHaveLength(1);
     expect(byTestId(t, 'products-table-page-next')).toHaveLength(0);
   });
 });
@@ -688,7 +696,7 @@ describe('language', () => {
     expect(t.text()).not.toContain('records');
   });
 
-  it('without vue-i18n it reads the document language, like the Lit original', async () => {
+  it('without vue-i18n it reads the document language', async () => {
     document.documentElement.lang = 'es';
     const t = mountTable({ rows: [], columns: NAME }, { i18n: false });
     await settle();

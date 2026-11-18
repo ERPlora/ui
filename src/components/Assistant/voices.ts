@@ -1,15 +1,13 @@
-// The voices the assistant reads its answers in: the server's, when the host has them (`AssistantConfig.voices`, with
-// `speak`: their ids are the contract between the host and its server, so the package names none; none today, no engine
-// reads aloud, PLAN-SAAS round 2026-11-04c), and the device's own as the other choice and the fallback. One voice chosen,
-// as ChatGPT, Gemini, Alexa or Siri do: never a different one per answer.
-// The person's choice is remembered by the device, one per language (`erplora.assistant.voice.<language>`).
+// The voices the assistant reads its answers in: the server's when the host gives them (`AssistantConfig.voices` with
+// `speak`; their ids are the contract between the host and its server, so the package names none), and the device's own
+// as the other choice and the fallback. The person picks one voice per language, kept on the device, never a different
+// one per answer.
 
 export type AssistantLanguage = 'es' | 'en';
 
 export interface AssistantVoice {
   /** The server's name of the voice (the contract with the host's server). */
   id: string;
-  /** The name shown to the person. */
   name: string;
   language: AssistantLanguage;
 }
@@ -17,7 +15,7 @@ export interface AssistantVoice {
 /** The choice of the browser's or the device's own voice (`speechSynthesis`). */
 export const DEVICE_VOICE = 'device';
 
-/** The language of the voices for the screen's (`es`, `es-ES`): English where there is no voice of its own. */
+/** The voices' language for the screen's locale (`es`, `es-ES`): English for any locale without voices of its own. */
 export function languageOf(locale: string): AssistantLanguage {
   return locale.toLowerCase().split(/[-_]/)[0] === 'es' ? 'es' : 'en';
 }
@@ -26,7 +24,6 @@ export function voicesFor(voices: readonly AssistantVoice[], language: Assistant
   return voices.filter((voice) => voice.language === language);
 }
 
-/** Where the device keeps the choice of a language. */
 export function voiceKey(language: AssistantLanguage): string {
   return `erplora.assistant.voice.${language}`;
 }

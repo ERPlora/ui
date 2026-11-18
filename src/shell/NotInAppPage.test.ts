@@ -1,6 +1,3 @@
-// NotInAppPage — a deep link to something that sells (the Store), opened inside the apps: a neutral
-// screen that says so, with no price and no link out (PLAN-SAAS §3.6, point 5; mockups README §4:
-// «La tienda no está en la app»), inside the shell layout and with ONE way out, Home.
 import { mount } from '@vue/test-utils';
 import { createApp } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';

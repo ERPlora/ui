@@ -1,6 +1,3 @@
-// The panel's state (BASE-G110, G111, G115, G116, G117, G119, G120, G124): a question runs its turn — the reads the
-// model asks for go on by themselves, each write waits for its card —, «Stop» keeps what was written, the conversation
-// is the person's (another one on the till starts empty), and what the answer says is checked against what ran.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../sdk/errors';
@@ -54,7 +51,7 @@ function assistantWith(post: ReturnType<typeof hub>['post'], storage = memorySto
   return assistant;
 }
 
-describe('opening and closing (BASE-G110)', () => {
+describe('opening and closing', () => {
   it('the device remembers open or closed, and nothing else', () => {
     const openStorage = memoryStorage();
     const assistant = assistantWith(hub().post, memoryStorage(), openStorage);
@@ -68,7 +65,7 @@ describe('opening and closing (BASE-G110)', () => {
   });
 });
 
-describe('asking (BASE-G111)', () => {
+describe('asking', () => {
   it('the question goes out with the whole conversation and the answer arrives into one bubble', async () => {
     const { post, bodies } = hub([
       { type: 'text', text: 'Tienes ' },
@@ -93,7 +90,7 @@ describe('asking (BASE-G111)', () => {
   });
 });
 
-describe('several things in a row (BASE-G115, G119)', () => {
+describe('several things in a row', () => {
   it('the reads the model asks for go on by themselves; a write stops on its card', async () => {
     const { post, bodies } = hub(
       [done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok' })],
@@ -152,8 +149,7 @@ describe('several things in a row (BASE-G115, G119)', () => {
     expect(answer.text).toBe('He creado Mesa 4.');
     expect(answer.notices).toEqual([]);
     // Where it happened, as the server names it for the receipt: the platform by its screen's key (`screen`), kept with
-    // the receipt (FIX-HUB-BASE-ASSISTANT-CARD-MONEY-IN-BUSINESS-NOT-PREVIEW-CURRENCY: without it, a receipt read in
-    // another language names the screen in the turn's).
+    // the receipt so that, read in another language, it names the screen in that one.
     expect(answer.executed).toEqual([
       { name: 'demo.item.create', app: 'demo', app_name: 'Demo', outcome: 'ok' },
       { name: 'base.access.settings_update', app: 'base', app_name: 'Ajustes', screen: 'settings', outcome: 'ok' },
@@ -174,9 +170,7 @@ describe('several things in a row (BASE-G115, G119)', () => {
   });
 });
 
-// BASE-F101 step 2: what each round of a turn says goes to the same bubble, as its own paragraph — never glued to
-// the previous round («… Diferencia: +137.90 €No lo he hecho.»).
-describe('the text of each round, its own paragraph in the same bubble (BASE-F101)', () => {
+describe('the text of each round, its own paragraph in the same bubble', () => {
   const paragraphs = (text: string) => parseMarkdown(text).map((block) => block.kind);
 
   it('two rounds with text are two paragraphs of one bubble; the conversation keeps what the server appended', async () => {
@@ -194,7 +188,7 @@ describe('the text of each round, its own paragraph in the same bubble (BASE-F10
     const answers = assistant.state.thread.bubbles.filter((b) => b.role === 'assistant');
     expect(answers.map((b) => b.text)).toEqual(['Miro las mesas.\n\nTienes 3.']);
     expect(paragraphs(answers[0].text)).toEqual(['paragraph', 'paragraph']);
-    // BASE-F102: what goes back to the model is the server's, untouched; the tab keeps the bubble as painted.
+    // What goes back to the model is the server's, untouched; the tab keeps the bubble as painted.
     expect(assistant.state.thread.conversation.slice(1)).toEqual([
       asked(LIST),
       { role: 'tool', tool_call_id: 'r1', content: '{"rows":[]}' },
@@ -253,7 +247,7 @@ describe('the text of each round, its own paragraph in the same bubble (BASE-F10
     expect(paragraphs(text)).toEqual(['list', 'paragraph', 'paragraph']);
   });
 
-  it('what it says is checked as before (BASE-F99): the paragraph changes no notice', async () => {
+  it('what it says is checked as before: the paragraph changes no notice', async () => {
     const rounds = ['Miro.', 'He creado Mesa 4. Ve a [Informes](/reports).'];
     const { post } = hub(
       [{ type: 'text', text: rounds[0] }, done({ append: [asked(LIST)], pending: [LIST] })],
@@ -267,7 +261,7 @@ describe('the text of each round, its own paragraph in the same bubble (BASE-F10
   });
 });
 
-describe('what it says against what ran (BASE-G117)', () => {
+describe('what it says against what ran', () => {
   it('a change claimed with no write that ran is flagged outside the answer', async () => {
     const { post } = hub([{ type: 'text', text: 'He creado Mesa 4.' }, done({ append: [{ role: 'assistant', content: 'He creado Mesa 4.' }] })]);
     const assistant = assistantWith(post);
@@ -283,7 +277,7 @@ describe('what it says against what ran (BASE-G117)', () => {
   });
 });
 
-describe('failures (BASE-G124, G122)', () => {
+describe('failures', () => {
   it('a network that is not there says so, and the question stays to try again', async () => {
     const { post, bodies } = hub(new TypeError('Failed to fetch'), [{ type: 'text', text: 'Ya.' }, done({ append: [{ role: 'assistant', content: 'Ya.' }] })]);
     const assistant = assistantWith(post);
@@ -329,8 +323,8 @@ describe('failures (BASE-G124, G122)', () => {
   });
 });
 
-describe('the month’s messages (BASE-G122)', () => {
-  it('each answer moves the count without a reload: its usage frame is the plan’s now (gh:hub#1183)', async () => {
+describe('the month’s messages', () => {
+  it('each answer moves the count without a reload: its usage frame is the plan’s now', async () => {
     const { post } = hub(
       [{ type: 'text', text: 'Hola.' }, { type: 'usage', used: 25, limit: 30, resets_at: '2026-11-01T00:00:00Z', demo: false }, done()],
       [{ type: 'text', text: 'Otra.' }, { type: 'usage', used: 26, limit: 30, resets_at: '2026-11-01T00:00:00Z', demo: false }, done()],
@@ -344,7 +338,7 @@ describe('the month’s messages (BASE-G122)', () => {
   });
 });
 
-describe('the conversation (BASE-G120)', () => {
+describe('the conversation', () => {
   it('is kept in this tab and comes back for the same person', async () => {
     const storage = memoryStorage();
     const { post } = hub([{ type: 'text', text: 'Hola' }, done({ append: [{ role: 'assistant', content: 'Hola' }] })]);
@@ -353,7 +347,7 @@ describe('the conversation (BASE-G120)', () => {
     expect(again.state.thread.bubbles.map((b) => b.text)).toEqual(['hola', 'Hola']);
   });
 
-  it('another person on the till starts empty, with nothing of the one who left (gh:hub#2538)', async () => {
+  it('another person on the till starts empty, with nothing of the one who left', async () => {
     const storage = memoryStorage();
     const { post } = hub([{ type: 'text', text: 'Hola' }, done()]);
     const assistant = assistantWith(post, storage);
@@ -379,7 +373,7 @@ describe('the conversation (BASE-G120)', () => {
   });
 });
 
-describe('where an answer came from, for its report (saas#287, ui#103)', () => {
+describe('where an answer came from, for its report (ui#103)', () => {
   const answer = (assistant: ReturnType<typeof assistantWith>) => assistant.state.thread.bubbles.at(-1)!;
 
   it('a round that brought pages marks the answer, and the continuation after its tools never unmarks it', async () => {
@@ -470,7 +464,7 @@ describe('where an answer came from, for its report (saas#287, ui#103)', () => {
   });
 });
 
-describe('the setup (BASE-G121)', () => {
+describe('the setup', () => {
   it('opened from the checklist, the turns carry the setup', async () => {
     const { post, bodies } = hub([done()]);
     const assistant = assistantWith(post);
@@ -481,7 +475,7 @@ describe('the setup (BASE-G121)', () => {
   });
 });
 
-describe("a write someone must approve (the host's approval: the Hub's manager, BASE-G118)", () => {
+describe("a write someone must approve (the host's approval: the Hub's manager)", () => {
   const needsApproval = () => new ApiError(403, 'requires_elevation', 'This needs a manager’s approval.');
 
   async function waitingOnCard(post: ReturnType<typeof hub>['post'], approval: AssistantApproval) {
@@ -587,7 +581,7 @@ describe("the tab's assistant (`useAssistant`), as the host configured it", () =
   });
 });
 
-describe('signing out (`forgetAssistant`, BASE-G120)', () => {
+describe('signing out (`forgetAssistant`)', () => {
   afterEach(() => {
     installAssistant(undefined);
     sessionStorage.clear();

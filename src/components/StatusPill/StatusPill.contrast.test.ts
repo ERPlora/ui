@@ -1,10 +1,7 @@
-// Contrast of the StatusPill tones (working rules §2.4, UX audit of the mockups): a pill's text is
-// small, so it must reach WCAG AA (4.5:1) against its own tint, on every surface a pill sits on
-// (page, card, list row and, in dark, a dialog), in light and dark, with the shell's theme
-// (`variables.css` over Ionic's defaults, in the cascade order `createShell` loads them) and with
-// every optional palette (`palettes.css`). CSS is not applied under happy-dom, so this reads the
-// custom properties from the stylesheets themselves and composites the colours as the browser
-// does with `color-mix(in srgb, …)`.
+// A pill's text is small, so it must reach WCAG AA (4.5:1) against its own tint on every surface a pill sits on, in
+// light and dark, with the shell's theme and every optional palette. happy-dom applies no CSS, so this reads the custom
+// properties from the stylesheets themselves, in the cascade order `createShell` loads them, and composites the colours
+// as the browser does with `color-mix(in srgb, …)`.
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';

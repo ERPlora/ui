@@ -1,9 +1,7 @@
 <script setup lang="ts">
-// NotFoundPage — the screen of an address this hub does not have (hub#1723). Ported from ERPlora
-// hub `apps/web/src/views/NotFoundPage.vue` + `components/NotFoundState.vue` (origin/develop), in
-// one file for phase 1. A redirect would be silent (it rewrites the address bar and destroys the
-// evidence that the link was wrong), so the router's catch-all mounts this instead: it says so and
-// offers ONE way out, Home, painted inside the shell's layout so the menu stays at hand.
+// A redirect would be silent (it rewrites the address bar and destroys the evidence that the link was wrong), so
+// the router's catch-all mounts this instead: it says so and offers one way out, Home, painted inside the shell's
+// layout so the menu stays at hand.
 import { IonButton } from '@ionic/vue';
 import { useI18n } from 'vue-i18n';
 

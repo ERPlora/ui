@@ -1,7 +1,3 @@
-// What the assistant's composer takes (BASE-G111, G112): Enter sends on a keyboard and is a new line on a touch screen;
-// the files erplora.com reads (images, PDF, Word, Excel, text, CSV, Markdown, JSON), at most 8 MB each and 20 MB per
-// question, read in the browser as base64; and the dictation — recorded with the microphone, at most two minutes, in a
-// type erplora.com transcribes.
 import { describe, expect, it, vi } from 'vitest';
 
 import {

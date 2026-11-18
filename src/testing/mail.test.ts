@@ -1,10 +1,7 @@
 // @vitest-environment node
-// In plain Node, as an e2e runs it (Playwright): no DOM, and `node:fs` is the one it reads with.
-// The mails a Django app writes with its file backend (`django.core.mail.backends.filebased.EmailBackend`),
-// read back as a person reads their inbox: the SaaS writes every mail of development to `saas-next/.mail/`
-// (and its e2e to a folder of its own), and a sign-in there asks for the six-digit code it mailed. The
-// samples below are what Django 6.1 writes: one file per connection named by an id (not by time), each
-// message closed by a line of 79 `-`, its body raw UTF-8 (8bit), quoted-printable, base64 or multipart.
+// In plain Node, as an e2e runs it: no DOM, and `node:fs` is the one it reads with. The samples below are what
+// Django 6.1's file backend writes: one file per connection named by an id, each message closed by a line of 79 `-`,
+// its body raw UTF-8 (8bit), quoted-printable, base64 or multipart.
 import {
   appendFileSync,
   mkdirSync,

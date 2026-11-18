@@ -1,7 +1,5 @@
-// Contrast of the UserAvatar tones (working rules §2.4): the initials are small text, so they must
-// reach WCAG AA (4.5:1) against the avatar's tint, on every surface an avatar sits on (the sidebar
-// on the page canvas, a card, a list row and, in dark, a dialog), in light and dark, with the
-// shell's theme and every optional palette, read from the real stylesheets.
+// The initials are small text, so they must reach WCAG AA (4.5:1) against the avatar's tint on every surface an avatar
+// sits on, in light and dark, with the shell's theme and every optional palette, read from the real stylesheets.
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -35,7 +33,7 @@ describe('UserAvatar colours', () => {
     expect(dark).toMatch(/color:\s*color-mix\(in srgb, var\(--user-avatar-tone\) var\(--user-avatar-ink-dark\), white\)/);
   });
 
-  it('every tone reads an Ionic colour of the theme through our --ep-* token (brand = primary, as in the mockups)', () => {
+  it('every tone reads an Ionic colour of the theme through our --ep-* token (brand = primary)', () => {
     const expected = { brand: 'primary', green: 'success', violet: 'secondary', amber: 'warning' } as const;
     expect(USER_AVATAR_TONES.length).toBe(Object.keys(expected).length);
     for (const tone of USER_AVATAR_TONES) {

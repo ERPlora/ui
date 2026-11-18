@@ -1,5 +1,5 @@
-// Trusted Types `default` policy for the SPA. The CSP carries `require-trusted-types-for 'script'`
-// (PLAN §4.3); the only legitimate DOM-string sinks are the icons (Ionic's `ion-icon` and our
+// Trusted Types `default` policy for the SPA. The CSP carries `require-trusted-types-for 'script'`;
+// the only legitimate DOM-string sinks are the icons (Ionic's `ion-icon` and our
 // HubIcon), so in production `createHTML` lets through only two shapes:
 //   - inline SVG markup, starting with `<svg` (what `ion-icon` writes into its shadow root);
 //   - an SVG data URL, `data:image/svg+xml;utf8,<svg …>`: every icon of the shell (`ION_ICONS`

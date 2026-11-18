@@ -2,8 +2,8 @@
 
 **Versión 1 · 8 de noviembre de 2026.** Esta es la norma visual de Hub, SaaS, web pública y componentes
 compartidos. La fuente técnica es `@erplora/ui`: `src/shell/brandbook.ts` cataloga las paletas,
-`theme/variables.css` define marca y estados, `theme/palettes.css` las variantes y `theme/brand.css`
-las primitivas. La presentación se puede recorrer en [brandbook.html](./brandbook.html).
+`src/shell/theme/variables.css` define marca y estados, `src/shell/theme/palettes.css` las variantes y
+`src/shell/theme/brand.css` las primitivas. La presentación se puede recorrer en [brandbook.html](./brandbook.html).
 
 ## 1. Idea de marca
 
@@ -26,7 +26,7 @@ acción o un estado, nunca decora por decorar.
 ## 2. Logotipo
 
 El símbolo es el hub central azul con ocho módulos rojos, verdes y amarillos. Se implementa una sola
-vez en `theme/erplora-logo.css` mediante `.erp-logo`; el lockup añade `.erp-wordmark` en minúsculas.
+vez en `src/shell/theme/erplora-logo.css` mediante `.erp-logo`; el lockup añade `.erp-wordmark` en minúsculas.
 
 - El centro sigue `--ion-color-primary`; los módulos conservan sus colores de marca.
 - Tamaños: `xs` 16 px, `sm` 32 px, `md` 56 px, `lg` 96 px y `xl` 144 px.
@@ -96,6 +96,7 @@ el modo; sus valores exactos están en `src/shell/brandbook.ts` y se comprueban 
 |---|---|---|
 | Radio normal | `--ep-radius` | 14 px |
 | Controles | `--ep-radius-sm` | 10 px |
+| Avisos en línea | `--ep-radius-md` | 12 px |
 | Tarjetas grandes | `--ep-radius-lg` | 16 px |
 | Píldoras | `--ep-radius-pill` | 999 px |
 | Elevación de superficie | `--ep-shadow-xs`, `--ep-shadow-sm` | Fina y corta |
@@ -103,9 +104,19 @@ el modo; sus valores exactos están en `src/shell/brandbook.ts` y se comprueban 
 | Transición | `--ep-transition` | 150 ms, suave |
 | Pulsación | `--ep-press-scale` | 0.98 |
 | Foco | `--ep-focus-ring` | Anillo del primario al 24 % |
+| Cristal (superficies flotantes) | `--ep-glass-bg`, `--ep-glass-backdrop`, `--ep-glass-border`, `--ep-glass-highlight` | Fondo del tema translúcido, desenfoque de 20 px y saturación del 180 %, borde de luz |
+| Sombra flotante | `--ep-shadow-float` | Dos capas: corta y nítida, larga y difusa |
+| Resorte | `--ep-spring`, `--ep-ease-out` | Entradas con un leve rebase; salidas cortas |
 
 La animación comunica respuesta, no entretiene. `prefers-reduced-motion` elimina desplazamientos y
 transiciones no esenciales. No usar glass o gradientes como fondo general de una pantalla de trabajo.
+
+El cristal (`theme/glass.css`, clase `.ep-glass`) es solo para lo que flota sobre la pantalla: hoy los
+avisos breves; el menú lateral, la barra superior y las tarjetas siguen sólidos. Apagado es el mismo
+diseño en opaco: con la clase `ep-opaque` en `<html>` (`setThemeTransparency(false)`), cuando el
+sistema pide menos transparencia y en un navegador sin `backdrop-filter`. El radio del desenfoque no se
+anima nunca, y nada por encima de una superficie de cristal anima `opacity` ni lleva `filter`: el
+cristal entra y sale con `transform`, y mientras se funde deja de ser cristal.
 
 ## 6. Componentes
 
@@ -120,6 +131,20 @@ transiciones no esenciales. No usar glass o gradientes como fondo general de una
 - **Formularios:** controles Ionic, etiquetas persistentes y errores junto al campo. `fill="outline"`
   siempre con `mode="md"`; los formularios no pierden sus valores al cambiar tamaño u orientación.
 - **Estados y avisos:** `StatusPill` e `InlineFeedback`; texto explícito y pares de tinte accesibles.
+- **Avisos breves (toasts):** se piden con `toastSuccess`, `toastError`, `toastInfo` o `toastWarning`
+  y los pinta una sola pila del shell (`ToastStack`): una píldora de cristal oscuro (clara en tema
+  oscuro), abajo en el centro sobre la barra inferior, o arriba con `position: 'top'`. Con una
+  ventana abierta que llega al pie de la pantalla (la hoja de un formulario en el móvil, una hoja de
+  acciones), la pila de abajo se coloca sobre sus botones, como el snackbar de Material sobre una
+  barra inferior; con el asistente acoplado, se centra en la pantalla de al lado. Tres visibles por
+  borde como mucho, y el aviso nuevo siempre sale delante al momento: deja su sitio el más antiguo
+  que se va solo (con tiempo y sin acción), primero uno que no sea de error. Si los tres son fijos o
+  tienen acción, un error ocupa el sitio del más antiguo que no sea de error (o del más antiguo), que
+  vuelve a la cola con el tiempo que le quedaba; cualquier otro aviso espera su turno. Un aviso que
+  no es de error nunca hace salir a uno de error, y al quedar un sitio libre entra antes el error que
+  espera. Con el ratón, el foco o un toque la pila se despliega y su tiempo se para, pero los avisos
+  nuevos siguen entrando. Se cierran deslizándolos, con `Esc` o con su botón de cerrar (los fijos y
+  los de error).
 - **Diálogos y hojas:** Ionic y `FormModal`; elevación `--ep-shadow-modal`, fondo de la paleta y foco
   devuelto al disparador al cerrar.
 

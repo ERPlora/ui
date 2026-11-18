@@ -1,30 +1,8 @@
-// useSettingsForm — a settings page's form, the one every «Settings» tab of the Hub had copied (hub#867;
-// APPOINTMENT-F19, RESERVATION-F03, ONLINE_BOOKING-F07, STAFF-F22, TABLE-F08, KITCHEN-F26, ATTENDANCE-F04,
-// SERVICE-F11):
-//   const { data } = useLive('app.settings.get', {});
-//   const { form, dirty, saved, pending, error, fieldErrors, showsError, set, save } =
-//     useSettingsForm(data, useCommand('app.settings.update'), { toForm, numbers: ['default_duration'] });
-//   <ion-input :value="form.default_duration" :error-text="fieldErrors.default_duration"
-//              @ion-input="set('default_duration', text($event.detail.value))" />
-//   <InlineFeedback v-if="showsError" …>{{ error?.message }}</InlineFeedback>
-// Contract:
-//   - `form` is null until the settings come; then it is what the server has (`toForm`), and a change
-//     saved elsewhere repaints every field the person has not touched (what was typed stays).
-//   - Only the fields touched and changed are sent (`changes`), so a save never undoes someone else's:
-//     texts without their edge spaces, the `numbers` fields as numbers when they hold a whole number (else
-//     as typed, for the server to refuse under the field), and a field the server knows otherwise
-//     (`server`) under its name there and with its value there, compared by that value.
-//   - Fields that are one value (`together`, a pair of coordinates) are sent all when one changed, and
-//     changing one is changing all of them.
-//   - A refusal says itself as a FormModal does (`useRefusal`): `set` tells it which field changed, by its
-//     name on the server. What the screen judges before sending (`judge`) goes under its field the same
-//     way and sends nothing.
-//   - `save` sends the changes and paints the answer: what was sent is left as the server kept it. A field
-//     changed while the save was on its way stays as typed and still to send (hub#914), and `saved` says so
-//     only when nothing is left to send; with nothing to send it sends nothing and says it too (what is on
-//     screen is what is saved). That is a try as well: the last refusal, which said otherwise, says nothing
-//     more (neither its notice nor its fields' messages) until the next refusal (hub#894). A failed save
-//     keeps what was typed; the command's `error` says why.
+// The form of a settings page. A change saved elsewhere repaints every field the person has not touched, and only
+// the touched fields that differ are sent, so a save never undoes someone else's; a `numbers` field goes as a number
+// when it holds a whole one, else as typed, for the server to refuse under the field. A field changed while the save
+// is on its way stays as typed and still to send. A save with nothing to send sends nothing and says «saved», and the
+// last refusal says nothing more until the next one.
 import { computed, shallowRef, toValue, watch, type ComputedRef, type MaybeRefOrGetter, type Ref, type ShallowRef } from 'vue';
 
 import { useRefusal } from './refusal';
@@ -97,7 +75,7 @@ export function useSettingsForm<Out, Form extends object, In extends object>(
   const server = (options.server ?? {}) as Partial<Record<Field, SettingsServerField<unknown>>>;
   const together = options.together ?? [];
 
-  /** A save with nothing to send went through after the last refusal: it has nothing more to say (hub#894). */
+  /** A save with nothing to send went through after the last refusal: it has nothing more to say. */
   const outdated = shallowRef(false);
   const refusal = useRefusal(command.error, {
     onRefusal: () => {

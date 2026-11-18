@@ -1,9 +1,7 @@
 <script setup lang="ts">
-// WebOnly — what sells (the Store, prices, «Change plan», «Pay», «Change card») is rendered on the
-// web only (PLAN-SAAS §3.6, point 5; mockups README §4). On the app surfaces (`surface.ts`) it is not
-// even in the DOM, and the `#app` slot takes its place: the sentence, WITHOUT a link, that says how
-// to do it from a browser («To change your plan or add modules, go to erplora.com in your browser.»).
-// For a single element that must stay in the DOM, `v-web-only`.
+// What sells (prices, changing the plan, paying) is rendered on the web only: on the app surfaces it is
+// not even in the DOM, and the `#app` slot takes its place with a sentence, without a link, that says
+// how to do it from a browser. For a single element that must stay in the DOM, use `v-web-only`.
 import { useSurface } from './surface';
 
 defineSlots<{

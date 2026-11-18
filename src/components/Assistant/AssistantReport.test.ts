@@ -1,7 +1,3 @@
-// BASE-G123: «Report a problem» under a finished answer. The person says what is wrong with it (wrong, harmful, did not
-// do what was asked, something else) and, if it wants, why; the answer, the question it answered and the reason go to
-// the host's review (`AssistantConfig.report`; the Hub's: erplora.com's). Sent: a thank-you and the dialog closes;
-// refused: it stays open with the reason, nothing lost.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { LiveClient } from '../../sdk/live-client';
@@ -13,7 +9,7 @@ import type { Bubble } from './history';
 
 vi.mock('../../shell/toast', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../shell/toast')>()),
-  toastSuccess: vi.fn(() => Promise.resolve()),
+  toastSuccess: vi.fn(() => 'toast-id'),
 }));
 vi.mock('@ionic/vue', async (importOriginal) => {
   const { IonModalStub } = await import('../FormModal/__tests__/ionModalStub');
@@ -101,7 +97,7 @@ describe('AssistantReport', () => {
     expect(m.wrapper.emitted('close')).toHaveLength(1);
   });
 
-  // saas#287: erplora.com does not mail support the text of an answer that brought pages of the web (Brave's terms).
+  // erplora.com does not mail support the text of an answer that brought pages of the web (Brave's terms).
   it.each([true, false])('says whether the answer came from the web, as its bubble knows it (web: %s)', async (web) => {
     const m = await report(SENT, { ...ANSWER, web });
     await send();

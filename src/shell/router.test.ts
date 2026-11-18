@@ -46,7 +46,7 @@ describe('createShellRouter', () => {
     expect(ionicCreateRouter.calls).toBe(before + 1);
   });
 
-  it('keeps the app routes and appends the catch-all LAST (hub#1723: a 404 screen, not a redirect)', () => {
+  it('keeps the app routes and appends the catch-all last (a 404 screen, not a redirect)', () => {
     const { router } = setup(me({ id: 'u1', label: 'Ana' }));
     const records = router.getRoutes();
     expect(records.map((r) => r.path)).toContain('/demo/items');
@@ -58,7 +58,7 @@ describe('createShellRouter', () => {
   });
 
   // HOME_ROUTE loads its page lazily: the first load transforms HomePage and what it imports (AppPage, Ionic…),
-  // ~0.7 s on an idle machine and past the 5 s of a test on a loaded one (FIX-SAAS-SESSIONS-RESULT-TOO-BIG). Loaded
+  // ~0.7 s on an idle machine and past the 5 s of a test on a loaded one. Loaded
   // once here through the route's own loader, with its own limit, the test below times the routing only.
   beforeAll(async () => {
     await (HOME_ROUTE.component as () => Promise<unknown>)();
@@ -138,7 +138,7 @@ describe('authGate', () => {
     expect(router.currentRoute.value.path).toBe('/');
   });
 
-  it('the login path is configurable (phase 1: Django admin login)', async () => {
+  it('the login path is configurable', async () => {
     const { router, redirect } = setup(me(null), 'live', '/admin/login/');
     await router.push('/nope');
     expect(redirect).toHaveBeenCalledWith('/admin/login/?next=%2Fnope');
@@ -150,7 +150,7 @@ describe('authGate', () => {
     expect(redirect).toHaveBeenCalledWith('http://hub.localhost:8001/hub-login/?hub=a&next=%2Fdemo%2Fitems%3Fq%3Da');
   });
 
-  it('waits for base.session.me before deciding (hub#858: no login for a session still arriving)', async () => {
+  it('waits for base.session.me before deciding (no login for a session still arriving)', async () => {
     const { router, redirect, sessionMe, sessionStatus } = setup(undefined, 'loading');
     let done = false;
     void router.push('/demo/items').then(() => (done = true));
@@ -177,8 +177,8 @@ describe('authGate', () => {
   });
 });
 
-// A route that sells (`meta.webOnly`, the SaaS's Store) is not in the apps (PLAN-SAAS §3.6, point 5):
-// a deep link to it, on an app surface, keeps the address and mounts the neutral page instead.
+// A deep link to a route that sells (`meta.webOnly`), on an app surface, keeps the address and mounts
+// the neutral page instead.
 describe('web-only routes', () => {
   afterEach(() => applySurface('web'));
 

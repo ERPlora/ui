@@ -14,8 +14,8 @@ function formatter(locale: string, money: Money): Intl.NumberFormat {
   const id = `${locale}|${money.currency}|${money.decimals}`;
   let found = formatters.get(id);
   if (!found) {
-    // `always`: CLDR leaves a four-digit Spanish amount ungrouped («1234,56 €» above «12.345,67 €»); every till and
-    // ledger of the market groups it (Holded, Odoo, Shopify, Excel es_ES), and so does the screen (legacy hub#1090).
+    // `always`: CLDR leaves a four-digit Spanish amount ungrouped («1234,56 €» above «12.345,67 €»), while tills
+    // and ledgers group it (Holded, Odoo, Shopify, Excel es_ES).
     const digits = {
       minimumFractionDigits: money.decimals,
       maximumFractionDigits: money.decimals,

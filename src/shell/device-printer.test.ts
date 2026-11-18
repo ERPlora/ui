@@ -1,8 +1,3 @@
-// A job of the hub's queue becoming paper in the installed app (PRINTING-F18, F05 and F13; the old hub's
-// `print-host.ts`, hub#501, and hub#2724): each kind goes to the app's command for it — `erplora_print` for a document
-// (its first copy as the original, the rest as the hub says), `print_document` for an A4 page, `erplora_test_print`
-// for the test sheet, `erplora_open_drawer` for the drawer —, every refusal comes back as the job's failure, and a
-// drawer that does not open after the paper is told without failing the paper that came out.
 import { describe, expect, it, vi } from 'vitest';
 
 import type { PrintJob } from '../sdk/print-channel';
@@ -88,7 +83,7 @@ describe('device printer: documents', () => {
   });
 });
 
-describe('device printer: the test sheet (PRINTING-F05)', () => {
+describe('device printer: the test sheet', () => {
   it('prints the test sheet with erplora_test_print on its printer, with what the hub filled in', async () => {
     const { invoke, print } = printer();
     await print(job({ kind: 'test_page', documentType: '', document: { business_name: 'Bar Pepe', locale: 'es' } }));
@@ -104,7 +99,7 @@ describe('device printer: the test sheet (PRINTING-F05)', () => {
   });
 });
 
-describe('device printer: the drawer (PRINTING-F13, hub#2724)', () => {
+describe('device printer: the drawer', () => {
   it('opens the drawer of the receipt printer after the paper, when the job says so', async () => {
     const { invoke, print, onDrawerFailed } = printer();
     await print(job({ openDrawer: true, copies: 2, copyDocument: { duplicate: true } }));

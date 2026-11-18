@@ -1,22 +1,7 @@
-/**
- * Typed client of the ninja API: `call(op, input)` finds the operation's route in the generated
- * op → route map and sends the input the way ninja expects it.
- *
- * - GET: the input becomes the query string (arrays repeat the key, `undefined`/`null` are skipped,
- *   booleans are `true`/`false`).
- * - Other methods: the input becomes the JSON body (a DELETE with nothing left sends no body).
- * - `{param}` placeholders in the path are filled from the input and removed from query and body.
- * - Every runtime failure rejects with an `ApiError`: the error envelope for non-2xx responses,
- *   `unexpected_response` for bodies that are not JSON and `network_error` (status 0) when the
- *   request never got an answer (the failure's own text kept in `details.reason`); those two carry
- *   a sentence for a person in their language (`sdkMessage`, hub#2281), never an English internal
- *   text. Programming errors (unknown operation, missing path parameter, nested object in a query)
- *   reject with a plain `Error`.
- *
- * Plain `fetch` instead of `openapi-fetch`: its typing is keyed by path and method, while the SDK
- * is keyed by operation name, so it would only add a second lookup; the headers, the error
- * envelope and the query rules above are a few lines here and are tested on their own.
- */
+// `call(op, input)` finds the operation's route in the generated map and sends the input the way ninja expects it:
+// the query string for a GET, the JSON body otherwise, `{param}` placeholders filled from the input. A failure
+// rejects with an `ApiError`, and a programming error (unknown operation, missing path parameter) with a plain `Error`.
+// Plain `fetch` rather than `openapi-fetch`, whose typing is keyed by path and method while the SDK's is by operation.
 import { ApiError, parseErrorEnvelope } from "./errors";
 import type { HeaderProvider } from "./headers";
 import { sdkMessage } from "./messages";

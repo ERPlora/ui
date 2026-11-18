@@ -1,7 +1,3 @@
-// A link that leaves the app (the hub's «My account», «Report a problem» and «erplora.com» of the bar): a browser
-// opens it in a new tab by itself (`target="_blank" rel="noopener"`); the installed app opens nothing on
-// `target=_blank`, so the address goes to the system browser (`open_external_url`, which only takes our own
-// addresses) and a refusal is said, never a button that does nothing (gh:hub#475).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const toastError = vi.hoisted(() => vi.fn());

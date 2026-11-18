@@ -1,29 +1,24 @@
-// The device's own voice (`speechSynthesis`): the fallback of the server's voice and a choice of its own
-// (`DEVICE_VOICE`). What makes it sound as well as the device can:
-// - the language with its region (`es-ES`, `en-US`), never a bare `es`, which leaves the device to its first voice;
-// - the best voice the device has for it, by its name: the online natural ones (Edge), the natural ones, Google's
-//   (Chrome), the enhanced or premium ones (Apple), then the rest; for Spain's Spanish, never one of the United
-//   States, Mexico or Latin America. Chosen once per language and kept;
-// - the list waited for when the device gives it late (Chrome lists its voices after `voiceschanged`);
-// - the text read in pieces of under 200 characters, by sentences, one after the other: desktop Chrome cuts its
-//   online Google voices after about 15 seconds of a single utterance.
-// The Android webview has no `speechSynthesis` (`deviceEnv` is none there): in the app, the system's voice reads
-// instead (`nativeVoice.ts`, round 2026-11-04a).
+// The browser's own voice (`speechSynthesis`): the fallback of the server's voice and a choice of its own
+// (`DEVICE_VOICE`). The Android webview has no `speechSynthesis`, so in the installed app the system's voice reads
+// instead (`nativeVoice.ts`).
 import type { AssistantLanguage } from './voices';
 
-/** The language each voice is read in, with its region. */
+/** Always with the region: a bare `es` leaves the device to read in its first voice of any region. */
 export const DEVICE_LANGS: Readonly<Record<AssistantLanguage, string>> = Object.freeze({ es: 'es-ES', en: 'en-US' });
 
-/** The longest piece of text given to the device at once. */
+/** The longest piece of text given to the device at once: desktop Chrome cuts its online Google voices after about
+ *  15 seconds of a single utterance. */
 export const MAX_PIECE = 200;
 
-/** How long the device's list of voices is waited for before reading with the language alone. */
+/** How long the device's list of voices is waited for (Chrome gives it late, on `voiceschanged`) before reading with
+ *  the language alone. */
 export const VOICES_WAIT_MS = 1500;
 
 /** The Spanish of elsewhere, never read for Spain's. */
 const SPANISH_ELSEWHERE = new Set(['es-us', 'es-mx', 'es-419']);
 
-/** The names of the best voices first: online natural, natural, Google's, enhanced or premium; then the rest. */
+/** The best voices first, by name: Edge's online natural ones, other natural ones, Chrome's Google ones, Apple's
+ *  enhanced or premium ones; then the rest. */
 const RANKS = [/online \(natural\)/i, /\(natural\)/i, /^google /i, /enhanced|premium/i];
 
 interface VoiceLike {
@@ -118,7 +113,6 @@ export function deviceVoices(synth: SpeechSynthesis, waitMs = VOICES_WAIT_MS): P
   });
 }
 
-/** The device's voice and the utterances it reads. */
 export interface DeviceEnv {
   synth: SpeechSynthesis;
   Utterance: typeof SpeechSynthesisUtterance;
@@ -140,7 +134,6 @@ export interface DeviceReading {
 export interface DeviceReader {
   /** Reads the text in the language, cancelling what was being read. */
   read(text: string, language: AssistantLanguage): DeviceReading;
-  /** Cancels what is being read, if anything. */
   cancel(): void;
 }
 

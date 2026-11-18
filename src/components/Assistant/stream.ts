@@ -1,9 +1,8 @@
-// The transport of a turn of the assistant (BASE-G06, the old hub's SSE client; PLAN §14 «un solo camino»): ONE POST
-// to the host's route of a turn (`AssistantConfig.turnUrl`) whose answer is a stream of `data: <json>` frames, read as they arrive with `fetch` +
-// `ReadableStream` and closed when the turn ends — no EventSource and no second permanent stream (`/api/live` stays
-// the tab's one). Same origin, with the SDK's own headers (CSRF, device). The SDK's client cannot read a stream (it
-// waits for a JSON body): hence its own `fetch`. A refusal of the server rejects with the envelope's
-// `ApiError`; a network that is not there rejects as `fetch` does; aborting (`signal`) stops reading.
+// One turn of the assistant is a single POST to the host's turn route (`AssistantConfig.turnUrl`) whose answer is a
+// stream of `data: <json>` frames, read with `fetch` + `ReadableStream` as they arrive and closed when the turn ends: no
+// EventSource and no second permanent stream beside the tab's `/api/live`. The SDK's client waits for a JSON body and
+// cannot read a stream, hence a `fetch` of its own, same origin and with the SDK's headers (CSRF, device). A refusal of
+// the server rejects with the envelope's `ApiError`, a missing network as `fetch` does; aborting (`signal`) stops reading.
 import { readSpaConfig } from '../../sdk/config';
 import { ApiError, parseErrorEnvelope } from '../../sdk/errors';
 import { createHeaderProvider } from '../../sdk/headers';
@@ -37,7 +36,7 @@ export type TurnFrame =
   | { type: 'text'; text: string }
   | { type: 'usage'; used: number; limit: number; resets_at: string | null; demo: boolean }
   | ({ type: 'error'; code: string; retriable?: boolean } & Record<string, unknown>)
-  // `web`: whether the round brought pages of the web (saas#287); a host that does not say leaves it out.
+  // `web`: whether the round brought pages of the web; a host that does not say leaves it out.
   | { type: 'done'; append: ChatMessage[]; pending: PendingCall[]; continuation: string | null; web?: boolean };
 
 /** Whether an answer may quote pages of the web, with one round more of its turn: any round that brought pages makes it
@@ -54,9 +53,8 @@ export interface TurnOptions {
   signal?: AbortSignal;
 }
 
-/** Where a turn goes and with what: the host's (`AssistantConfig`), and what a test swaps. */
+/** Where a turn goes and with what: the host's configuration, plus the `fetcher` and `doc` a test swaps. */
 export interface PostOptions extends TurnOptions {
-  /** The host's route of a turn. */
   url: string;
   /** The pass of a request being repeated after an approval (`X-Elevation-Token`); none, no header. */
   elevationToken?: () => string | undefined;
@@ -85,7 +83,6 @@ function headers(doc: Document, elevationToken: PostOptions['elevationToken']): 
     },
     cookies: () => doc.cookie,
     randomUUID: () => globalThis.crypto.randomUUID(),
-    // An approval (the Hub's manager's, BASE-G118): the pass of the turn being repeated, in `X-Elevation-Token`.
     getElevationToken: elevationToken,
   });
   return { ...provider.apiHeaders('POST'), Accept: 'text/event-stream', 'Content-Type': 'application/json' };
@@ -104,7 +101,7 @@ function emit(chunk: string, onFrame: (frame: TurnFrame) => void): void {
 
 export async function postTurn(body: TurnBody, options: PostOptions): Promise<void> {
   const doc = options.doc ?? document;
-  // The SDK's client cannot read a streamed answer (see above): same origin and its headers, as its own calls.
+  // The SDK's client cannot read a streamed answer, so the turn calls `fetch` itself, as described above.
   // eslint-disable-next-line no-restricted-globals -- see above
   const fetcher = options.fetcher ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
   const response = await fetcher(options.url, {

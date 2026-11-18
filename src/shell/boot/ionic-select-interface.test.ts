@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { bootIonicSelectInterface } from './ionic-select-interface';
 
-// hub#2223: a single-choice select opens a popover (closes on pick) instead of Ionic's alert.
+// A single-choice select opens a popover, which closes on pick, instead of Ionic's alert.
 class FakeSelect extends HTMLElement {
   interface = 'alert';
   multiple = false;
@@ -51,7 +51,7 @@ describe('bootIonicSelectInterface', () => {
     expect(el.opened[0].interface).toBe('action-sheet');
   });
 
-  it('anchors the popover to the select itself (hub#2237)', async () => {
+  it('anchors the popover to the select itself', async () => {
     const el = mount('x-sel');
     await el.open(new Event('click'));
     const ev = el.opened[0].ev as Event & { detail: { ionShadowTarget?: unknown } };

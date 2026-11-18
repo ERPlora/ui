@@ -1,28 +1,13 @@
-// What the assistant says, checked against what really ran (BASE-G117; gh:hub#1039): the panel never trusts what an
-// answer says of itself. Three notices, painted outside the bubble and never written by the model:
-// - `claimed_change`: the answer says the assistant changed something in this turn and no write of the turn ran
-//   (none, or cancelled, failed or refused). A claim is the assistant speaking of what IT did: in the first person
-//   («he creado», «I created»), or a change reported as done («se ha guardado», «has been created», «ya está creado»,
-//   «is now saved»), or how things stay when the answer says it is done («Listo, queda guardado», «Done: the price is
-//   updated»). An instruction («Pulsa Guardar y queda guardado»), a step that may already be done («Si ya está creado…»,
-//   «Once it has been saved…») and how things work («La diferencia queda guardada para siempre», «the price is updated
-//   every night») claim nothing: a how-to answer read from the docs is no change (QA battery 2026-10-31, B25). Read
-//   clause by clause: a negation before the verb in the same clause makes it a denial («no he creado el negocio»,
-//   «nothing has been saved»), not a claim. When a write of the turn was tried and did not go through, two more forms
-//   claim it (ui#67): a headline in the participle that takes what changed («Switched to dark mode», «Updated your
-//   theme», «Created Café Triana», «Activado el modo oscuro»), and what the person should now see («Your screen should
-//   now be darker», «Ya debería verse más oscura»). With no write tried, a participle reads back what happened before
-//   («Created Café Triana on 3 November») and «it should now work» follows a step: neither claims. Neither form claims in
-//   a question («Changed your mind?»), when it says when a record was made («Creado el 3 de noviembre», «Updated 3 days
-//   ago»), how things stay («should now stay light») or after a step to try again («Please try again; it should now
-//   work»). What a source says is no claim (ui#92): in a sentence that names its source («según el BOE», «according to
-//   the AEAT», «el BOE publica que…», a web address) or in an answer that closes with its web sources (the gateway's own
-//   line under an answer built on its web search, ASSISTANT-F14), a change told with no one saying who made it («la ley
-//   se ha modificado», «the rules have been updated») is the source's news. The first person still claims there, and so
-//   does what the answer says of a write of the turn that did not go through;
-// - `unread_id`: it writes an identifier (a UUID) that no tool of the turn returned and the person did not write. One
-//   inside a web address is part of another site's page, no identifier of the business (ui#92);
-// - `unknown_screen`: it links a screen this app does not serve (BASE-G114: no «Go to» for it either).
+// What the assistant says, checked against what really ran: the panel never trusts what an answer says of itself.
+// Three notices, painted outside the bubble and never written by the model:
+// - `claimed_change`: the answer says the assistant changed something in this turn and no write of the turn went
+//   through. A claim is the assistant speaking of what it did, a change reported as done, or how things stay when the
+//   answer says it is done; an instruction, a supposition, how things work, a denial in the same clause and what a
+//   named source says claim nothing. When a write was tried and did not go through, a headline in the participle and
+//   what the person should now see claim it too;
+// - `unread_id`: it writes an identifier (a UUID) that no tool of the turn returned and the person did not write; one
+//   inside a web address belongs to another site's page;
+// - `unknown_screen`: it links a screen this app does not serve.
 import { linkPaths, parseMarkdown } from './markdown';
 
 export interface Executed {

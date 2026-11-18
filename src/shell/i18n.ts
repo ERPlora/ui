@@ -1,8 +1,5 @@
-// Texts of the shell itself, English source + `es` (PLAN §5: UI in en + es). Until V6 exports the
-// Django `djangojs` catalogues to JSON, the shell carries its own JSON by hand (PLAN §4.7) and an
-// app passes its own through `createShell({ messages })`, merged over these per locale.
-// vue-i18n in Composition mode (`legacy: false`); its message compiler interprets the AST, so no
-// `eval` under the strict CSP.
+// An app passes its own catalogues through `createShell({ messages })`, merged over the shell's per
+// locale. vue-i18n's message compiler interprets the AST, so there is no `eval` under the strict CSP.
 import { createI18n, type I18n, type I18nOptions } from 'vue-i18n';
 
 import en from './locales/en.json';

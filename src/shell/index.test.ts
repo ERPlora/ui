@@ -22,12 +22,18 @@ describe('shell barrel', () => {
       'toggleTheme',
       'toastError',
       'toastSuccess',
+      'toastInfo',
+      'toastWarning',
+      'toast',
+      'dismissToast',
+      'setThemeTransparency',
+      'themeTransparency',
     ]) {
       expect(shell, name).toHaveProperty(name);
     }
   });
 
-  it('no longer exports what left with OutfitKit and the icon generator (PLAN §16.11, §16.4)', () => {
+  it('no longer exports the Web Components registration nor the runtime icon generator', () => {
     for (const name of [
       'registerOutfitkit',
       'registerOutfitkitIonicDeps',
@@ -42,7 +48,7 @@ describe('shell barrel', () => {
     }
   });
 
-  it('exports the V5 shell: createShell, router, session, config, i18n and the page layout', () => {
+  it('exports the shell: createShell, router, session, config, i18n and the page layout', () => {
     for (const name of [
       'createShell',
       'createShellRouter',
@@ -64,7 +70,7 @@ describe('shell barrel', () => {
     }
   });
 
-  it('exports the L0-C pieces: surfaces, web-only, footer tabbar, user menu and the contrast switch', () => {
+  it('exports the surfaces, web-only, footer tabbar, user menu and the contrast switch', () => {
     for (const name of [
       'SURFACES',
       'IN_APP_CLASS',
@@ -92,24 +98,45 @@ describe('shell barrel', () => {
     }
   });
 
-  it("exports the device's notices, so a project tells its live rows on the installed app (APPOINTMENT-F28)", () => {
+  it("exports the device's notices, so a project tells its live rows on the installed app", () => {
     expect(shell.useDeviceNotices).toBeTypeOf('function');
     expect(shell.createNoticeDoor).toBeTypeOf('function');
     expect(shell.TOLD_KEY).toBe('erplora.notices.told');
     expect(shell.askToNotify).toBeTypeOf('function');
   });
 
-  it('exports the print host, so an app keeps a device set up to print draining the queue (PRINTING-F18)', () => {
+  it('exports the listening with the screen off, so the sign-out stops it', () => {
+    expect(shell.stopNoticeListening).toBeTypeOf('function');
+    expect(shell.createNoticeListening).toBeTypeOf('function');
+    expect(shell.KEEP_LISTENING_COMMAND).toBe('plugin:erplora-android|keep_listening');
+    expect(shell.isOlderAppRefusal('Command keep_listening not found')).toBe(true);
+  });
+
+  it('exports the action center, so the shell connects its source and the components read it', () => {
+    expect(shell.connectActionCenter).toBeTypeOf('function');
+    expect(shell.useActionCenter().open.value).toBe(false);
+    expect(shell.useQuietActionNotices).toBeTypeOf('function');
+    // The bell, the card and the panel are the shell's, mounted once by `createShell({ actionNotices })`.
+    for (const name of ['ActionBell', 'ActionArrival', 'ActionPanel', 'ActionFeatured', 'ActionRow', 'ActionLayer']) {
+      expect(shell, name).not.toHaveProperty(name);
+    }
+  });
+
+  it('exports the print host, so an app keeps a device set up to print draining the queue', () => {
     expect(shell.usePrintHost).toBeTypeOf('function');
     expect(shell.createPrintHost).toBeTypeOf('function');
     expect(shell.createDevicePrinter).toBeTypeOf('function');
     expect(shell.printChannelUrl({ protocol: 'https:', host: 'a.erplora.com' })).toBe('wss://a.erplora.com/ws/print');
   });
 
-  it("exports the apps of «My apps», so a project's Home paints the same list as the launcher (APP-BASE-1)", () => {
+  it("exports the apps of «My apps», so a project's Home paints the same list as the launcher", () => {
     expect(shell.useMyApps).toBeTypeOf('function');
     expect(shell.iconName('people')).toBe('ion:people');
     expect(shell.iconName('mdi:account')).toBe('mdi:account');
+  });
+
+  it("exports the bar's phone menu, so a project's piece of the bar paints itself as a row of «⋮»", () => {
+    expect(shell.useTopbarMenu).toBeTypeOf('function');
   });
 
   it('exports the Home route and the Hub logout for the user menu', () => {
@@ -127,10 +154,10 @@ describe('shell barrel', () => {
     expect(shell.ionIconSrc('lucide:arrow-left')).toMatch(/^data:image\/svg\+xml;utf8,<svg /);
   });
 
-  it('imports the boot hooks before any module that loads @ionic/vue (hub#1060)', () => {
+  it('imports the boot hooks before any module that loads @ionic/vue', () => {
     const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'index.ts'), 'utf8');
     const firstIonicUser = Math.min(
-      ...["'./toast'", "'./createShell'", "'./AppPage.vue'", "'./router'"].map((m) => source.indexOf(m)),
+      ...["'./createShell'", "'./AppPage.vue'", "'./router'"].map((m) => source.indexOf(m)),
     );
     for (const hook of ['ionic-fill', 'ionic-select-text', 'ionic-select-interface']) {
       const at = source.indexOf(`import './boot/${hook}.boot';`);

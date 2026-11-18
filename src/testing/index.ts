@@ -3,7 +3,7 @@
 export { bareIonIcons, unnamedButtons, unnamedIcons } from './a11y';
 export { nameElementClasses } from './elementNames';
 export { fillHappyDomGaps } from './happyDom';
-export { iconReferences, isRegisteredIcon, registerShellIcons, scanIcons } from './icons';
+export { iconReferences, isRegisteredIcon, registerShellIcons, scanIcons, scanIconsAsync } from './icons';
 export type { IconKind, IconReference, ScanIconsOptions, ScanIconsResult, UnregisteredIcon } from './icons';
 export {
   MAIL_CODE,

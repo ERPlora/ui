@@ -1,7 +1,4 @@
-// gh:hub#438 — after a deploy, a tap on a screen not opened yet in that tab did nothing and said nothing. Every screen
-// is a lazy chunk with a hashed name (`/static/spa/assets/<Page>-<hash>.js`); the new image no longer serves the old
-// tab's names, its `import()` fails, and the router aborted the navigation in silence (no `onError` anywhere). Through
-// the REAL shell router, at the place where the tap went nowhere.
+// Through the real shell router: after a deploy, a tap on a screen whose hashed chunk is gone must never do nothing.
 import { flushPromises } from '@vue/test-utils';
 import { ref } from 'vue';
 import { createMemoryHistory, type RouteRecordRaw } from 'vue-router';
@@ -62,6 +59,20 @@ async function tap(router: ReturnType<typeof setup>['router'], to: string): Prom
   await flushPromises();
 }
 
+/** The screen it was on is kept, and one toast that stays says the page could not open, with a Retry it returns. */
+function keptAndSaidSo({ router, redirect }: ReturnType<typeof setup>): { run: () => void } {
+  expect(redirect).not.toHaveBeenCalled();
+  expect(router.currentRoute.value.path).toBe('/');
+  expect(toast).toHaveBeenCalledOnce();
+  const { message, tone, duration, id, action } = toast.mock.calls[0][0];
+  expect(message).toBe('Could not open that page. Check the connection and try again.');
+  expect(tone).toBe('error');
+  expect(duration).toBe(0);
+  expect(id).toBe('view-load-failed');
+  expect(action.label).toBe('Retry');
+  return action;
+}
+
 let consoleError: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
@@ -77,7 +88,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
+describe('a screen whose file is gone after a deploy', () => {
   it('opens in a fresh document, which gets the new names, instead of doing nothing', async () => {
     const { router, redirect } = setup();
     await router.push('/');
@@ -122,21 +133,14 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     expect(redirect).toHaveBeenCalledWith('/verifactu');
   });
 
-  // hub#2489: a flaky network leaves the browser «online». A fresh document there would be the browser's error page,
+  // A flaky network leaves the browser «online». A fresh document there would be the browser's error page,
   // or a blank first screen, with no way back to the till.
   it('a flaky network the browser still calls online: keeps the screen and says so, never a fresh document', async () => {
     vi.stubGlobal('fetch', noAnswer());
-    const { router, redirect } = setup();
-    await router.push('/');
-    await tap(router, '/verifactu');
-    expect(redirect).not.toHaveBeenCalled();
-    expect(router.currentRoute.value.path).toBe('/');
-    expect(toast).toHaveBeenCalledOnce();
-    const [message, , duration, id, action] = toast.mock.calls[0];
-    expect(message).toBe('Could not open that page. Check the connection and try again.');
-    expect(duration).toBe(0);
-    expect(id).toBe('view-load-failed');
-    expect(action.text).toBe('Retry');
+    const shell = setup();
+    await shell.router.push('/');
+    await tap(shell.router, '/verifactu');
+    keptAndSaidSo(shell);
   });
 
   it('a check that never answers: after 5 s it stays and says so, never waits for ever', async () => {
@@ -159,29 +163,29 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     const { router, redirect } = setup();
     await router.push('/');
     await tap(router, '/verifactu');
-    toast.mock.calls[0][4].handler();
+    toast.mock.calls[0][0].action.run();
     await flushPromises();
     expect(redirect).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledTimes(2);
-    expect(toast.mock.calls[1][3]).toBe('view-load-failed');
+    expect(toast.mock.calls[1][0].id).toBe('view-load-failed');
 
     check.mockResolvedValue({ status: 200 } as Response);
-    toast.mock.calls[1][4].handler();
+    toast.mock.calls[1][0].action.run();
     await flushPromises();
     expect(redirect).toHaveBeenCalledOnce();
     expect(redirect).toHaveBeenCalledWith('/verifactu');
   });
 
-  it('names the app when the screen is one of its apps, as «My apps» did (hub#2489)', async () => {
+  it('names the app when the screen is one of its apps, as «My apps» names it', async () => {
     vi.stubGlobal('fetch', noAnswer());
     const { router } = setup(lostChunk, [], withVerifactu());
     await router.push('/');
     await tap(router, '/verifactu');
-    expect(toast.mock.calls[0][0]).toBe('Could not open VeriFactu. Check the connection and try again.');
+    expect(toast.mock.calls[0][0].message).toBe('Could not open VeriFactu. Check the connection and try again.');
     toast.mockReset();
     document.documentElement.lang = 'es';
     await tap(router, '/sale/charge');
-    expect(toast.mock.calls[0][0]).toBe('No se ha podido abrir esa página. Comprueba la conexión e inténtalo de nuevo.');
+    expect(toast.mock.calls[0][0].message).toBe('No se ha podido abrir esa página. Comprueba la conexión e inténtalo de nuevo.');
   });
 
   it("never names a section of the menu that is not an app (the hub's own screens)", async () => {
@@ -191,7 +195,7 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     const { router } = setup(lostChunk, [{ path: '/settings', component: () => Promise.reject(lostChunk()) }], session);
     await router.push('/');
     await tap(router, '/settings');
-    expect(toast.mock.calls[0][0]).toBe('Could not open that page. Check the connection and try again.');
+    expect(toast.mock.calls[0][0].message).toBe('Could not open that page. Check the connection and try again.');
   });
 
   it('keeps what the tap asked for: the query and the fragment travel with it (Tables › «Charge»)', async () => {
@@ -216,24 +220,16 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
 
   it('offline: keeps the screen it is on and says so, with a Retry that opens it afresh once back online (never silent)', async () => {
     const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
-    const { router, redirect } = setup();
-    await router.push('/');
-    await tap(router, '/verifactu');
-    expect(redirect).not.toHaveBeenCalled();
-    expect(router.currentRoute.value.path).toBe('/');
-    expect(toast).toHaveBeenCalledOnce();
-    const [message, color, duration, id, action] = toast.mock.calls[0];
-    expect(message).toBe('Could not open that page. Check the connection and try again.');
-    expect(color).toBe('danger');
-    expect(duration).toBe(0);
-    expect(id).toBe('view-load-failed');
-    expect(action.text).toBe('Retry');
+    const shell = setup();
+    await shell.router.push('/');
+    await tap(shell.router, '/verifactu');
+    const action = keptAndSaidSo(shell);
     // A retry inside the SPA cannot work (the browser keeps a failed module import failed for the life of the
     // document): back online, Retry opens the screen in a fresh document.
     online.mockReturnValue(true);
-    action.handler();
+    action.run();
     await flushPromises();
-    expect(redirect).toHaveBeenCalledWith('/verifactu');
+    expect(shell.redirect).toHaveBeenCalledWith('/verifactu');
   });
 
   it('says it in the language of the page', async () => {
@@ -242,9 +238,9 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     const { router } = setup();
     await router.push('/');
     await tap(router, '/verifactu');
-    const [message, , , , action] = toast.mock.calls[0];
+    const { message, action } = toast.mock.calls[0][0];
     expect(message).toBe('No se ha podido abrir esa página. Comprueba la conexión e inténtalo de nuevo.');
-    expect(action.text).toBe('Reintentar');
+    expect(action.label).toBe('Reintentar');
   });
 
   it('never opens an address outside this hub: it stays, says so, and Retry reloads where the person is', async () => {
@@ -255,7 +251,7 @@ describe('a screen whose file is gone after a deploy (gh:hub#438)', () => {
     await tap(router, '//evil.example/steal');
     expect(redirect).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledOnce();
-    toast.mock.calls[0][4].handler();
+    toast.mock.calls[0][0].action.run();
     expect(redirect).not.toHaveBeenCalled();
     expect(reload).toHaveBeenCalledOnce();
   });

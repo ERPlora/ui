@@ -10,6 +10,7 @@
     "./shell": "./src/shell/index.ts",
     "./components": "./src/components/index.ts",
     "./testing": "./src/testing/index.ts",
+    "./testing/data-table": "./src/testing/dataTable.ts",
     "./testing/mail": "./src/testing/mail.ts"
   },
   "scripts": {

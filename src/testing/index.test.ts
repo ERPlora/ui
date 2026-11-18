@@ -13,8 +13,9 @@ describe('@erplora/ui/testing (helpers for the tests of this package and of the 
     expect((pkg.exports as Record<string, string>)['./testing']).toBe('./src/testing/index.ts');
   });
 
-  it('carries the icon guardrail: scanIcons, iconReferences and isRegisteredIcon', () => {
+  it('carries the icon guardrail: scanIcons, scanIconsAsync, iconReferences and isRegisteredIcon', () => {
     expect(testing.scanIcons).toBe(icons.scanIcons);
+    expect(testing.scanIconsAsync).toBe(icons.scanIconsAsync);
     expect(testing.iconReferences).toBe(icons.iconReferences);
     expect(testing.isRegisteredIcon).toBe(icons.isRegisteredIcon);
   });

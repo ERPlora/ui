@@ -1,5 +1,3 @@
-// The empty conversation (BASE-G111): the sparkles, a sentence and the shortcuts, each asked at once. The words are the
-// host's (the Hub's: its setup's shortcuts, BASE-G121); without them, the chat's own sentence and no shortcut.
 import { describe, expect, it } from 'vitest';
 
 import { mountAssistant } from './__tests__/mount-assistant';

@@ -1,19 +1,7 @@
-// What the host gives the assistant's chat (the Hub, the SaaS: the same chat, each with its own tools), set once when
-// the app boots, before anything mounts:
+// The host's configuration of the assistant's chat (each host gives the same chat its own tools), set once when the app
+// boots, before anything mounts:
 //   configureAssistant({ turnUrl: '/api/assistant/turn', usage: (client) => client.api.call('<app>.assistant.usage', {}) })
-// - `turnUrl`: the route a turn is POSTed to; its answer is the stream of frames (`stream.ts`).
-// - Around the chat, each optional — without it, that piece is not there: the month's allowance (`usage`), dictation
-//   (`transcribe`), «Report a problem» under an answer (`report`), «Upgrade plan» (`planUrl` + `canUpgrade`; `openPlan`
-//   takes its click).
-// - «Read aloud» under an answer (`readAloud`; on unless the host turns it off): in the server voice the person chooses
-//   in the panel when the host gives one (`speak`: the mp3 of a text, round 2026-11-03m), else, and whenever it fails,
-//   in the device's own voice where it has one.
-// - Who sees the assistant's button (`canUse`; everyone signed in by default).
-// - The host's words: the verb of each write (`verbKey`), the platform's screens a receipt names (`placeKey`) and those
-//   a path is (`screenKey`), and the line under a spent allowance where nobody upgrades (`spentNoteKey`), as keys of
-//   the host's own catalogue; the chat's own words are `assistantMessages`.
-// - A request of a turn that needs someone's approval (`approval`, `elevationToken`: the Hub's manager approval).
-// The client the reads and writes go through is the page's live client (`useLiveClient`), passed to each.
+// Every optional field is a piece of the chat: without it, that piece is not there.
 import type { LiveClient } from '../../sdk/live-client';
 import type { ShellSession } from '../../shell/session';
 import type { AssistantLanguage, AssistantVoice } from './voices';
@@ -44,15 +32,14 @@ export interface AssistantSpeech {
   signal?: AbortSignal;
 }
 
-/** What is wrong with an answer, as the person reports it. */
 export interface AssistantReportInput {
   message_id: string;
   reason: 'incorrect' | 'harmful' | 'instructions' | 'other';
   comment?: string;
   question?: string;
   answer: string;
-  /** Whether its turn brought pages of the web (`Bubble.web`); left out when the chat does not know, and then
-   *  erplora.com, while its search is on, does not mail the answer (saas#287). */
+  /** Whether its turn brought pages of the web (`Bubble.web`); left out when the chat does not know, and then a host
+   *  whose web search is on does not mail the answer. */
   web?: boolean;
 }
 
@@ -89,7 +76,6 @@ export interface AssistantConfig {
   canUse?: (session: ShellSession) => boolean;
   /** Who may upgrade the plan (only ever offered on the web); nobody when not given. */
   canUpgrade?: (session: ShellSession) => boolean;
-  /** The page where the plan is upgraded. */
   planUrl?: () => string;
   /** Takes the click of «Upgrade plan», inside the click: the host may stop the link (`preventDefault`) and open it its
    *  own way (the Hub, with a pass that signs in). When it leaves the click alone, or without it, the link opens `planUrl`.
@@ -102,7 +88,7 @@ export interface AssistantConfig {
   /** The key of the name of a platform screen by its path (`/settings`); none: the menu's name. */
   screenKey?: (path: string) => string | null;
   /** The key of the line said instead of «Upgrade plan» to whoever may not upgrade, under a spent allowance or a plan
-   *  without the assistant (erplora.com: each business has its own assistant); none: ask whoever runs the business. */
+   *  without the assistant; when not given, the line asks whoever runs the business to upgrade. */
   spentNoteKey?: string;
 }
 
@@ -113,19 +99,15 @@ export function configureAssistant(config: AssistantConfig | undefined): void {
   current = config;
 }
 
-/** The host's configuration; a host that never set it is a bug, said at once. */
 export function assistantConfig(): AssistantConfig {
   if (!current) throw new Error('assistant: configureAssistant() was not called before the assistant was used');
   return current;
 }
 
-/** The key of the verb of a write: the host's, else «Do this». */
 export function verbKeyOf(config: AssistantConfig, operation: string): string {
   return config.verbKey?.(operation) ?? 'assistant.card.other';
 }
 
-/** The key of the line under a spent allowance where «Upgrade plan» is not offered: the host's, else «Ask whoever runs
- *  the business to upgrade the plan». */
 export function spentNoteKeyOf(config: AssistantConfig): string {
   return config.spentNoteKey ?? 'assistant.askOwner';
 }

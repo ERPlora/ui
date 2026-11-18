@@ -1,20 +1,8 @@
-// useRefusal — what a refused form still says while the person corrects it: FormModal's rule (ui#88,
-// ui#89; Odoo, WooCommerce, Shopify), for any form, a page's included (hub#821).
-//   const { run, error } = useCommand('app.settings.update');
-//   const { fieldErrors, showsError, changed } = useRefusal(error);
-//   <InlineFeedback v-if="showsError" …>{{ error?.message }}</InlineFeedback>
-//   <ion-input :error-text="fieldErrors.email" @ion-input="email = …; changed('email')" />
-// Contract:
-//   - A refusal with `fields` says on top only «check the highlighted details»: `showsError` goes false
-//     as soon as something is changed (`changed()`) and comes back with the next refusal or try.
-//   - Each field's message (`fieldErrors`) goes away as soon as that field is changed
-//     (`changed(name)`), and the next refusal or try (`sayItAllAgain()`) says them all again.
-//   - A refusal without `fields`, or of the whole form (`__all__`, as Django forms name it), stays until
-//     the next try: nothing else says it, and changing a field never takes it away.
-//   - A refusal is told by its value, not by its object: a parent that hands the same refusal again
-//     does not bring back what was corrected. `useCommand` empties its `error` on each try, so the next
-//     refusal is always new; an error that stays put between tries (a parent's prop, as FormModal's)
-//     needs the try said (`sayItAllAgain()`).
+// What a refused form still says while the person corrects it, as Odoo, WooCommerce and Shopify do: the notice of a
+// refusal by fields goes as soon as something changes, each field's message as soon as that field changes, and a
+// refusal of the whole form (`__all__`) or without fields stays until the next try. A refusal is told by its value,
+// not by its object, so a parent that hands the same one again does not bring back what was corrected; an error that
+// stays put between tries (a parent's prop, as FormModal's) needs `sayItAllAgain()`.
 import { computed, shallowRef, toValue, watch, type ComputedRef, type MaybeRefOrGetter } from 'vue';
 
 import type { FormModalError } from './types';

@@ -28,7 +28,7 @@ describe('erploraVite', () => {
     expect(names).toEqual(expect.arrayContaining(['vite:vue', '@tailwindcss/vite:scan', 'erplora:defines']));
   });
 
-  it('compiles every tag as a Vue component: no custom-element escape hatch (OutfitKit is gone, PLAN §16.11)', () => {
+  it('compiles every tag as a Vue component: no custom-element escape hatch', () => {
     const vue = plugin('vite:vue') as Plugin & {
       api: { options: { template?: { compilerOptions?: { isCustomElement?: unknown } } } };
     };
@@ -46,7 +46,6 @@ describe('erploraVite', () => {
   });
 });
 
-// hub#798 (reference: ERPlora hub `apps/web/vite.config.ts`, origin/develop) + plan §4.3.
 describe('erploraVite: bundle splitting', () => {
   type ModuleInfo = { importers: string[]; dynamicImporters: string[] };
   type ManualChunks = (id: string, meta: { getModuleInfo: (id: string) => ModuleInfo | null }) => string | undefined;
@@ -85,7 +84,7 @@ describe('erploraVite: bundle splitting', () => {
     expect(manualChunks('/repo/node_modules/vue-router/dist/vue-router.mjs', eager)).toBe('vendor-vue');
   });
 
-  it('has Vue as its only vendor chunk: the Lit one left with the Web Components library (PLAN §16.11)', () => {
+  it('has Vue as its only vendor chunk', () => {
     const { manualChunks } = rollup();
     for (const [pkg, file] of [
       ['lit', 'index.js'],
@@ -97,7 +96,7 @@ describe('erploraVite: bundle splitting', () => {
     }
   });
 
-  it('leaves Ionic in the entry, tree-shaken (grouping it brings back every unused component, hub#798)', () => {
+  it('leaves Ionic in the entry, tree-shaken (grouping it brings back every unused component)', () => {
     const { manualChunks } = rollup();
     expect(manualChunks(pnpm('@ionic/core', 'components/ion-datetime.js'), eager)).toBeUndefined();
     expect(manualChunks(pnpm('@ionic/vue', 'dist/index.js'), eager)).toBeUndefined();
@@ -138,10 +137,9 @@ describe('erploraVite: bundle splitting', () => {
   });
 });
 
-// PLAN §16.4: icons of any Iconify set are SVG baked into the bundle at build time (`unplugin-icons`
-// over the installed `@iconify-json/*`), never fetched at runtime (CSP `connect-src` has no external
-// hosts). The sets are resolved from this package, so hub-next and saas-next build them without
-// depending on `@iconify-json/*` themselves.
+// Icons are never fetched at runtime (CSP `connect-src` has no external hosts). The sets are resolved
+// from this package, so the hub and the SaaS build them without depending on `@iconify-json/*`
+// themselves.
 describe('erploraVite: icons baked at build time', () => {
   let root: string | undefined;
   const cwd = process.cwd();
@@ -195,9 +193,9 @@ describe('erploraVite: icons baked at build time', () => {
   }, 60_000);
 });
 
-// PoC issue B: with Tailwind's automatic source detection, `@tailwindcss/vite` scanned the whole
-// project (`.py` included) and sent `full-reload` to every tab on a Python change; it also read
-// `tests/e2e/*.ts` and generated the classes named in their comments.
+// With Tailwind's automatic source detection, `@tailwindcss/vite` scans the whole project (`.py`
+// included) and sends `full-reload` to every tab on a Python change; it also reads `tests/e2e/*.ts`
+// and generates the classes named in their comments.
 describe('erploraVite: Tailwind sources', () => {
   let root: string | undefined;
   afterEach(() => {
@@ -229,7 +227,7 @@ describe('erploraVite: Tailwind sources', () => {
     );
   }
 
-  it("by default adds the project's frontend/ and apps/*/frontend/ (hub-next's anatomy), tests excluded", () => {
+  it("by default adds the project's frontend/ and apps/*/frontend/ (the hub's anatomy), tests excluded", () => {
     expect(projectSources(erploraVite(), '/repo/hub-next')).toEqual([
       'frontend/**/*.{vue,ts}',
       'apps/*/frontend/**/*.{vue,ts}',
@@ -237,7 +235,7 @@ describe('erploraVite: Tailwind sources', () => {
     ]);
   });
 
-  it('adds the frontends a project names instead (saas-next keeps its apps at the root, PLAN §20.2)', () => {
+  it('adds the frontends a project names instead (the SaaS keeps its apps at the root)', () => {
     const frontendSources = ['frontend/**/*.{vue,ts}', 'accounts/frontend/**/*.{vue,ts}'];
     expect(projectSources(erploraVite({ frontendSources }), '/repo/saas-next')).toEqual([
       ...frontendSources,

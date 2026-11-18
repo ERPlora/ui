@@ -1,7 +1,3 @@
-// useRefusal: what a refused form still says while the person corrects it (ui#88, ui#89; hub#821). The
-// notice of a refusal by fields goes as soon as something changes; each field's message as soon as that
-// field changes; a refusal of the whole form, or without fields, stays until the next try; a new refusal
-// or a new try says it all again.
 import { describe, expect, it, vi } from 'vitest';
 import { effectScope, nextTick, shallowRef } from 'vue';
 

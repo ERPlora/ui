@@ -1,7 +1,5 @@
-// `@erplora/ui/components`: our own Vue components, the ones that replace OutfitKit's `ok-*`
-// (PLAN §16.11). One folder per component; add its line here. `format` holds the shared formatters
-// those components and the pages paint with (dates, money, quantities and the typed decimal mark; pages never
-// format by hand).
+// One folder per component, each re-exported here. `format` holds the shared formatters (dates, money, quantities and
+// the typed decimal mark) that the components and the pages use, so nothing formats by hand.
 export * from './InlineFeedback';
 export * from './EmptyState';
 export * from './DataTable';
@@ -17,3 +15,7 @@ export * from './ColorInput';
 export * from './MoneyInput';
 export * from './ImageUpload';
 export * from './Assistant';
+export * from './CollapsibleChecklist';
+export * from './AlignedCardGrid';
+export * from './YouTubeEmbed';
+export * from './FloorPlan';

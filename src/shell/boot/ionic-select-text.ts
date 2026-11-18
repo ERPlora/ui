@@ -1,29 +1,7 @@
-// Ported from ERPlora hub apps/web/src/lib/ionic-select-text.ts. Fixes ERPlora/hub#1736 (and #2226).
-// Change from the source: no vue-i18n import; the catalogue arrives through setSelectTextTranslator()
-// (V6 wires vue-i18n), with English defaults and an `es` map until then.
-// hub#1736 — the buttons of Ionic's selection dialogs speak the app's language.
-//
-// Picking a customer, a service, a professional or a filter opens an `<ion-select>` dialog whose
-// two buttons Ionic labels from `cancelText` / `okText`, and whose defaults are the English
-// literals `'Cancel'` and `'OK'` (`@ionic/core`, select.js). Ionic exposes NO global config key
-// for them — `setupConfig` covers `backButtonText` and little else — so the only per-screen fix is
-// «every select in the product passes both attributes».
-//
-// That rule cannot hold here. The selects a merchant actually uses are inside module Web
-// Components, shipped from 27 separate repos and, once the marketplace opens, by authors we never
-// review; a module that forgets the attribute shows English buttons inside a Spanish till and
-// nothing warns. So the shell fixes the DEFAULT, once, for everyone — the same reasoning, and the
-// same registry hook, as `fill` → `mode="md"` in `./ionic-fill` (hub#1060). Why it has to act on
-// the element class and not through CSS or an observer is written in full there.
-//
-// WHY AT `open()` AND NOT AT CONNECT TIME (hub#2226): the hub changes language on the fly
-// (`i18n/index.ts` → `setLocale` publishes it with no reload) and Ionic reads `this.okText` when
-// the dialog OPENS. hub#1736 installed a live per-instance getter at connect time, but Stencil strips
-// every own property of the element when it connects (its «upgrade» of props set before the
-// definition) and writes the value through its setter once: the getter was evaluated a single time
-// and every mounted select stayed in the language it was painted in. So the labels are decided
-// right before each dialog opens — the same wrapper as the default interface of hub#2223
-// (`./ionic-select-interface`), which also means it works on a tag that was registered first.
+// Ionic labels the two buttons of a select dialog from `cancelText`/`okText`, whose defaults are the English
+// `'Cancel'` and `'OK'`, and has no global config key for them. So the shell writes the app's language into every
+// select that did not label itself, modules included, right before each dialog opens: the language changes on the fly,
+// and Stencil strips the element's own properties when it connects, so a value set then would never change again.
 import { patchIonicOnDefine } from './ionic-registry-hook';
 
 /** The Ionic controls whose default button labels are English literals. */
@@ -52,7 +30,7 @@ function report(key: string, ionic: string, error?: unknown): void {
   reported.add(key);
   console.error(
     `[ionic-select-text] \`${key}\` did not answer: the selection dialogs will show Ionic's ` +
-      `English \`${ionic}\` (hub#1736).`,
+      `English \`${ionic}\`.`,
     error ?? '',
   );
 }
@@ -71,7 +49,7 @@ export function setSelectTextTranslator(t: ((key: string) => string) | undefined
   translator = t;
 }
 
-/** Read at call time so the language active when the dialog opens always wins (ADR-0055). */
+/** Read at call time so the language active when the dialog opens always wins. */
 export function defaultSelectText(prop: SelectTextProp): string {
   const { key } = BUTTONS.find((button) => button.prop === prop) ?? BUTTONS[0];
   if (translator) return translator(key);
@@ -133,7 +111,7 @@ function patchConstructor(ctor: CustomElementConstructor): void {
   const original = proto.open;
   if (typeof original !== 'function') {
     // Not the `ion-select` this was written against: say so instead of guessing.
-    console.error('[ionic-select-text] the element has no `open()` to wrap (hub#1736).');
+    console.error('[ionic-select-text] the element has no `open()` to wrap.');
     return;
   }
   Object.defineProperty(proto, PATCHED, { value: true, enumerable: false });
@@ -150,12 +128,8 @@ function patchConstructor(ctor: CustomElementConstructor): void {
 }
 
 /**
- * Makes every selection dialog of the app — the shell's own views and the Web Components of every
- * installed module, shadow roots included — label its buttons in the user's language, the one
- * active when the dialog opens.
- *
- * Imported from `the shell entry point` next to its twins (`./ionic-select-text.boot`). It wraps a method, not a
- * lifecycle callback, so it also works on a tag that is already registered.
+ * Labels the buttons of every selection dialog, the Web Components of every module included, in the language active
+ * when the dialog opens. It wraps a method, not a lifecycle callback, so it also works on a tag already registered.
  */
 export function bootIonicSelectText(
   translate: SelectTextResolver = defaultSelectText,

@@ -1,7 +1,3 @@
-// The assistant's composer (BASE-G111, G112): write and send with Enter (a new line with Shift+Enter, and on a touch
-// screen); attach what erplora.com reads, each file a chip that can be removed, a refusal said in a line; dictate (a
-// host that transcribes) — the words land in the box and nothing is sent until the person sends; «Stop» while the
-// answer comes.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { LiveClient } from '../../sdk/live-client';
@@ -101,7 +97,7 @@ async function attach(m: Awaited<ReturnType<typeof composer>>, ...files: File[])
 }
 
 describe('AssistantComposer', () => {
-  // gh:hub#1811: the old box had no stable name, so no robot (nor screen reader) could write to the assistant.
+  // The box needs a stable name, or no robot (nor screen reader) can write to the assistant.
   it('the box has a stable name and its placeholder, and Enter sends what was written', async () => {
     const m = await composer();
     // Ionic Vue sets these as the element's properties (the textarea inside reads them).
@@ -181,7 +177,7 @@ describe('AssistantComposer', () => {
     expect(m.wrapper.find('[data-testid="assistant-mic"]').exists()).toBe(false);
   });
 
-  // gh:hub#629: the microphone in the panel, voice to text through erplora.com.
+  // The microphone in the panel: voice to text through erplora.com.
   it('dictating: the words land in the box after what was written, and nothing is sent', async () => {
     const voice = microphone();
     const m = await composer({ voice });
@@ -198,8 +194,8 @@ describe('AssistantComposer', () => {
     expect(posted).toEqual([]);
   });
 
-  // FIX-HUB-BASE-ASSISTANT-MIC-DOUBLE-TAP-OPENS-TWO-RECORDINGS: a second tap while the browser still asks for the
-  // microphone opened a second recording, and the first one stayed on, untranscribed, until its two minutes.
+  // A second tap while the browser still asks for the microphone must not open a second recording: the first one
+  // would stay on, untranscribed, until its two minutes.
   it('two taps while the browser asks for the microphone open one recording, and the next tap transcribes it', async () => {
     let allow: (stream: MediaStream) => void = () => undefined;
     const voice = {
@@ -253,7 +249,7 @@ describe('AssistantComposer', () => {
     expect(accessibleName(m.wrapper.get('[data-testid="assistant-mic"]').element)).toBe('Detener la grabación');
   });
 
-  // BASE-F94: the installed app (Android, Windows) has no browser bar, so a refused microphone is allowed again in the
+  // The installed app (Android, Windows) has no browser bar, so a refused microphone is allowed again in the
   // device's settings; in a browser, in the browser.
   it('a microphone refused inside the installed app points to the device settings, in a browser to the browser', async () => {
     const win = window as unknown as { __TAURI__?: unknown };

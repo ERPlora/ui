@@ -1,18 +1,8 @@
-// The state of the assistant's panel (APP-BASE-9), one per tab: it outlives the panel's component (remounted when the
-// person changes) and a turn goes on while the panel is closed.
-// - A question (BASE-G111) goes out with the whole conversation; its answer arrives into ONE bubble, from every round,
-//   each round's text its own paragraph (BASE-F101).
-// - The reads the model asks for go on by themselves (each round is one more request of the turn, BASE-G119); a write
-//   stops on its card (BASE-G115, G116) until `decide` — yes, no, or «Cancel all» (`stop`).
-// - «Stop» (`stop`) aborts the request: what was written stays. A failure ends the bubble with its code (BASE-G124),
-//   and `retry` asks the same question again.
-// - At the end, what the answer says is checked against what ran (BASE-G117), and the conversation is kept in the tab
-//   for this person only (BASE-G120); another person starts empty, with the panel closed (gh:hub#2538).
-// - The bubble keeps whether its answer may quote pages of the web, for its report (saas#287): any round's `done` that
-//   says so marks it; a round that wrote without saying (a host that does not say, «Stop» mid-round) leaves it unknown.
-// - Each request of a turn goes through the host's approval when it has one (`AssistantConfig.approval`: the Hub's
-//   manager approval, BASE-G118); an approval nobody gave is heard by the model as a «Cancel».
-// The tab's one (`useAssistant`) posts to the host's route (`AssistantConfig.turnUrl`).
+// One per tab: it outlives the panel's component (remounted when the person changes) and a turn goes on while the panel
+// is closed. A question goes out with the whole conversation and its answer arrives into one bubble, from every round;
+// the reads the model asks for go on by themselves, and a write stops on its card until `decide`. The bubble keeps
+// whether its answer may quote pages of the web, for its report: a round that wrote without saying leaves it unknown.
+// An approval nobody gave is heard by the model as a «Cancel».
 import { reactive } from 'vue';
 
 import { ApiError } from '../../sdk/errors';
@@ -115,7 +105,7 @@ function forGateway(conversation: ChatMessage[]): ChatMessage[] {
   );
 }
 
-/** What a round already wrote, ready for the next one to start its own paragraph (BASE-F101): a blank line, never two. */
+/** What a round already wrote, ready for the next one to start its own paragraph: a blank line, never two. */
 function asNewParagraph(text: string): string {
   if (!text || text.endsWith('\n\n')) return text;
   return text.endsWith('\n') ? `${text}\n` : `${text}\n\n`;
@@ -232,7 +222,7 @@ export function createAssistant(deps: AssistantDeps) {
           const details: Record<string, unknown> = { ...rest };
           delete details.type;
           failure = { code, details };
-          // The foot counts what the refusal counts (gh:hub#1183): «5 left» under «30 of 30» contradicts it.
+          // The foot counts what the refusal counts: «5 left» under «30 of 30» contradicts it.
           if (code === 'assistant.quota_exceeded' && typeof details.used === 'number' && typeof details.limit === 'number') {
             const resets = details.resets_at;
             state.usage = { used: details.used, limit: details.limit, resets_at: typeof resets === 'string' ? resets : null, demo: details.demo === true };
@@ -251,7 +241,7 @@ export function createAssistant(deps: AssistantDeps) {
         current.bubble.web = current.web;
       };
       try {
-        // A write someone must approve (the Hub's manager, BASE-G118): the host asks, then the same turn with the pass.
+        // A write someone must approve (the Hub's manager): the host asks, then the same turn with the pass.
         const signal = controller.signal;
         const request = () => post(body, { onFrame, signal });
         await (approval ? approval.run(request) : request());
@@ -416,7 +406,7 @@ export function installAssistant(instance: Assistant | undefined): void {
   shared = instance;
 }
 
-/** Signing out forgets the conversation of the tab (BASE-G120), even if the panel was never opened. */
+/** Signing out forgets the conversation of the tab, even if the panel was never opened. */
 export function forgetAssistant(): void {
   if (shared) shared.forget();
   else clearThread(browserStorage('sessionStorage'));

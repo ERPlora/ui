@@ -1,6 +1,3 @@
-// BASE-G115, G116 and G119: the card of a write before it runs — the platform's ConfirmDialog. A normal one in one
-// line, «Run it» in one click; a dangerous one with every datum and the word (or how many) to type; «Cancel all»
-// when more actions of the turn wait behind it.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ConfirmDialog } from '../ConfirmDialog';
@@ -33,7 +30,7 @@ const HIGH: AssistantCard = {
   app_name: 'Citas',
   action: 'bulk_delete',
   risk: 'high',
-  // Ids it names no record by: the server leaves each one out, and the list still says how many (hub#416).
+  // Ids it names no record by: the server leaves each one out, and the list still says how many.
   fields: [{ name: 'ids', label: 'Ids', kind: 'list', value: [null, null, null] }],
   count: 3,
   confirm_word: '3',
@@ -97,7 +94,6 @@ describe('AssistantConfirm', () => {
   });
 
   it('a write outside the old list of verbs names its own, in Spanish and in English, never «Do this»', async () => {
-    // FIX-HUB-BASE-ASSISTANT-CARD-RECTIFY-SAYS-DO-THIS-IN-INVOICING: rectifying an invoice said «Hacer esto en Facturación».
     const rectify: AssistantCard = {
       ...HIGH,
       operation: 'invoice.invoice.rectify',
@@ -117,8 +113,8 @@ describe('AssistantConfirm', () => {
   });
 
   it('emptying a cart says «Vaciar», not «Quitar», the verb of taking one of its lines out; a cash count says the count', async () => {
-    // FIX-HUB-BASE-ASSISTANT-CARD-SAYS-REMOVE-FOR-EMPTYING-A-CART: the server's `action` is `clear`, as Kitchen's taking
-    // a route away; the card names the verb of its whole operation.
+    // The server's `action` is `clear`, as when Kitchen takes a route away; the card names the verb of its whole
+    // operation.
     const clear: AssistantCard = {
       ...NORMAL,
       operation: 'cart_checkout.cart.clear',
@@ -155,7 +151,7 @@ describe('AssistantConfirm', () => {
     expect(wrapper.emitted('decide')).toEqual([[true, ' 3 ', false]]);
   });
 
-  it('the amounts in the currency the card brings (gh:hub#1045)', async () => {
+  it('the amounts in the currency the card brings', async () => {
     const m = await mountAssistant(AssistantConfirm, { locale: 'es', props: { card: { ...NORMAL, money: { currency: 'USD', decimals: 2 } }, more: false } });
     await flush();
     expect(body()).toContain('15,00\u00a0$');
@@ -163,9 +159,8 @@ describe('AssistantConfirm', () => {
     m.wrapper.unmount();
   });
 
-  it('a dangerous one shows what it will do, as its app says it, before what it sends (BASE-F98)', async () => {
-    // FIX-HUB-BASE-ASSISTANT-HIGH-RISK-CARD-NO-OPERATION-PREVIEW: closing the drawer listed the session and the counted
-    // cash, never the expected one nor the difference.
+  it('a dangerous one shows what it will do, as its app says it, before what it sends', async () => {
+    // Closing the drawer must show the expected cash and the difference, not only the session and the counted cash.
     const close: AssistantCard = {
       ...HIGH,
       operation: 'cash_register.session.close',
@@ -184,8 +179,8 @@ describe('AssistantConfirm', () => {
     const { dialog } = await card(close);
     const preview = document.querySelector<HTMLElement>('[data-testid="assistant-confirm-preview"]');
     expect(preview?.textContent).toContain('Lo que va a pasar');
-    // The difference with its sign, as Cash register writes it: over at a glance
-    // (FIX-HUB-BASE-ASSISTANT-CARD-POSITIVE-DIFFERENCE-WITHOUT-SIGN); the expected cash, without.
+    // The difference with its sign, as Cash register writes it, so an excess reads at a glance; the expected cash,
+    // without.
     expect([...preview!.querySelectorAll('li')].map((item) => item.textContent?.trim())).toEqual([
       'Número: S-261028-0001',
       'Efectivo esperado: 230,00\u00a0€',
@@ -206,8 +201,7 @@ describe('AssistantConfirm', () => {
   });
 
   it('what it will do is in the currency its read answers; what it sends, in the business’s', async () => {
-    // FIX-HUB-BASE-ASSISTANT-CARD-MONEY-IN-BUSINESS-NOT-PREVIEW-CURRENCY: rectifying an invoice issued in euros, with the
-    // business moved to Poland since, said «Total: -121,00 zł».
+    // An invoice issued in euros, rectified after the business moved to Poland, must not say «Total: -121,00 zł».
     const EUR = { currency: 'EUR', decimals: 2 };
     const rectify: AssistantCard = {
       ...HIGH,

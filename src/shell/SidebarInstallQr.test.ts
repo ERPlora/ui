@@ -18,8 +18,6 @@ afterEach(() => {
   window.history.replaceState(null, '', '/');
 });
 
-// hub#1715 — «Open on your phone»: the code that carries this hub to a phone, in the sidebar footer,
-// for everyone and with nothing to close.
 describe('SidebarInstallQr', () => {
   it("paints the QR of the hub's address, not of the screen it sits on, at 132 px", async () => {
     window.history.replaceState(null, '', '/demo/items/42?shell=1');
@@ -74,7 +72,7 @@ describe('SidebarInstallQr', () => {
     expect(railCollapsed.value).toBe(false);
   });
 
-  it('is unconditional: no permission, no plan and nothing to close (hub#1715)', () => {
+  it('is unconditional: no permission, no plan and nothing to close', () => {
     const wrapper = mountQr();
     expect(wrapper.get('[data-testid="sidebar-install-qr"]').findAll('[data-testid$="-close"], ion-menu-toggle')).toEqual([]);
   });
