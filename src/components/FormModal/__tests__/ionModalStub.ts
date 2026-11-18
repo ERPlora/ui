@@ -100,3 +100,8 @@ export const IonModalStub = defineComponent({
       );
   },
 });
+
+/** The factory of `vi.mock('@ionic/vue', …)`: Ionic Vue as it is, with this stub as its IonModal. */
+export async function ionicVueWithModalStub(importOriginal: () => Promise<typeof import('@ionic/vue')>) {
+  return { ...(await importOriginal()), IonModal: IonModalStub };
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as components from "./components";
 import AssistantButton from "./components/Assistant/AssistantButton.vue";
+import AssistantMarkdown from "./components/Assistant/AssistantMarkdown.vue";
 import AssistantPanel from "./components/Assistant/AssistantPanel.vue";
 import EmptyState from "./components/EmptyState/EmptyState.vue";
 import InlineFeedback from "./components/InlineFeedback/InlineFeedback.vue";
@@ -48,5 +49,9 @@ describe("@erplora/ui/components", () => {
     ]) {
       expect(components, name).toHaveProperty(name);
     }
+  });
+
+  it("carries the markdown the assistant paints, for other texts such as the in-app help", () => {
+    expect(components.AssistantMarkdown).toBe(AssistantMarkdown);
   });
 });

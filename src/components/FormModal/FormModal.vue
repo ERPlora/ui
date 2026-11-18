@@ -34,7 +34,7 @@ const props = withDefaults(
     pending?: boolean;
     /** The command's error: its message on top, its `fields` to the slot. */
     error?: FormModalError | null;
-    /** `md` 480px, `sm` 420px (desktop). */
+    /** `md` 480px, `sm` 420px, `lg` 640px (desktop). */
     size?: FormModalSize;
     /** A tap on the backdrop cancels (never while pending). */
     dismissOnBackdrop?: boolean;
@@ -508,9 +508,8 @@ ion-modal.ep-form-modal {
   --ep-form-modal-backdrop-opacity: var(--ion-backdrop-opacity, 0.4);
   --backdrop-opacity: var(--ep-form-modal-backdrop-opacity);
 }
-ion-modal.ep-form-modal[data-size='sm'] {
-  --width: 420px;
-}
+ion-modal.ep-form-modal[data-size='sm'] { --width: 420px; }
+ion-modal.ep-form-modal[data-size='lg'] { --width: 640px; }
 /* Dark: the dialog stands out from what is behind it. */
 :root.ion-palette-dark ion-modal.ep-form-modal {
   --ep-form-modal-backdrop-opacity: 0.6;
