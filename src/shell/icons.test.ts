@@ -13,6 +13,16 @@ import { ION_ICONS, ionIconSrc, resolveIcon } from './icons';
 /** The format of ionicons' own icons: `ion-icon` parses it inline (no fetch, CSP-safe). */
 const SVG_URL = /^data:image\/svg\+xml;utf8,<svg /;
 
+/** Each `[name, src]` is the data URL of `ionicons/icons` itself, registered by its kebab-case name and resolved as
+ *  `ion:<name>`. */
+function expectRegisteredIonicons(icons: ReadonlyArray<readonly [string, string]>): void {
+  for (const [name, src] of icons) {
+    expect(src, name).toMatch(SVG_URL);
+    expect(ION_ICONS[name], name).toBe(src);
+    expect(resolveIcon(`ion:${name}`), name).toBe(src);
+  }
+}
+
 describe('ION_ICONS (registered with addIcons by createShell)', () => {
   it('has the icons the shell, topbar, menu and demo use', () => {
     for (const name of [
@@ -217,17 +227,13 @@ describe('guardrail: every icon a template or a call of this package names is re
 describe('ION_ICONS: layers, sparkles, arrow-down, pricetag and ticket (SaaS panel)', () => {
   it('registers them by their kebab-case Ionicons name, as ion: names resolve', async () => {
     const ionicons = await import('ionicons/icons');
-    for (const [name, src] of [
+    expectRegisteredIonicons([
       ['layers-outline', ionicons.layersOutline],
       ['sparkles-outline', ionicons.sparklesOutline],
       ['arrow-down-outline', ionicons.arrowDownOutline],
       ['pricetag-outline', ionicons.pricetagOutline],
       ['ticket-outline', ionicons.ticketOutline],
-    ]) {
-      expect(src, name).toMatch(SVG_URL);
-      expect(ION_ICONS[name], name).toBe(src);
-      expect(resolveIcon(`ion:${name}`), name).toBe(src);
-    }
+    ]);
   });
 });
 
@@ -236,16 +242,12 @@ describe('ION_ICONS: layers, sparkles, arrow-down, pricetag and ticket (SaaS pan
 describe('ION_ICONS: pricetags, swap-horizontal and arrow-undo (Hub tax and customer)', () => {
   it('registers them by their kebab-case Ionicons name, as ion: names resolve', async () => {
     const ionicons = await import('ionicons/icons');
-    for (const [name, src] of [
+    expectRegisteredIonicons([
       ['pricetags', ionicons.pricetags],
       ['pricetags-outline', ionicons.pricetagsOutline],
       ['swap-horizontal-outline', ionicons.swapHorizontalOutline],
       ['arrow-undo-outline', ionicons.arrowUndoOutline],
-    ]) {
-      expect(src, name).toMatch(SVG_URL);
-      expect(ION_ICONS[name], name).toBe(src);
-      expect(resolveIcon(`ion:${name}`), name).toBe(src);
-    }
+    ]);
   });
 });
 
@@ -255,7 +257,7 @@ describe('ION_ICONS: pricetags, swap-horizontal and arrow-undo (Hub tax and cust
 describe('ION_ICONS: briefcase, gift, archive, star, checkbox, open, play-circle, checkmark-done and pricetag (Hub service, task and pricing)', () => {
   it('registers them by their kebab-case Ionicons name, as ion: names resolve', async () => {
     const ionicons = await import('ionicons/icons');
-    for (const [name, src] of [
+    expectRegisteredIonicons([
       ['briefcase-outline', ionicons.briefcaseOutline],
       ['gift-outline', ionicons.giftOutline],
       ['archive-outline', ionicons.archiveOutline],
@@ -266,11 +268,7 @@ describe('ION_ICONS: briefcase, gift, archive, star, checkbox, open, play-circle
       ['play-circle-outline', ionicons.playCircleOutline],
       ['checkmark-done-outline', ionicons.checkmarkDoneOutline],
       ['pricetag', ionicons.pricetag],
-    ]) {
-      expect(src, name).toMatch(SVG_URL);
-      expect(ION_ICONS[name], name).toBe(src);
-      expect(resolveIcon(`ion:${name}`), name).toBe(src);
-    }
+    ]);
   });
 });
 
@@ -279,14 +277,10 @@ describe('ION_ICONS: briefcase, gift, archive, star, checkbox, open, play-circle
 describe('ION_ICONS: gift and gift-outline (Hub sale, comp a till line)', () => {
   it('registers the filled gift next to the outline, as ion: names resolve', async () => {
     const ionicons = await import('ionicons/icons');
-    for (const [name, src] of [
+    expectRegisteredIonicons([
       ['gift', ionicons.gift],
       ['gift-outline', ionicons.giftOutline],
-    ]) {
-      expect(src, name).toMatch(SVG_URL);
-      expect(ION_ICONS[name], name).toBe(src);
-      expect(resolveIcon(`ion:${name}`), name).toBe(src);
-    }
+    ]);
     expect(ION_ICONS.gift).not.toBe(ION_ICONS['gift-outline']);
   });
 });
@@ -295,13 +289,9 @@ describe('ION_ICONS: gift and gift-outline (Hub sale, comp a till line)', () => 
 describe('ION_ICONS: play and location-outline (the in-app help window)', () => {
   it('registers them by their kebab-case Ionicons name, as ion: names resolve', async () => {
     const ionicons = await import('ionicons/icons');
-    for (const [name, src] of [
+    expectRegisteredIonicons([
       ['play', ionicons.play],
       ['location-outline', ionicons.locationOutline],
-    ]) {
-      expect(src, name).toMatch(SVG_URL);
-      expect(ION_ICONS[name], name).toBe(src);
-      expect(resolveIcon(`ion:${name}`), name).toBe(src);
-    }
+    ]);
   });
 });

@@ -12,10 +12,7 @@ import { nextTick } from 'vue';
 import { createShellI18n } from '../../shell/i18n';
 import FormModal from './FormModal.vue';
 
-vi.mock('@ionic/vue', async (importOriginal) => {
-  const { IonModalStub } = await import('./__tests__/ionModalStub');
-  return { ...(await importOriginal<typeof import('@ionic/vue')>()), IonModal: IonModalStub };
-});
+vi.mock('@ionic/vue', async (importOriginal) => (await import('./__tests__/ionModalStub')).ionicVueWithModalStub(importOriginal));
 
 const STYLE = /<style>([\s\S]*?)<\/style>/.exec(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'FormModal.vue'), 'utf8'))?.[1] ?? '';
 
