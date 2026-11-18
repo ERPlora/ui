@@ -11,8 +11,30 @@ function keys(tree: Record<string, unknown>, prefix = ''): string[] {
 }
 
 describe('shell catalogues', () => {
-  it('carry only what the shell and its components say (topbar, tabbar, home, apps launcher, side menu and its QR, user menu, a screen that could not open, 404, not in the app, banner, the toasts and their close button, the ask for the device\'s notices and the ongoing notification while it listens)', () => {
+  it('carries the shell texts, including every state of the action center', () => {
     expect(keys(en).sort()).toEqual([
+      'actionCenter.actionFailed',
+      'actionCenter.arrival.close',
+      'actionCenter.bell.empty',
+      'actionCenter.bell.failed',
+      'actionCenter.bell.loading',
+      'actionCenter.bell.pending',
+      'actionCenter.panel.close',
+      'actionCenter.panel.count',
+      'actionCenter.panel.emptyBody',
+      'actionCenter.panel.emptyTitle',
+      'actionCenter.panel.errorBody',
+      'actionCenter.panel.errorTitle',
+      'actionCenter.panel.loading',
+      'actionCenter.panel.retry',
+      'actionCenter.panel.stale',
+      'actionCenter.panel.subtitle',
+      'actionCenter.panel.title',
+      'actionCenter.processing',
+      'actionCenter.resolved',
+      'actionCenter.severity.danger',
+      'actionCenter.severity.info',
+      'actionCenter.severity.warning',
       'home.empty.body',
       'home.empty.title',
       'home.state.activating',

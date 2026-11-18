@@ -98,6 +98,19 @@ export { createDevicePrinter } from './device-printer';
 export type { DevicePrinterDeps } from './device-printer';
 export { createPrintHost, printChannelUrl, usePrintHost } from './print-host';
 export type { PrintHost, PrintHostDeps, UsePrintHostOptions } from './print-host';
+export { default as ActionBell } from './action-center/ActionBell.vue';
+export { connectActionCenter, useActionCenter, useQuietActionNotices } from './action-center/center';
+export type { ActionCenter } from './action-center/center';
+export type { NoticeActionSlot } from './action-center/actions';
+export type { ArrivalHold } from './action-center/arrivals';
+export type {
+  ActionNotice,
+  ActionNoticeSource,
+  NoticeAction,
+  NoticeDestination,
+  NoticeDue,
+  NoticeSeverity,
+} from './action-center/types';
 export { iconName, useMyApps } from './my-apps';
 export { OPEN_EXTERNAL_COMMAND, openExternalLink } from './open-external';
 export type { MyApp } from './my-apps';
