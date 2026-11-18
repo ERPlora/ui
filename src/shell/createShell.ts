@@ -39,6 +39,8 @@ import './theme/brand.css';
 import './theme/erplora-logo.css';
 import './theme/tabbar.css';
 import './theme/polish.css';
+import './theme/order-ticket.css';
+import './theme/order-board.css';
 import './theme/global.css';
 
 import type { ActionNoticeSource } from './action-center/types';

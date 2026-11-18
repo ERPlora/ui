@@ -238,7 +238,7 @@ describe('createShell.ts import order', () => {
     const sheets = [...source.matchAll(/^import '([^']+\.css)';$/gm)].map((m) => m[1]);
     expect(sheets.length).toBeGreaterThan(10);
     expect(sheets.filter((sheet) => !sheet.startsWith('./theme/') && !sheet.startsWith('@ionic/vue/css/'))).toEqual([]);
-    const order = ['print', 'variables', 'palettes', 'glass', 'brand', 'erplora-logo', 'tabbar', 'polish', 'global'].map((sheet) =>
+    const order = ['print', 'variables', 'palettes', 'glass', 'brand', 'erplora-logo', 'tabbar', 'polish', 'order-ticket', 'order-board', 'global'].map((sheet) =>
       source.indexOf(`import './theme/${sheet}.css';`),
     );
     expect(order.every((at) => at > -1), String(order)).toBe(true);
