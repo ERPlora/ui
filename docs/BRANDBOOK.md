@@ -133,9 +133,18 @@ cristal entra y sale con `transform`, y mientras se funde deja de ser cristal.
 - **Estados y avisos:** `StatusPill` e `InlineFeedback`; texto explícito y pares de tinte accesibles.
 - **Avisos breves (toasts):** se piden con `toastSuccess`, `toastError`, `toastInfo` o `toastWarning`
   y los pinta una sola pila del shell (`ToastStack`): una píldora de cristal oscuro (clara en tema
-  oscuro), abajo en el centro sobre la barra inferior, o arriba con `position: 'top'`. Tres visibles
-  como mucho; con el ratón, el foco o un toque se despliegan y su tiempo se para. Se cierran
-  deslizándolos, con `Esc` o con su botón de cerrar (los fijos y los de error).
+  oscuro), abajo en el centro sobre la barra inferior, o arriba con `position: 'top'`. Con una
+  ventana abierta que llega al pie de la pantalla (la hoja de un formulario en el móvil, una hoja de
+  acciones), la pila de abajo se coloca sobre sus botones, como el snackbar de Material sobre una
+  barra inferior; con el asistente acoplado, se centra en la pantalla de al lado. Tres visibles por
+  borde como mucho, y el aviso nuevo siempre sale delante al momento: deja su sitio el más antiguo
+  que se va solo (con tiempo y sin acción), primero uno que no sea de error. Si los tres son fijos o
+  tienen acción, un error ocupa el sitio del más antiguo que no sea de error (o del más antiguo), que
+  vuelve a la cola con el tiempo que le quedaba; cualquier otro aviso espera su turno. Un aviso que
+  no es de error nunca hace salir a uno de error, y al quedar un sitio libre entra antes el error que
+  espera. Con el ratón, el foco o un toque la pila se despliega y su tiempo se para, pero los avisos
+  nuevos siguen entrando. Se cierran deslizándolos, con `Esc` o con su botón de cerrar (los fijos y
+  los de error).
 - **Diálogos y hojas:** Ionic y `FormModal`; elevación `--ep-shadow-modal`, fondo de la paleta y foco
   devuelto al disparador al cerrar.
 

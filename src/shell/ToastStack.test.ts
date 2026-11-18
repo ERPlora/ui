@@ -1,5 +1,4 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
-import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,7 +10,7 @@ vi.mock('./toast-anchor', async () => {
   return { useToastAnchor: () => anchor.bar };
 });
 
-import { componentCss, declaration } from '../components/__tests__/themeContrast';
+import { compiledComponentCss, componentCss, declaration } from '../components/__tests__/themeContrast';
 import { createShellI18n } from './i18n';
 import { toast, toastError, toastInfo, toastSuccess } from './toast';
 import { useToasts } from './toast-store';
@@ -83,7 +82,7 @@ describe('ToastStack: what it paints', () => {
     for (const message of ['One', 'Two', 'Three', 'Four']) toastInfo(message);
     await flushPromises();
     const shown = toastsAt('bottom');
-    expect(messagesAt('bottom')).toEqual(['Three', 'Two', 'One']);
+    expect(messagesAt('bottom')).toEqual(['Four', 'Three', 'Two']);
     expect(shown.map((each) => styleOf(each.element, '--y'))).toEqual(['0px', '-14px', '-28px']);
     expect(shown.map((each) => styleOf(each.element, '--scale'))).toEqual(['1', '0.95', '0.9']);
     expect(shown.map((each) => each.classes('is-front'))).toEqual([true, false, false]);
@@ -142,8 +141,10 @@ describe('ToastStack: what it paints', () => {
   });
 
   it('is centred on the content beside the docked assistant, not on the window', () => {
-    const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'ToastStack.vue'), 'utf8');
-    expect(source).toMatch(/:global\(html\.assistant-docked\) \.ep-toast-stack \{\s*right: var\(--assistant-width, 0px\);/);
+    // Compiled as the browser gets it: a scoped `:global(html.x) .stack` would come out as `html.x` alone.
+    const css = compiledComponentCss(join(dirname(fileURLToPath(import.meta.url)), 'ToastStack.vue'));
+    expect(declaration(css, 'html.assistant-docked .ep-toast-stack', 'right')).toBe('var(--assistant-width, 0px)');
+    expect(declaration(css, 'html.assistant-docked', 'right')).toBeUndefined();
   });
 });
 
@@ -192,6 +193,19 @@ describe('ToastStack: what the person does', () => {
     expect(messagesAt('bottom')).toEqual(['Behind']);
     expect(document.activeElement).toBe(toastsAt('bottom')[0].element);
   });
+
+  it('when a new toast pushes out the one with the focus, the focus goes on to the front one', async () => {
+    mountStack();
+    for (const message of ['One', 'Two', 'Three']) toastInfo(message);
+    await flushPromises();
+    (toastsAt('bottom')[2].element as HTMLElement).focus();
+    await stackAt('bottom').trigger('focusin');
+    toastError('Four failed');
+    await flushPromises();
+    expect(messagesAt('bottom')).toEqual(['Four failed', 'Three', 'Two']);
+    expect(document.activeElement).toBe(toastsAt('bottom')[0].element);
+    expect(stackAt('bottom').classes('is-expanded')).toBe(true);
+  });
 });
 
 describe('ToastStack: open while it has the attention, its time paused', () => {
@@ -209,6 +223,18 @@ describe('ToastStack: open while it has the attention, its time paused', () => {
     vi.advanceTimersByTime(3000);
     await flushPromises();
     expect(toastsAt('bottom')).toHaveLength(0);
+  });
+
+  it('with the mouse over it, a new error still comes in front at once, and the oldest notice makes room', async () => {
+    mountStack();
+    for (const message of ['Folder created', 'Files uploaded', 'File replaced']) toastSuccess(message);
+    await flushPromises();
+    await listAt('bottom').trigger('pointerenter', { pointerType: 'mouse' });
+    toastError('setup.exe is not allowed');
+    await flushPromises();
+    expect(messagesAt('bottom')).toEqual(['setup.exe is not allowed', 'File replaced', 'Files uploaded']);
+    expect(toastsAt('bottom')[0].classes('is-front')).toBe(true);
+    expect(stackAt('bottom').classes('is-expanded')).toBe(true);
   });
 
   it('with the mouse and the focus inside, it resumes only once both have left', async () => {

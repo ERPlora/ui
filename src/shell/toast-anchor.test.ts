@@ -61,6 +61,47 @@ describe('the bar a toast sits above: the bottom bar of the screen on view', () 
   });
 });
 
+// At 390 px a form opens as a sheet from the bottom, and a toast at the bottom edge covered its Cancel and Save
+// (y=772–828 over buttons from y=775). Like Material's snackbar anchored to a bottom bar, the stack sits above the
+// buttons at the foot of an open dialog, when they are at the foot of the screen.
+describe('the bar a toast sits above while a dialog is open: the foot of the dialog, at the foot of the screen', () => {
+  /** An open dialog of Ionic over the page (the outlet hidden), with `inner` in it and `bar` at `top`–`bottom`. */
+  function dialogWith(tag: string, inner: string, rect: { top: number; bottom: number }): HTMLElement {
+    shell(pageWithBar('tabbar'));
+    document.querySelector('ion-router-outlet')!.setAttribute('aria-hidden', 'true');
+    const dialog = document.createElement(tag);
+    dialog.innerHTML = inner;
+    document.querySelector('ion-app')!.append(dialog);
+    const bar = dialog.querySelector<HTMLElement>('[data-id="bar"]')!;
+    bar.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: rect.top, width: 390, height: rect.bottom - rect.top });
+    return bar;
+  }
+  const atTheFoot = { top: window.innerHeight - 69, bottom: window.innerHeight };
+  const inTheMiddle = { top: window.innerHeight / 2, bottom: window.innerHeight / 2 + 60 };
+
+  it('the row of buttons of a form sheet', () => {
+    const bar = dialogWith('ion-modal', `<form><div class="ep-form-modal__footer" data-id="bar"></div></form>`, atTheFoot);
+    expect(toastAnchor()).toBe(bar);
+  });
+
+  it('the footer of a dialog', () => {
+    const bar = dialogWith('ion-modal', `<ion-content></ion-content><ion-footer data-id="bar"></ion-footer>`, atTheFoot);
+    expect(toastAnchor()).toBe(bar);
+  });
+
+  it('the whole of an action sheet, which is all buttons', () => {
+    const bar = dialogWith('ion-action-sheet', `<div class="action-sheet-wrapper" data-id="bar"></div>`, atTheFoot);
+    expect(toastAnchor()).toBe(bar);
+  });
+
+  it('not the foot of a dialog in the middle of the screen (a centred card): the stack keeps the bottom edge', () => {
+    dialogWith('ion-modal', `<div class="ep-form-modal__footer" data-id="bar"></div>`, inTheMiddle);
+    expect(toastAnchor()).toBeUndefined();
+    dialogWith('ion-modal', `<ion-footer data-id="bar"></ion-footer>`, inTheMiddle);
+    expect(toastAnchor()).toBeUndefined();
+  });
+});
+
 // A notice is often asked in the same breath as what changes the screen, so its bar is the one on view once that has
 // run, not the one there when it is asked.
 describe('the bar once the screen the toast shows on has settled', () => {
@@ -187,6 +228,37 @@ describe('useToastAnchor', () => {
     shell(pageWithBar('second'));
     bottom.value = [{ ...toastOf('a'), message: 'again' }];
     await vi.waitFor(() => expect(anchor.value).toBe(byId('second')));
+  });
+
+  it('reads the bar again when a dialog opens or closes over toasts on screen, and not with none', async () => {
+    shell(pageWithBar('first'));
+    const bottom = shallowRef<readonly Toast[]>([]);
+    const anchor = anchorFor(bottom);
+    shell(pageWithBar('second'));
+    document.body.dispatchEvent(new CustomEvent('didPresent', { bubbles: true }));
+    await new Promise((later) => setTimeout(later, 50));
+    expect(anchor.value).toBeUndefined();
+
+    bottom.value = [toastOf('a')];
+    await vi.waitFor(() => expect(anchor.value).toBe(byId('second')));
+    shell(pageWithBar('third'));
+    document.body.dispatchEvent(new CustomEvent('didPresent', { bubbles: true }));
+    await vi.waitFor(() => expect(anchor.value).toBe(byId('third')));
+    shell(pageWithBar('fourth'));
+    document.body.dispatchEvent(new CustomEvent('didDismiss', { bubbles: true }));
+    await vi.waitFor(() => expect(anchor.value).toBe(byId('fourth')));
+  });
+
+  it('stops listening to the dialogs once it is gone', async () => {
+    shell(pageWithBar('first'));
+    const anchor = anchorFor(shallowRef<readonly Toast[]>([toastOf('a')]));
+    const first = byId('first');
+    await vi.waitFor(() => expect(anchor.value).toBe(first));
+    scope.stop();
+    shell(pageWithBar('second'));
+    document.body.dispatchEvent(new CustomEvent('didPresent', { bubbles: true }));
+    await new Promise((later) => setTimeout(later, 50));
+    expect(anchor.value).toBe(first);
   });
 
   it('the toasts already on the stack when the component mounts are placed too', async () => {

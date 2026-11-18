@@ -68,7 +68,7 @@ describe('the stack', () => {
     expect(messages(store.top.value)).toEqual(['T1']);
   });
 
-  it('shows at most three per edge; the next waits and comes in when one leaves', () => {
+  it('shows at most three per edge; with three that stay until closed, the next waits and comes in when one leaves', () => {
     const { store, first } = bottomFull();
     store.show({ message: '4', duration: 0 });
     store.show({ message: 'Top', duration: 0, position: 'top' });
@@ -76,6 +76,82 @@ describe('the stack', () => {
     expect(messages(store.top.value)).toEqual(['Top']);
     store.dismiss(first);
     expect(messages(store.bottom.value)).toEqual(['4', '3', '2']);
+  });
+
+  it('a toast that comes to a full edge is on screen at once, in front: the oldest that leaves by itself closes', () => {
+    const store = createToastStore();
+    const first = store.show({ message: '1', tone: 'success' });
+    for (const message of ['2', '3', '4']) store.show({ message, tone: 'success' });
+    expect(messages(store.bottom.value)).toEqual(['4', '3', '2']);
+    expect(store.dismiss(first)).toBe(false);
+  });
+
+  it('never pushes out one that stays until it is closed or has an action: the oldest that leaves by itself goes', () => {
+    const store = createToastStore();
+    store.show({ message: 'Offline', duration: 0 });
+    store.show({ message: 'Voided', action: { label: 'Undo', run: vi.fn() } });
+    store.show({ message: 'Saved' });
+    store.show({ message: 'Sent' });
+    expect(messages(store.bottom.value)).toEqual(['Sent', 'Voided', 'Offline']);
+  });
+
+  it('a notice that is not an error never pushes out an error: with only errors to leave, it waits its turn', () => {
+    const store = createToastStore();
+    store.show({ message: 'Offline', duration: 0 });
+    store.show({ message: 'Pinned', duration: 0 });
+    const error = store.show({ message: 'Could not print', tone: 'error' });
+    store.show({ message: 'Saved' });
+    expect(messages(store.bottom.value)).toEqual(['Could not print', 'Pinned', 'Offline']);
+    store.dismiss(error);
+    expect(messages(store.bottom.value)).toEqual(['Saved', 'Pinned', 'Offline']);
+  });
+
+  it('an error pushes out the oldest that leaves by itself, one that is not an error first', () => {
+    const store = createToastStore();
+    store.show({ message: 'Could not print', tone: 'error' });
+    store.show({ message: 'Saved' });
+    store.show({ message: 'Sent' });
+    store.show({ message: 'Could not send', tone: 'error' });
+    expect(messages(store.bottom.value)).toEqual(['Could not send', 'Sent', 'Could not print']);
+  });
+
+  it('with three that stay, an error takes the place of the oldest that is not one, which waits with the time it had left', () => {
+    const store = createToastStore();
+    store.show({ message: 'Offline', tone: 'error', duration: 0 });
+    store.show({ message: 'Voided', duration: 3000, action: { label: 'Undo', run: vi.fn() } });
+    const pinned = store.show({ message: 'Pinned', duration: 0 });
+    vi.advanceTimersByTime(1000);
+    store.show({ message: 'Upload failed', tone: 'error', duration: 0 });
+    expect(messages(store.bottom.value)).toEqual(['Upload failed', 'Pinned', 'Offline']);
+    vi.advanceTimersByTime(60_000);
+    store.dismiss(pinned);
+    expect(messages(store.bottom.value)).toEqual(['Upload failed', 'Voided', 'Offline']);
+    vi.advanceTimersByTime(1999);
+    expect(messages(store.bottom.value)).toContain('Voided');
+    vi.advanceTimersByTime(1);
+    expect(messages(store.bottom.value)).toEqual(['Upload failed', 'Offline']);
+  });
+
+  it('an error never waits behind other notices: when a place frees, a waiting error comes before older notices', () => {
+    const store = createToastStore();
+    const sticky = (message: string, tone: Toast['tone'] = 'error') => store.show({ message, tone, duration: 0 });
+    const early = ['E1', 'E2', 'E3'].map((message) => sticky(message));
+    sticky('Saved', 'info');
+    const late = ['E4', 'E5', 'E6', 'E7'].map((message) => sticky(message));
+    expect(messages(store.bottom.value)).toEqual(['E7', 'E6', 'E5']);
+    for (const id of early) store.dismiss(id);
+    store.dismiss(late[1]);
+    expect(messages(store.bottom.value)).toEqual(['E7', 'E6', 'E4']);
+  });
+
+  it('a toast that comes while the stack is paused still comes on screen at once', () => {
+    const store = createToastStore();
+    for (const message of ['1', '2', '3']) store.show({ message, tone: 'success' });
+    store.pause();
+    store.show({ message: 'Could not upload setup.exe', tone: 'error' });
+    expect(messages(store.bottom.value)).toEqual(['Could not upload setup.exe', '3', '2']);
+    store.show({ message: 'Uploaded' });
+    expect(messages(store.bottom.value)).toEqual(['Uploaded', 'Could not upload setup.exe', '3']);
   });
 
   it('a toast with an id already on the stack replaces it in its place, never a second copy', () => {
@@ -97,6 +173,13 @@ describe('the stack', () => {
     expect(messages(store.bottom.value)).toEqual(['3', '2', '1']);
     store.dismiss(first);
     expect(messages(store.bottom.value)).toEqual(['4 again', '3', '2']);
+  });
+
+  it('a waiting toast replaced by id with an error comes on screen at once', () => {
+    const { store } = bottomFull();
+    store.show({ message: 'Uploading', id: 'up', duration: 0 });
+    store.show({ message: 'Upload failed', id: 'up', tone: 'error', duration: 0 });
+    expect(messages(store.bottom.value)).toEqual(['Upload failed', '3', '2']);
   });
 
   it('a toast replaced by id at the other edge comes there as the newest, and its old place is taken by the next', () => {
@@ -142,15 +225,15 @@ describe('the time on screen', () => {
   });
 
   it('a waiting toast does not count its time until it is on screen', () => {
-    const store = createToastStore();
-    for (const message of ['1', '2', '3']) store.show({ message, duration: 1000 });
+    const { store, first } = bottomFull();
     store.show({ message: '4', duration: 1000 });
-    vi.advanceTimersByTime(1000);
-    expect(messages(store.bottom.value)).toEqual(['4']);
+    vi.advanceTimersByTime(5000);
+    store.dismiss(first);
+    expect(messages(store.bottom.value)).toEqual(['4', '3', '2']);
     vi.advanceTimersByTime(999);
-    expect(messages(store.bottom.value)).toEqual(['4']);
+    expect(messages(store.bottom.value)).toEqual(['4', '3', '2']);
     vi.advanceTimersByTime(1);
-    expect(store.bottom.value).toEqual([]);
+    expect(messages(store.bottom.value)).toEqual(['3', '2']);
   });
 
   it('a toast replaced by id starts its new time over, and the old time never closes the new one', () => {

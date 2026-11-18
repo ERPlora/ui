@@ -84,25 +84,25 @@ function onDocumentPointerDown(event: PointerEvent): void {
 const toastElement = (edge: ToastPosition, id: string): HTMLElement | undefined =>
   [...(sections[edge]?.querySelectorAll<HTMLElement>('[data-toast-id]') ?? [])].find((el) => el.dataset.toastId === id);
 
-/** Closes a toast; if the focus was on it, it goes on to the next toast of its stack. */
-async function close(edge: ToastPosition, id: string): Promise<void> {
-  const hadFocus = toastElement(edge, id)?.contains(document.activeElement) ?? false;
-  dismiss(id);
-  if (!hadFocus) return;
-  await nextTick();
-  const next = lists[edge].value[0];
-  const el = next && toastElement(edge, next.id);
-  if (el) el.focus();
-  else attention[edge].focused = false;
+/** The focus on a toast that leaves, closed or pushed out by a new one, goes on to the front toast of its stack. Read
+ *  before the toast leaves the page: a focused element that is removed sends no focusout. */
+function keepFocus(edge: ToastPosition, now: readonly Toast[]): void {
+  const holder = document.activeElement?.closest<HTMLElement>('[data-toast-id]');
+  if (!holder || !sections[edge]?.contains(holder) || now.some((each) => each.id === holder.dataset.toastId)) return;
+  void nextTick(() => {
+    const front = now[0] && toastElement(edge, now[0].id);
+    if (front) front.focus();
+    else attention[edge].focused = false;
+  });
 }
 
-// Whatever leaves the stack empty also takes away what held it open: the pointer is no longer over anything, and a
-// focused toast that is removed sends no focusout.
+// Whatever leaves the stack empty also takes away what held it open: the pointer is no longer over anything.
 for (const edge of EDGES) {
   watch(
-    () => lists[edge].value.length,
-    (count) => {
-      if (count === 0) Object.assign(attention[edge], { hovered: false, focused: false, touched: false });
+    () => lists[edge].value,
+    (now) => {
+      keepFocus(edge, now);
+      if (now.length === 0) Object.assign(attention[edge], { hovered: false, focused: false, touched: false });
     },
   );
 }
@@ -165,7 +165,7 @@ function setSection(edge: ToastPosition, el: unknown): void {
         :away="edge === 'bottom' ? 'down' : 'up'"
         :class="{ 'is-front': index === 0 }"
         :style="placementStyle(edge, index)"
-        @dismiss="close(edge, item.id)"
+        @dismiss="dismiss(item.id)"
         @action="runAction(item.id)"
         @tap="attention[edge].touched = true"
       />
@@ -194,7 +194,7 @@ function setSection(edge: ToastPosition, el: unknown): void {
   top: calc(var(--ion-safe-area-top, 0px) + 12px);
 }
 
-:global(html.assistant-docked) .ep-toast-stack {
+:global(html.assistant-docked .ep-toast-stack) {
   right: var(--assistant-width, 0px);
 }
 
