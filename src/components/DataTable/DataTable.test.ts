@@ -1,17 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  byTestId,
-  cards,
-  click,
-  dataRows,
-  ionChange,
-  mountTable,
-  settle,
-  text,
-  type,
-  viewport,
-} from './__tests__/harness';
+import InlineFeedback from '../InlineFeedback/InlineFeedback.vue';
+import { byTestId, cards, clearPage, click, clip, dataRows, ionChange, mountTable, settle, tap, text, type, viewport } from './__tests__/harness';
 
 type Row = Record<string, unknown>;
 
@@ -20,8 +10,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
-  document.body.replaceChildren();
+  clearPage();
   document.documentElement.lang = '';
 });
 
@@ -115,14 +104,6 @@ describe('a clipped cell can be read in full', () => {
   const COLUMNS = [{ key: 'name', label: 'Nombre' }, { key: 'mode', label: 'Cómo se vende' }, { key: 'note', label: 'Nota' }];
   const span = (t: ReturnType<typeof mountTable>, key: string, col: number) =>
     t.element.querySelector(`[data-testid="combos-row"][data-id="${key}"]`)?.querySelectorAll('.data-table__cell')[col]?.querySelector(':scope > span') as HTMLElement;
-  const clip = (el: HTMLElement, clipped: boolean) => {
-    Object.defineProperty(el, 'scrollWidth', { configurable: true, get: () => (clipped ? 380 : 90) });
-    Object.defineProperty(el, 'clientWidth', { configurable: true, get: () => 90 });
-  };
-  async function tap(el: HTMLElement, pointerType: 'touch' | 'mouse') {
-    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType }));
-    await click(el);
-  }
 
   it('carries the full painted (formatted) text as the native title; an empty cell has none', async () => {
     const t = mountTable({ columns: [COLUMNS[0], { ...COLUMNS[1], format: (v: unknown) => `» ${String(v)}` }, COLUMNS[2]], rows: ROWS, testid: 'combos' });
@@ -192,7 +173,7 @@ describe('«still loading» is not «empty»', () => {
     expect(t.find('.data-table__pager').exists(), 'the page-size selector lives in the toolbar').toBe(false);
     expect(loading(t)?.getAttribute('role')).toBe('status');
     expect(text(loading(t))).toBe('Loading…');
-    expect(loading(t)?.querySelector('ion-spinner')).not.toBeNull();
+    expect(loading(t)?.querySelectorAll('ion-skeleton-text').length).toBeGreaterThan(2);
     expect(t.find('.data-table__surface').attributes('aria-busy')).toBe('true');
   });
 
@@ -251,11 +232,11 @@ describe('«still loading» is not «empty»', () => {
     expect(loading(worded)?.getAttribute('data-testid')).toBe('customers-loading');
   });
 
-  it('on a phone: no count and no «Load more» while the first load is in flight', async () => {
+  it('on a phone: no count and nothing loading at the end while the first load is in flight', async () => {
     viewport(true);
     const t = mountTable({ ...base, total: 40, loading: true });
     await settle();
-    expect(t.find('.data-table__load-more').exists()).toBe(false);
+    expect(t.find('ion-infinite-scroll').exists()).toBe(false);
     expect(t.text()).not.toMatch(/\brecords\b/);
   });
 });
@@ -272,7 +253,7 @@ describe('«could not load» is not «empty»', () => {
     expect(t.text()).not.toContain('No customers.');
     expect(t.text()).not.toMatch(/\b0 records\b/);
     expect(t.find('.data-table__title-count').exists()).toBe(false);
-    expect(errorBlock(t)?.getAttribute('role')).toBe('alert');
+    expect(t.findComponent(InlineFeedback).props()).toMatchObject({ tone: 'danger', heading: "Couldn't load the data" });
     expect(text(errorBlock(t))).toContain("Couldn't load the data");
     expect(text(errorBlock(t))).toContain(REASON);
     expect(text(retry(t))).toBe('Retry');
@@ -342,10 +323,10 @@ describe('«could not load» is not «empty»', () => {
     expect(times(es, 'No se han podido cargar las tareas.')).toBe(1);
     expect(times(fallback, "Couldn't load the data")).toBe(1);
     expect(times(loose, 'Could not load the tickets')).toBe(1);
-    expect(text(loose.element.querySelector('.data-table__error-title'))).toBe('Could not load the tickets');
+    expect(loose.findComponent(InlineFeedback).props('heading')).toBe('Could not load the tickets');
     for (const t of [same, es, fallback, loose]) {
       expect(reason(t)).toBeNull();
-      expect(errorBlock(t)?.getAttribute('role')).toBe('alert');
+      expect(t.findComponent(InlineFeedback).props('tone')).toBe('danger');
       expect(retry(t)).not.toBeNull();
     }
     expect(text(retry(es))).toBe('Reintentar');
@@ -695,14 +676,14 @@ describe('data-testid hooks of the chrome', () => {
     expect(t.emitted('add')).toHaveLength(1);
   });
 
-  it('names the rows in the cards view, and «load more» on a phone', async () => {
+  it('names the rows in the cards view; a phone loads the next ones at the end of the scroll', async () => {
     viewport(true);
     const t = mountTable({ ...props, testid: 'products-table', views: true });
     await settle();
     expect(cards(t)).toHaveLength(10);
     expect(row(t, 'r1')[0].tagName).toBe('ION-CARD');
     expect(byTestId(t, 'products-table-row')).toHaveLength(10);
-    expect(byTestId(t, 'products-table-load-more')).toHaveLength(1);
+    expect(t.element.querySelectorAll('.data-table__cards ion-infinite-scroll')).toHaveLength(1);
     expect(byTestId(t, 'products-table-page-next')).toHaveLength(0);
   });
 });

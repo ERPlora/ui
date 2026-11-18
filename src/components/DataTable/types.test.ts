@@ -125,6 +125,6 @@ describe('DataTable types', () => {
   it('the labels are exactly the keys of the English catalogue', () => {
     expectTypeOf<DataTableLabelKey>().toEqualTypeOf<keyof typeof en.dataTable>();
     expectTypeOf<DataTableLabels[DataTableLabelKey]>().toEqualTypeOf<string>();
-    expect(Object.keys(en.dataTable)).toContain('loadMore');
+    expect(Object.keys(en.dataTable)).toContain('loadingMore');
   });
 });

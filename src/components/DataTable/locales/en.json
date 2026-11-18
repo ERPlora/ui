@@ -23,7 +23,7 @@
     "previousPage": "Previous page",
     "nextPage": "Next page",
     "pageNumber": "Page {page}",
-    "loadMore": "Load more",
+    "loadingMore": "Loading more…",
     "noMatches": "No results match your search or filters",
     "showAll": "Show all",
     "loadError": "Couldn't load the data",

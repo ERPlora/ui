@@ -119,6 +119,38 @@ export type DataTableFilterField = DataTableColumnFilter & {
  *  A filter without a value is absent, never `''`. */
 export type DataTableFilters = Record<string, string>;
 
+/** How a column names its record: an icon in a tile, the column's text and a second, quieter line. */
+export interface DataTableIdentity<T = Record<string, unknown>> {
+  icon: (row: T) => string | undefined;
+  subtitle?: (row: T) => string | number | null | undefined;
+  /** `data-testid` of the second line. */
+  testid?: string;
+}
+
+/** A switch for the row's own on/off state, in its column: at the start of the cell in the list and at the end of
+ *  the card's head. Flipping it emits `toggle`; it shows `checked` again unless the change is on its way (`busy`). */
+export interface DataTableColumnToggle<T = Record<string, unknown>> {
+  checked: (row: T) => boolean;
+  /** Accessible name, which says what flipping it does («Turn Invoicing off»). */
+  label: (row: T) => string;
+  disabled?: (row: T) => boolean;
+  busy?: (row: T) => boolean;
+  /** What its spinner says to assistive technology. */
+  busyLabel?: string;
+  /** Why it cannot change, or what went wrong: a small line under the cell, a line of the card. */
+  note?: (row: T) => string | null | undefined;
+  /** `danger` for a failure; muted by default. */
+  noteTone?: (row: T) => 'muted' | 'danger';  /** No switch for this row (who may not change it); its note still shows. */
+  hidden?: (row: T) => boolean;
+}
+
+/** Payload of `toggle`. */
+export interface DataTableToggleEvent<T = Record<string, unknown>> {
+  column: string;
+  row: T;
+  checked: boolean;
+}
+
 export interface DataTableColumn<T = Record<string, unknown>> {
   /** Field of the row, or a logical id when `format`/`cell` paint something else. */
   key: string;
@@ -135,9 +167,16 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   /** Name of the scoped slot (`{ row, value, column }`) that paints the cell, list and cards. In the list its
    *  boxes sit side by side while the row has room and wrap under each other when it has not. */
   cell?: string;
+  /** Paints the cell as the record's identity (list, and the head of its card); it takes the widest share of the row. */
+  identity?: DataTableIdentity<T>;
+  /** Icon of the field's line on a card. Without it the line is its value alone. */
+  cardIcon?: string;
+  /** A switch for the row's state in this column (see `DataTableColumnToggle`). */
+  toggle?: DataTableColumnToggle<T>;
   /** Not painted until the person picks it in the column chooser; it still sorts. */
   hidden?: boolean;
-  /** CSS track of the column in the list (`8rem`, `minmax(8rem,1fr)`…). Default `minmax(5.5rem,1fr)`. */
+  /** CSS track of the column in the list (`8rem`, `minmax(8rem,1fr)`…). Default `minmax(5.5rem,1fr)`, and
+   *  `minmax(10rem,1.4fr)` for an `identity` or `high` column, so the name is the last text to be cut. */
   width?: string;
   /** The narrowest this column goes (`10.5rem`), for one whose content must keep some of its text: the
    *  list gives up the next step of its ladder rather than cut it under this. Default `5.5rem`. Ignored with `width`. */
@@ -161,8 +200,8 @@ export interface DataTableAction<T = Record<string, unknown>> {
   label: DataTableActionLabel<T>;
   /** Icon name (`ion:` by default, any baked set). Icon actions are icon-only buttons unless `showLabel`. */
   icon?: string;
-  /** An icon action that also paints its label («Open», «Pay»), in the list and the cards. The
-   *  «⋮» menu always shows labels. Default: icon-only (the universal ones: bin, PDF). */
+  /** An icon action that also paints its label in the list, for one whose icon does not say it alone
+   *  («See plans», «Retry»). The card's main button and the «⋮» menu always show labels. Default: icon-only. */
   showLabel?: boolean;
   /** Theme tone (`danger`, `primary`…), painted from its `--ion-color-*` token. Default `medium`. */
   color?: string;
@@ -170,9 +209,9 @@ export interface DataTableAction<T = Record<string, unknown>> {
   disabled?: (row: T) => boolean;
   /** In progress for the row: spinner instead of the icon, and disabled. */
   loading?: (row: T) => boolean;
-  /** Does not apply to the row: not rendered (the list keeps an invisible gap of its width). */
+  /** Does not apply to the row: not rendered. */
   hidden?: (row: T) => boolean;
-  /** The row's main action («Open», «Pay»): stays a button when the others fold into «⋮». */
+  /** The row's main action («Open», «Pay»): the card's main button, and a list button when the others fold into «⋮». */
   pinned?: boolean;
   /** A delicate action («Transfer ownership»): never a button, always inside «⋮» (list and cards). */
   menuOnly?: boolean;
@@ -182,6 +221,17 @@ export interface DataTableAction<T = Record<string, unknown>> {
 export interface DataTableActionEvent<T = Record<string, unknown>> {
   actionId: string;
   row: T;
+}
+
+export interface DataTableActionSlot<T = Record<string, unknown>> {
+  action: DataTableAction<T>;
+  /** The card's main button: full width, with its text. */
+  primary?: boolean;
+}
+
+export interface DataTableActionCell<T = Record<string, unknown>> {
+  items: DataTableActionSlot<T>[];
+  menu: DataTableAction<T>[];
 }
 
 /** The highlighted button of the toolbar (emits `primaryAction`). */
