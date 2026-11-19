@@ -16,6 +16,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - un formulario corto en un diálogo → `FormModal`
 - guardar una página de ajustes / un número de ajustes → `SettingsFormFooter` / `SettingsNumberField`
 - elegir uno entre muchos, o buscarlo en el servidor → `Combo`
+- marcar los alérgenos que lleva un plato o producto → `AllergenSelect`
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
 - enseñar un importe, una fecha o una cantidad → `formatMoney`, `formatDateTime`, `formatQuantity`
 - decir que no hay datos → `EmptyState`
@@ -102,6 +103,14 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **No lo uses cuando** son pocas opciones fijas → `ion-select`; se filtra una columna de una lista → el filtro `lookup` de `DataTable`.
 - **API:** `v-model` (`{ id, label, hint? }` o `null`), `options` o `search(query)`, `label`, `placeholder`, `emptyLabel`, `errorText`, `helperText`, `allowCreate` (evento `create`), `clearable`, `debounce`, `disabled`, `testid`.
 - **Ionic:** `ion-input`, `ion-popover`, `ion-item`, `ion-label`, `ion-button`, `ion-spinner`.
+
+### `AllergenSelect`, `ALLERGEN_CODES`, `allergenName`, `formatAllergens`
+`import { AllergenSelect, ALLERGEN_CODES, allergenName, formatAllergens } from '@erplora/ui/components'`
+- **Para qué sirve:** marcar y desmarcar los catorce alérgenos de declaración obligatoria, cada uno por su nombre y en el orden del reglamento europeo. Los nombres salen en el idioma del negocio; los códigos estables viajan en `v-model` y siempre se emiten en el orden de la lista. `allergenName` traduce un código y `formatAllergens` escribe una selección con esos mismos nombres y orden, para fichas y líneas de detalle.
+- **Úsalo cuando** un plato, producto o alergia de una persona declara cualquier subconjunto de esa lista cerrada.
+- **No lo uses cuando** se elige una sola opción → `ion-select` o `Combo`; son puntos de solo lectura → `CollapsibleChecklist`; la lista no es la de los catorce alérgenos.
+- **API:** `v-model` (`AllergenCode[]`), `label`, `helperText`, `errorText`, `disabled`, `testid`; `ALLERGEN_CODES` fija los códigos y su orden, `allergenName(code, locale)` y `formatAllergens(codes, locale)` dan los textos. Es un `fieldset` con nombre, ayuda y error asociados; cada casilla se maneja con toque o teclado.
+- **Ionic:** `ion-list`, `ion-item`, `ion-checkbox`, `ion-note`.
 
 ### `MoneyInput`
 `import { MoneyInput } from '@erplora/ui/components'`
