@@ -1326,7 +1326,7 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
   // page with most of the screen empty under one field; it grows to 90% of the screen and then its fields scroll
   // between the title and the buttons. A confirmation (`phoneLayout: 'card'`, ConfirmDialog) stays the centred card at
   // every width.
-  const STYLE = (/<style>([\s\S]*?)<\/style>/.exec(sfc)?.[1] ?? '') + readFileSync(join(HERE, 'FormModal.phone.css'), 'utf8');
+  const STYLE = /<style>([\s\S]*?)<\/style>/.exec(sfc)?.[1] ?? '';
 
   // A select keeps what it has chosen on one line, so its minimum width is that line's, and the
   // one-column grid of a form grows to it, every field with it. Inside a dialog the chosen text takes the lines it needs.

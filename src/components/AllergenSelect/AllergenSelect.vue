@@ -122,10 +122,6 @@ function toggle(code: AllergenCode, event: CustomEvent<{ checked: boolean }>): v
   inline-size: 100%;
   font-size: 0.9rem;
 }
-.allergen-select__item ion-checkbox::part(native):focus-visible {
-  outline: 2px solid var(--ion-color-primary);
-  outline-offset: 2px;
-}
 @media (max-width: 420px) {
   .allergen-select__list {
     grid-template-columns: minmax(0, 1fr);

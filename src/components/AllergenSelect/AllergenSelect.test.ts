@@ -64,7 +64,7 @@ describe('AllergenSelect', () => {
     expect(wrapper.get('legend').text()).toBe('Allergens');
     expect(wrapper.get('fieldset').attributes('aria-describedby')).toContain(error.attributes('id'));
     expect(error.text()).toBe('Choose a valid allergen.');
-    expect(wrapper.findAllComponents(IonCheckbox).every((checkbox) => checkbox.props('disabled'))).toBe(true);
+    expect(wrapper.findAllComponents(IonCheckbox).every((checkbox) => checkbox.props('disabled') === true)).toBe(true);
   });
 
   it('is exported from its folder, the components barrel and the package root', () => {
