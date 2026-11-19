@@ -1,0 +1,18 @@
+{
+  "allergens": {
+    "gluten": "Gluten",
+    "crustaceans": "Crustaceans",
+    "egg": "Egg",
+    "fish": "Fish",
+    "peanut": "Peanut",
+    "soy": "Soy",
+    "milk": "Milk",
+    "tree_nuts": "Tree nuts",
+    "celery": "Celery",
+    "mustard": "Mustard",
+    "sesame": "Sesame",
+    "sulphites": "Sulphites",
+    "lupin": "Lupin",
+    "molluscs": "Molluscs"
+  }
+}

@@ -11,6 +11,7 @@ export * from './ReportProblemModal';
 export * from './UserAvatar';
 export * from './UsageMeter';
 export * from './Combo';
+export * from './AllergenSelect';
 export * from './ColorInput';
 export * from './MoneyInput';
 export * from './ImageUpload';

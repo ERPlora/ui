@@ -1,0 +1,18 @@
+{
+  "allergens": {
+    "gluten": "Gluten",
+    "crustaceans": "Crustáceos",
+    "egg": "Huevo",
+    "fish": "Pescado",
+    "peanut": "Cacahuete",
+    "soy": "Soja",
+    "milk": "Leche",
+    "tree_nuts": "Frutos de cáscara",
+    "celery": "Apio",
+    "mustard": "Mostaza",
+    "sesame": "Sésamo",
+    "sulphites": "Sulfitos",
+    "lupin": "Altramuces",
+    "molluscs": "Moluscos"
+  }
+}
