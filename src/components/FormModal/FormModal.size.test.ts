@@ -66,9 +66,11 @@ describe('FormModal: size lg', () => {
   it('lets the body shrink so a tall footer cannot cover the fields', async () => {
     const win = new Window({ width: 375, height: 667 });
     win.document.head.innerHTML = `<style>${STYLE}</style>`;
-    win.document.body.innerHTML = '<ion-modal class="ep-form-modal" data-phone-layout="sheet"><div class="ep-form-modal__body"></div></ion-modal>';
+    win.document.body.innerHTML = '<ion-modal class="ep-form-modal" data-phone-layout="sheet"><div class="ep-form-modal__content"><form class="ep-form-modal__form"><div class="ep-form-modal__body"></div></form></div></ion-modal>';
     const body = win.document.querySelector('.ep-form-modal__body')!;
     expect(win.getComputedStyle(body).flexGrow).toBe('1');
+    expect(win.getComputedStyle(win.document.querySelector('.ep-form-modal__content')!).maxHeight).toBe('600.3px');
+    expect(win.getComputedStyle(win.document.querySelector('.ep-form-modal__form')!).maxHeight).toBe('600.3px');
     await win.happyDOM.close();
   });
 });

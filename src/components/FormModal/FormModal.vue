@@ -592,6 +592,10 @@ ion-modal.ep-form-modal ion-select::part(text) {
     flex-direction: column;
     max-height: 90vh;
   }
+  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__content,
+  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__form {
+    max-height: 90vh;
+  }
   ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__body {
     min-height: 0;
     max-height: none;
