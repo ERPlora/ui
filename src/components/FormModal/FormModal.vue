@@ -546,6 +546,7 @@ ion-modal.ep-form-modal .ep-form-modal__form {
   margin: 0;
 }
 ion-modal.ep-form-modal .ep-form-modal__body {
+  flex: 1;
   max-height: 70vh;
   overflow-y: auto;
 }

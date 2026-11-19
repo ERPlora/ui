@@ -62,4 +62,13 @@ describe('FormModal: size lg', () => {
   it('below 640px is the full-width sheet like every other size', async () => {
     expect((await modalStyleAt(390, 'lg'))['--width']).toBe('100%');
   });
+
+  it('lets the body shrink so a tall footer cannot cover the fields', async () => {
+    const win = new Window({ width: 375, height: 667 });
+    win.document.head.innerHTML = `<style>${STYLE}</style>`;
+    win.document.body.innerHTML = '<ion-modal class="ep-form-modal" data-phone-layout="sheet"><div class="ep-form-modal__body"></div></ion-modal>';
+    const body = win.document.querySelector('.ep-form-modal__body')!;
+    expect(win.getComputedStyle(body).flexGrow).toBe('1');
+    await win.happyDOM.close();
+  });
 });
