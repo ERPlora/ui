@@ -575,33 +575,5 @@ ion-modal.ep-form-modal ion-select::part(text) {
   white-space: normal;
 }
 
-/* Phone: a form is a sheet from the bottom as tall as its fields, up to 90vh, the fields
-   scrolling between the title and the buttons. A confirmation (`card`) keeps the centred card. */
-@media (max-width: 639.98px) {
-  ion-modal.ep-form-modal[data-phone-layout='sheet'] {
-    --width: 100%;
-    --max-width: 100%;
-    --height: auto;
-    --max-height: 90vh;
-    --border-radius: var(--ep-radius-sheet-top, 18px 18px 0 0);
-    align-items: flex-end;
-  }
-  /* Capped like the sheet, so what does not fit scrolls instead of being cut off. */
-  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ion-delegate-host {
-    display: flex;
-    flex-direction: column;
-    max-height: 90vh;
-  }
-  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__content,
-  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__form {
-    max-height: 90vh;
-  }
-  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__body {
-    min-height: 0;
-    max-height: none;
-  }
-  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__footer {
-    padding-bottom: calc(var(--ion-padding, 16px) + var(--ion-safe-area-bottom, 0px));
-  }
-}
 </style>
+<style src="./FormModal.phone.css"></style>

@@ -14,7 +14,10 @@ import FormModal from './FormModal.vue';
 
 vi.mock('@ionic/vue', async (importOriginal) => (await import('./__tests__/ionModalStub')).ionicVueWithModalStub(importOriginal));
 
-const STYLE = /<style>([\s\S]*?)<\/style>/.exec(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'FormModal.vue'), 'utf8'))?.[1] ?? '';
+const STYLE = [
+  /<style>([\s\S]*?)<\/style>/.exec(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'FormModal.vue'), 'utf8'))?.[1] ?? '',
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'FormModal.phone.css'), 'utf8'),
+].join('\n');
 
 const mounted: VueWrapper[] = [];
 
