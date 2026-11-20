@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { defineComponent, h, reactive } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
-import { byTestId, click, settle, text } from './__tests__/harness';
+import { byTestId, click, mountTable, settle, text } from './__tests__/harness';
 import DataTableFilterPanel from './DataTableFilterPanel.vue';
 import DataTableLookup from './DataTableLookup.vue';
 import panelSource from './DataTableFilterPanel.vue?raw';
@@ -195,5 +195,30 @@ describe('DataTableFilterPanel', () => {
       expect([name, source.includes('<style scoped src="./controls.css"></style>')]).toEqual([name, true]);
       expect([name, selectors(ownStyle(source)).filter((selector) => shared.includes(selector))]).toEqual([name, []]);
     }
+  });
+});
+
+describe('DataTableFilterPanel inside the table', () => {
+  const table = (props: Record<string, unknown>) =>
+    mountTable({ rows: [{ id: '1', name: 'Ana' }], columns: COLUMNS, testid: 'rules', filterable: true, ...props }, { attachTo: document.body });
+  const funnel = (t: ReturnType<typeof table>) => byTestId(t, 'rules-filters-toggle')[0] as HTMLElement & { color?: string };
+
+  it('shares the table’s one state of its filter controls: an error answered in the panel lifts the funnel’s warning', async () => {
+    const t = table({ filters: { status: 'gone' }, filterErrors: { status: 'Unknown status.' } });
+    await settle();
+    expect(funnel(t).color).toBe('danger');
+    await click(funnel(t));
+    edit(byTestId(t, 'rules-filter-status')[0], 'ionChange', 'active');
+    await settle();
+    expect([funnel(t).color ?? null, funnel(t).hasAttribute('data-invalid')]).toEqual([null, false]);
+  });
+
+  it('says the table’s own `labels`', async () => {
+    const t = table({ labels: { filters: 'Narrow down', apply: 'Show results' } });
+    await settle();
+    await click(funnel(t));
+    const panel = byTestId(t, 'rules-filters-panel')[0];
+    expect(text(document.getElementById(panel.getAttribute('aria-labelledby') ?? ''))).toBe('Narrow down');
+    expect(text(byTestId(t, 'rules-filters-apply')[0])).toBe('Show results');
   });
 });
