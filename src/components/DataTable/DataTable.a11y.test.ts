@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { unnamedButtons, unnamedIcons } from '../../testing/a11y';
-import { byTestId, click, ionChange, mountTable, settle, text, viewport, type Table } from './__tests__/harness';
+import { byTestId, click, ionChange, mountTable, PopoverStub, settle, text, viewport, type Table } from './__tests__/harness';
 import source from './DataTable.vue?raw';
 
 beforeEach(() => {
@@ -49,9 +49,9 @@ async function fullTable(props: Record<string, unknown> = {}, locale: 'en' | 'es
   return t;
 }
 
-/** The `aria-label` of a button: on the host, or where hydrated Ionic moves it (its native button). */
+/** The `aria-label` a reader hears: on the native button hydrated Ionic hands it to, else on the host. */
 const ariaLabel = (el: Element): string | null | undefined =>
-  el.getAttribute('aria-label') ?? el.shadowRoot?.querySelector('button')?.getAttribute('aria-label');
+  el.shadowRoot?.querySelector('button')?.getAttribute('aria-label') ?? el.getAttribute('aria-label');
 
 const describeAll = (els: Element[]): string[] =>
   els.map((el) => `${el.tagName.toLowerCase()}.${el.className} ${el.outerHTML.slice(0, 120)}`);
@@ -140,6 +140,9 @@ describe('a row action says which row it affects', () => {
       const item = byTestId(t, `members-row-${id}-remove`)[0];
       expect(text(item)).toBe('Remove');
       named.push(ariaLabel(item));
+      // Its backdrop closes the menu before another row's «⋮» can be tapped.
+      t.findComponent(PopoverStub).vm.$emit('didDismiss');
+      await settle();
     }
     expect(named).toEqual(['Remove Carlos Ruiz', 'Remove Ana Gil']);
   });
