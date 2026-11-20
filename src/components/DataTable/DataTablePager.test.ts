@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import { createShellI18n } from '../../shell/i18n';
 import DataTablePager from './DataTablePager.vue';
+import pagerSource from './DataTablePager.vue?raw';
+import tableSource from './DataTable.vue?raw';
 import type { PagerState } from './model';
 
 const desk = (current: number, pages = 6): PagerState<unknown> => ({
@@ -32,6 +34,12 @@ function mountPager(props: Record<string, unknown> = {}, locale: 'en' | 'es' = '
   });
 }
 
+/** The declarations of the rule written with exactly this selector in a component's scoped style. */
+function scopedRule(source: string, selector: string): string | undefined {
+  const css = (source.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\/\*[\s\S]*?\*\//g, '');
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return css.match(new RegExp(`(?:^|[}\\n])[ \\t]*${escaped}\\s*\\{([^}]*)\\}`))?.[1].trim();
+}
 const info = (wrapper: ReturnType<typeof mountPager>) => wrapper.find('.data-table__pager-info > span').text();
 /** An Ionic element's property, set by Vue on the element rather than as an attribute. */
 const prop = (wrapper: ReturnType<typeof mountPager>, selector: string, name: 'disabled' | 'selectedText') =>
@@ -113,5 +121,13 @@ describe('DataTablePager', () => {
     expect(info(wrapper)).toBe('Mostrando 21–30 de 56 registros');
     expect(wrapper.find('[data-testid="apps-page-prev"]').attributes('aria-label')).toBe('Página anterior');
     expect(prop(wrapper, 'ion-select', 'selectedText')).toBe('10 / pág.');
+  });
+
+  it('its buttons and its select keep the shell shield of the table, written as in DataTable.vue (a scoped rule never reaches a child)', () => {
+    for (const selector of ['*', ':where(.data-table) ion-button', ':where(.data-table) ion-button[fill="clear"]', ':where(.data-table) ion-select', 'ion-button']) {
+      const table = scopedRule(tableSource, selector);
+      expect([selector, table]).not.toEqual([selector, undefined]);
+      expect([selector, scopedRule(pagerSource, selector)]).toEqual([selector, table]);
+    }
   });
 });

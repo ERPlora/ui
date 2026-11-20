@@ -119,6 +119,14 @@ describe('page size', () => {
     expect(dataRows(t)).toHaveLength(25);
   });
 
+  it('the footer’s select says the size picked in it', async () => {
+    const t = mountTable({ rows: rowsOf(30), columns: NAME, columnPicker: false });
+    await settle();
+    await ionChange(t.find('ion-select.data-table__pager-size').element, { value: 25 });
+    const select = t.find('ion-select.data-table__pager-size').element as HTMLElement & { value?: unknown; selectedText?: unknown };
+    expect([select.value, select.selectedText]).toEqual([25, '25 / page']);
+  });
+
   it('no options: no selector, and a single page leaves no footer at all', async () => {
     const t = mountTable({ rows: rowsOf(3), columns: NAME, pageSizeOptions: [] });
     await settle();
@@ -430,6 +438,12 @@ describe('the footer names what it counts: `entityLabel`', () => {
     await settle();
     expect(info(t)).toBe('Showing 1–10 of 12 invoices');
     expect(info(single)).toBe('1 invoice');
+  });
+
+  it('the table’s own `labels` reach the footer', async () => {
+    const t = mountTable({ rows: rowsOf(25), columns: NAME, labels: { showing: 'Rows {from}–{to} of', recordPlural: 'items' } });
+    await settle();
+    expect(info(t)).toBe('Rows 1–10 of 25 items');
   });
 
   it('without it the footer keeps saying «records», in each language', async () => {
