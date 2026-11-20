@@ -195,6 +195,15 @@ describe('phone: the next rows load at the end of the scroll, instead of the num
     expect(dataRows(t)).toHaveLength(10);
   });
 
+  it('a sort by a header starts again at one page', async () => {
+    const t = mountTable({ rows: rowsOf(25), columns: NAME });
+    await settle();
+    await scrollToEnd(t);
+    expect(dataRows(t)).toHaveLength(20);
+    await click(t.element.querySelector('.data-table__cell--sortable'));
+    expect(dataRows(t)).toHaveLength(10);
+  });
+
   it('a different result set starts again; the same records refreshed keep the window', async () => {
     const t = mountTable({ rows: rowsOf(25), columns: NAME });
     await settle();
