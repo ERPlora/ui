@@ -13,7 +13,6 @@
 420 src/components/DataTable/model.ts erplora-next#77
 555 src/components/DataTable/useDataTableLayout.ts erplora-next#77
 579 src/components/FormModal/settingsForm.test.ts erplora-next#77
-947 src/sdk/allauth.test.ts erplora-next#77
 341 src/sdk/print-channel.ts erplora-next#77
 733 src/sdk/stream-manager.test.ts erplora-next#77
 363 src/sdk/stream-manager.ts erplora-next#77
