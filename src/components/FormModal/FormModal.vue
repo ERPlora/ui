@@ -10,6 +10,8 @@ import { useI18n } from 'vue-i18n';
 import HubIcon from '../../shell/HubIcon.vue';
 import { focusedElement } from '../focus';
 import { InlineFeedback } from '../InlineFeedback';
+import { useDismissal } from './dismissal';
+import { FIELD_HOSTS, isSaid, nameOf, PAINTS_ITS_MESSAGE, shownMessageOf } from './formFields';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import { NON_FIELD_ERRORS, useRefusal } from './refusal';
@@ -156,51 +158,13 @@ function submit(): void {
   emit('submit');
 }
 
-/** The page's question while it is up: a second way out waits for the same answer instead of asking again. */
-let asking: Promise<boolean> | null = null;
-
-/** May the person close it? Without a question, yes; a question that fails keeps it open. */
-function mayClose(): Promise<boolean> {
-  const ask = props.canDismiss;
-  if (!ask) return Promise.resolve(true);
-  asking ??= Promise.resolve()
-    .then(ask)
-    .catch((error: unknown) => {
-      console.error('ui: could not ask whether to close the dialog', error);
-      return false;
-    })
-    .finally(() => {
-      asking = null;
-    });
-  return asking;
-}
-
-/** Ionic's own dismissals (backdrop, Escape, the system Back) ask the page first. Closing from the page
- *  (`open = false`, no role) never asks, and `handler` is Ionic's role for who already asked. */
-const ionCanDismiss = computed(() =>
-  props.canDismiss ? (_data?: unknown, role?: string): Promise<boolean> => (role === undefined ? Promise.resolve(true) : mayClose()) : true,
-);
-
-/** A Cancel already waiting for the page's answer: a second click while it is up closes nothing twice. */
-let cancelling = false;
-
-async function cancel(): Promise<void> {
-  if (props.pending || cancelling) return;
-  cancelling = true;
-  try {
-    if (!(await mayClose()) || props.pending || !open.value) return;
-    emit('cancel');
-    open.value = false;
-  } finally {
-    cancelling = false;
-  }
-}
-
-/** Escape: with backdrop dismissal Ionic dismisses on its own (→ `onDidDismiss`); without it, here. */
-function onEscape(): void {
-  if (props.pending || backdropDismiss.value) return;
-  void cancel();
-}
+const { ionCanDismiss, cancel, onEscape } = useDismissal({
+  canDismiss: () => props.canDismiss,
+  pending: () => props.pending,
+  backdropDismiss: () => backdropDismiss.value,
+  open,
+  cancelled: () => emit('cancel'),
+});
 
 /** A person changed a field. Typing bubbles up as a native `input` (scoped ion-input and ion-textarea
  *  too, and a Combo's choice says it the same way); a search in a field's own popover or modal is not
@@ -212,10 +176,6 @@ function onEdit(event: Event): void {
   if (overlay && form.value?.contains(overlay)) return;
   refusal.changed(refusedFieldOf(target));
 }
-
-/** The fields a page puts in the slot. Ionic's own say who they are on their host. */
-const FIELD_HOSTS = 'ion-input, ion-textarea, ion-select, ion-checkbox, ion-toggle, ion-radio-group, ion-range';
-type FieldHost = Element & { name?: unknown; errorText?: unknown };
 
 /** The refused field the person changed, or nothing when it cannot tell: by its own `name` when it
  *  is a key of the refusal, else by the message it shows when no other refused field has those
@@ -237,41 +197,6 @@ function refusedFieldOf(target: Element): string | undefined {
     }
   }
   return undefined;
-}
-
-/** A native field's `name`, or an Ionic one's (it hands it to its native input). */
-function nameOf(el: Element): string | null {
-  const name = (el as FieldHost).name;
-  return typeof name === 'string' && name ? name : null;
-}
-
-/** What an Ionic field shows under it: Ionic Vue sets `error-text` as the element's property. */
-function shownMessageOf(el: Element): string | null {
-  const shown = (el as FieldHost).errorText;
-  return typeof shown === 'string' && shown ? shown : null;
-}
-
-/** Ionic hides a field's `error-text` unless the field is in this state. */
-const PAINTS_ITS_MESSAGE = '.ion-invalid.ion-touched';
-/** Text that says nothing of a page's own: the banner, and the Ionic fields, which render their
- *  `error-text` even while they hide it. */
-const NOT_WRITTEN_BY_THE_PAGE = `.ep-form-modal__error, ${FIELD_HOSTS}`;
-
-/** The page wrote this reason itself under a field (`<small>{{ fieldErrors.customer }}</small>`). */
-function writes(el: Element, reason: string): boolean {
-  return [...el.childNodes].some((node) =>
-    node instanceof Element
-      ? !node.matches(NOT_WRITTEN_BY_THE_PAGE) && writes(node, reason)
-      : node.nodeType === Node.TEXT_NODE && !!node.textContent?.includes(reason),
-  );
-}
-
-/** Is this reason on screen, in a field painting it or written by the page? */
-function isSaid(root: Element, reason: string): boolean {
-  const painted = [...root.querySelectorAll(FIELD_HOSTS)].some(
-    (el) => el.matches(PAINTS_ITS_MESSAGE) && shownMessageOf(el) === reason,
-  );
-  return painted || writes(root, reason);
 }
 
 /** The person may have scrolled past what the refusal says (a long form on a phone, Save at its bottom),
