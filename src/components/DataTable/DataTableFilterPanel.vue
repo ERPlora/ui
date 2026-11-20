@@ -5,13 +5,12 @@
 import { IonButton, IonIcon, IonInput, IonSelect, IonSelectOption } from '@ionic/vue';
 import { computed, ref, useId, watch } from 'vue';
 
-import { ionIconSrc } from '../../shell/icons';
 import DataTableLookup from './DataTableLookup.vue';
-import { useDataTableLabels } from './labels';
-import { activeFilters, DATA_TABLE_ICONS, declaredFilters } from './model';
+import { activeFilters, declaredFilters } from './model';
 import type { DataTableColumn, DataTableFilters, DataTableLabels } from './types';
 import type { FilterControls } from './useFilterControls';
 import { trapTab } from './useFilterSheet';
+import { usePartChrome } from './usePartChrome';
 
 const props = withDefaults(
   defineProps<{
@@ -33,10 +32,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{ apply: [filters: DataTableFilters]; clear: []; close: [] }>();
 
-const ICONS = DATA_TABLE_ICONS;
-const icon = ionIconSrc;
-const { text: label } = useDataTableLabels(() => props.labels);
-const tid = (suffix: string): string | undefined => (props.testid ? `${props.testid}-${suffix}` : undefined);
+const { ICONS, icon, label, tid } = usePartChrome(props);
 const { filterName, errorOf, invalidMark, answerError, choicesOf, lookupLabel, rememberPick, endBox, rangeEnds } = props.controls;
 
 /** What the panel shows and edits; applied only by «Apply». */

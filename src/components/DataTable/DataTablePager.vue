@@ -3,10 +3,9 @@
 import { IonButton, IonIcon, IonSelect, IonSelectOption } from '@ionic/vue';
 import { computed } from 'vue';
 
-import { ionIconSrc } from '../../shell/icons';
-import { useDataTableLabels } from './labels';
-import { DATA_TABLE_ICONS, entityWord, pageList, type PagerState } from './model';
+import { entityWord, pageList, type PagerState } from './model';
 import type { DataTableEntityLabel, DataTableLabels } from './types';
+import { usePartChrome } from './usePartChrome';
 
 const props = withDefaults(
   defineProps<{
@@ -30,10 +29,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{ go: [page: number]; pageSize: [size: number] }>();
 
-const ICONS = DATA_TABLE_ICONS;
-const icon = ionIconSrc;
-const { text: label } = useDataTableLabels(() => props.labels);
-const tid = (suffix: string): string | undefined => (props.testid ? `${props.testid}-${suffix}` : undefined);
+const { ICONS, icon, label, tid } = usePartChrome(props);
 const goTo = (page: number): void => emit('go', page);
 const onPageSizeSelect = (ev: CustomEvent<{ value?: unknown }>): void => emit('pageSize', Number(ev.detail.value));
 
