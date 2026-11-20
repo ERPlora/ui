@@ -67,7 +67,7 @@ export const markedField = (component: unknown, id: string, message: string | un
     class: { 'ion-invalid': !!message, 'ion-touched': !!message },
     ...extra,
   });
-export const submitButton =(w: VueWrapper): HTMLElement => w.get('.ep-form-modal__submit').element as HTMLElement;
+export const submitButton = (w: VueWrapper): HTMLElement => w.get('.ep-form-modal__submit').element as HTMLElement;
 export const cancelButton = (w: VueWrapper): HTMLElement => w.get('.ep-form-modal__cancel').element as HTMLElement;
 export const closeButton = (w: VueWrapper): HTMLElement => w.get('.ep-form-modal__close').element as HTMLElement;
 /** The name a screen reader reads. Hydrated, `ion-button` moves `aria-label` from its host to the
