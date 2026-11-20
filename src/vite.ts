@@ -14,7 +14,7 @@ const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
  * `~icons/<set>/<name>` → its SVG string, rendered at build time from the `@iconify-json/<set>`
- * installed in this package (never from the network, never auto-installed); `shell/icons.ts`
+ * installed in this package (never from the network, never auto-installed); `shell/set-icons.ts`
  * registers it and `HubIcon` paints it through `ion-icon`. A string and not a Vue component (the
  * `vue3` compiler): the SVG then needs no second imitation of ion-icon's CSS, and the `?raw` query
  * that would give a string next to components is refused by Vite's dev server (`Denied ID`) for

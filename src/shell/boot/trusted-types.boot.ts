@@ -3,7 +3,7 @@
 // HubIcon), so in production `createHTML` lets through only two shapes:
 //   - inline SVG markup, starting with `<svg` (what `ion-icon` writes into its shadow root);
 //   - an SVG data URL, `data:image/svg+xml;utf8,<svg …>`: every icon of the shell (`ION_ICONS`
-//     from `ionicons/icons` and the baked sets of `icons.ts`) has this shape, and ionicons resolves
+//     from `ionicons/icons` and the baked sets of `set-icons.ts`) has this shape, and ionicons resolves
 //     it with `DOMParser.parseFromString(url, 'text/html')`, itself a Trusted Types sink.
 // Anything else (other tags, other data URLs, base64) is rejected, as is every inline script
 // (`createScript`).
