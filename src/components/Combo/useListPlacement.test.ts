@@ -88,6 +88,16 @@ describe('useListPlacement: opening', () => {
     expect(list.placement.value).toMatchObject({ side: 'top', room: 264 });
   });
 
+  it('opened again with less room under the field, it moves over it even when the room there is what it had under it', () => {
+    const list = setup(400, 456);
+    list.place(true);
+    expect(list.placement.value).toEqual({ side: 'bottom', room: 328, top: 464, bottom: 408 });
+    // The on-screen keyboard leaves nothing under the field: over it, 400 − 56 − 16 = 328, the room it had under it.
+    Object.defineProperty(window, 'visualViewport', { value: { offsetTop: 56, height: 400 }, configurable: true });
+    list.place(true);
+    expect(list.placement.value).toEqual({ side: 'top', room: 328, top: 464, bottom: 408 });
+  });
+
   it('without a field it stays where it was', () => {
     const list = setup(100, 156);
     list.target.value = null;
@@ -126,6 +136,16 @@ describe('useListPlacement: open', () => {
     Object.defineProperty(window, 'visualViewport', { value: { offsetTop: 0, height: 440 }, configurable: true });
     list.place();
     expect(list.placement.value).toEqual({ side: 'bottom', room: 268, top: 164, bottom: 708 });
+  });
+
+  it('over the field, a window that grows with the field where it was (the address bar hiding) moves where the list ends', () => {
+    const list = setup(567, 646);
+    list.place(true);
+    expect(list.placement.value).toEqual({ side: 'top', room: 551, top: 654, bottom: 241 });
+    Object.defineProperty(window, 'innerHeight', { value: 856, configurable: true, writable: true });
+    list.place();
+    // The same room over the field; its end, a gap over the field from the new bottom: 856 − 567 + 8 = 297.
+    expect(list.placement.value).toEqual({ side: 'top', room: 551, top: 654, bottom: 297 });
   });
 
   it('the same place keeps the same placement, so nothing is painted again', () => {
