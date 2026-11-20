@@ -1,12 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  ALLAUTH_BROWSER_BASE,
-  type AllauthDeps,
-  createAllauthClient,
-  isReauthenticationRequired,
-  ReauthenticationRequiredError,
-} from "./allauth";
+import { ALLAUTH_BROWSER_BASE, type AllauthDeps, createAllauthClient } from "./allauth";
+import { isReauthenticationRequired, ReauthenticationRequiredError } from "./allauth-replies";
 import { ApiError } from "./errors";
 import es from "./locales/es.json";
 
