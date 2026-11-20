@@ -6,13 +6,15 @@
 // to an older question dropped. The options are an ARIA combobox listbox in an `ion-popover` that never takes the
 // focus from the field. With the list open, Enter and Escape stay here and never submit or close the dialog around it.
 import { IonButton, IonContent, IonInput, IonItem, IonLabel, IonPopover, IonSpinner } from '@ionic/vue';
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useId, watch, watchEffect } from 'vue';
+import { computed, onMounted, ref, shallowRef, useId, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import HubIcon from '../../shell/HubIcon.vue';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import type { ComboOption, ComboSearch } from './types';
+import { useListPlacement } from './useListPlacement';
+import { useOptionSearch } from './useOptionSearch';
 
 const props = withDefaults(
   defineProps<{
@@ -85,16 +87,11 @@ const text = ref(props.modelValue?.label ?? '');
 const open = ref(false);
 /** The text the options are filtered or searched by (`''` = all of them). */
 const query = ref('');
-const found = shallowRef<ComboOption[]>([]);
-const loading = ref(false);
-const failed = ref(false);
+const { found, loading, failed, ask, cancel } = useOptionSearch(props);
 /** The highlighted entry (`-1` = none). */
 const active = ref(-1);
 /** Where the popover anchors: the field itself (Ionic reads `event.target`). */
 const anchor = shallowRef<Event | undefined>(undefined);
-let timer: ReturnType<typeof setTimeout> | undefined;
-/** Number of the last question to the server: an older answer is dropped. */
-let asked = 0;
 
 type Entry = { kind: 'option'; option: ComboOption } | { kind: 'create'; text: string };
 
@@ -130,118 +127,17 @@ watch(
   },
 );
 
-// ── The server ────────────────────────────────────────────────────────────────────────────────
-function ask(value: string): void {
-  if (!props.search) return;
-  clearTimeout(timer);
-  const mine = ++asked;
-  found.value = [];
-  loading.value = true;
-  failed.value = false;
-  timer = setTimeout(() => void answer(value, mine), props.debounce);
-}
-
-async function answer(value: string, mine: number): Promise<void> {
-  try {
-    const options = await props.search!(value);
-    if (mine === asked) found.value = options;
-  } catch (error) {
-    if (mine !== asked) return;
-    failed.value = true;
-    console.error('Combo: the search failed', error);
-  } finally {
-    if (mine === asked) loading.value = false;
-  }
-}
-
 // ── Opening, choosing, closing ────────────────────────────────────────────────────────────────
 const field = (): HTMLElement | null => root.value?.querySelector<HTMLElement>('ion-input') ?? null;
 
-// ── Where the list goes ───────────────────────────────────────────────────────────────────────
-/** Space kept between the list and the edge of the window. */
-const EDGE = 8;
-/** Space kept between the list and the field: over it, the floating label drawn on the field's top
- *  border (half of it above the field's box) stays readable. */
-const GAP = 8;
-/** Opening with less room than this under the field (about four options) and more over it: over it. */
-const SHORT_ROOM = 240;
-
-interface Placement {
-  side: 'bottom' | 'top';
-  /** The list's highest height: the room on its side, down (or up) to the window's edge. */
-  room: number;
-  /** Under the field: where the list starts (a gap under the field), from the window's top. */
-  top: number;
-  /** Over the field: where the list ends (a gap over the field), from the window's bottom. */
-  bottom: number;
-}
-const placement = ref<Placement>({ side: 'bottom', room: 0, top: 0, bottom: 0 });
-/** The options and states as tall as they are: the list's height with room for all of it. */
-const body = ref<HTMLElement | null>(null);
-let frame: number | undefined;
-
-const popoverStyle = computed(() => {
-  const { side, room, top, bottom } = placement.value;
-  return {
-    '--max-height': `${room}px`,
-    '--combo-top': side === 'bottom' ? `${top}px` : 'auto',
-    '--combo-bottom': side === 'top' ? `${bottom}px` : 'auto',
-  };
-});
-
-/** The part of the window the person sees: the on-screen keyboard and the zoom leave the rest out. */
-function visible(): { top: number; bottom: number } {
-  const view = window.visualViewport;
-  return view ? { top: view.offsetTop, bottom: view.offsetTop + view.height } : { top: 0, bottom: window.innerHeight };
-}
-
-/** Puts the list beside the field, inside the window. Opening (its size not known yet): under the
- *  field unless the room there is short and there is more over it. Open: it stays on its side while
- *  it fits there, and moves to the other one when it does not and there is more room there. */
-function place(opening = false): void {
-  const el = field();
-  if (!el) return;
-  const box = el.getBoundingClientRect();
-  const view = visible();
-  const below = Math.max(0, Math.floor(view.bottom - box.bottom - GAP - EDGE));
-  const above = Math.max(0, Math.floor(box.top - view.top - GAP - EDGE));
-  let side = placement.value.side;
-  if (opening) {
-    side = below < SHORT_ROOM && above > below ? 'top' : 'bottom';
-  } else {
-    const wanted = body.value?.offsetHeight ?? 0;
-    const [room, other] = side === 'bottom' ? [below, above] : [above, below];
-    if (wanted > room && other > room) side = side === 'bottom' ? 'top' : 'bottom';
-  }
-  const next: Placement = {
-    side,
-    room: side === 'bottom' ? below : above,
-    top: box.bottom + GAP,
-    bottom: window.innerHeight - box.top + GAP,
-  };
-  const now = placement.value;
-  if (next.side !== now.side || next.room !== now.room || next.top !== now.top || next.bottom !== now.bottom) placement.value = next;
-}
-
-/** On every frame while the list is open (the list grows, the field moves, the keyboard shows up). */
-function follow(): void {
-  if (!open.value) return;
-  place();
-  frame = requestAnimationFrame(follow);
-}
-
-function stopFollowing(): void {
-  if (frame !== undefined) cancelAnimationFrame(frame);
-  frame = undefined;
-}
+const { placement, body, popoverStyle, place, startFollowing, stopFollowing } = useListPlacement(field, open);
 
 /** Shows the list, placed before Ionic presents it, and starts following. */
 function show(): void {
   anchor.value = { target: field() } as unknown as Event;
   place(true);
   open.value = true;
-  stopFollowing();
-  frame = requestAnimationFrame(follow);
+  startFollowing();
 }
 
 function openList(): void {
@@ -266,9 +162,7 @@ function dismiss(revert = true): void {
   if (!open.value) return;
   open.value = false;
   stopFollowing();
-  clearTimeout(timer);
-  asked += 1;
-  loading.value = false;
+  cancel();
   query.value = '';
   active.value = -1;
   if (revert) text.value = props.modelValue?.label ?? '';
@@ -395,10 +289,6 @@ watchEffect(() => {
   input.setAttribute('aria-expanded', open.value ? 'true' : 'false');
   if (open.value && active.value >= 0) input.setAttribute('aria-activedescendant', optionId(active.value));
   else input.removeAttribute('aria-activedescendant');
-});
-onBeforeUnmount(() => {
-  clearTimeout(timer);
-  stopFollowing();
 });
 </script>
 
