@@ -11,6 +11,7 @@ import { ION_ICONS } from '../../shell/icons';
 import { dataRows, ionChange, mountTable, settle, viewport } from './__tests__/harness';
 import cardSource from './DataTableCard.vue?raw';
 import listSource from './DataTableListItem.vue?raw';
+import pagerSource from './DataTablePager.vue?raw';
 import actionsSource from './DataTableRowActions.vue?raw';
 import stateSource from './DataTableState.vue?raw';
 import source from './DataTable.vue?raw';
@@ -20,7 +21,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const VARIABLES = readFileSync(join(HERE, '../../shell/theme/variables.css'), 'utf8');
 
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
-const STYLE = [source, cardSource, listSource, actionsSource, stateSource]
+const STYLE = [source, cardSource, listSource, actionsSource, stateSource, pagerSource]
   .map((input) => stripComments(input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? ''))
   .join(' ')
   .replace(/\s+/g, ' ');
@@ -38,14 +39,13 @@ function rule(selector: string, css = STYLE): string {
   if (!found) throw new Error(`no rule for «${selector}»`);
   return found[1].trim();
 }
-/** Text of the first `@media <query> { … }` block. */
-function media(query: string): string {
-  const start = STYLE.indexOf(`@media ${query} {`);
+/** Text of every `@media <query> { … }` block from `from` on, in order: each part of the table may carry its own. */
+function media(query: string, from = 0): string {
+  const start = STYLE.indexOf(`@media ${query} {`, from);
   if (start === -1) throw new Error(`no @media ${query}`);
-  let depth = 0;
-  for (let i = STYLE.indexOf('{', start); i < STYLE.length; i++) {
+  for (let i = STYLE.indexOf('{', start), depth = 0; i < STYLE.length; i++) {
     if (STYLE[i] === '{') depth++;
-    if (STYLE[i] === '}' && --depth === 0) return STYLE.slice(STYLE.indexOf('{', start) + 1, i);
+    if (STYLE[i] === '}' && --depth === 0) return `${STYLE.slice(STYLE.indexOf('{', start) + 1, i)} ${STYLE.includes(`@media ${query} {`, i) ? media(query, i) : ''}`;
   }
   throw new Error('unbalanced @media');
 }

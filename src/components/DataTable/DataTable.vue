@@ -39,6 +39,7 @@ import { ionIconSrc } from '../../shell/icons';
 import DataTableCard from './DataTableCard.vue';
 import DataTableInfinite from './DataTableInfinite.vue';
 import DataTableListItem from './DataTableListItem.vue';
+import DataTablePager from './DataTablePager.vue';
 import DataTableRowMenu from './DataTableRowMenu.vue';
 import DataTableLookup from './DataTableLookup.vue';
 import DataTableState from './DataTableState.vue';
@@ -47,13 +48,11 @@ import {
   activeFilters,
   DATA_TABLE_ICONS,
   declaredFilters,
-  entityWord,
   filterColumnsOf,
   filterCount,
   filterKeys,
   filterRows,
   gridTemplate,
-  pageList,
   pagerState,
   phonePages,
   rowKeyOf,
@@ -738,9 +737,6 @@ function loadMore(): void {
   if (props.serverSide) emit('loadMore');
   else mobileShown.value = Math.min((mobileShown.value || pageSizeNow.value) + pageSizeNow.value, pager.value.count);
 }
-const pagerFrom = computed(() => label('showing', { from: pager.value.rangeFrom, to: pager.value.rangeTo }));
-/** «Showing 1–20 of»: a page of several, or a window still growing; once every row is there, only the count. */
-const showRange = computed(() => !awaitingRows.value && (windowed.value && !phonePaged.value ? pager.value.canLoadMore : pager.value.pages > 1));
 /** A table that fills its page scrolls its cards itself, but not at a phone's width, where its CSS lets the
  *  page scroll: Ionic listens to the cards, or to the page. */
 const phoneWidth = useMediaQuery('(max-width: 640px)');
@@ -751,9 +747,6 @@ const infinite = computed(() => ({
   failed: loadFailed.value, waiting: props.loading,
   label: label('loadingMore'),
 }));
-const recordWord = computed(
-  () => entityWord(pager.value.count, props.entityLabel) ?? label(pager.value.count === 1 ? 'recordSingular' : 'recordPlural'),
-);
 
 // ── Rows and cells ────────────────────────────────────────────────────────────────────────────
 const rowId = (row: T, index: number): string => keyOf(row) || `#${index}`;
@@ -1310,121 +1303,21 @@ onUpdated(nameSearchBox);
         @dismiss="rowMenuOpen = false"
       />
 
-      <div
+      <DataTablePager
         v-if="showPager"
-        :class="['data-table__pager', { 'data-table__pager--phone-pages': phonePaged }]"
-      >
-        <div class="data-table__pager-info">
-          <span>
-            <template v-if="showRange">{{ `${pagerFrom} ` }}</template>
-            <template v-if="!awaitingRows"><span class="data-table__pager-count">{{ pager.count }}</span>{{ ` ${recordWord}` }}</template>
-          </span>
-          <ion-select
-            v-if="!hasToolbar && pageSizeSelectable"
-            class="data-table__pager-size"
-            interface="popover"
-            :aria-label="label('rowsPerPage')"
-            :value="pageSizeNow"
-            :selected-text="label('perPageShort', { n: pageSizeNow })"
-            @ion-change="onPageSizeSelect"
-          >
-            <ion-select-option
-              v-for="size in pageSizeOptions"
-              :key="size"
-              :value="size"
-            >
-              {{ label('perPageShort', { n: size }) }}
-            </ion-select-option>
-          </ion-select>
-        </div>
-        <!-- Windowed rows load at the end of their scroll; past `maxWindow`, previous / next. -->
-        <div
-          v-if="phonePaged && pager.pages > 1 && !awaitingRows"
-          class="data-table__pager-nav"
-        >
-          <ion-button
-            size="small"
-            fill="clear"
-            :data-testid="tid('page-prev')"
-            :aria-label="label('previousPage')"
-            :disabled="pager.current === 0"
-            @click="goTo(pager.current - 1)"
-          >
-            <ion-icon
-              slot="icon-only"
-              :icon="icon(ICONS.previous)"
-              aria-hidden="true"
-            />
-          </ion-button>
-          <span class="data-table__page-of">{{ pager.current + 1 }} / {{ pager.pages }}</span>
-          <ion-button
-            size="small"
-            fill="clear"
-            :data-testid="tid('page-next')"
-            :aria-label="label('nextPage')"
-            :disabled="pager.current >= pager.pages - 1"
-            @click="goTo(pager.current + 1)"
-          >
-            <ion-icon
-              slot="icon-only"
-              :icon="icon(ICONS.next)"
-              aria-hidden="true"
-            />
-          </ion-button>
-        </div>
-        <div
-          v-else-if="!windowed && pager.pages > 1 && !awaitingRows"
-          class="data-table__pager-nav"
-        >
-          <ion-button
-            size="small"
-            fill="clear"
-            :data-testid="tid('page-prev')"
-            :aria-label="label('previousPage')"
-            :disabled="pager.current === 0"
-            @click="goTo(pager.current - 1)"
-          >
-            <ion-icon
-              slot="icon-only"
-              :icon="icon(ICONS.previous)"
-              aria-hidden="true"
-            />
-          </ion-button>
-          <template
-            v-for="(entry, index) in pageList(pager.current + 1, pager.pages)"
-            :key="`${entry}-${index}`"
-          >
-            <span
-              v-if="entry === '…'"
-              class="data-table__page-gap"
-            >…</span>
-            <ion-button
-              v-else
-              fill="clear"
-              :class="['data-table__page', { 'data-table__page--current': entry === pager.current + 1 }]"
-              :aria-label="label('pageNumber', { page: entry })"
-              :aria-current="entry === pager.current + 1 ? 'page' : undefined"
-              @click="goTo(entry - 1)"
-            >
-              {{ entry }}
-            </ion-button>
-          </template>
-          <ion-button
-            size="small"
-            fill="clear"
-            :data-testid="tid('page-next')"
-            :aria-label="label('nextPage')"
-            :disabled="pager.current >= pager.pages - 1"
-            @click="goTo(pager.current + 1)"
-          >
-            <ion-icon
-              slot="icon-only"
-              :icon="icon(ICONS.next)"
-              aria-hidden="true"
-            />
-          </ion-button>
-        </div>
-      </div>
+        :pager="pager"
+        :windowed="windowed"
+        :phone-paged="phonePaged"
+        :awaiting-rows="awaitingRows"
+        :size-select="!hasToolbar && pageSizeSelectable"
+        :page-size="pageSizeNow"
+        :page-size-options="pageSizeOptions"
+        :entity-label="entityLabel"
+        :labels="labels"
+        :testid="testid?.trim() || undefined"
+        @go="goTo"
+        @page-size="setPageSize"
+      />
 
       <!-- `filterable`: the filters panel, inside the table: one control per
            filtered column on a draft; «Clear» lifts them all now, «Apply» applies and closes. -->
@@ -1797,24 +1690,7 @@ onUpdated(nameSearchBox);
   .data-table__view-segment ion-segment-button { min-height: 44px; }
   .data-table__filter-button { width: 44px; height: 44px; }
   .data-table__add-button { min-height: 44px; }
-  .data-table__pager-nav ion-button { min-width: 44px; min-height: 44px; margin: 0; }
 }
-
-/* ── Footer: count + paging ──────────────────────────────────────────────────────────────── */
-.data-table__pager { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: auto; padding: 0.55rem 1rem; border-top: 1px solid var(--border-color); background: var(--header-background); font-size: 12.5px; color: var(--color-muted); }
-.data-table__pager-info { display: flex; align-items: center; gap: 0.6rem; }
-.data-table__pager-count { font-weight: 600; color: var(--color); }
-.data-table__pager-size { font: inherit; font-size: 12.5px; padding: 0.2rem 0.35rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--background); color: var(--color); }
-.data-table__pager-nav { display: flex; align-items: center; gap: 0.2rem; }
-/* A phone past `maxWindow`: previous / next and «page / pages»; the nav takes its own line if the count needs it. */
-.data-table__pager--phone-pages { flex-wrap: wrap; row-gap: 0.25rem; }
-.data-table__pager--phone-pages .data-table__pager-nav { margin-inline-start: auto; }
-.data-table__page-of { min-width: 4.5rem; text-align: center; font-weight: 600; color: var(--color); white-space: nowrap; }
-/* A page button matches the 44px of prev/next. */
-.data-table__page { min-width: var(--ep-tap-min, 44px); height: var(--ep-tap-min, 44px); padding: 0 0.4rem; border: 1px solid transparent; border-radius: 8px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--color); cursor: pointer; transition: background 0.12s, border-color 0.12s; }
-.data-table__page:hover { background: var(--row-hover); }
-.data-table__page.data-table__page--current { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
-.data-table__page-gap { padding: 0 0.15rem; color: var(--color-muted); }
 
 .data-table > .data-table__surface {
   border: 1px solid var(--border-color-soft);
@@ -1822,22 +1698,6 @@ onUpdated(nameSearchBox);
 .data-table > .data-table__surface > .data-table__bar,
 .data-table > .data-table__surface > .data-table__pager {
   background: color-mix(in srgb, var(--header-background) 65%, var(--background));
-}
-.data-table__pager-nav > ion-button.data-table__page {
-  margin: 0;
-  --background: transparent;
-  --color: var(--color);
-  --border-radius: 8px;
-  --padding-start: 0.4rem;
-  --padding-end: 0.4rem;
-}
-.data-table__pager-nav > ion-button.data-table__page.data-table__page--current {
-  --background: color-mix(in srgb, var(--primary) 12%, transparent);
-  --color: var(--primary);
-  --border-color: color-mix(in srgb, var(--primary) 32%, transparent);
-}
-.data-table > .data-table__surface > .data-table__pager > .data-table__pager-info > .data-table__pager-size {
-  min-height: 44px;
 }
 
 ion-button { --box-shadow: none; }
