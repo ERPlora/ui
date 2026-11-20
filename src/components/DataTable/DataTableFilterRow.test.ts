@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { mountFilterPart } from './__tests__/filter-part';
 import { byTestId, click, ionChange, mountTable, settle, text, viewport } from './__tests__/harness';
+import { rowSource } from './__tests__/part-sources';
 import DataTableFilterRow from './DataTableFilterRow.vue';
 import DataTableLookup from './DataTableLookup.vue';
 import type { DataTableColumn, DataTableFilters, DataTableLabels } from './types';
@@ -131,6 +132,12 @@ describe('DataTableFilterRow', () => {
     expect(text(control(m, 'status').querySelector('ion-select-option'))).toBe('Todos');
     expect([control(m, 'total_from').placeholder, control(m, 'total_to').placeholder]).toEqual(['Desde', 'Hasta']);
     expect(chipText(chip(m))).toBe('Limpiar filtros');
+  });
+
+  it('«Clear filters» reads at the font size of the controls beside it, with no margin of its own', () => {
+    const sheet = rowSource.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '';
+    expect(sheet).toMatch(/\.data-table__filter \{[^}]*\bfont-size: 13px;/);
+    expect(sheet).toContain('.data-table__filters-clear { margin: 0; font-size: 13px; }');
   });
 });
 
