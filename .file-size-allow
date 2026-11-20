@@ -23,7 +23,6 @@
 341 src/sdk/print-channel.ts erplora-next#77
 733 src/sdk/stream-manager.test.ts erplora-next#77
 363 src/sdk/stream-manager.ts erplora-next#77
-749 src/shell/App.test.ts erplora-next#77
 957 src/shell/device-notices.test.ts erplora-next#77
 452 src/shell/device-notices.ts erplora-next#77
 342 src/shell/icons.ts erplora-next#77
