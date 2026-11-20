@@ -8,7 +8,7 @@ import { onBeforeUnmount, type Ref, ref, watch } from 'vue';
 const TOP = '--data-table-sheet-top';
 const BOTTOM = '--data-table-sheet-bottom';
 const SAFE = '--data-table-sheet-safe-bottom';
-/** The stylesheet's sheet breakpoint (DataTable.vue `@media (max-width: 833.98px)`). */
+/** The stylesheet's sheet breakpoint (DataTableFilterPanel.vue `@media (max-width: 833.98px)`). */
 const SHEET_QUERY = '(max-width: 833.98px)';
 /** What can take the focus inside the sheet, Ionic's hosts included (their native control is in a shadow root). */
 const FOCUSABLE = [

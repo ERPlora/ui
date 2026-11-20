@@ -8,16 +8,22 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import cardSource from './DataTableCard.vue?raw';
-import identitySource from './DataTableIdentity.vue?raw';
-import listSource from './DataTableListItem.vue?raw';
-import pagerSource from './DataTablePager.vue?raw';
-import actionsSource from './DataTableRowActions.vue?raw';
-import stateSource from './DataTableState.vue?raw';
-import source from './DataTable.vue?raw';
+import {
+  actionsSource,
+  cardSource,
+  identitySource,
+  listSource,
+  pagerSource,
+  panelSource,
+  rowSource,
+  stateSource,
+  tableSource as source,
+} from './__tests__/part-sources';
 
 // From disk: Vitest's CSS handling empties a `.css?raw` import.
 const litCss = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '__tests__/lit-styles.css'), 'utf8');
+/** The scoped sheet the table's parts share (`<style scoped src="./controls.css">`). */
+const controlsCss = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'controls.css'), 'utf8');
 
 interface Rule {
   media: string;
@@ -389,8 +395,9 @@ const RESTYLED: Record<string, string[]> = {
 };
 
 const LIT = parse(litCss);
-const scoped = [source, cardSource, listSource, actionsSource, stateSource, identitySource, pagerSource]
+const scoped = [source, cardSource, listSource, actionsSource, stateSource, identitySource, pagerSource, panelSource, rowSource]
   .map((input) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '')
+  .concat(controlsCss)
   .join('\n');
 const weak = source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
 const VUE = new Map([...parse(scoped), ...parse(weak)]);
