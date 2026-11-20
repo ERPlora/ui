@@ -2,20 +2,14 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
-import { defineComponent, h, reactive } from 'vue';
 
-import { createShellI18n } from '../../shell/i18n';
+import { mountFilterPart } from './__tests__/filter-part';
 import { byTestId, click, mountTable, settle, text } from './__tests__/harness';
+import { pagerSource, panelSource, rowSource, tableSource } from './__tests__/part-sources';
 import DataTableFilterPanel from './DataTableFilterPanel.vue';
 import DataTableLookup from './DataTableLookup.vue';
-import panelSource from './DataTableFilterPanel.vue?raw';
-import pagerSource from './DataTablePager.vue?raw';
-import tableSource from './DataTable.vue?raw';
-import { useDataTableLabels } from './labels';
 import type { DataTableColumn, DataTableFilters, DataTableLabels } from './types';
-import { useFilterControls } from './useFilterControls';
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -41,24 +35,21 @@ interface PanelState {
 
 /** The panel as the table mounts it: the table's filter controls, the applied filters and the sheet. */
 function mountPanel(state: Partial<PanelState> = {}, locale: 'en' | 'es' = 'en') {
-  const props = reactive<PanelState>({ columns: COLUMNS, applied: {}, filtering: false, sheet: false, ...state });
-  const Host = defineComponent({
-    setup() {
-      const { text: label } = useDataTableLabels(() => props.labels);
-      const controls = useFilterControls<Row>({ filterErrors: () => props.filterErrors, label });
-      return () =>
-        h(DataTableFilterPanel<Row>, {
-          filterColumns: props.columns,
-          applied: props.applied,
-          controls,
-          filtering: props.filtering,
-          sheet: props.sheet,
-          labels: props.labels,
-          testid: 'rules',
-        });
-    },
-  });
-  const wrapper = mount(Host, { global: { plugins: [createShellI18n({ locale })] }, attachTo: document.body });
+  const initial: PanelState = { columns: COLUMNS, applied: {}, filtering: false, sheet: false, ...state };
+  const { wrapper, props } = mountFilterPart(
+    DataTableFilterPanel,
+    initial,
+    (s, controls) => ({
+      filterColumns: s.columns,
+      applied: s.applied,
+      controls,
+      filtering: s.filtering,
+      sheet: s.sheet,
+      labels: s.labels,
+      testid: 'rules',
+    }),
+    locale,
+  );
   return { wrapper, props, panel: () => wrapper.findComponent(DataTableFilterPanel) };
 }
 
@@ -191,7 +182,7 @@ describe('DataTableFilterPanel', () => {
   it('its controls take the table’s shell shield from the sheet the parts share, as the table and its footer do: none repeats it', () => {
     const shared = selectors(CONTROLS_CSS);
     expect(shared).toEqual(expect.arrayContaining(['*', ':where(.data-table) ion-button', ':where(.data-table) ion-select', '.data-table__primary-button']));
-    for (const [name, source] of [['DataTable.vue', tableSource], ['DataTablePager.vue', pagerSource], ['DataTableFilterPanel.vue', panelSource]]) {
+    for (const [name, source] of [['DataTable.vue', tableSource], ['DataTablePager.vue', pagerSource], ['DataTableFilterPanel.vue', panelSource], ['DataTableFilterRow.vue', rowSource]]) {
       expect([name, source.includes('<style scoped src="./controls.css"></style>')]).toEqual([name, true]);
       expect([name, selectors(ownStyle(source)).filter((selector) => shared.includes(selector))]).toEqual([name, []]);
     }
