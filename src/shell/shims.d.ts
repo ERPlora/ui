@@ -1,7 +1,7 @@
 // Type shims of the shell, also read by the hub and the SaaS (their tsconfig includes this file).
 //
 // Icons baked by `unplugin-icons` (`erploraVite()`, raw compiler): `~icons/<set>/<name>`
-// is the icon's SVG string, which `icons.ts` registers and `HubIcon` paints through `ion-icon`.
+// is the icon's SVG string, which `set-icons.ts` registers and `HubIcon` paints through `ion-icon`.
 /// <reference types="unplugin-icons/types/raw" />
 
 // `qrcode` as the SPA runs it: the browser build Vite bundles (the package's `browser` field). The
