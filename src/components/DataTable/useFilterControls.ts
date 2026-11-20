@@ -78,3 +78,6 @@ export function useFilterControls<T extends object>(source: {
 
   return { filterName, errorOf, invalidMark, refused, answerError, choicesOf, lookupLabel, rememberPick, endBox, rangeEnds };
 }
+
+/** One table's filter controls state, handed to the parts that paint its filters. */
+export type FilterControls<T extends object> = ReturnType<typeof useFilterControls<T>>;

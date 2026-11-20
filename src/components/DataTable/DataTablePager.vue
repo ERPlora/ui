@@ -160,14 +160,9 @@ const recordWord = computed(
   </div>
 </template>
 
-<style scoped>
-/* The shell shield of DataTable.vue carries that component's scope and never reaches these controls: the
-   rules they need are repeated here, with the same weight, as the other parts of the table do. */
-* { box-sizing: border-box; }
-:where(.data-table) ion-button { height: auto; margin: 4px 2px; text-transform: inherit; font-weight: 500; --border-radius: 6px; }
-:where(.data-table) ion-button[fill="clear"] { font-weight: normal; --color: var(--ion-color-primary, #0054e9); }
-:where(.data-table) ion-select { --border-radius: inherit; }
+<style scoped src="./controls.css"></style>
 
+<style scoped>
 @media (pointer: coarse), (max-width: 834px) {
   .data-table__pager-nav ion-button { min-width: 44px; min-height: 44px; margin: 0; }
 }
@@ -204,6 +199,4 @@ const recordWord = computed(
 .data-table > .data-table__surface > .data-table__pager > .data-table__pager-info > .data-table__pager-size {
   min-height: 44px;
 }
-
-ion-button { --box-shadow: none; }
 </style>
