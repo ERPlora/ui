@@ -9,11 +9,12 @@ import { defineComponent, h, reactive } from 'vue';
 import { createShellI18n } from '../../shell/i18n';
 import { byTestId, click, settle, text } from './__tests__/harness';
 import DataTableFilterPanel from './DataTableFilterPanel.vue';
+import DataTableLookup from './DataTableLookup.vue';
 import panelSource from './DataTableFilterPanel.vue?raw';
 import pagerSource from './DataTablePager.vue?raw';
 import tableSource from './DataTable.vue?raw';
 import { useDataTableLabels } from './labels';
-import type { DataTableColumn, DataTableFilters } from './types';
+import type { DataTableColumn, DataTableFilters, DataTableLabels } from './types';
 import { useFilterControls } from './useFilterControls';
 
 afterEach(() => {
@@ -30,26 +31,29 @@ const COLUMNS: DataTableColumn<Row>[] = [
 ];
 
 interface PanelState {
+  columns: DataTableColumn<Row>[];
   applied: DataTableFilters;
   filtering: boolean;
   sheet: boolean;
   filterErrors?: Record<string, string>;
+  labels?: Partial<DataTableLabels>;
 }
 
 /** The panel as the table mounts it: the table's filter controls, the applied filters and the sheet. */
 function mountPanel(state: Partial<PanelState> = {}, locale: 'en' | 'es' = 'en') {
-  const props = reactive<PanelState>({ applied: {}, filtering: false, sheet: false, ...state });
+  const props = reactive<PanelState>({ columns: COLUMNS, applied: {}, filtering: false, sheet: false, ...state });
   const Host = defineComponent({
     setup() {
-      const { text: label } = useDataTableLabels(() => undefined);
+      const { text: label } = useDataTableLabels(() => props.labels);
       const controls = useFilterControls<Row>({ filterErrors: () => props.filterErrors, label });
       return () =>
         h(DataTableFilterPanel<Row>, {
-          filterColumns: COLUMNS,
+          filterColumns: props.columns,
           applied: props.applied,
           controls,
           filtering: props.filtering,
           sheet: props.sheet,
+          labels: props.labels,
           testid: 'rules',
         });
     },
@@ -109,6 +113,7 @@ describe('DataTableFilterPanel', () => {
     await click(button(m, 'clear'));
     expect(m.panel().emitted('clear')).toEqual([[]]);
     expect(control(m, 'status').value).toBe('');
+    expect(button(m, 'clear').disabled, 'until the table lifts it, a filter is still applied').toBe(false);
     m.props.filtering = false;
     await settle();
     expect(button(m, 'clear').disabled).toBe(true);
@@ -158,6 +163,20 @@ describe('DataTableFilterPanel', () => {
     edit(control(m, 'status'), 'ionChange', 'active');
     await settle();
     expect(control(m, 'status').errorText).toBeFalsy();
+  });
+
+  it('a lookup goes into the draft with the label it was picked with, answers what the server refused and reads the table’s texts', async () => {
+    const columns: DataTableColumn<Row>[] = [{ key: 'user_id', label: 'Employee', filter: { type: 'lookup', load: async () => [] } }];
+    const labels = { lookupEmpty: 'Nobody' };
+    const m = mountPanel({ columns, applied: { user_id: '4' }, filterErrors: { user_id: 'Unknown employee.' }, labels });
+    await settle();
+    const lookup = () => m.wrapper.findComponent(DataTableLookup);
+    expect([lookup().props('errorText'), lookup().props('labels')]).toEqual(['Unknown employee.', labels]);
+    lookup().vm.$emit('change', '7', 'Luis');
+    await settle();
+    expect([lookup().props('value'), lookup().props('display'), lookup().props('errorText')]).toEqual(['7', 'Luis', undefined]);
+    await click(button(m, 'apply'));
+    expect(m.panel().emitted('apply')).toEqual([[{ user_id: '7' }]]);
   });
 
   it('speaks Spanish: «Filtros», «Todos», «Desde» / «Hasta», «Limpiar», «Aplicar» and «Cerrar»', async () => {
