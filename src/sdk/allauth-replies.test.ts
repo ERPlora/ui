@@ -170,3 +170,15 @@ describe("isReauthenticationRequired", () => {
     expect(isReauthenticationRequired(undefined)).toBe(false);
   });
 });
+
+describe("ReauthenticationRequiredError", () => {
+  it("is an ApiError with status 401, its own code and the ids of the flows that confirm it", () => {
+    const err = new ReauthenticationRequiredError(["reauthenticate"]);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err).toMatchObject({ status: 401, code: "reauthentication_required", flows: ["reauthenticate"] });
+    expect(err.name).toBe("ReauthenticationRequiredError");
+    expect(isReauthenticationRequired(err)).toBe(true);
+    expect(isReauthenticationRequired(new ApiError(401, "not_authenticated", "Login"))).toBe(false);
+    expect(isReauthenticationRequired(new Error("x"))).toBe(false);
+  });
+});
