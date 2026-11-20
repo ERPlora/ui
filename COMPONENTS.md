@@ -237,7 +237,7 @@ habla de un sitio concreto de la pantalla → en línea.
 ### `HubIcon`
 `import { HubIcon } from '@erplora/ui/shell'`
 - **Para qué sirve:** pinta un icono horneado de cualquier juego (`ion:`, `lucide:`, `mdi:`, `material-symbols:`) a través de `ion-icon`, sin pedir nada a la red.
-- **Úsalo cuando** cualquier icono de una plantilla; el nombre tiene que estar registrado en `src/shell/icons.ts`.
+- **Úsalo cuando** cualquier icono de una plantilla; el nombre tiene que estar registrado en `src/shell/icons.ts` (los Ionicons) o en `src/shell/set-icons.ts` (los demás juegos).
 - **No lo uses cuando** es un logotipo, una foto o una ilustración → `<img>`; nunca un SVG suelto.
 - **API:** props `name` (`juego:nombre`), `label` (lo hace imagen con nombre accesible; sin él es decorativo), `decorative`; admite `slot` y `color` de Ionic.
 - **Ionic:** `ion-icon`.
