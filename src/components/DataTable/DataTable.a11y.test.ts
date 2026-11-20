@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { unnamedButtons, unnamedIcons } from '../../testing/a11y';
-import { byTestId, click, ionChange, mountTable, settle, viewport, type Table } from './__tests__/harness';
+import { byTestId, click, ionChange, mountTable, PopoverStub, settle, text, viewport, type Table } from './__tests__/harness';
 import source from './DataTable.vue?raw';
 
 beforeEach(() => {
@@ -49,9 +49,9 @@ async function fullTable(props: Record<string, unknown> = {}, locale: 'en' | 'es
   return t;
 }
 
-/** The `aria-label` of a button: on the host, or where hydrated Ionic moves it (its native button). */
+/** The `aria-label` a reader hears: on the native button hydrated Ionic hands it to, else on the host. */
 const ariaLabel = (el: Element): string | null | undefined =>
-  el.getAttribute('aria-label') ?? el.shadowRoot?.querySelector('button')?.getAttribute('aria-label');
+  el.shadowRoot?.querySelector('button')?.getAttribute('aria-label') ?? el.getAttribute('aria-label');
 
 const describeAll = (els: Element[]): string[] =>
   els.map((el) => `${el.tagName.toLowerCase()}.${el.className} ${el.outerHTML.slice(0, 120)}`);
@@ -107,6 +107,44 @@ describe('no unnamed icon and no unnamed button in the DataTable', () => {
     expect(headers().map((h) => h.getAttribute('aria-sort'))).toEqual(['ascending', null]);
     await click(headers()[0]);
     expect(headers().map((h) => h.getAttribute('aria-sort'))).toEqual(['descending', null]);
+  });
+});
+
+describe('a row action says which row it affects', () => {
+  type Person = { id: string; name: string };
+  const PEOPLE: Person[] = [
+    { id: '1', name: 'Carlos Ruiz' },
+    { id: '2', name: 'Ana Gil' },
+  ];
+  const ROLE = { id: 'role', label: 'Change role', icon: 'swap-horizontal-outline', showLabel: true, ariaLabel: (p: Person) => `Change role: ${p.name}` };
+  const REMOVE = { id: 'remove', label: 'Remove', icon: 'trash-outline', menuOnly: true, ariaLabel: (p: Person) => `Remove ${p.name}` };
+  const members = async () => {
+    const t = mountTable({ rows: PEOPLE, columns: [{ key: 'name', label: 'Name' }], actions: [ROLE, REMOVE], testid: 'members' }, { attachTo: document.body });
+    await settle();
+    return t;
+  };
+
+  it('each row’s button is named, and titled, with its own row; its text on screen stays short', async () => {
+    const t = await members();
+    const buttons = ['1', '2'].map((id) => byTestId(t, `members-row-${id}-role`)[0]);
+    expect(buttons.map(ariaLabel)).toEqual(['Change role: Carlos Ruiz', 'Change role: Ana Gil']);
+    expect(buttons.map((b) => b.getAttribute('title'))).toEqual(['Change role: Carlos Ruiz', 'Change role: Ana Gil']);
+    expect(buttons.map(text)).toEqual(['Change role', 'Change role']);
+  });
+
+  it('each row’s «⋮» item is named with its own row; its text on screen stays short', async () => {
+    const t = await members();
+    const named: (string | null | undefined)[] = [];
+    for (const id of ['1', '2']) {
+      await click(byTestId(t, `members-row-${id}-menu`)[0]);
+      const item = byTestId(t, `members-row-${id}-remove`)[0];
+      expect(text(item)).toBe('Remove');
+      named.push(ariaLabel(item));
+      // Its backdrop closes the menu before another row's «⋮» can be tapped.
+      t.findComponent(PopoverStub).vm.$emit('didDismiss');
+      await settle();
+    }
+    expect(named).toEqual(['Remove Carlos Ruiz', 'Remove Ana Gil']);
   });
 });
 

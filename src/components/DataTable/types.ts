@@ -190,7 +190,7 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   filter?: DataTableColumnFilter;
 }
 
-/** A row action label: fixed text, or read from the row (it is also the accessible name). */
+/** A row action label: fixed text, or read from the row (it is also the accessible name unless `ariaLabel`). */
 export type DataTableActionLabel<T> = string | ((row: T) => string);
 
 export interface DataTableAction<T = Record<string, unknown>> {
@@ -198,6 +198,9 @@ export interface DataTableAction<T = Record<string, unknown>> {
   id: string;
   /** Button text, or its accessible name when the action has an icon. */
   label: DataTableActionLabel<T>;
+  /** The accessible name of the row's button (also its tooltip) and of its «⋮» item, when the short `label` does
+   *  not say whom it affects: «Change role: Carlos Ruiz». It starts with the label, which is what voice control hears. */
+  ariaLabel?: (row: T) => string;
   /** Icon name (`ion:` by default, any baked set). Icon actions are icon-only buttons unless `showLabel`. */
   icon?: string;
   /** An icon action that also paints its label in the list, for one whose icon does not say it alone
