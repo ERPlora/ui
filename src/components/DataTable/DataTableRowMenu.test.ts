@@ -29,6 +29,12 @@ describe('DataTableRowMenu', () => {
     expect(items(wrapper)[2].find('ion-icon').exists()).toBe(false);
   });
 
+  it('an item is named by its text unless its action names the row it affects', () => {
+    const named = { ...remove, ariaLabel: (r: Row) => `Delete ${r.name}` };
+    const wrapper = mountMenu({ actions: [archive, named] });
+    expect(items(wrapper).map((item) => item.attributes('aria-label'))).toEqual([undefined, 'Delete Bar La Plaza']);
+  });
+
   it('paints an action with its tone', () => {
     expect(items(mountMenu())[1].find('ion-label').attributes('style')).toContain('color: var(--ion-color-danger, #c5000f)');
   });

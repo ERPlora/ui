@@ -27,6 +27,7 @@ const icon = ionIconSrc;
 const busy = (action: DataTableAction<T>) => action.loading?.(props.row) === true;
 const disabled = (action: DataTableAction<T>) => busy(action) || action.disabled?.(props.row) === true;
 const hook = (id: string) => (props.testid ? `${props.testid}-row-${props.rowId}-${id}` : undefined);
+const name = (action: DataTableAction<T>) => action.ariaLabel?.(props.row) ?? actionLabel(action, props.row);
 /** Its text is painted: the card's main button, `showLabel`, or no icon to stand for it. */
 const labelled = (action: DataTableAction<T>, primary?: boolean) => !!primary || iconWithLabel(action) || !action.icon;
 
@@ -47,8 +48,8 @@ function run(action: DataTableAction<T>): void {
       :data-testid="hook(action.id)"
       :disabled="disabled(action)"
       :aria-disabled="disabled(action) ? 'true' : undefined"
-      :aria-label="actionLabel(action, row)"
-      :title="actionLabel(action, row)"
+      :aria-label="name(action)"
+      :title="name(action)"
       @click="run(action)"
     >
       <ion-spinner
