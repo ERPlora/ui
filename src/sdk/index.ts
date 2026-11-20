@@ -3,23 +3,25 @@
 export {
   ALLAUTH_BROWSER_BASE,
   createAllauthClient,
-  isReauthenticationRequired,
-  ReauthenticationRequiredError,
   type AllauthClient,
   type AllauthDeps,
+  type PasswordChange,
+  type ProviderProcess,
+  type ProviderRedirectForm,
+} from "./allauth";
+export {
+  isReauthenticationRequired,
+  ReauthenticationRequiredError,
   type AllauthFlow,
   type AllauthProvider,
   type AllauthUser,
   type Authenticator,
   type AuthState,
-  type PasswordChange,
   type ProviderAccount,
-  type ProviderProcess,
-  type ProviderRedirectForm,
   type RecoveryCodes,
   type TotpSetup,
   type TotpStatus,
-} from "./allauth";
+} from "./allauth-replies";
 export { createApiClient, type ApiClient, type ApiClientOptions } from "./api-client";
 export { backoffDelay, DEFAULT_RETRY_MS, MAX_BACKOFF_MS } from "./backoff";
 export { readSpaConfig, SPA_CONFIG_ELEMENT_ID, SpaConfigError, type SpaConfig } from "./config";
