@@ -9,7 +9,6 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import { useLiveClient } from '../../sdk/live-client';
-import { nativeBridge } from '../../shell/device-notices';
 import HubIcon from '../../shell/HubIcon.vue';
 import { NOT_FOUND_ROUTE } from '../../shell/router';
 import { useSession } from '../../shell/session';
@@ -21,14 +20,10 @@ import AssistantEmpty from './AssistantEmpty.vue';
 import AssistantMessage from './AssistantMessage.vue';
 import AssistantReport from './AssistantReport.vue';
 import { assistantConfig, spentNoteKeyOf } from './config';
-import { createDeviceReader, deviceEnv } from './deviceVoice';
 import { screenLabel, usageNote } from './guide';
 import type { Bubble } from './history';
-import { parseMarkdown, spokenText } from './markdown';
-import { createDeviceVoice } from './nativeVoice';
-import { browserAudio, createReadAloud } from './readAloud';
-import { browserStorage, useAssistant } from './state';
-import { DEVICE_VOICE, languageOf, readVoiceChoice, saveVoiceChoice, voicesFor } from './voices';
+import { useAssistant } from './state';
+import { useReadAloud } from './useReadAloud';
 
 defineSlots<{
   /** The host's empty conversation: `setup` when the panel was opened for the setup; `ask` sends a question. */
@@ -50,7 +45,6 @@ const state = assistant.state;
 const panel = useTemplateRef<HTMLElement>('panel');
 const thread = useTemplateRef<HTMLElement>('thread');
 const reporting = shallowRef<Bubble | null>(null);
-const speaking = ref<string | null>(null);
 
 watch(
   () => session.user.value?.id,
@@ -222,98 +216,10 @@ function signIn(): void {
   window.location.reload();
 }
 
-const readAloud = config.readAloud !== false;
-const browserVoice = readAloud ? deviceEnv() : null;
-const deviceReader = readAloud
-  ? createDeviceVoice({
-      invoke: nativeBridge()?.invoke ?? null,
-      browser: browserVoice ? createDeviceReader(browserVoice) : null,
-    })
-  : null;
-const reader = readAloud && (config.speak || deviceReader)
-  ? createReadAloud({ speak: config.speak, device: deviceReader, audio: browserAudio() })
-  : null;
-/** Whether the device reads the language aloud: at once with the browser's voice; with only the app's, once it says
- *  so for the language. */
-const deviceReads = ref(deviceReader?.browser ?? false);
-/** «Read aloud» under the answers: a server voice, or the device's for the language. */
-const canSpeak = computed(() => reader !== null && (Boolean(config.speak) || deviceReads.value));
-/** The answer whose «Read aloud» failed: said under it until the next. */
-const failedRead = ref<string | null>(null);
-
-const voiceStorage = browserStorage('localStorage');
-const language = computed(() => languageOf(locale.value));
-const voiceChoice = ref(DEVICE_VOICE);
-const serverVoices = config.voices ?? [];
-watch(
-  language,
-  (current, previous) => {
-    voiceChoice.value = readVoiceChoice(voiceStorage, current, { device: deviceReads.value, voices: serverVoices });
-    // A new language: what was being read in the old one stops.
-    if (previous !== undefined && speaking.value) {
-      reader?.stop();
-      speaking.value = null;
-    }
-  },
-  { immediate: true },
-);
-
-// With only the app's voice, the app is asked once the panel opens whether it reads the language; when it does, the
-// choice kept for the language is read again.
-watch(
-  [() => state.open, language],
-  ([open, current]) => {
-    if (!open || !deviceReader || deviceReader.browser) return;
-    void deviceReader.canRead(current).then((reads) => {
-      if (language.value === current) deviceReads.value = reads;
-    });
-  },
-  { immediate: true },
-);
-watch(deviceReads, (reads) => {
-  voiceChoice.value = readVoiceChoice(voiceStorage, language.value, { device: reads, voices: serverVoices });
+const { canSpeak, speaking, failedRead, listen, voiceChoice, voiceOptions, chooseVoice } = useReadAloud({
+  open: () => state.open,
+  nameOf,
 });
-
-/** What the person may choose: the language's server voices and the device's, where it can read; nothing to choose
- *  without server voices for the language (the host's `speak`, if any, reads in the server's own). */
-const voiceOptions = computed(() => {
-  const voices = voicesFor(serverVoices, language.value);
-  return reader && config.speak && voices.length
-    ? [
-        ...voices.map((voice) => ({ id: voice.id, label: voice.name })),
-        ...(deviceReads.value ? [{ id: DEVICE_VOICE, label: t('assistant.speech.device') }] : []),
-      ]
-    : [];
-});
-
-function chooseVoice(event: CustomEvent<{ value?: unknown }>): void {
-  const choice = String(event.detail.value ?? '');
-  if (!voiceOptions.value.some((option) => option.id === choice)) return;
-  voiceChoice.value = choice;
-  saveVoiceChoice(voiceStorage, language.value, choice);
-}
-
-function listen(bubble: Bubble): void {
-  if (!reader) return;
-  failedRead.value = null;
-  if (speaking.value === bubble.id) {
-    reader.stop();
-    speaking.value = null;
-    return;
-  }
-  speaking.value = bubble.id;
-  reader.read(spokenText(parseMarkdown(bubble.text), nameOf), language.value, voiceChoice.value).then(
-    () => {
-      if (speaking.value === bubble.id) speaking.value = null;
-    },
-    (error: unknown) => {
-      console.warn('assistant: the answer could not be read aloud', error);
-      if (speaking.value !== bubble.id) return;
-      speaking.value = null;
-      failedRead.value = bubble.id;
-    },
-  );
-}
 
 onBeforeUnmount(() => {
   wideQuery?.removeEventListener?.('change', onWide);
@@ -321,7 +227,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('offline', onConnection);
   document.removeEventListener('keydown', onKeydown);
   document.documentElement.classList.remove(DOCKED_CLASS);
-  if (speaking.value) reader?.stop();
 });
 </script>
 
