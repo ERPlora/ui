@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ION_ICONS } from '../../shell/icons';
 import { dataRows, ionChange, mountTable, settle, viewport } from './__tests__/harness';
 import cardSource from './DataTableCard.vue?raw';
+import panelSource from './DataTableFilterPanel.vue?raw';
 import listSource from './DataTableListItem.vue?raw';
 import pagerSource from './DataTablePager.vue?raw';
 import actionsSource from './DataTableRowActions.vue?raw';
@@ -21,13 +22,12 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const VARIABLES = readFileSync(join(HERE, '../../shell/theme/variables.css'), 'utf8');
 
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
-const STYLE = [source, cardSource, listSource, actionsSource, stateSource, pagerSource]
-  .map((input) => stripComments(input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? ''))
-  .join(' ')
-  .replace(/\s+/g, ' ');
+const STYLE = [source, cardSource, listSource, actionsSource, stateSource, pagerSource, panelSource]
+  .map((input) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '')
+  .concat(readFileSync(join(HERE, 'controls.css'), 'utf8')).map(stripComments).join(' ').replace(/\s+/g, ' ');
 /** The unscoped block: rules that must stay weaker than Ionic's own classes (a scoped copy carries Vue's attribute). */
 const WEAK = stripComments(source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\s+/g, ' ');
-const TEMPLATE = (source.match(/<template>([\s\S]*)<\/template>/)?.[1] ?? '').replace(/<!--[\s\S]*?-->/g, '');
+const TEMPLATE = [source, panelSource].map((input) => input.match(/<template>([\s\S]*)<\/template>/)?.[1] ?? '').join('').replace(/<!--[\s\S]*?-->/g, '');
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** Every value `variables.css` gives a custom property, in file order (light, then dark). */

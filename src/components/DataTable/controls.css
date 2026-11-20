@@ -1,0 +1,17 @@
+/* What every part of the table needs on its own controls. A scoped rule reaches only the elements of its own
+   component (and a child's root), so DataTable.vue and each part that paints these controls take this sheet as
+   a scoped block of their own (`<style scoped src="./controls.css">`) instead of a copy.
+
+   Shell shield: in light DOM a document rule beats any `:host` rule of an Ionic component, even Tailwind's
+   layered preflight (`* { margin: 0; padding: 0 }`), and the shell's polish.css restyles ion-button/ion-card.
+   So the table's OWN controls (scoped: slot content is the page's) get back Ionic's ios host values (measured
+   in Chromium) and the `--border-radius` an ion-select inherits from the table. `:where()` keeps them at the
+   lowest specificity that still beats those rules, so every rule of a part wins over them. */
+* { box-sizing: border-box; }
+:where(.data-table) ion-button { height: auto; margin: 4px 2px; text-transform: inherit; font-weight: 500; --border-radius: 6px; }
+:where(.data-table) ion-button[fill="clear"] { font-weight: normal; --color: var(--ion-color-primary, #0054e9); }
+:where(.data-table) ion-select { --border-radius: inherit; }
+ion-button { --box-shadow: none; }
+
+/* The primary button (the toolbar's «Add», the panel's «Apply»): filled in the table's primary colour. */
+.data-table__primary-button { --background: var(--primary); --color: var(--primary-contrast); }
