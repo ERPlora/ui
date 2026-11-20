@@ -2,21 +2,13 @@ import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
 
+import { fakeFrames, frames, restoreWindow } from './__tests__/frames';
 import { useListPlacement } from './useListPlacement';
 
-const realInnerHeight = window.innerHeight;
-/** The animation frames asked, run by hand. */
-let frames: FrameRequestCallback[];
-
-beforeEach(() => {
-  frames = [];
-  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => frames.push(cb));
-  vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
-});
+beforeEach(fakeFrames);
 afterEach(() => {
   vi.restoreAllMocks();
-  Object.defineProperty(window, 'innerHeight', { value: realInnerHeight, configurable: true, writable: true });
-  Reflect.deleteProperty(window, 'visualViewport');
+  restoreWindow();
 });
 
 const boxOf = (top: number, bottom: number) => DOMRect.fromRect({ x: 16, y: top, width: 448, height: bottom - top });
