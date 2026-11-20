@@ -649,8 +649,8 @@ const alignClass = (column: DataTableColumn<T>): string | undefined =>
 
 // ── Row actions ───────────────────────────────────────────────────────────────────────────────
 const listActions = (row: T): DataTableActionCell<T> =>
-  listRowActions(props.actions, row, { maxInline: props.maxInlineActions, folded: rowActionsCollapsed.value });
-const cardActions = (row: T): DataTableActionCell<T> => cardRowActions(props.actions, row);
+  listRowActions(props.actions, row, { maxInline: props.maxInlineActions, folded: rowActionsCollapsed.value, title: cardTitleOf(row) });
+const cardActions = (row: T): DataTableActionCell<T> => cardRowActions(props.actions, row, cardTitleOf(row));
 function runAction(action: DataTableAction<T>, row: T): void {
   emit('action', { actionId: action.id, row });
 }

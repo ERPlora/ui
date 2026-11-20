@@ -201,3 +201,55 @@ describe('the search box shows where the focus is', () => {
     expect(rule(FOCUS, WEAK).at).toBeGreaterThan(borderless.at);
   });
 });
+
+describe('by default, a row action is named with the row’s title', () => {
+  type Shop = { id: string; name: string };
+  const SHOPS: Shop[] = [
+    { id: '1', name: 'Bar La Plaza' },
+    { id: '2', name: 'Café Sol' },
+  ];
+  const EDIT = { id: 'edit', label: 'Edit', icon: 'create-outline', showLabel: true };
+  const DELETE = { id: 'delete', label: 'Delete', icon: 'trash-outline', menuOnly: true };
+  const shops = async (props: Record<string, unknown> = {}, locale: 'en' | 'es' = 'en') => {
+    const base = { rows: SHOPS, columns: [{ key: 'name', label: 'Name' }], actions: [EDIT, DELETE], cardTitleColumn: 'name', testid: 'shops' };
+    const t = mountTable({ ...base, ...props }, { locale, attachTo: document.body });
+    await settle();
+    return t;
+  };
+
+  it('its button and its «⋮» item, reopened for another row, say the row; the text on screen stays short', async () => {
+    const t = await shops();
+    const buttons = ['1', '2'].map((id) => byTestId(t, `shops-row-${id}-edit`)[0]);
+    expect(buttons.map(ariaLabel)).toEqual(['Edit: Bar La Plaza', 'Edit: Café Sol']);
+    expect(buttons.map(text)).toEqual(['Edit', 'Edit']);
+    const named: (string | null | undefined)[] = [];
+    for (const id of ['1', '2']) {
+      await click(byTestId(t, `shops-row-${id}-menu`)[0]);
+      named.push(ariaLabel(byTestId(t, `shops-row-${id}-delete`)[0]));
+      t.findComponent(PopoverStub).vm.$emit('didDismiss');
+      await settle();
+    }
+    expect(named).toEqual(['Delete: Bar La Plaza', 'Delete: Café Sol']);
+  });
+
+  it('in the language of the page', async () => {
+    document.documentElement.lang = 'es';
+    try {
+      const t = await shops({ actions: [{ ...EDIT, label: 'Editar' }, DELETE] }, 'es');
+      expect(ariaLabel(byTestId(t, 'shops-row-2-edit')[0])).toBe('Editar: Café Sol');
+    } finally {
+      document.documentElement.lang = '';
+    }
+  });
+
+  it('on a phone, each card’s main button says its row', async () => {
+    viewport(true);
+    const t = await shops({ views: true });
+    expect(['1', '2'].map((id) => ariaLabel(byTestId(t, `shops-row-${id}-edit`)[0]))).toEqual(['Edit: Bar La Plaza', 'Edit: Café Sol']);
+  });
+
+  it('a table without a row title keeps the short label as the name', async () => {
+    const t = await shops({ cardTitleColumn: undefined });
+    expect(ariaLabel(byTestId(t, 'shops-row-1-edit')[0])).toBe('Edit');
+  });
+});
