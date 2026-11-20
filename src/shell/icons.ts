@@ -4,7 +4,7 @@
 //     `data:image/svg+xml;utf8,<svg …>` URL that `ion-icon` parses inline. `createShell` registers
 //     them with `addIcons(ION_ICONS)`, so a template's `ion-icon` with a `name` paints offline.
 //   - The other Iconify sets (`lucide:`, `mdi:`, `material-symbols:`) are baked in `set-icons.ts` (SET_ICONS).
-// Only what is registered here, or in a table spread into ION_ICONS, exists; anything else paints nothing and fails
+// Only what is in ION_ICONS (or a table spread into it) or SET_ICONS exists; anything else paints nothing and fails
 // `icons.test.ts` when a template, an `ionIconSrc`/`resolveIcon` call, an `icon:` key or a `*_ICONS` table names it.
 import {
   add,
