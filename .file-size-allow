@@ -7,7 +7,6 @@
 608 src/components/Assistant/state.test.ts erplora-next#77
 413 src/components/Assistant/state.ts erplora-next#77
 792 src/components/Combo/Combo.test.ts erplora-next#77
-571 src/components/Combo/Combo.vue erplora-next#77
 985 src/components/DataTable/DataTable.filters.test.ts erplora-next#77
 705 src/components/DataTable/DataTable.test.ts erplora-next#77
 523 src/components/DataTable/DataTable.visual.test.ts erplora-next#77
