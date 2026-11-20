@@ -59,10 +59,10 @@ import {
   rowKeyOf,
   sameRecords,
   searchRows,
-  sortRows,
 } from './model';
 import { cardRowActions, listRowActions } from './rowActions';
 import { useCardParts } from './useCardParts';
+import { useColumnSort } from './useColumnSort';
 import { useMediaQuery } from './useMediaQuery';
 import { useRowMenu } from './useRowMenu';
 import { useRowSelection } from './useRowSelection';
@@ -276,8 +276,6 @@ const clientPage = ref(0);
 const clientPageSize = ref(0);
 /** Rows the end of the scroll has accumulated while windowed (0 = one page). */
 const mobileShown = ref(0);
-const clientSort = ref('');
-const clientSortDir = ref<DataTableSortDir>('asc');
 /** The person's pick in the column chooser, per key; untouched columns follow their `hidden`. */
 const columnChoice = ref(new Map<string, boolean>());
 
@@ -531,12 +529,23 @@ function rangeEnds(column: DataTableColumn<T>): Array<{ name: string; hint: stri
   ];
 }
 
-// ── Rows on screen ────────────────────────────────────────────────────────────────────────────
-const clientRows = computed(() => {
-  const found = filterRows(searchRows(props.rows, props.searchKeys, q.value), filterColumns.value, filterValues.value);
-  const column = clientSort.value ? props.columns.find((c) => c.key === clientSort.value) : undefined;
-  return column ? sortRows(found, column, clientSortDir.value) : found;
+// ── Sorting ───────────────────────────────────────────────────────────────────────────────────
+const { isSortable, isSorted, caretIcon, ariaSort, onHeaderClick, sortedRows } = useColumnSort<T>({
+  serverSide: () => props.serverSide,
+  sort: () => props.sort,
+  sortDir: () => props.sortDir,
+  columns: () => props.columns,
+  emit: (sort) => emit('sortChange', sort),
+  // Reordering changes WHICH rows the accumulated window holds.
+  reordered: () => {
+    mobileShown.value = 0;
+  },
 });
+
+// ── Rows on screen ────────────────────────────────────────────────────────────────────────────
+const clientRows = computed(() =>
+  sortedRows(filterRows(searchRows(props.rows, props.searchKeys, q.value), filterColumns.value, filterValues.value)),
+);
 const pageSizeNow = computed(() => (props.serverSide ? props.pageSize : clientPageSize.value || props.pageSize));
 const pager = computed(() =>
   pagerState({
@@ -705,35 +714,6 @@ function resetSearch(): void {
   mobileShown.value = 0;
   emit('update:search', '');
   clearFilters();
-}
-
-// ── Sorting ───────────────────────────────────────────────────────────────────────────────────
-/** Server: opt-in (`sortable`). Client: every column unless `sortable: false`. */
-const isSortable = (column: DataTableColumn<T>): boolean => (props.serverSide ? !!column.sortable : column.sortable !== false);
-const isSorted = (column: DataTableColumn<T>): boolean =>
-  isSortable(column) && (props.serverSide ? props.sort === column.key : clientSort.value === column.key);
-const sortDirNow = (): DataTableSortDir => (props.serverSide ? props.sortDir : clientSortDir.value);
-function caretIcon(column: DataTableColumn<T>): string {
-  if (!isSorted(column)) return ICONS.sortNone;
-  return sortDirNow() === 'asc' ? ICONS.sortAsc : ICONS.sortDesc;
-}
-/** What the caret shows, said to assistive tech: only on the sorted column (ARIA). */
-function ariaSort(column: DataTableColumn<T>): 'ascending' | 'descending' | undefined {
-  if (!isSorted(column)) return undefined;
-  return sortDirNow() === 'asc' ? 'ascending' : 'descending';
-}
-function onHeaderClick(column: DataTableColumn<T>): void {
-  if (!isSortable(column)) return;
-  if (props.serverSide) {
-    emit('sortChange', { sort: column.key, dir: props.sort === column.key && props.sortDir === 'asc' ? 'desc' : 'asc' });
-    return;
-  }
-  mobileShown.value = 0; // reordering changes WHICH rows the accumulated window holds
-  if (clientSort.value === column.key) clientSortDir.value = clientSortDir.value === 'asc' ? 'desc' : 'asc';
-  else {
-    clientSort.value = column.key;
-    clientSortDir.value = 'asc';
-  }
 }
 
 // ── Pager ─────────────────────────────────────────────────────────────────────────────────────
