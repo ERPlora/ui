@@ -80,6 +80,14 @@ describe('useListPlacement: opening', () => {
     expect(list.placement.value).toEqual({ side: 'bottom', room: 308, top: 124, bottom: 748 });
   });
 
+  it('over the field, the room up to the top of what the person sees (the page zoomed and scrolled)', () => {
+    const list = setup(380, 436);
+    Object.defineProperty(window, 'visualViewport', { value: { offsetTop: 100, height: 400 }, configurable: true });
+    list.place(true);
+    // Under it: 500 − 436 − 16 = 48. Over it: 380 − 100 − 16 = 264.
+    expect(list.placement.value).toMatchObject({ side: 'top', room: 264 });
+  });
+
   it('without a field it stays where it was', () => {
     const list = setup(100, 156);
     list.target.value = null;
@@ -110,6 +118,14 @@ describe('useListPlacement: open', () => {
     list.body.value = { offsetHeight: 308 } as HTMLElement;
     list.place();
     expect(list.placement.value).toMatchObject({ side: 'bottom', room: 308 });
+  });
+
+  it('the on-screen keyboard showing up, with the field where it was, leaves less room', () => {
+    const list = setup(100, 156);
+    list.place(true);
+    Object.defineProperty(window, 'visualViewport', { value: { offsetTop: 0, height: 440 }, configurable: true });
+    list.place();
+    expect(list.placement.value).toEqual({ side: 'bottom', room: 268, top: 164, bottom: 708 });
   });
 
   it('the same place keeps the same placement, so nothing is painted again', () => {
