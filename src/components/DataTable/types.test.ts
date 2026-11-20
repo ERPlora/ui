@@ -44,16 +44,18 @@ describe('DataTable types', () => {
     expect(column.key).toBe('total');
   });
 
-  it('a row action label may be read from the row; disabled/loading/hidden are per row', () => {
+  it('a row action label may be read from the row; its accessible name, disabled/loading/hidden are per row', () => {
     const action: DataTableAction<Item> = {
       id: 'refund',
       label: (row) => `Refund ${row.total}`,
+      ariaLabel: (row) => `Refund ${row.total}: ${row.name}`,
       icon: 'arrow-undo-outline',
       color: 'danger',
       disabled: (row) => row.total === 0,
       loading: () => false,
       hidden: (row) => row.total < 0,
     };
+    expectTypeOf<DataTableAction<Item>['ariaLabel']>().toEqualTypeOf<((row: Item) => string) | undefined>();
     expectTypeOf<DataTableActionEvent<Item>>().toEqualTypeOf<{ actionId: string; row: Item }>();
     expect(action.id).toBe('refund');
   });

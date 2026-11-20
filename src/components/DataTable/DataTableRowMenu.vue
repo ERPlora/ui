@@ -51,6 +51,7 @@ function pick(action: DataTableAction<T>): void {
           :data-testid="hook ? `${hook}-${action.id}` : undefined"
           :disabled="disabled(action, row)"
           :aria-disabled="disabled(action, row) ? 'true' : undefined"
+          :aria-label="action.ariaLabel?.(row)"
           @click="pick(action)"
         >
           <ion-icon
