@@ -99,6 +99,12 @@ Inventario 6.
 - El color de datos dice qué medida es, no cómo va: un estado (agotado, descuadre) va aparte, con texto
   e icono, y nunca cambia el tono de la cifra.
 - Más de seis categorías se agrupan; no se añaden colores.
+- En los gráficos (`BarChart`, `LineChart`, `BarList` y la minigráfica de `StatCard`, hoja
+  `charts.css`), cada serie pinta sus barras o líneas a 3:1 o más sobre la tarjeta en todas las paletas y
+  modos. Con dos series o más el color nunca va solo: cada serie tiene su forma (barra rellena, con
+  contorno o discontinua; línea continua, discontinua o punteada) y una leyenda las nombra. Ejes,
+  etiquetas, leyenda y pie van en el texto atenuado del tema, nunca en el color de la serie. Cada gráfico
+  lleva su descripción en texto y la tabla con los mismos valores para el lector de pantalla.
 
 ## 4. Tipografía y números
 

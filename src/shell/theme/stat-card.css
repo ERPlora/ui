@@ -9,6 +9,7 @@
  *   __head, __icon, __heading, __label, __note, __chevron   the top row: icon, label, note and the link arrow
  *   __value                          the figure
  *   __meta, __trend[data-trend], __empty, __error, __retry  the bottom row: trend, «no data» or the error and Retry
+ *   __spark                          the sparkline under it: an svg with one polyline, in the card's ink
  *   __bone (--icon, --label, --value, --line)               the ion-skeleton-text while it loads
  */
 
@@ -197,6 +198,30 @@
   --color: var(--ep-danger-text);
   min-height: var(--ep-touch-min);
   margin: 0 0 0 auto;
+}
+
+/* The sparkline: the figure's recent values as one line at the foot of the card, its stroke as thick on every width. */
+.ep-stat-card .ep-stat-card__spark {
+  display: block;
+  flex: none;
+  width: 100%;
+  height: 2rem;
+  margin-top: auto;
+  overflow: visible;
+  color: var(--stat-card-ink);
+}
+.ep-stat-card .ep-stat-card__meta + .ep-stat-card__spark {
+  margin-top: 0.5rem;
+}
+.ep-stat-card--live .ep-stat-card__spark {
+  color: var(--ep-data-on-gradient);
+}
+.ep-stat-card .ep-stat-card__spark polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* Loading: Ionic's skeleton bars in the places of the icon, the label, the value and the bottom row. */

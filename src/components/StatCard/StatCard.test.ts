@@ -198,3 +198,36 @@ describe('StatCard: loading, empty and error', () => {
     expect(wrapper.attributes('data-testid')).toBe('home-sales');
   });
 });
+
+describe('StatCard: the sparkline', () => {
+  it('draws the trend of its figure under it as one line, hidden from a screen reader that reads the figure', async () => {
+    const { wrapper } = await mountCard({ sparkline: [5, 15, 10] });
+    const spark = wrapper.get('svg.ep-stat-card__spark');
+    expect(spark.attributes('aria-hidden')).toBe('true');
+    expect(spark.attributes('preserveAspectRatio')).toBe('none');
+    const line = spark.get('polyline');
+    expect(line.attributes('points')).toBe('0,30 50,2 100,16');
+    expect(line.attributes('vector-effect')).toBe('non-scaling-stroke');
+    expect(wrapper.element.lastElementChild).toBe(spark.element);
+  });
+
+  it('draws it on the lively card too, after the trend', async () => {
+    const { wrapper } = await mountCard({
+      variant: 'live',
+      sparkline: [1, 2],
+      trend: { direction: 'up', label: '12.4 % more' },
+    });
+    const parts = [...wrapper.element.children].map((part) => part.getAttribute('class'));
+    expect(parts.slice(-2)).toEqual(['ep-stat-card__meta ep-stat-card__trend', 'ep-stat-card__spark']);
+  });
+
+  it.each([
+    ['loading', { loading: true }],
+    ['empty', { value: null }],
+    ['error', { error: true }],
+    ['without values', { sparkline: [] }],
+  ])('draws none %s', async (_state, props) => {
+    const { wrapper } = await mountCard({ sparkline: [5, 15, 10], ...props });
+    expect(wrapper.find('.ep-stat-card__spark').exists()).toBe(false);
+  });
+});

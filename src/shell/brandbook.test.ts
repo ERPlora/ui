@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -90,6 +90,50 @@ describe('ERPlora brandbook', () => {
       // The soft variant is the card's own look: its marker has no rule of its own.
       if (name !== 'ep-stat-card--soft') expect(sheet, name).toMatch(new RegExp(`\\.${name}(?![\\w-])`));
       if (name !== 'ep-stat-grid') expect(component, name).toContain(name);
+    }
+  });
+
+  it('draws the sparkline in a lively and in a soft figure card', () => {
+    const page = read('docs/brandbook.html');
+    const cards = [...page.matchAll(/<(article|a)\b[^>]*class="[^"]*\bep-stat-card\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g)].map((m) => m[0]);
+    const sparked = cards.filter((card) => /<svg class="ep-stat-card__spark"[^>]*>\s*<polyline points="[\d., ]+"/.test(card));
+    expect(sparked.some((card) => card.includes('ep-stat-card--live'))).toBe(true);
+    expect(sparked.some((card) => card.includes('ep-stat-card--soft'))).toBe(true);
+  });
+
+  it('shows the charts with their real sheet: bars and a line with two series and their legend, a bar list and its states', () => {
+    const page = read('docs/brandbook.html');
+    const sheets = [...page.matchAll(/href="\.\.\/src\/shell\/theme\/([\w-]+)\.css"/g)].map((m) => m[1]);
+    expect(sheets.indexOf('charts')).toBeGreaterThan(sheets.indexOf('stat-card'));
+    const figures = [...page.matchAll(/<figure\b[^>]*class="ep-chart"[^>]*>[\s\S]*?<\/figure>/g)].map((m) => m[0]);
+    const ready = (kind: string) => figures.filter((f) => f.includes(`data-kind="${kind}"`) && f.includes('data-state="ready"'));
+    for (const kind of ['bars', 'line']) {
+      const [figure] = ready(kind);
+      expect(figure, kind).toBeDefined();
+      expect([...figure.matchAll(/class="ep-chart__key"/g)], `${kind} legend`).toHaveLength(2);
+      expect(figure, `${kind} table`).toMatch(/<div class="ep-chart__table"><table>\s*<caption>/);
+      expect(figure, `${kind} caption`).toContain('<figcaption class="ep-chart__caption">');
+    }
+    expect(ready('list')).toHaveLength(1);
+    for (const state of ['loading', 'empty', 'error']) {
+      expect(figures.some((f) => f.includes(`data-state="${state}"`)), state).toBe(true);
+    }
+  });
+
+  it('uses only classes of the charts that their sheet and their components define', () => {
+    const page = read('docs/brandbook.html');
+    const sheet = read('src/shell/theme/charts.css');
+    const folder = 'src/components/Chart';
+    const components = readdirSync(join(ROOT, folder))
+      .filter((file) => file.endsWith('.vue'))
+      .map((file) => read(`${folder}/${file}`))
+      .join('\n');
+    const used = new Set([...page.matchAll(/\bep-chart[\w-]*/g)].map((m) => m[0]));
+    expect(used.size).toBeGreaterThan(20);
+    for (const name of used) {
+      // The error is InlineFeedback's own look in the app: the class only names the part.
+      if (name !== 'ep-chart__error') expect(sheet, name).toMatch(new RegExp(`\\.${name}(?![\\w-])`));
+      expect(components, name).toContain(name);
     }
   });
 

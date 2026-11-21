@@ -27,8 +27,10 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - pedir confirmación antes de algo irreversible → `useConfirm` (o `ConfirmDialog`)
 - el estado de un registro en una etiqueta de color → `StatusPill`
 - cuánto se ha gastado de un límite / una cifra de uso → `UsageMeter` / `UsageCounter`
-- una cifra de Inicio, de un informe o de una app (ventas de hoy, tickets), con tendencia o destino → `StatCard`, en
-  una fila `ep-stat-grid`
+- una cifra de Inicio, de un informe o de una app (ventas de hoy, tickets), con tendencia, minigráfica o destino →
+  `StatCard`, en una fila `ep-stat-grid`
+- un gráfico: valores por día u hora en barras / en líneas / un ranking de nombres con su barra → `BarChart` /
+  `LineChart` / `BarList`
 - informar de un problema sin salir de la app → `ReportProblemModal`
 - la persona / un icono → `UserAvatar` / `HubIcon`
 - el marco de una pantalla (barra superior, Atrás, acciones, pestañas) → `AppPage`
@@ -169,8 +171,32 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **Para qué sirve:** la tarjeta de cifra, uno de los ocho tipos de tarjeta: la etiqueta, el valor grande y su icono, con una nota y una tendencia opcionales, en uno de los seis colores de datos (`--ep-data-1` a `--ep-data-6`, los mismos de los gráficos). Con destino, toda la tarjeta es un enlace: un solo foco y un solo toque. Pinta su carga, su vacío (sin valor: «—» y «No hay datos en este periodo») y su error, que conserva su propia acción, «Reintentar». Superficie opaca, nunca cristal.
 - **Úsalo cuando** Inicio, un informe o una app enseñan sus cifras. La variante viva (el degradado del tono) es para la fila principal de 2 a 4 cifras: una sola fila, un tono por cifra y nunca dos filas vivas seguidas. La suave (la superficie, con el color en el icono) es para 5 cifras o más y para las filas secundarias. La misma medida lleva el mismo tono en todas las pantallas: Ventas 1, Tickets 2, Ticket medio 3, Mesas 4, Clientes 5, Inventario 6. Un estado (agotado, descuadre) no cambia el tono de la cifra.
 - **No lo uses cuando** son cifras de uso junto a un `UsageMeter` → `UsageCounter`; el resumen de una zona del plano de mesas → `FloorSummary`.
-- **API:** props `label`, `value` (el texto ya formateado con `formatMoney` o `formatQuantity`; sin valor, el vacío), `icon` (`juego:nombre` registrado), `tone` (1 a 6; 1 por defecto), `variant` (`soft` por defecto, o `live`), `note`, `trend` (`{ direction: 'up' | 'down' | 'flat', label, tone? }`: lo que sube va en verde y lo que baja en rojo, salvo que `tone` diga otra cosa), `to`, `loading`, `error`, `emptyLabel`, `testid`; evento `retry`. Mientras carga y con error la tarjeta no abre nada, y la variante viva solo pinta una cifra: los demás estados van en la superficie. La fila es un `div` con la clase `ep-stat-grid`: cuatro tarjetas por fila a lo ancho y dos en la tableta y el teléfono. El aspecto vive en `src/shell/theme/stat-card.css`, que carga `createShell`, y el brandbook lo enseña con esa misma hoja.
+- **API:** props `label`, `value` (el texto ya formateado con `formatMoney` o `formatQuantity`; sin valor, el vacío), `icon` (`juego:nombre` registrado), `tone` (1 a 6; 1 por defecto), `variant` (`soft` por defecto, o `live`), `note`, `trend` (`{ direction: 'up' | 'down' | 'flat', label, tone? }`: lo que sube va en verde y lo que baja en rojo, salvo que `tone` diga otra cosa), `sparkline` (los últimos valores de la cifra, del más antiguo al más reciente: la minigráfica, una línea al pie de la tarjeta en su color, sin ejes y oculta al lector de pantalla, que ya lee la cifra y la tendencia; solo con la cifra cargada), `to`, `loading`, `error`, `emptyLabel`, `testid`; evento `retry`. Mientras carga y con error la tarjeta no abre nada, y la variante viva solo pinta una cifra: los demás estados van en la superficie. La fila es un `div` con la clase `ep-stat-grid`: cuatro tarjetas por fila a lo ancho y dos en la tableta y el teléfono. El aspecto vive en `src/shell/theme/stat-card.css`, que carga `createShell`, y el brandbook lo enseña con esa misma hoja.
 - **Ionic:** `ion-skeleton-text` (la carga) e `ion-button` (Reintentar), con `HubIcon`, `RouterLink` y las clases `ep-surface` y `ep-icon-tile`.
+
+### `BarChart`
+`import { BarChart } from '@erplora/ui/components'`
+- **Para qué sirve:** valores por etiqueta (días, horas) en barras verticales sobre una escala redonda desde cero, una barra por serie lado a lado, en los colores de datos (`--ep-data-1` a `--ep-data-6`, los de `StatCard`). Con dos series o más, cada una lleva además su forma (rellena, con contorno, discontinua) y una leyenda las nombra; un valor bajo cero cuelga de la línea del cero y uno que falta no se dibuja. Debajo, la descripción en texto; para el lector de pantalla, la tabla con los mismos valores (el dibujo se le oculta). Pinta su carga, su vacío y su error con «Reintentar». SVG y CSS, sin librería.
+- **Úsalo cuando** un informe o un panel compara importes o recuentos por día, semana o categoría, y hasta seis series.
+- **No lo uses cuando** son valores a lo largo del tiempo continuo (horas de un día, días de un mes) → `LineChart`; un ranking de nombres con su valor → `BarList`; una sola cifra con su evolución → `StatCard` con `sparkline`.
+- **API:** props `labels`, `series` (`{ label, values: (número o null)[], tone? }[]`: sin `tone`, la primera es la serie 1, la segunda la 2…; seis como mucho, más se agrupan antes en «Otros»), `description` (obligatoria: el pie y el nombre de la tabla), `format` (escribe los valores del eje y de la tabla, p. ej. `(v) => formatMoney(v, locale, money)`; por defecto, un número en el idioma de la persona), `loading`, `error`, `emptyLabel`, `testid`; evento `retry`. El aspecto vive en `src/shell/theme/charts.css`, que carga `createShell`, y el brandbook lo enseña con esa misma hoja.
+- **Ionic:** `ion-skeleton-text` (la carga) e `ion-button` (Reintentar), con `InlineFeedback` para el error.
+
+### `LineChart`
+`import { LineChart } from '@erplora/ui/components'`
+- **Para qué sirve:** valores por etiqueta en líneas sobre una escala redonda desde cero, cada punto sobre el centro de su etiqueta; la primera serie lleva un sombreado suave hasta el cero y cada serie siguiente su propio trazo (discontinuo, punteado) además de su color, con una leyenda. Un valor que falta corta la línea. Descripción, tabla para el lector de pantalla y estados, como `BarChart`.
+- **Úsalo cuando** se sigue una medida a lo largo del tiempo (las ventas por hora de hoy frente al mismo día de la semana anterior).
+- **No lo uses cuando** se comparan categorías sueltas → `BarChart` o `BarList`.
+- **API:** las mismas props y el mismo evento que `BarChart`.
+- **Ionic:** como `BarChart`.
+
+### `BarList`
+`import { BarList } from '@erplora/ui/components'`
+- **Para qué sirve:** una lista ordenada de nombres, cada uno con su valor escrito y una barra tan larga como su parte del mayor (un valor bajo cero, por su tamaño y en rojo). La lista con nombres y valores es lo que lee el lector de pantalla; las barras son solo para la vista.
+- **Úsalo cuando** se enseña un reparto o un ranking: ventas por canal, productos más vendidos, descuadres por caja.
+- **No lo uses cuando** los valores van por días u horas → `BarChart` o `LineChart`; es el consumo frente a un tope → `UsageMeter`.
+- **API:** props `items` (`{ label, value: número o null, text, tone? }[]`: `text` es el valor ya formateado por la página; sin valor, sin barra), `tone` (el de las filas que no piden uno; 1 por defecto), `description` (opcional, el pie), `loading`, `error`, `emptyLabel`, `testid`; evento `retry`.
+- **Ionic:** como `BarChart`.
 
 ## Estados y avisos
 
