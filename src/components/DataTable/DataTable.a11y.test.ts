@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { unnamedButtons, unnamedIcons } from '../../testing/a11y';
 import { byTestId, click, ionChange, mountTable, PopoverStub, settle, text, viewport, type Table } from './__tests__/harness';
-import source from './DataTable.vue?raw';
+import { tableSource as source, toolbarSource } from './__tests__/part-sources';
 
 beforeEach(() => {
   viewport(false);
@@ -150,7 +150,7 @@ describe('a row action says which row it affects', () => {
 
 // happy-dom lays nothing out, so the checkbox size and the focus ring are read from the stylesheet.
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
-const WEAK = stripComments(source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '').replace(/\s+/g, ' ');
+const WEAK = stripComments([source, toolbarSource].map((input) => input.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '').join(' ')).replace(/\s+/g, ' ');
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** Body of the first rule whose selector list is exactly `selector`, and where it starts. */
 function rule(selector: string, css: string): { body: string; at: number } {
