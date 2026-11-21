@@ -378,10 +378,10 @@ de la cuenta (`ion:receipt-outline`) en lugar del suyo; el texto lo escribe la p
 
 ### `YouTubeEmbed`
 `import { YouTubeEmbed } from '@erplora/ui/components'`
-- **Para qué sirve:** un vídeo de YouTube que no pide nada a Google hasta pulsarlo: antes solo pinta un póster propio, con el título, la duración y el aviso de que se carga desde YouTube; al pulsar, el reproductor `youtube-nocookie` en línea, sin pantalla completa y sin que su logo saque la ventana de la app a youtube.com. Sin conexión enseña una tarjeta en su lugar, y un id que no es de YouTube no pinta nada.
+- **Para qué sirve:** un vídeo de YouTube que no pide nada a Google hasta pulsarlo: antes solo pinta un póster propio, con el título, la duración y el aviso de que se carga desde YouTube; al pulsar, el reproductor `youtube-nocookie` en línea, con todos sus controles y la pantalla completa, a todo el ancho y en 16:9. Su logo y su título abren el vídeo en YouTube en otra pestaña, nunca en la ventana de la app. Con `language`, los subtítulos salen encendidos en ese idioma y el reproductor habla en él. Sin conexión enseña una tarjeta en su lugar, y un id que no es de YouTube no pinta nada.
 - **Úsalo cuando** un vídeo explicativo va dentro de una página o de una ventana de ayuda.
 - **No lo uses cuando** el vídeo no está en YouTube: aún no hay componente, y se avisa antes de crear uno.
-- **API:** props `videoId` (los 11 caracteres de YouTube), `title` (el del póster y el nombre del reproductor), `duration` (como la escribe la página, «2 min»), `icon`.
+- **API:** props `videoId` (los 11 caracteres de YouTube), `title` (el del póster y el nombre del reproductor), `duration` (como la escribe la página, «2 min»), `icon`, `language` (el código de idioma de la persona, `es` o `pt-BR`; lo que no es un código de idioma no llega al reproductor).
 - **Ionic:** ninguno (botón propio y un `iframe` con sandbox), con `HubIcon`.
 
 ## Asistente
