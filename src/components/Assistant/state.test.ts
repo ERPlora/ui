@@ -1,55 +1,14 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../sdk/errors';
+import { asked, assistantWith, CARD, CREATE, done, hub, LIST, onCard } from './__tests__/assistant-state';
 import { memoryStorage } from './__tests__/mount-assistant';
-import type { AssistantCard } from './card';
-import { type AssistantApproval, configureAssistant } from './config';
+import type { AssistantApproval } from './config';
 import { groundingNotices } from './grounding';
 import { HISTORY_KEY } from './history';
 import { parseMarkdown } from './markdown';
-import { createAssistant, forgetAssistant, installAssistant, OPEN_KEY, useAssistant } from './state';
-import type { PendingCall, TurnBody, TurnFrame, TurnOptions } from './stream';
-
-const CREATE: PendingCall = { call_id: 'c1', name: 'demo__item__create', arguments: '{"name":"Mesa 4"}' };
-const LIST: PendingCall = { call_id: 'r1', name: 'demo__item__list', arguments: '{}' };
-const CARD: AssistantCard = {
-  operation: 'demo.item.create', app: 'demo', app_name: 'Demo', action: 'create', risk: 'normal',
-  fields: [{ name: 'name', label: 'Name', kind: 'text', value: 'Mesa 4' }], count: null, confirm_word: '', blocked: false,
-};
-
-function asked(...calls: PendingCall[]) {
-  return {
-    role: 'assistant' as const,
-    content: '',
-    tool_calls: calls.map((c) => ({ id: c.call_id, type: 'function' as const, function: { name: c.name, arguments: c.arguments } })),
-  };
-}
-const done = (fields: Partial<Extract<TurnFrame, { type: 'done' }>> = {}): TurnFrame => ({
-  type: 'done', append: [], pending: [], continuation: null, ...fields,
-});
-
-/** The round that stops on the card of `CREATE`, the only write the model asked for. */
-const onCard = (): TurnFrame[] => [{ type: 'confirm', card: CARD, call: CREATE }, done({ append: [asked(CREATE)], pending: [CREATE] })];
-
-/** A Hub that answers each POST with the frames of `script`, in order; it records each body. */
-function hub(...script: (TurnFrame[] | Error)[]) {
-  const bodies: TurnBody[] = [];
-  const post = vi.fn(async (body: TurnBody, options: TurnOptions) => {
-    bodies.push(JSON.parse(JSON.stringify(body)) as TurnBody);
-    const next = script.shift();
-    if (!next) throw new Error('nothing scripted');
-    if (next instanceof Error) throw next;
-    for (const frame of next) options.onFrame(frame);
-  });
-  return { post, bodies };
-}
-
-function assistantWith(post: ReturnType<typeof hub>['post'], storage = memoryStorage(), openStorage = memoryStorage()) {
-  const assistant = createAssistant({ post, storage, openStorage, id: (() => { let n = 0; return () => `b${++n}`; })() });
-  assistant.forUser('u1');
-  assistant.setScreenCheck((path) => path === '/settings');
-  return assistant;
-}
+import { createAssistant, OPEN_KEY } from './state';
+import type { PendingCall, TurnBody, TurnOptions } from './stream';
 
 describe('opening and closing', () => {
   it('the device remembers open or closed, and nothing else', () => {
@@ -373,97 +332,6 @@ describe('the conversation', () => {
   });
 });
 
-describe('where an answer came from, for its report (ui#103)', () => {
-  const answer = (assistant: ReturnType<typeof assistantWith>) => assistant.state.thread.bubbles.at(-1)!;
-
-  it('a round that brought pages marks the answer, and the continuation after its tools never unmarks it', async () => {
-    const { post } = hub(
-      [{ type: 'text', text: 'Lo busco.' }, done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok', web: true })],
-      [{ type: 'text', text: 'El IVA es del 10 %.' }, done({ web: false })],
-    );
-    const assistant = assistantWith(post);
-    await assistant.ask('¿Qué IVA tienen las comidas?');
-    expect(answer(assistant)).toMatchObject({ done: true, web: true });
-  });
-
-  it('an answer whose rounds all brought none says so', async () => {
-    const { post } = hub(
-      [done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok', web: false })],
-      [{ type: 'text', text: 'Tienes 3 mesas.' }, done({ web: false })],
-    );
-    const assistant = assistantWith(post);
-    await assistant.ask('¿Cuántas mesas tengo?');
-    expect(answer(assistant)).toMatchObject({ done: true, web: false });
-  });
-
-  it('a host that does not say where a round came from leaves the answer unknown', async () => {
-    const { post } = hub(
-      [done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok', web: false })],
-      [{ type: 'text', text: 'Tienes 3 mesas.' }, done()],
-    );
-    const assistant = assistantWith(post);
-    await assistant.ask('¿Cuántas mesas tengo?');
-    expect(answer(assistant).done).toBe(true);
-    expect(answer(assistant).web).toBeUndefined();
-  });
-
-  it('«Stop» while a round writes leaves the answer unknown: that round never said where it came from', async () => {
-    let calls = 0;
-    const post = vi.fn((_body: TurnBody, options: TurnOptions) => {
-      calls += 1;
-      if (calls === 1) {
-        options.onFrame(done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok', web: false }));
-        return Promise.resolve();
-      }
-      return new Promise<void>((_resolve, reject) => {
-        options.onFrame({ type: 'text', text: 'Según la web' });
-        options.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
-      });
-    });
-    const assistant = assistantWith(post);
-    const running = assistant.ask('¿Qué IVA tienen las comidas?');
-    await vi.waitFor(() => expect(calls).toBe(2));
-    assistant.stop();
-    await running;
-    expect(answer(assistant)).toMatchObject({ text: 'Según la web', stopped: true, done: true });
-    expect(answer(assistant).web).toBeUndefined();
-  });
-
-  it('«Stop» before a round wrote anything keeps what the rounds before it said', async () => {
-    let calls = 0;
-    const post = vi.fn((_body: TurnBody, options: TurnOptions) => {
-      calls += 1;
-      if (calls === 1) {
-        options.onFrame({ type: 'text', text: 'Miro tus mesas.' });
-        options.onFrame(done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok', web: false }));
-        return Promise.resolve();
-      }
-      return new Promise<void>((_resolve, reject) => {
-        options.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
-      });
-    });
-    const assistant = assistantWith(post);
-    const running = assistant.ask('¿Cuántas mesas tengo?');
-    await vi.waitFor(() => expect(calls).toBe(2));
-    assistant.stop();
-    await running;
-    expect(answer(assistant)).toMatchObject({ text: 'Miro tus mesas.', stopped: true, web: false });
-  });
-
-  it('the mark is kept in the tab: after a reload each answer still says it', async () => {
-    const storage = memoryStorage();
-    const { post } = hub(
-      [{ type: 'text', text: 'El IVA es del 10 %.' }, done({ web: true })],
-      [{ type: 'text', text: 'Tienes 3 mesas.' }, done({ web: false })],
-    );
-    const assistant = assistantWith(post, storage);
-    await assistant.ask('¿Qué IVA tienen las comidas?');
-    await assistant.ask('¿Cuántas mesas tengo?');
-    const again = assistantWith(hub().post, storage);
-    expect(again.state.thread.bubbles.filter((b) => b.role === 'assistant').map((b) => b.web)).toEqual([true, false]);
-  });
-});
-
 describe('the setup', () => {
   it('opened from the checklist, the turns carry the setup', async () => {
     const { post, bodies } = hub([done()]);
@@ -536,73 +404,5 @@ describe("a write someone must approve (the host's approval: the Hub's manager)"
     const assistant = await waitingOnCard(post, { run: (request) => request(), declined: () => false });
     await assistant.decide(true);
     expect(assistant.state.thread.bubbles.at(-1)!.error).toBe('requires_elevation');
-  });
-});
-
-describe("the tab's assistant (`useAssistant`), as the host configured it", () => {
-  afterEach(() => {
-    installAssistant(undefined);
-    configureAssistant(undefined);
-    vi.unstubAllGlobals();
-    document.body.innerHTML = '';
-  });
-
-  it('a host that never configured it is told at once', () => {
-    expect(() => useAssistant()).toThrow(/configureAssistant/);
-  });
-
-  it("posts each turn to the host's route, through the host's approval, with the host's pass", async () => {
-    const config = document.createElement('script');
-    config.id = 'spa-config';
-    config.type = 'application/json';
-    config.textContent = JSON.stringify({ csrfCookieName: 'csrftoken', csrfHeader: 'X-CSRFToken', liveUrl: '/api/live', apiBase: '/api', lang: 'es', deviceIdStorageKey: 'erplora.device' });
-    document.body.append(config);
-    const fetcher = vi.fn<typeof fetch>(async () =>
-      new Response('data: {"type":"text","text":"ok"}\n\ndata: {"type":"done","append":[],"pending":[],"continuation":null}\n\n', {
-        headers: { 'Content-Type': 'text/event-stream' },
-      }),
-    );
-    vi.stubGlobal('fetch', fetcher);
-    const run = vi.fn((request: () => Promise<unknown>) => request());
-    configureAssistant({
-      turnUrl: '/api/chat/turn',
-      approval: { run: run as AssistantApproval['run'], declined: () => false },
-      elevationToken: () => 'pass',
-    });
-    const assistant = useAssistant();
-    expect(useAssistant()).toBe(assistant);
-    assistant.forUser('u1');
-    await assistant.ask('Hola');
-    const [url, init] = fetcher.mock.calls[0];
-    expect(url).toBe('/api/chat/turn');
-    expect(new Headers(init?.headers).get('X-Elevation-Token')).toBe('pass');
-    expect(run).toHaveBeenCalledTimes(1);
-    expect(assistant.state.thread.bubbles.at(-1)?.text).toBe('ok');
-  });
-});
-
-describe('signing out (`forgetAssistant`)', () => {
-  afterEach(() => {
-    installAssistant(undefined);
-    sessionStorage.clear();
-  });
-
-  it("forgets the tab's conversation, even when the panel was never opened", () => {
-    sessionStorage.setItem(HISTORY_KEY, JSON.stringify({ user: 'u1', bubbles: [], conversation: [] }));
-    forgetAssistant();
-    expect(sessionStorage.getItem(HISTORY_KEY)).toBeNull();
-  });
-
-  it("empties the tab's assistant and its stored conversation", async () => {
-    const storage = memoryStorage();
-    const { post } = hub([{ type: 'text', text: 'Hola.' }, done({ append: [{ role: 'assistant', content: 'Hola.' }] })]);
-    const assistant = assistantWith(post, storage);
-    installAssistant(assistant);
-    await assistant.ask('Hola');
-    expect(storage.getItem(HISTORY_KEY)).not.toBeNull();
-    forgetAssistant();
-    expect(assistant.state.thread.bubbles).toEqual([]);
-    expect(assistant.state.thread.user).toBe('');
-    expect(storage.getItem(HISTORY_KEY)).toBeNull();
   });
 });
