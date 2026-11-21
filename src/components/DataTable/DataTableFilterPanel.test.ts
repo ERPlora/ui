@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { mountFilterPart } from './__tests__/filter-part';
 import { byTestId, click, mountTable, settle, text } from './__tests__/harness';
-import { pagerSource, panelSource, rowSource, tableSource, toolbarSource } from './__tests__/part-sources';
+import { gridSource, pagerSource, panelSource, rowSource, tableSource, toolbarSource } from './__tests__/part-sources';
 import DataTableFilterPanel from './DataTableFilterPanel.vue';
 import DataTableLookup from './DataTableLookup.vue';
 import type { DataTableColumn, DataTableFilters, DataTableLabels } from './types';
@@ -182,7 +182,7 @@ describe('DataTableFilterPanel', () => {
   it('its controls take the table’s shell shield from the sheet the parts share, as the table and its footer do: none repeats it', () => {
     const shared = selectors(CONTROLS_CSS);
     expect(shared).toEqual(expect.arrayContaining(['*', ':where(.data-table) ion-button', ':where(.data-table) ion-select', '.data-table__primary-button']));
-    for (const [name, source] of [['DataTable.vue', tableSource], ['DataTablePager.vue', pagerSource], ['DataTableFilterPanel.vue', panelSource], ['DataTableFilterRow.vue', rowSource], ['DataTableToolbar.vue', toolbarSource]]) {
+    for (const [name, source] of [['DataTable.vue', tableSource], ['DataTablePager.vue', pagerSource], ['DataTableFilterPanel.vue', panelSource], ['DataTableFilterRow.vue', rowSource], ['DataTableToolbar.vue', toolbarSource], ['DataTableGrid.vue', gridSource]]) {
       expect([name, source.includes('<style scoped src="./controls.css"></style>')]).toEqual([name, true]);
       expect([name, selectors(ownStyle(source)).filter((selector) => shared.includes(selector))]).toEqual([name, []]);
     }
