@@ -8,26 +8,10 @@ import { reactive } from 'vue';
 import { ApiError } from '../../sdk/errors';
 import type { AssistantCard } from './card';
 import { type AssistantApproval, assistantConfig, type AssistantUsage } from './config';
-import { type Executed, groundingNotices } from './grounding';
-import {
-  type Bubble,
-  type ChatMessage,
-  type ContentPart,
-  clearThread,
-  emptyThread,
-  loadThread,
-  saveThread,
-  type Thread,
-} from './history';
-import {
-  type Decision,
-  fromTheWeb,
-  type PendingCall,
-  postTurn,
-  type TurnBody,
-  type TurnFrame,
-  type TurnOptions,
-} from './stream';
+import { groundingNotices } from './grounding';
+import { type Bubble, type ContentPart, clearThread, emptyThread, loadThread, saveThread, type Thread } from './history';
+import { bodyOf, cancelOf, frameReader, markWeb, newRound, type Round, settle, type Turn } from './round';
+import { type Decision, type PendingCall, postTurn, type TurnBody, type TurnOptions } from './stream';
 
 export const OPEN_KEY = 'erplora.assistant.open';
 
@@ -61,16 +45,8 @@ export interface AssistantDeps {
   id?: () => string;
 }
 
-interface Turn {
-  bubble: Bubble;
-  question: string;
-  pending: PendingCall[];
-  continuation: string | null;
-  executed: Executed[];
-  results: string[];
-  /** Whether the answer may quote pages of the web, so far (`fromTheWeb`): no round yet brought any. */
-  web: boolean | undefined;
-}
+/** What follows a round: another one, carrying the answer the model hears for a call, if any; or nothing (`null`). */
+type Next = { decision?: Decision } | null;
 
 function readOpen(storage: Storage | undefined): boolean {
   try {
@@ -91,24 +67,6 @@ function contentOf(text: string, files: Attachment[]): string | ContentPart[] {
     }
   }
   return parts;
-}
-
-/** The conversation as the gateway takes it: an image's file name is the panel's, not a field of its part. */
-function forGateway(conversation: ChatMessage[]): ChatMessage[] {
-  return conversation.map((message) =>
-    Array.isArray(message.content)
-      ? {
-          ...message,
-          content: message.content.map((part) => (part.type === 'image_url' ? { type: part.type, image_url: part.image_url } : part)),
-        }
-      : message,
-  );
-}
-
-/** What a round already wrote, ready for the next one to start its own paragraph: a blank line, never two. */
-function asNewParagraph(text: string): string {
-  if (!text || text.endsWith('\n\n')) return text;
-  return text.endsWith('\n') ? `${text}\n` : `${text}\n\n`;
 }
 
 function isAbort(error: unknown): boolean {
@@ -169,8 +127,9 @@ export function createAssistant(deps: AssistantDeps) {
     if (changed) setOpen(false);
   }
 
-  function finish(error?: string, details?: Record<string, unknown>, stopped = false): void {
-    if (!turn) return;
+  /** Ends the turn; no round follows it (`null`). */
+  function finish(error?: string, details?: Record<string, unknown>, stopped = false): null {
+    if (!turn) return null;
     const { bubble } = turn;
     bubble.done = true;
     if (error) {
@@ -195,97 +154,68 @@ export function createAssistant(deps: AssistantDeps) {
     state.busy = false;
     state.confirm = null;
     save();
+    return null;
   }
 
-  async function run(decision?: Decision): Promise<void> {
-    if (!turn) return;
-    state.busy = true;
-    for (;;) {
-      const current: Turn = turn;
-      controller = new AbortController();
-      let doneFrame: Extract<TurnFrame, { type: 'done' }> | null = null;
-      let confirm: { card: AssistantCard; call: PendingCall } | null = null;
-      let failure: { code: string; details: Record<string, unknown> } | null = null;
-      let spoke = false;
-      const onFrame = (frame: TurnFrame) => {
-        if (frame.type === 'text') {
-          if (!spoke && frame.text) {
-            current.bubble.text = asNewParagraph(current.bubble.text);
-            spoke = true;
-          }
-          current.bubble.text += frame.text;
-        } else if (frame.type === 'executed') current.executed.push({ name: frame.name, kind: frame.kind, outcome: frame.outcome, app: frame.app, app_name: frame.app_name, screen: frame.screen });
-        else if (frame.type === 'usage') state.usage = { used: frame.used, limit: frame.limit, resets_at: frame.resets_at, demo: frame.demo };
-        else if (frame.type === 'confirm') confirm = { card: frame.card, call: frame.call };
-        else if (frame.type === 'error') {
-          const { code, ...rest } = frame;
-          const details: Record<string, unknown> = { ...rest };
-          delete details.type;
-          failure = { code, details };
-          // The foot counts what the refusal counts: «5 left» under «30 of 30» contradicts it.
-          if (code === 'assistant.quota_exceeded' && typeof details.used === 'number' && typeof details.limit === 'number') {
-            const resets = details.resets_at;
-            state.usage = { used: details.used, limit: details.limit, resets_at: typeof resets === 'string' ? resets : null, demo: details.demo === true };
-          }
-        } else if (frame.type === 'done') doneFrame = frame;
-      };
-      const body: TurnBody = { messages: forGateway(state.thread.conversation), setup: state.thread.setup };
-      if (current.continuation) body.continuation = current.continuation;
-      if (current.pending.length) body.pending = current.pending;
-      if (decision) body.decision = decision;
-      decision = undefined;
-      // What this round adds to where the answer came from: its `done`'s word, or, without one, unknown if it wrote.
-      const markWeb = () => {
-        const said = doneFrame as Extract<TurnFrame, { type: 'done' }> | null;
-        current.web = fromTheWeb(current.web, said ? said.web : spoke ? undefined : false);
-        current.bubble.web = current.web;
-      };
-      try {
-        // A write someone must approve (the Hub's manager): the host asks, then the same turn with the pass.
-        const signal = controller.signal;
-        const request = () => post(body, { onFrame, signal });
-        await (approval ? approval.run(request) : request());
-      } catch (error) {
-        if (turn !== current) return;
-        markWeb();
-        if (isAbort(error)) return finish(undefined, undefined, true);
-        const sent = body.decision;
-        if (approval?.declined(error) && sent?.accepted) {
-          // Nobody approved it: not done, and the model hears it as a «Cancel».
-          decision = { call_id: sent.call_id, accepted: false, typed: '', stop: false };
-          continue;
-        }
-        const code = error instanceof ApiError ? error.code : 'assistant.unreachable';
-        return finish(code, error instanceof ApiError ? (error.details ?? {}) : {});
-      }
-      if (turn !== current) return;
-      markWeb();
-      const closed = doneFrame as Extract<TurnFrame, { type: 'done' }> | null;
-      if (closed) {
-        state.thread.conversation.push(...closed.append);
-        for (const message of closed.append) {
-          if (message.role === 'tool' && typeof message.content === 'string') current.results.push(message.content);
-        }
-        current.pending = closed.pending;
-        current.continuation = closed.continuation;
-      }
-      const stopped = failure as { code: string; details: Record<string, unknown> } | null;
-      if (stopped) return finish(stopped.code, stopped.details);
-      const waiting = confirm as { card: AssistantCard; call: PendingCall } | null;
-      if (waiting && waiting.card.blocked) {
-        // Not done from the chat (a dangerous write that names no record): no card, the model hears it and says where.
-        current.bubble.blocked = true;
-        decision = { call_id: waiting.call.call_id, accepted: false, typed: '', stop: false };
-        continue;
-      }
-      if (waiting) {
-        state.confirm = { ...waiting, more: current.pending.length > 1 };
-        save();
-        return;
-      }
-      if (!closed) return finish('assistant.cut');
-      if (current.pending.length === 0) return finish();
+  /** A write someone must approve (the Hub's manager): the host asks, then the same request with the pass. */
+  function send(body: TurnBody, options: TurnOptions): Promise<void> {
+    const request = () => post(body, options);
+    return approval ? approval.run(request) : request();
+  }
+
+  /** A request that failed: «Stop», a write nobody approved (not done, and the model hears a «Cancel»), or the failure. */
+  function afterFailure(error: unknown, sent: Decision | undefined): Next {
+    if (isAbort(error)) return finish(undefined, undefined, true);
+    if (approval?.declined(error) && sent?.accepted) return { decision: cancelOf(sent.call_id) };
+    const code = error instanceof ApiError ? error.code : 'assistant.unreachable';
+    return finish(code, error instanceof ApiError ? (error.details ?? {}) : {});
+  }
+
+  /** A round that arrived whole: it failed, stops on a card, ends the answer, or the reads it asked for go on. */
+  function afterRound(current: Turn, said: Round): Next {
+    if (said.failure) return finish(said.failure.code, said.failure.details);
+    const waiting = said.confirm;
+    if (waiting && waiting.card.blocked) {
+      // Not done from the chat (a dangerous write that names no record): no card, the model hears it and says where.
+      current.bubble.blocked = true;
+      return { decision: cancelOf(waiting.call.call_id) };
     }
+    if (waiting) {
+      state.confirm = { ...waiting, more: current.pending.length > 1 };
+      save();
+      return null;
+    }
+    if (!said.done) return finish('assistant.cut');
+    if (current.pending.length === 0) return finish();
+    return {};
+  }
+
+  /** One request of the turn and its answer; a turn that another one replaced is left as it is. */
+  async function round(current: Turn, decision: Decision | undefined): Promise<Next> {
+    controller = new AbortController();
+    const said = newRound();
+    const onFrame = frameReader(current, said, (usage) => { state.usage = usage; });
+    const body = bodyOf(current, state.thread, decision);
+    try {
+      await send(body, { onFrame, signal: controller.signal });
+    } catch (error) {
+      if (turn !== current) return null;
+      markWeb(current, said);
+      return afterFailure(error, body.decision);
+    }
+    if (turn !== current) return null;
+    markWeb(current, said);
+    if (said.done) settle(current, state.thread.conversation, said.done);
+    return afterRound(current, said);
+  }
+
+  /** Drives the turn it starts with; between two rounds Vue may run watchers that end it or hand the panel over. */
+  async function run(decision?: Decision): Promise<void> {
+    const current = turn;
+    if (!current) return;
+    state.busy = true;
+    let next: Next = { decision };
+    while (next && turn === current) next = await round(current, next.decision);
   }
 
   async function ask(text: string, options: { setup?: boolean } = {}): Promise<void> {
