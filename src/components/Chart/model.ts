@@ -1,3 +1,4 @@
+import { barSpan, lineSegments, position, type Scale, toPoints } from './scale';
 import type { ChartSeries, ChartTone } from './types';
 
 export type ChartMark = 'bar' | 'line';
@@ -32,3 +33,33 @@ export const hasValues = (labels: readonly string[], series: readonly ChartSerie
 
 /** A fraction written as a CSS percentage, for the bars' sizes. */
 export const percent = (fraction: number): string => `${Math.round(fraction * 10000) / 100}%`;
+
+/** Each label's bars, one per series in the series' order; a missing value keeps its place in the group with no bar. */
+export function barGroups(labels: readonly string[], series: readonly DrawnSeries[], scale: Scale) {
+  return labels.map((_label, index) =>
+    series.map((item) => {
+      const value = item.values[index] ?? null;
+      if (value === null) return { item, bar: undefined };
+      const span = barSpan(value, scale);
+      const style = { bottom: percent(span.start), height: percent(span.size) };
+      return { item, bar: { sign: value < 0 ? 'negative' : 'positive', style } };
+    }),
+  );
+}
+
+/** Every line to draw: each series broken where a value is missing, as SVG points in a 100 × 100 box. */
+export const linePaths = (series: readonly DrawnSeries[], scale: Scale) =>
+  series.flatMap((item, index) =>
+    lineSegments(item.values, scale).map((segment, part) => ({ key: `${index}-${part}`, item, segment, points: toPoints(segment) })),
+  );
+
+/** The shade under the first series: each of its lines closed down to the zero line. */
+export function lineShades(series: readonly DrawnSeries[], scale: Scale) {
+  const first = series.slice(0, 1);
+  const zero = Math.round((1 - position(0, scale)) * 10000) / 100;
+  return linePaths(first, scale).map(({ key, item, segment }) => ({
+    key,
+    item,
+    points: toPoints([...segment, [segment[segment.length - 1][0], zero], [segment[0][0], zero]]),
+  }));
+}

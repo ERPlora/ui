@@ -4,65 +4,25 @@
 //   <BarChart :labels="days" :series="[{ label: t('sales.thisWeek'), values: thisWeek },
 //             { label: t('sales.lastWeek'), values: lastWeek }]" :format="(v) => formatMoney(v, locale, money)"
 //             :description="t('sales.byDaySummary', { best })" />
-import { computed } from 'vue';
-
-import ChartFrame from './ChartFrame.vue';
 import ChartPlot from './ChartPlot.vue';
-import { drawnSeries, hasValues, percent } from './model';
-import { barSpan, niceScale } from './scale';
+import { barGroups } from './model';
 import type { ChartProps } from './types';
 
-const props = withDefaults(defineProps<ChartProps>(), {
-  format: undefined,
-  loading: false,
-  error: false,
-  emptyLabel: undefined,
-  testid: undefined,
-});
+defineProps<ChartProps>();
 
 const emit = defineEmits<{ retry: [] }>();
-
-const series = computed(() => drawnSeries(props.series, 'bar'));
-const scale = computed(() => niceScale(series.value.flatMap((item) => item.values)));
-
-/** Each label's bars, one per series; a missing value keeps its place in the group with no bar. */
-const groups = computed(() =>
-  props.labels.map((_label, index) =>
-    series.value.map((item) => {
-      const value = item.values[index] ?? null;
-      if (value === null) return { item, bar: undefined };
-      const span = barSpan(value, scale.value);
-      return {
-        item,
-        bar: { sign: value < 0 ? 'negative' : 'positive', style: { bottom: percent(span.start), height: percent(span.size) } },
-      };
-    }),
-  ),
-);
 </script>
 
 <template>
-  <ChartFrame
-    kind="bars"
-    :drawable="hasValues(labels, props.series)"
-    :description="description"
-    :loading="loading"
-    :error="error"
-    :empty-label="emptyLabel"
-    :testid="testid"
+  <ChartPlot
+    v-bind="$props"
+    mark="bar"
     @retry="emit('retry')"
   >
-    <ChartPlot
-      :labels="labels"
-      :series="series"
-      :scale="scale"
-      mark="bar"
-      :description="description"
-      :format="format"
-    >
+    <template #default="{ series, scale }">
       <div class="ep-chart__bars">
         <div
-          v-for="(group, index) in groups"
+          v-for="(group, index) in barGroups(labels, series, scale)"
           :key="index"
           class="ep-chart__group"
         >
@@ -80,6 +40,6 @@ const groups = computed(() =>
           /></span>
         </div>
       </div>
-    </ChartPlot>
-  </ChartFrame>
+    </template>
+  </ChartPlot>
 </template>

@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { colour, contrast, themes } from '../../components/__tests__/themeContrast';
-import { contentCardFaults, pixels, rulesFor, selectorsOf, themeSheet, valueOf } from './__tests__/sheetRules';
+import { atRuleBody, contentCardFaults, pixels, rulesFor, selectorsOf, themeSheet, valueOf } from './__tests__/sheetRules';
 
 const css = themeSheet('charts.css');
 /** The sheet without its `@media` and `@container` blocks: the look every person gets on a wide screen. */
@@ -11,20 +11,6 @@ const base = css.replace(/@(?:media|container)[^{]*\{[\s\S]*?\}\s*\}/g, '');
 const CHART = '.ep-chart';
 const SERIES = [1, 2, 3, 4, 5, 6] as const;
 const at = (part: string) => `${CHART} .ep-chart__${part}`;
-
-/** The body of the first `@<rule> (<query>) { … }` block whose query starts with `query`. */
-function block(rule: string, query: string): string {
-  const start = css.indexOf(`@${rule} (${query}`);
-  if (start < 0) return '';
-  const open = css.indexOf('{', start);
-  let depth = 0;
-  for (let index = open; index < css.length; index += 1) {
-    if (css[index] === '{') depth += 1;
-    if (css[index] === '}') depth -= 1;
-    if (depth === 0) return css.slice(open + 1, index);
-  }
-  return '';
-}
 
 describe('charts.css: the look of the charts', () => {
   it('styles nothing but the charts', () => {
@@ -104,7 +90,7 @@ describe('charts.css: the look of the charts', () => {
   });
 
   it('on a narrow chart (a phone) it lowers the plot and shows every other label when there are many', () => {
-    const narrow = block('container', 'max-width');
+    const narrow = atRuleBody(css, '@container (max-width');
     expect(narrow, 'a container query of the chart itself').not.toBe('');
     expect(pixels(valueOf(narrow, at('plot'), 'grid-template-rows')?.split(' ')[0])).toBeLessThan(
       pixels(valueOf(base, at('plot'), 'grid-template-rows')?.split(' ')[0])!,
@@ -113,7 +99,7 @@ describe('charts.css: the look of the charts', () => {
   });
 
   it('stays readable in forced colours: marks in the system’s text colour', () => {
-    const forced = block('media', 'forced-colors: active');
+    const forced = atRuleBody(css, '@media (forced-colors: active)');
     expect(valueOf(forced, at('bar'), 'background')).toBe('CanvasText');
     expect(valueOf(forced, at('fill'), 'background')).toBe('CanvasText');
     expect(valueOf(forced, at('line'), 'stroke')).toBe('CanvasText');

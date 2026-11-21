@@ -39,7 +39,7 @@ describe('BarChart: the bars', () => {
     const chart = mountChart();
     expect(chart.element.tagName).toBe('FIGURE');
     expect(chart.classes()).toContain('ep-chart');
-    expect(chart.attributes('data-kind')).toBe('bars');
+    expect(chart.attributes('data-kind')).toBe('bar');
     expect(chart.attributes('data-state')).toBe('ready');
     expect(chart.findAll('.ep-chart__group')).toHaveLength(3);
     expect(texts(chart, '.ep-chart__label')).toEqual(['Mon', 'Tue', 'Wed']);

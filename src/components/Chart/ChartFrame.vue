@@ -11,7 +11,7 @@ import en from './locales/en.json';
 import es from './locales/es.json';
 
 const props = defineProps<{
-  kind: 'bars' | 'line' | 'list';
+  kind: 'bar' | 'line' | 'list';
   /** Whether there is anything to draw. */
   drawable: boolean;
   description?: string;

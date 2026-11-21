@@ -2,7 +2,7 @@
  * look lives in this sheet, loaded after the theme by createShell, so the brandbook shows the charts with the same
  * rules. A chart sits on the card or panel that holds it: no surface of its own.
  *
- *   .ep-chart[data-kind][data-state]   the figure: bars, line or list; ready, loading, empty or error
+ *   .ep-chart[data-kind][data-state]   the figure: bar, line or list; ready, loading, empty or error
  *   [data-tone]                        any mark or key: its colour of data (--ep-data-1 to --ep-data-6)
  *   __legend, __key, __swatch[data-mark][data-pattern]   the names of two series or more, each with its mark's shape
  *   __plot, __axis, __tick, __area, __rules, __rule, __labels, __label   the value axis, its rules and the labels

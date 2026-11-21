@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { BRAND_PALETTES } from './brandbook';
+import { atRuleBody } from './theme/__tests__/sheetRules';
 import { THEME_PALETTES } from './theme';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -15,18 +16,7 @@ function block(css: string, selector: string): string {
   return new RegExp(`(?:^|})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
 }
 
-function mediaBlock(css: string, query: string): string {
-  const start = css.indexOf(`@media (${query})`);
-  if (start < 0) return '';
-  const open = css.indexOf('{', start);
-  let depth = 0;
-  for (let index = open; index < css.length; index += 1) {
-    if (css[index] === '{') depth += 1;
-    if (css[index] === '}') depth -= 1;
-    if (depth === 0) return css.slice(open + 1, index);
-  }
-  return '';
-}
+const mediaBlock = (css: string, query: string): string => atRuleBody(css, `@media (${query})`);
 
 describe('ERPlora brandbook', () => {
   it('is the catalogue behind the seven theme choices', () => {
@@ -107,7 +97,7 @@ describe('ERPlora brandbook', () => {
     expect(sheets.indexOf('charts')).toBeGreaterThan(sheets.indexOf('stat-card'));
     const figures = [...page.matchAll(/<figure\b[^>]*class="ep-chart"[^>]*>[\s\S]*?<\/figure>/g)].map((m) => m[0]);
     const ready = (kind: string) => figures.filter((f) => f.includes(`data-kind="${kind}"`) && f.includes('data-state="ready"'));
-    for (const kind of ['bars', 'line']) {
+    for (const kind of ['bar', 'line']) {
       const [figure] = ready(kind);
       expect(figure, kind).toBeDefined();
       expect([...figure.matchAll(/class="ep-chart__key"/g)], `${kind} legend`).toHaveLength(2);
