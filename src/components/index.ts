@@ -13,6 +13,7 @@ export * from './UsageMeter';
 export * from './StatCard';
 export * from './Combo';
 export * from './AllergenSelect';
+export * from './AllergenRow';
 export * from './ColorInput';
 export * from './MoneyInput';
 export * from './ImageUpload';
