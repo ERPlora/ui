@@ -172,7 +172,7 @@
 .ep-order-ticket .ep-order-ticket__menu-icon {
   color: var(--ep-primary-text);
 }
-.ep-order-ticket .ep-order-ticket__menu-label {
+.ep-order-ticket .ep-order-ticket__menu .ep-order-ticket__menu-label {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;

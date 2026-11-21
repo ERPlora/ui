@@ -433,11 +433,12 @@ propio, solo pone las clases sobre las piezas de Ionic.
   `__pill` sobre `StatusPill`), el cuerpo (`__body`, `__notes`), el menú (`__menu` y sus partes), cada plato (`__dish`
   con `data-status`, `__dish--menu`, `__qty`, `__dish-body`, `__name`, `__allergy`, `__modifiers`, `__dish-note`,
   `__void`, `__meta`, `__state`) y el pie (`__foot`, `__step`, `__more`). En la cabecera, `__label` pone el destino en
-  grande en su propia línea y `__waiter` va debajo, aparte; ambos ajustan primero por palabras enteras. En el plato,
-  `__allergy` es el aviso en línea de la alergia del cliente, en rojo y antes de los suplementos: su icono
-  (`__allergy-icon`), la alergia en un `strong` y, si el plato lleva alguno de esos alérgenos, `__allergy-contains`
-  debajo; la marca «Alergia» de la cabecera es un `__pill` más. `ep-order-ticket-steps` es
-  el `ion-popover` de los demás pasos, y `ep-station-dot` el color de una estación delante de su nombre.
+  grande en su propia línea y `__waiter` va debajo, aparte; ambos ajustan primero por palabras enteras. En la cabecera
+  del menú, `__menu-label` pone el nombre (`__menu-name`) a un lado y cuántos platos lleva (`__menu-count`) al otro, o
+  debajo si no caben juntos. En el plato, `__allergy` es el aviso en línea de la alergia del cliente, en rojo y antes de
+  los suplementos: su icono (`__allergy-icon`), la alergia en un `strong` y, si el plato lleva alguno de esos alérgenos,
+  `__allergy-contains` debajo; la marca «Alergia» de la cabecera es un `__pill` más. `ep-order-ticket-steps` es el
+  `ion-popover` de los demás pasos, y `ep-station-dot` el color de una estación delante de su nombre.
 - **`ep-order-board`:** la rejilla de comandas, y alrededor la barra fija con las vistas y las estaciones
   (`ep-order-board-bar`), la tabla de lo que queda por hacer (`ep-order-board-totals`) y las comandas grises mientras
   carga (`ep-order-board-skeleton`).

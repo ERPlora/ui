@@ -52,6 +52,14 @@ describe('order-ticket.css: the visual language of an order ticket', () => {
     expect(valueOf(css, title!, 'flex-direction')).toBe('column');
   });
 
+  it('keeps a menu’s name apart from its count of dishes when Ionic label styles load later', () => {
+    const label = selectorsOf(css).find((selector) => selector.endsWith('.ep-order-ticket__menu-label'));
+    expect(label).toBeDefined();
+    expect(outweighs(specificity(label!), specificity('.item .sc-ion-label-ios-h'))).toBe(true);
+    expect(valueOf(css, label!, 'display')).toBe('flex');
+    expect(valueOf(css, label!, 'justify-content')).toBe('space-between');
+  });
+
   it('sizes its status pills over StatusPill’s own sizes, whatever order the two sheets load in', () => {
     const pill = selectorsOf(css).filter((selector) => selector.endsWith('__pill'));
     expect(pill).toHaveLength(1);
