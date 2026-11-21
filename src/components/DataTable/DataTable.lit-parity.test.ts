@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import {
   actionsSource,
   cardSource,
+  gridSource,
   identitySource,
   listSource,
   pagerSource,
@@ -396,7 +397,7 @@ const RESTYLED: Record<string, string[]> = {
 };
 
 const LIT = parse(litCss);
-const scoped = [source, toolbarSource, cardSource, listSource, actionsSource, stateSource, identitySource, pagerSource, panelSource, rowSource]
+const scoped = [source, gridSource, toolbarSource, cardSource, listSource, actionsSource, stateSource, identitySource, pagerSource, panelSource, rowSource]
   .map((input) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '')
   .concat(controlsCss)
   .join('\n');

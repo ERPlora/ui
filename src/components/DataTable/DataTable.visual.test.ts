@@ -9,19 +9,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ION_ICONS } from '../../shell/icons';
 import { dataRows, ionChange, mountTable, settle, viewport } from './__tests__/harness';
-import { actionsSource, cardSource, listSource, pagerSource, panelSource, rowSource, stateSource, tableSource as source, toolbarSource } from './__tests__/part-sources';
+import { actionsSource, cardSource, gridSource, listSource, pagerSource, panelSource, rowSource, stateSource, tableSource as source, toolbarSource } from './__tests__/part-sources';
 import { DATA_TABLE_ICONS } from './model';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const VARIABLES = readFileSync(join(HERE, '../../shell/theme/variables.css'), 'utf8');
 
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
-const STYLE = [source, toolbarSource, cardSource, listSource, actionsSource, stateSource, pagerSource, panelSource, rowSource]
+const STYLE = [source, gridSource, toolbarSource, cardSource, listSource, actionsSource, stateSource, pagerSource, panelSource, rowSource]
   .map((input) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '')
   .concat(readFileSync(join(HERE, 'controls.css'), 'utf8')).map(stripComments).join(' ').replace(/\s+/g, ' ');
 /** The unscoped block: rules that must stay weaker than Ionic's own classes (a scoped copy carries Vue's attribute). */
 const WEAK = stripComments([source, toolbarSource].map((input) => input.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '').join(' ')).replace(/\s+/g, ' ');
-const TEMPLATE = [source, toolbarSource, panelSource, rowSource].map((input) => input.match(/<template>([\s\S]*)<\/template>/)?.[1] ?? '').join('').replace(/<!--[\s\S]*?-->/g, '');
+const TEMPLATE = [source, gridSource, toolbarSource, panelSource, rowSource].map((input) => input.match(/<template>([\s\S]*)<\/template>/)?.[1] ?? '').join('').replace(/<!--[\s\S]*?-->/g, '');
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** Every value `variables.css` gives a custom property, in file order (light, then dark). */

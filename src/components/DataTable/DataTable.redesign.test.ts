@@ -4,11 +4,12 @@ import cardSource from './DataTableCard.vue?raw';
 import listSource from './DataTableListItem.vue?raw';
 import actionsSource from './DataTableRowActions.vue?raw';
 import stateSource from './DataTableState.vue?raw';
-import { tableSource as source, toolbarSource } from './__tests__/part-sources';
+import { gridSource, tableSource as source, toolbarSource } from './__tests__/part-sources';
 import { gridTemplate } from './model';
 
 const styles = (input: string) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '';
 const table = styles(source);
+const grid = styles(gridSource);
 const card = styles(cardSource);
 const list = styles(listSource);
 const actions = styles(actionsSource);
@@ -28,7 +29,7 @@ describe('the default focused presentation', () => {
   });
 
   it('does not clip a slotted status chip or its wrapping text', () => {
-    expect(table).not.toMatch(/\.data-table__cell > :deep\(span\) \{ overflow: hidden/);
+    expect(`${table} ${grid}`).not.toMatch(/\.data-table__cell > :deep\(span\) \{ overflow: hidden/);
     expect(list).toContain('.data-table__cell > :deep(span) { min-width: 0; }');
     expect(list).toContain('.data-table__row--data > .data-table__cell:not(.data-table__cell--actions) { flex-wrap: wrap;');
   });
