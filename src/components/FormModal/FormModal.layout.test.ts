@@ -63,8 +63,8 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
 
   /** The dialog's stylesheet applied in a window `width` px wide (happy-dom computes the media
    *  queries, not the layout), on the DOM FormModal and Ionic render. */
-  async function styleAt(width: number, phoneLayout: string, size = 'md') {
-    const win = new Window({ width, height: 844 });
+  async function styleAt(width: number, phoneLayout: string, size = 'md', height = 844) {
+    const win = new Window({ width, height });
     win.document.head.innerHTML = `<style>${STYLE}</style>`;
     win.document.body.innerHTML = `
       <ion-modal class="ep-form-modal" data-size="${size}" data-phone-layout="${phoneLayout}">
@@ -79,7 +79,7 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     };
     const styles = {
       modal: read('ion-modal', ['--width', '--max-width', '--height', '--max-height', '--border-radius', 'align-items']),
-      host: read('.ion-delegate-host', ['display', 'max-height']),
+      host: read('.ion-delegate-host', ['display', 'flex-direction', 'max-height']),
       body: read('.ep-form-modal__body', ['overflow-y', 'min-height', 'max-height']),
     };
     await win.happyDOM.close();
@@ -118,6 +118,19 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
       expect(modal['--height'], layout).toBe('auto');
       expect(modal['align-items'], layout).not.toBe('flex-end');
     }
+  });
+
+  // A tablet in landscape is a low screen (1280×761 CSS px). A footer of six actions wraps into three rows, and with
+  // only the body capped (70vh) the buttons fell past the bottom of the dialog, cut off. The content is
+  // capped like the dialog itself, so the fields scroll between the title and the buttons, which always show.
+  it('from 640px the content is capped like the dialog, so a tall footer stays inside it on a low screen', async () => {
+    const { modal, host, body } = await styleAt(1280, 'sheet', 'md', 761);
+    expect(modal['--max-height']).toBe('calc(100vh - 32px)');
+    expect(host.display).toBe('flex');
+    expect(host['flex-direction']).toBe('column');
+    expect(host['max-height']).toBe('calc(761px - 32px)');
+    expect(body['overflow-y']).toBe('auto');
+    expect(body['min-height']).toBe('0');
   });
 
   // Ionic drops the backdrop and the shadow of a modal opened over another one (`ion-modal.modal-default.show-modal
