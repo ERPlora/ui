@@ -77,6 +77,26 @@ describe('LineChart: the lines', () => {
     expect(chart.findAll('.ep-chart__line').map((line) => line.attributes('points'))).toEqual(['12.5,100 37.5,66.67']);
   });
 
+  it('draws a value with no neighbour as a dot in its series’ colour and shape: the first hour of the day', () => {
+    const chart = mountChart({
+      series: [
+        { label: 'Today', values: [120, null, null, null] },
+        { label: 'Last Tuesday', values: [30, 60, null, 90] },
+      ],
+    });
+    const dots = chart.findAll('.ep-chart__dot');
+    expect(dots.map((dot) => [dot.attributes('data-tone'), dot.attributes('data-pattern')])).toEqual([
+      ['1', 'solid'],
+      ['2', 'dashed'],
+    ]);
+    expect(dots.map((dot) => [(dot.element as HTMLElement).style.left, (dot.element as HTMLElement).style.top])).toEqual([
+      ['12.5%', '20%'],
+      ['87.5%', '40%'],
+    ]);
+    expect(chart.findAll('.ep-chart__line').map((line) => line.attributes('data-tone'))).toEqual(['2']);
+    expect(chart.find('.ep-chart__shade').exists()).toBe(false);
+  });
+
   it('keeps its description on screen and the table of its values for a screen reader', () => {
     const chart = mountChart();
     expect(chart.get('figcaption').text()).toBe(HOURS.description);

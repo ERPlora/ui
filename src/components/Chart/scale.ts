@@ -54,15 +54,15 @@ export function barSpan(value: number, scale: Scale): { start: number; size: num
 /** The centre of the `index`th of `count` equal bands across 100 units: where its label is centred too. */
 export const bandCentre = (index: number, count: number): number => round2(((index + 0.5) / count) * 100);
 
-/** A series as lines in a 100 × 100 box (y grows downwards, as in SVG): a missing value breaks the line, and a point
- *  left alone between two gaps is dropped, because one point draws no line. */
+/** A series as lines in a 100 × 100 box (y grows downwards, as in SVG): a missing value breaks the line. A point left
+ *  alone between two gaps (the first hour of the day) stays as a segment of its own, which the chart draws as a dot. */
 export function lineSegments(values: readonly (number | null)[], scale: Scale): Point[][] {
   const segments: Point[][] = [[]];
   values.forEach((value, index) => {
     if (value === null) segments.push([]);
     else segments[segments.length - 1].push([bandCentre(index, values.length), round2(100 - position(value, scale) * 100)]);
   });
-  return segments.filter((segment) => segment.length > 1);
+  return segments.filter((segment) => segment.length > 0);
 }
 
 /** Pairs of coordinates written as the `points` of an SVG polyline or polygon. */

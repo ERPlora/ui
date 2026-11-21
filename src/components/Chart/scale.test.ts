@@ -10,6 +10,7 @@ describe('niceScale', () => {
     { values: [3, 7], ticks: [0, 2, 4, 6, 8] },
     { values: [128460, 70000], ticks: [0, 50000, 100000, 150000] },
     { values: [0.3, 0.8], ticks: [0, 0.2, 0.4, 0.6, 0.8] },
+    { values: [4, 10], ticks: [0, 2.5, 5, 7.5, 10] },
   ])('runs from zero to a round number at or above the largest of $values', ({ values, ticks }) => {
     const scale = niceScale(values);
     expect(scale.ticks).toEqual(ticks);
@@ -66,8 +67,9 @@ describe('lineSegments', () => {
     ]);
   });
 
-  it('breaks the line where a value is missing, and drops a point left alone', () => {
-    expect(lineSegments([10, 20, null, 30, null, 40, 60], scale).map((segment) => segment.length)).toEqual([2, 2]);
+  it('breaks the line where a value is missing, and keeps a point left alone, to be drawn as a dot', () => {
+    expect(lineSegments([10, 20, null, 30, null, 40, 60], scale).map((segment) => segment.length)).toEqual([2, 1, 2]);
+    expect(lineSegments([40, null, null, null], scale)).toEqual([[[12.5, 60]]]);
   });
 });
 

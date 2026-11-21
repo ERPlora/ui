@@ -59,6 +59,21 @@ describe('charts.css: the look of the charts', () => {
     expect(Number(valueOf(css, at('shade'), 'fill-opacity'))).toBeLessThanOrEqual(0.2);
   });
 
+  it('draws a value with no neighbour as an 8 px dot: filled for the first series, a ring in its colour for the others', () => {
+    expect(valueOf(base, at('dot'), 'position')).toBe('absolute');
+    expect(valueOf(base, at('dot'), 'width')).toBe('0.5rem');
+    expect(valueOf(base, at('dot'), 'height')).toBe('0.5rem');
+    expect(valueOf(base, at('dot'), 'border-radius')).toBe('50%');
+    expect(valueOf(base, at('dot'), 'transform')).toBe('translate(-50%, -50%)');
+    expect(valueOf(base, at('dot'), 'background')).toBe('var(--chart-tone)');
+    for (const pattern of ['dashed', 'dotted']) {
+      const ring = `${at('dot')}[data-pattern='${pattern}']`;
+      expect(valueOf(base, ring, 'border'), pattern).toBe('2px solid var(--chart-tone)');
+      expect(valueOf(base, ring, 'background'), pattern).toBe('var(--ion-card-background)');
+    }
+    expect(valueOf(atRuleBody(css, '@media (forced-colors: active)'), at('dot'), 'background')).toBe('CanvasText');
+  });
+
   it('gives each key of the legend the shape of its marks', () => {
     const lineKey = `${at('swatch')}[data-mark='line']`;
     expect(valueOf(css, lineKey, 'border-top')).toBe('3px solid var(--chart-tone)');
@@ -83,19 +98,31 @@ describe('charts.css: the look of the charts', () => {
     expect(valueOf(css, at('table'), 'position')).toBe('absolute');
     expect(valueOf(css, at('table'), 'clip-path')).toBe('inset(50%)');
     expect(valueOf(css, at('table'), 'width')).toBe('1px');
+    // A table does not clip itself: the block around it does, or the hidden table widens the page on a phone.
+    expect(valueOf(css, at('table'), 'overflow')).toBe('hidden');
   });
 
   it('keeps its Retry at least 48 px tall', () => {
     expect(valueOf(css, at('retry'), 'min-height')).toBe('var(--ep-touch-min)');
   });
 
-  it('on a narrow chart (a phone) it lowers the plot and shows every other label when there are many', () => {
+  it('on a narrow chart (a phone) it lowers the plot', () => {
     const narrow = atRuleBody(css, '@container (max-width');
     expect(narrow, 'a container query of the chart itself').not.toBe('');
     expect(pixels(valueOf(narrow, at('plot'), 'grid-template-rows')?.split(' ')[0])).toBeLessThan(
       pixels(valueOf(base, at('plot'), 'grid-template-rows')?.split(' ')[0])!,
     );
-    expect(valueOf(narrow, `${at('labels')}:has(> :nth-child(9)) > :nth-child(even)`, 'visibility')).toBe('hidden');
+  });
+
+  it('writes each label of the bottom axis whole, centred on its place, and hides the ones the chart skips', () => {
+    expect(valueOf(base, at('labels'), 'position')).toBe('relative');
+    expect(valueOf(base, at('label'), 'position')).toBe('absolute');
+    expect(valueOf(base, at('label'), 'transform')).toBe('translateX(-50%)');
+    expect(valueOf(base, at('label'), 'white-space')).toBe('nowrap');
+    expect(valueOf(css, at('label'), 'overflow')).toBeUndefined();
+    expect(valueOf(css, at('label'), 'text-overflow')).toBeUndefined();
+    expect(valueOf(css, `${at('label')}[data-skipped]`, 'visibility')).toBe('hidden');
+    expect(css).not.toContain(':nth-child(even)');
   });
 
   it('stays readable in forced colours: marks in the system’s text colour', () => {

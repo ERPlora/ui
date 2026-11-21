@@ -86,6 +86,11 @@ describe('BarChart: the bars', () => {
     ]);
   });
 
+  it('draws a series with a single value as its one bar', () => {
+    const chart = mountChart({ series: [{ label: 'This week', values: [null, 300, null] }] });
+    expect(bars(chart).map((bar) => (bar.element as HTMLElement).style.height)).toEqual(['100%']);
+  });
+
   it('draws six series at most', () => {
     const many = Array.from({ length: 7 }, (_, index) => ({ label: `S${index + 1}`, values: [index + 1, 1, 1] }));
     const chart = mountChart({ series: many });

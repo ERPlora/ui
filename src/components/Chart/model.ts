@@ -47,11 +47,21 @@ export function barGroups(labels: readonly string[], series: readonly DrawnSerie
   );
 }
 
-/** Every line to draw: each series broken where a value is missing, as SVG points in a 100 × 100 box. */
+/** Each series' pieces between missing values, as points in a 100 × 100 box. */
+const pieces = (series: readonly DrawnSeries[], scale: Scale) =>
+  series.flatMap((item, index) => lineSegments(item.values, scale).map((segment, part) => ({ key: `${index}-${part}`, item, segment })));
+
+/** Every line to draw: the pieces of two points or more, as SVG points. */
 export const linePaths = (series: readonly DrawnSeries[], scale: Scale) =>
-  series.flatMap((item, index) =>
-    lineSegments(item.values, scale).map((segment, part) => ({ key: `${index}-${part}`, item, segment, points: toPoints(segment) })),
-  );
+  pieces(series, scale)
+    .filter(({ segment }) => segment.length > 1)
+    .map((piece) => ({ ...piece, points: toPoints(piece.segment) }));
+
+/** Every value with no neighbour, drawn as a dot: where it sits in the plot, as CSS percentages. */
+export const lineDots = (series: readonly DrawnSeries[], scale: Scale) =>
+  pieces(series, scale)
+    .filter(({ segment }) => segment.length === 1)
+    .map(({ key, item, segment: [[x, y]] }) => ({ key, item, style: { left: `${x}%`, top: `${y}%` } }));
 
 /** The shade under the first series: each of its lines closed down to the zero line. */
 export function lineShades(series: readonly DrawnSeries[], scale: Scale) {

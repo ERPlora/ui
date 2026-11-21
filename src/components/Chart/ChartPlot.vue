@@ -3,10 +3,11 @@
 // with its rules, the labels along the bottom and, for a screen reader, the table of the same values. Each chart draws
 // its marks in the slot, over the rules, from the series as drawn and the round scale it is given. The drawing is
 // hidden from a screen reader, which reads the table instead.
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { formatQuantity } from '../format';
+import { useAxisLabels } from './axisLabels';
 import ChartFrame from './ChartFrame.vue';
 import { type ChartMark, type DrawnSeries, drawnSeries, hasValues } from './model';
 import { niceScale, type Scale } from './scale';
@@ -29,6 +30,8 @@ const { locale } = useI18n();
 const series = computed(() => drawnSeries(props.series, props.mark));
 const scale = computed(() => niceScale(series.value.flatMap((item) => item.values)));
 const write = computed(() => props.format ?? ((value: number) => formatQuantity(value, locale.value)));
+const labelBox = ref<HTMLElement>();
+const axis = useAxisLabels(labelBox, () => props.labels);
 const cell = (value: number | null | undefined): string => (value === null || value === undefined ? '—' : write.value(value));
 </script>
 
@@ -85,11 +88,16 @@ const cell = (value: number | null | undefined): string => (value === null || va
           :scale="scale"
         />
       </div>
-      <div class="ep-chart__labels">
+      <div
+        ref="labelBox"
+        class="ep-chart__labels"
+      >
         <span
           v-for="(label, index) in labels"
           :key="index"
           class="ep-chart__label"
+          :data-skipped="axis.skipped(index) || undefined"
+          :style="{ left: axis.left(index) }"
         >{{ label }}</span>
       </div>
     </div>

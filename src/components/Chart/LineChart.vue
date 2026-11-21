@@ -1,11 +1,12 @@
 <script setup lang="ts">
 // Values per label as lines on a round scale from zero, each point over the middle of its label; the first series is
-// shaded down to the zero line and a missing value breaks its line. Its look is the theme sheet charts.css.
+// shaded down to the zero line, a missing value breaks its line and a value with no neighbour is a dot. Its look is
+// the theme sheet charts.css.
 //   <LineChart :labels="hours" :series="[{ label: t('sales.today'), values: today },
 //              { label: t('sales.lastWeekday'), values: lastWeek }]" :format="(v) => formatMoney(v, locale, money)"
 //              :description="t('sales.byHourSummary', { peak })" />
 import ChartPlot from './ChartPlot.vue';
-import { linePaths, lineShades } from './model';
+import { lineDots, linePaths, lineShades } from './model';
 import type { ChartProps } from './types';
 
 defineProps<ChartProps>();
@@ -42,6 +43,14 @@ const emit = defineEmits<{ retry: [] }>();
           vector-effect="non-scaling-stroke"
         />
       </svg>
+      <span
+        v-for="dot in lineDots(series, scale)"
+        :key="dot.key"
+        class="ep-chart__dot"
+        :data-tone="dot.item.tone"
+        :data-pattern="dot.item.pattern"
+        :style="dot.style"
+      />
     </template>
   </ChartPlot>
 </template>
