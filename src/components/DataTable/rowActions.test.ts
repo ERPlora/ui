@@ -79,3 +79,33 @@ describe('cardRowActions: one main button and «⋮»', () => {
     });
   });
 });
+
+describe('the row’s title names each action for a screen reader', () => {
+  const unfolded = { maxInline: 2, folded: false };
+  const names = (cell: DataTableActionCell<Row>) => [...cell.items.map((slot) => slot.action), ...cell.menu].map((a) => a.ariaLabel?.(row));
+
+  it('a list row, its buttons and its «⋮»: «<action>: <title>»', () => {
+    const cell = listRowActions([action('Edit'), action('Pay'), action('Delete')], row, { ...unfolded, title: 'Bar La Plaza' });
+    expect(names(cell)).toEqual(['Edit: Bar La Plaza', 'Pay: Bar La Plaza', 'Delete: Bar La Plaza']);
+  });
+
+  it('a card, its main button and its «⋮»', () => {
+    const cell = cardRowActions([action('Delete'), action('Open', { pinned: true })], row, 'Bar La Plaza');
+    expect(names(cell)).toEqual(['Open: Bar La Plaza', 'Delete: Bar La Plaza']);
+  });
+
+  it('a label read from the row is the one said, and a number title is a name too', () => {
+    const cell = listRowActions([action('pay', { label: (r) => `Pay ${r.id}` })], row, { ...unfolded, title: 42 });
+    expect(names(cell)).toEqual(['Pay r1: 42']);
+  });
+
+  it('an action that brings its own name keeps it', () => {
+    const own = action('Edit', { ariaLabel: (r) => `Edit the order ${r.id}` });
+    expect(names(listRowActions([own], row, { ...unfolded, title: 'Bar La Plaza' }))).toEqual(['Edit the order r1']);
+  });
+
+  it('without a title, or a blank one, the short label stays the name', () => {
+    expect(names(listRowActions([action('Edit')], row, unfolded))).toEqual([undefined]);
+    expect(names(cardRowActions([action('Edit')], row, '  '))).toEqual([undefined]);
+  });
+});
