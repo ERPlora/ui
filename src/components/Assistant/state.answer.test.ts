@@ -21,6 +21,16 @@ describe('the answer to a card', () => {
     await vi.waitFor(() => expect(assistant.state.busy).toBe(false));
     expect(bodies[1].decision).toEqual({ call_id: 'c1', accepted: false, typed: '', stop: true });
   });
+
+  it('a new conversation while a card waits takes the card with its turn, and nothing is left to answer', async () => {
+    const { post } = hub(onCard());
+    const assistant = assistantWith(post);
+    await assistant.ask('crea Mesa 4');
+    assistant.newConversation();
+    expect([assistant.state.confirm, assistant.state.busy]).toEqual([null, false]);
+    await assistant.decide(true);
+    expect(post).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('a question', () => {
