@@ -1,12 +1,17 @@
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import { nextTick } from 'vue';
 
 import * as root from '../../index';
 import { createShellI18n } from '../../shell/i18n';
+import { componentCss, declaration } from '../__tests__/themeContrast';
 import * as components from '../index';
 import AllergenRow from './AllergenRow.vue';
 import * as entry from './index';
+
+const css = componentCss(join(dirname(fileURLToPath(import.meta.url)), 'AllergenRow.vue'));
 
 function row(props: { codes: readonly string[]; name?: string }, locale: 'en' | 'es' = 'en') {
   const i18n = createShellI18n({ locale });
@@ -64,6 +69,11 @@ describe('AllergenRow', () => {
 
     expect(line().element.tagName).toBe('SPAN');
     expect(line().classes()).toContain('allergen-row');
+    expect(declaration(css, '.allergen-row', 'display')).toBe('block');
+  });
+
+  it('breaks a word longer than the row instead of widening it', () => {
+    expect(declaration(css, '.allergen-row', 'overflow-wrap')).toBe('anywhere');
   });
 
   it('updates when the codes change', async () => {
