@@ -1,5 +1,5 @@
 /**
- * Test harness shared by the SDK's Vue-level tests: a fake clock, a fake network that serves the
+ * Test harness shared by the SDK's tests: a fake clock, a fake network that serves the
  * live stream (`/api/live?s=…`) and the API, SSE frame builders and a ready-made live client.
  */
 import type { SpaConfig } from "../config";
@@ -60,7 +60,7 @@ export interface ApiCall {
 
 export type ApiHandler = (call: ApiCall) => Response | Promise<Response>;
 
-function decodeSubs(url: string): WireSub[] {
+export function decodeSubs(url: string): WireSub[] {
   const s = new URL(url, "http://a.localhost").searchParams.get("s") ?? "";
   const b64 = s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (s.length % 4)) % 4);
   return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)))) as WireSub[];
