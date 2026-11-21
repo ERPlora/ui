@@ -124,14 +124,6 @@
       "count": 1
     }
   },
-  "src/sdk/stream-manager.ts": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/sdk/subscription-registry.ts": {
     "max-lines-per-function": {
       "count": 1

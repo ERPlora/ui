@@ -3,12 +3,8 @@
  * (nothing global to restore), SSE frame builders and a ready-made manager.
  */
 import { vi } from "vitest";
-import {
-  createStreamManager,
-  type StreamManagerOptions,
-  type StreamStatus,
-  type SubEvent,
-} from "../stream-manager";
+import { createStreamManager, type StreamStatus, type SubEvent } from "../stream-manager";
+import type { StreamManagerOptions } from "../stream-state";
 import { decodeSubs, FakeClock, type WireSub } from "./live-harness";
 
 const enc = new TextEncoder();
@@ -58,11 +54,12 @@ function createFakeFetch() {
   return { calls, queue, fetchImpl };
 }
 
-export function setup(overrides: Partial<StreamManagerOptions> = {}) {
+/** Options of a stream on the fake clock and the fake network, with a logger to assert on. */
+export function fakeOptions(overrides: Partial<StreamManagerOptions> = {}) {
   const clock = new FakeClock();
   const net = createFakeFetch();
   const logger = { warn: vi.fn(), error: vi.fn() };
-  const manager = createStreamManager({
+  const options: StreamManagerOptions = {
     fetchImpl: net.fetchImpl,
     headers: { liveHeaders: () => ({ ...LIVE_HEADERS }) },
     liveUrl: "/api/live",
@@ -72,7 +69,13 @@ export function setup(overrides: Partial<StreamManagerOptions> = {}) {
     logger,
     random: () => 0,
     ...overrides,
-  });
+  };
+  return { clock, net, logger, options };
+}
+
+export function setup(overrides: Partial<StreamManagerOptions> = {}) {
+  const { clock, net, logger, options } = fakeOptions(overrides);
+  const manager = createStreamManager(options);
   const statuses: StreamStatus[] = [];
   manager.onStatus((s) => statuses.push(s));
   return { clock, net, logger, manager, statuses };
