@@ -1,3 +1,5 @@
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
@@ -7,6 +9,7 @@ const toast = vi.hoisted(() => vi.fn());
 vi.mock('./toast', () => ({ toast }));
 
 import { IonModalStub, ionModalStubOf } from '../components/FormModal/__tests__/ionModalStub';
+import { componentCss, declaration } from '../components/__tests__/themeContrast';
 import { unnamedButtons, unnamedIcons } from '../testing/a11y';
 import AppsLauncher from './AppsLauncher.vue';
 import HubIcon from './HubIcon.vue';
@@ -136,6 +139,13 @@ describe('AppsLauncher (the topbar door to the apps: «My apps» sheet, nav laun
     expect(sale.attributes('aria-label')).toBe('Sales and point of sale');
     expect(unnamedButtons(wrapper.element)).toEqual([]);
     wrapper.unmount();
+  });
+
+  // happy-dom lays nothing out, so this reads the name's own rules; the Hub's e2e measures the tile in a browser.
+  it('a name breaks only between words: a word wider than its tile ends in «…», never split in two', () => {
+    const css = componentCss(join(dirname(fileURLToPath(import.meta.url)), 'AppsLauncher.vue'));
+    expect(declaration(css, '.apps-launcher-name', 'overflow-wrap')).toBe('normal');
+    expect(declaration(css, '.apps-launcher-name', 'text-overflow')).toBe('ellipsis');
   });
 
   it('a tile opens its app and closes the sheet', async () => {
