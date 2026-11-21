@@ -1,6 +1,6 @@
 // A YouTube video that costs nothing until the person asks for it: before the tap only our own poster (no iframe, no
-// thumbnail, nothing requested from Google); on the tap, the privacy-enhanced player, sandboxed so a tap on its logo
-// cannot take the app's window to youtube.com; offline, a card instead of the poster.
+// thumbnail, nothing requested from Google); on the tap, the privacy-enhanced player with all its controls, sandboxed so
+// its links open YouTube in a new tab and never take the app's window; offline, a card instead of the poster.
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mount, type VueWrapper } from '@vue/test-utils';
@@ -17,7 +17,7 @@ import YouTubeEmbed from './YouTubeEmbed.vue';
 
 const SFC = join(dirname(fileURLToPath(import.meta.url)), 'YouTubeEmbed.vue');
 const ID = 'dQw4w9WgXcQ';
-const SRC = `https://www.youtube-nocookie.com/embed/${ID}?autoplay=1&fs=0&rel=0&playsinline=1`;
+const SRC = `https://www.youtube-nocookie.com/embed/${ID}?autoplay=1&rel=0&playsinline=1`;
 
 type Props = InstanceType<typeof YouTubeEmbed>['$props'];
 
@@ -94,15 +94,28 @@ describe('YouTubeEmbed: on the tap', () => {
     expect(document.activeElement).toBe(frame.element);
   });
 
-  it('keeps the referrer YouTube needs, sandboxes the player and allows no fullscreen', async () => {
+  it('keeps the referrer YouTube needs, allows fullscreen and lets the player open YouTube only in a new tab', async () => {
     const wrapper = mountEmbed();
     await wrapper.get('button').trigger('click');
     const frame = wrapper.get('iframe');
     expect(frame.attributes('referrerpolicy')).toBe('strict-origin-when-cross-origin');
-    expect(frame.attributes('allow')).toBe('autoplay; encrypted-media; picture-in-picture');
-    // No allow-popups nor allow-top-navigation: a tap on the player's logo cannot replace the app's window.
-    expect(frame.attributes('sandbox')).toBe('allow-scripts allow-same-origin allow-presentation');
-    expect(frame.attributes()).not.toHaveProperty('allowfullscreen');
+    expect(frame.attributes('allow')).toBe('autoplay; encrypted-media; picture-in-picture; fullscreen');
+    expect(frame.attributes()).toHaveProperty('allowfullscreen');
+    // Popups let the player's logo and title open youtube.com in a new tab; without allow-top-navigation they can
+    // never replace the app's window.
+    expect(frame.attributes('sandbox')).toBe(
+      'allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox',
+    );
+  });
+
+  it('turns the captions on in the language it is given, and leaves them to YouTube without one', async () => {
+    const withLanguage = mountEmbed({ language: 'es' });
+    await withLanguage.get('button').trigger('click');
+    expect(withLanguage.get('iframe').attributes('src')).toBe(`${SRC}&cc_load_policy=1&cc_lang_pref=es&hl=es`);
+
+    const notALanguage = mountEmbed({ language: 'es&autoplay=0' });
+    await notALanguage.get('button').trigger('click');
+    expect(notALanguage.get('iframe').attributes('src')).toBe(SRC);
   });
 
   it('goes back to the poster when it is given another video', async () => {

@@ -4,6 +4,7 @@ export { default as tableSource } from '../DataTable.vue?raw';
 export { default as cardSource } from '../DataTableCard.vue?raw';
 export { default as panelSource } from '../DataTableFilterPanel.vue?raw';
 export { default as rowSource } from '../DataTableFilterRow.vue?raw';
+export { default as gridSource } from '../DataTableGrid.vue?raw';
 export { default as identitySource } from '../DataTableIdentity.vue?raw';
 export { default as listSource } from '../DataTableListItem.vue?raw';
 export { default as pagerSource } from '../DataTablePager.vue?raw';

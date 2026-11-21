@@ -52,3 +52,5 @@ export function useColumnSort<T extends object>(source: {
 
   return { isSortable, isSorted, caretIcon, ariaSort, onHeaderClick, sortedRows };
 }
+
+export type ColumnSort<T extends object> = ReturnType<typeof useColumnSort<T>>;
