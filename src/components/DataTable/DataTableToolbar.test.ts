@@ -4,7 +4,7 @@ import { nextTick } from 'vue';
 
 import { ionIconSrc } from '../../shell/icons';
 import { createShellI18n } from '../../shell/i18n';
-import { mountTable, settle, text } from './__tests__/harness';
+import { ionChange, mountTable, settle, text } from './__tests__/harness';
 import { toolbarSource } from './__tests__/part-sources';
 import DataTableToolbar from './DataTableToolbar.vue';
 import { DATA_TABLE_ICONS } from './model';
@@ -234,5 +234,22 @@ describe('DataTableToolbar inside the table', () => {
     const scope = `${(DataTableToolbar as { __scopeId?: string }).__scopeId}-s`;
     const boxed = ['own-filter', 'own-tool'].map((name) => t.element.querySelector(`.data-table__bar-main > ion-select.${name}`)?.hasAttribute(scope));
     expect(boxed).toEqual([true, true]);
+  });
+
+  it('counts every record of the query next to the title, not only the page on screen', async () => {
+    const rows = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `Invoice ${i + 1}` }));
+    const t = mountTable({ rows, columns: COLUMNS, title: 'Invoices', serverSide: true, total: 56 });
+    await settle();
+    expect(text(t.element.querySelector('.data-table__title-count'))).toBe('56');
+  });
+
+  it('offers the table’s own rows-per-page options and shows the size picked', async () => {
+    const rows = Array.from({ length: 30 }, (_, i) => ({ id: i + 1, name: `Item ${i + 1}` }));
+    const t = mountTable({ rows, columns: COLUMNS, pageSize: 5, pageSizeOptions: [5, 20] });
+    await settle();
+    const select = () => t.element.querySelector('.data-table__bar-main > .data-table__page-size-select') as Ionic;
+    expect([...select().querySelectorAll<Ionic>('ion-select-option')].map((option) => option.value)).toEqual([5, 20]);
+    await ionChange(select(), { value: 20 });
+    expect(select().value).toBe(20);
   });
 });
