@@ -85,6 +85,10 @@ describe('jobOf', () => {
   });
 
   it('passes a document on as it came, even one that is not an object', () => {
-    expect([jobOf({ document: 'broken' }).document, jobOf({ document: null }).document]).toEqual(['broken', {}]);
+    expect([jobOf({ document: 'broken' }).document, jobOf({ document: false }).document, jobOf({ document: null }).document]).toEqual([
+      'broken',
+      false,
+      {},
+    ]);
   });
 });
