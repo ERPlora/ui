@@ -10,6 +10,7 @@ export * from './ConfirmDialog';
 export * from './ReportProblemModal';
 export * from './UserAvatar';
 export * from './UsageMeter';
+export * from './StatCard';
 export * from './Combo';
 export * from './AllergenSelect';
 export * from './ColorInput';

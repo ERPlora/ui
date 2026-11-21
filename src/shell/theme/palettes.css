@@ -224,6 +224,11 @@
   --ion-color-step-850: color-mix(in srgb, var(--ion-text-color) 85%, var(--ion-background-color));
 
   --ep-surface-muted: var(--ion-color-step-50);
+
+  /* Series 1 of the colours of data darkens the primary; a white primary stays too light for white
+     text, so its gradient is graphite instead. */
+  --ep-data-1-from: #3f3f46;
+  --ep-data-1-to: #18181b;
 }
 
 /* ═══════════════ FOREST — forest green and earth ═══════════════ */

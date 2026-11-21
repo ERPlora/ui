@@ -1,0 +1,245 @@
+/* The figure card (the StatCard component) and the row that holds several. The look lives in this sheet, loaded after
+ * the theme by createShell, so the brandbook shows the card with the same rules. An opaque content card, never glass:
+ * the card also takes `.ep-surface` and its icon `.ep-icon-tile` (brand.css).
+ *
+ *   .ep-stat-grid                    the row: four cards when wide, two on a tablet or a phone
+ *   .ep-stat-card[data-tone]         the card; data-tone (1 to 6) picks its colour of data (--ep-data-N)
+ *   --soft, --live                   on the surface with the colour on the icon, or on the tone's gradient
+ *   --link                           the whole card is one link
+ *   __head, __icon, __heading, __label, __note, __chevron   the top row: icon, label, note and the link arrow
+ *   __value                          the figure
+ *   __meta, __trend[data-trend], __empty, __error, __retry  the bottom row: trend, «no data» or the error and Retry
+ *   __bone (--icon, --label, --value, --line)               the ion-skeleton-text while it loads
+ */
+
+.ep-stat-grid {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+@container (max-width: 60rem) {
+  .ep-stat-grid > * {
+    grid-column: span 2;
+  }
+}
+
+@container (max-width: 18rem) {
+  .ep-stat-grid > * {
+    grid-column: span 4;
+  }
+}
+
+.ep-stat-card {
+  --stat-card-tone: var(--ep-data-1);
+  --stat-card-gradient: var(--ep-data-1-gradient);
+  --stat-card-ink: color-mix(in srgb, var(--stat-card-tone) 62%, var(--ion-text-color));
+  --stat-card-tint: color-mix(in srgb, var(--stat-card-tone) 12%, var(--ion-card-background));
+  --stat-card-shadow: var(--ep-shadow-xs);
+  container-type: inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 9.5rem;
+  margin: 0;
+  padding: 1rem;
+  box-shadow: var(--stat-card-shadow);
+  color: var(--ion-text-color);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.ep-stat-card[data-tone='1'] {
+  --stat-card-tone: var(--ep-data-1);
+  --stat-card-gradient: var(--ep-data-1-gradient);
+}
+.ep-stat-card[data-tone='2'] {
+  --stat-card-tone: var(--ep-data-2);
+  --stat-card-gradient: var(--ep-data-2-gradient);
+}
+.ep-stat-card[data-tone='3'] {
+  --stat-card-tone: var(--ep-data-3);
+  --stat-card-gradient: var(--ep-data-3-gradient);
+}
+.ep-stat-card[data-tone='4'] {
+  --stat-card-tone: var(--ep-data-4);
+  --stat-card-gradient: var(--ep-data-4-gradient);
+}
+.ep-stat-card[data-tone='5'] {
+  --stat-card-tone: var(--ep-data-5);
+  --stat-card-gradient: var(--ep-data-5-gradient);
+}
+.ep-stat-card[data-tone='6'] {
+  --stat-card-tone: var(--ep-data-6);
+  --stat-card-gradient: var(--ep-data-6-gradient);
+}
+
+/* Lively: the tone's gradient, a short shadow of the same tone, and every text and icon white. */
+.ep-stat-card.ep-stat-card--live {
+  --stat-card-shadow: 0 8px 20px color-mix(in srgb, var(--stat-card-tone) 22%, transparent);
+  border-color: transparent;
+  background: var(--stat-card-gradient);
+  color: var(--ep-data-on-gradient);
+}
+
+.ep-stat-card .ep-stat-card__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.ep-stat-card .ep-stat-card__icon {
+  color: var(--stat-card-ink);
+  background: var(--stat-card-tint);
+}
+.ep-stat-card--live .ep-stat-card__icon {
+  color: var(--ep-data-on-gradient);
+  background: color-mix(in srgb, var(--ep-data-on-gradient) 16%, transparent);
+}
+.ep-stat-card .ep-stat-card__heading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+.ep-stat-card .ep-stat-card__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.ep-stat-card .ep-stat-card__note {
+  color: var(--ep-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+.ep-stat-card--live .ep-stat-card__note {
+  color: var(--ep-data-on-gradient);
+}
+.ep-stat-card .ep-stat-card__chevron {
+  flex: none;
+  align-self: flex-start;
+  color: var(--stat-card-ink);
+  font-size: 1.125rem;
+}
+.ep-stat-card--live .ep-stat-card__chevron {
+  color: var(--ep-data-on-gradient);
+}
+
+.ep-stat-card .ep-stat-card__value {
+  margin: 1rem 0 0;
+  font-size: clamp(1.25rem, 10cqi, 2rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The bottom row sits at the foot of the card, so the values of a row line up whatever their notes. */
+.ep-stat-card .ep-stat-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin: auto 0 0;
+  padding-top: 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.ep-stat-card .ep-stat-card__trend[data-trend='success'] {
+  color: var(--ep-success-text);
+}
+.ep-stat-card .ep-stat-card__trend[data-trend='danger'] {
+  color: var(--ep-danger-text);
+}
+.ep-stat-card .ep-stat-card__trend[data-trend='neutral'] {
+  color: var(--ep-text-muted);
+}
+.ep-stat-card--live .ep-stat-card__trend[data-trend] {
+  color: var(--ep-data-on-gradient);
+}
+.ep-stat-card .ep-stat-card__trend ion-icon {
+  flex: none;
+  font-size: 1rem;
+}
+.ep-stat-card .ep-stat-card__empty {
+  color: var(--ep-text-muted);
+  font-weight: 500;
+}
+.ep-stat-card .ep-stat-card__error {
+  color: var(--ep-danger-text);
+}
+.ep-stat-card .ep-stat-card__error ion-icon {
+  flex: none;
+  font-size: 1rem;
+}
+.ep-stat-card .ep-stat-card__retry {
+  --color: var(--ep-danger-text);
+  min-height: var(--ep-touch-min);
+  margin: 0 0 0 auto;
+}
+
+/* Loading: Ionic's skeleton bars in the places of the icon, the label, the value and the bottom row. */
+.ep-stat-card .ep-stat-card__bone {
+  display: block;
+  margin: 0;
+  border-radius: var(--ep-radius-sm);
+}
+.ep-stat-card .ep-stat-card__bone--icon {
+  flex: none;
+  width: 2.375rem;
+  height: 2.375rem;
+}
+.ep-stat-card .ep-stat-card__bone--label {
+  width: 55%;
+  height: 0.875rem;
+}
+.ep-stat-card .ep-stat-card__bone--value {
+  width: 60%;
+  height: 2rem;
+  margin-top: 1rem;
+}
+.ep-stat-card .ep-stat-card__bone--line {
+  width: 80%;
+  height: 0.75rem;
+  margin-top: auto;
+}
+
+/* With a destination the whole card is the link: it lifts under the pointer and rings when focused. */
+.ep-stat-card.ep-stat-card--link {
+  cursor: pointer;
+  transition: transform var(--ep-transition), box-shadow var(--ep-transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.ep-stat-card.ep-stat-card--link:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ep-shadow-md);
+}
+.ep-stat-card.ep-stat-card--live.ep-stat-card--link:hover {
+  box-shadow: var(--stat-card-shadow);
+}
+.ep-stat-card.ep-stat-card--link:active {
+  transform: scale(var(--ep-press-scale));
+}
+.ep-stat-card.ep-stat-card--link:focus-visible {
+  outline: none;
+  box-shadow: var(--ep-focus-ring), var(--stat-card-shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ep-stat-card.ep-stat-card--link:hover,
+  .ep-stat-card.ep-stat-card--link:active {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .ep-stat-card.ep-stat-card--live {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
