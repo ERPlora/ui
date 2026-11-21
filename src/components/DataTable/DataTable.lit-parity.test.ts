@@ -18,6 +18,7 @@ import {
   rowSource,
   stateSource,
   tableSource as source,
+  toolbarSource,
 } from './__tests__/part-sources';
 
 // From disk: Vitest's CSS handling empties a `.css?raw` import.
@@ -395,11 +396,11 @@ const RESTYLED: Record<string, string[]> = {
 };
 
 const LIT = parse(litCss);
-const scoped = [source, cardSource, listSource, actionsSource, stateSource, identitySource, pagerSource, panelSource, rowSource]
+const scoped = [source, toolbarSource, cardSource, listSource, actionsSource, stateSource, identitySource, pagerSource, panelSource, rowSource]
   .map((input) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '')
   .concat(controlsCss)
   .join('\n');
-const weak = source.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
+const weak = [source, toolbarSource].map((input) => input.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '').join('\n');
 const VUE = new Map([...parse(scoped), ...parse(weak)]);
 
 describe('DataTable stylesheet ↔ the Lit original, rule by rule', () => {
