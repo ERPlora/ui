@@ -172,6 +172,21 @@ export function mountTable(props: Record<string, unknown>, options: MountOptions
   });
 }
 
+export interface PartOptions {
+  locale?: 'en' | 'es';
+  slots?: Record<string, string>;
+}
+
+/** A part of the table on its own, on the page, with the props it takes at rest and the ones a test turns on. */
+export function mountPart(part: Component, atRest: Record<string, unknown>, props: Record<string, unknown> = {}, options: PartOptions = {}): Table {
+  return mount(part, {
+    props: { ...atRest, ...props },
+    slots: options.slots,
+    global: { plugins: [createShellI18n({ locale: options.locale ?? 'en' })] },
+    attachTo: document.body,
+  });
+}
+
 /** Lets Vue render and the post-render measurements land (a measurement may schedule one more). */
 export async function settle(): Promise<void> {
   for (let i = 0; i < 3; i++) {

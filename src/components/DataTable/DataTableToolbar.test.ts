@@ -1,10 +1,8 @@
-import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 
 import { ionIconSrc } from '../../shell/icons';
-import { createShellI18n } from '../../shell/i18n';
-import { ionChange, mountTable, settle, text } from './__tests__/harness';
+import { ionChange, mountPart, mountTable, type PartOptions, settle, text } from './__tests__/harness';
 import { toolbarSource } from './__tests__/part-sources';
 import DataTableToolbar from './DataTableToolbar.vue';
 import { DATA_TABLE_ICONS } from './model';
@@ -55,13 +53,8 @@ const AT_REST = {
   testid: 'bills',
 };
 
-function mountToolbar(props: Record<string, unknown> = {}, options: { locale?: 'en' | 'es'; slots?: Record<string, string> } = {}) {
-  return mount(DataTableToolbar, {
-    props: { ...AT_REST, ...props } as never,
-    slots: options.slots,
-    global: { plugins: [createShellI18n({ locale: options.locale ?? 'en' })] },
-    attachTo: document.body,
-  });
+function mountToolbar(props: Record<string, unknown> = {}, options: PartOptions = {}) {
+  return mountPart(DataTableToolbar, AT_REST, props, options);
 }
 
 type Toolbar = ReturnType<typeof mountToolbar>;

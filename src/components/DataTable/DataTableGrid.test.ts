@@ -1,9 +1,7 @@
-import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { ionIconSrc } from '../../shell/icons';
-import { createShellI18n } from '../../shell/i18n';
-import { clearLayout, dataRows, mountTable, playBackLayout, settle, text } from './__tests__/harness';
+import { clearLayout, dataRows, mountPart, mountTable, type PartOptions, playBackLayout, settle, text } from './__tests__/harness';
 import DataTableGrid from './DataTableGrid.vue';
 import { DATA_TABLE_ICONS } from './model';
 import type { DataTableAction, DataTableColumn } from './types';
@@ -56,13 +54,8 @@ const AT_REST = {
   testid: 'bills',
 };
 
-function mountGrid(props: Record<string, unknown> = {}, options: { locale?: 'en' | 'es'; slots?: Record<string, string> } = {}) {
-  return mount(DataTableGrid, {
-    props: { ...AT_REST, ...props } as never,
-    slots: options.slots,
-    global: { plugins: [createShellI18n({ locale: options.locale ?? 'en' })] },
-    attachTo: document.body,
-  });
+function mountGrid(props: Record<string, unknown> = {}, options: PartOptions = {}) {
+  return mountPart(DataTableGrid, AT_REST, props, options);
 }
 
 type Grid = ReturnType<typeof mountGrid>;
