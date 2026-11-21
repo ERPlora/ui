@@ -5,6 +5,5 @@
 # and no higher ceilings. A file that shrinks lowers its ceiling to its new size and leaves once it fits its limit.
 985 src/components/DataTable/DataTable.filters.test.ts erplora-next#77
 705 src/components/DataTable/DataTable.test.ts erplora-next#77
-517 src/components/DataTable/DataTable.visual.test.ts erplora-next#77
-1035 src/components/DataTable/DataTable.vue erplora-next#86
+1001 src/components/DataTable/DataTable.vue erplora-next#86
 555 src/components/DataTable/useDataTableLayout.ts erplora-next#77

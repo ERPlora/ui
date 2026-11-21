@@ -166,18 +166,33 @@ describe('a field with a switch, on a card', () => {
 });
 
 describe('a field line on a card', () => {
-  it('carries the icon its column declares, and none it does not declare', () => {
-    const wrapper = mountCard({
+  const withAnIconAndAPlainField = () =>
+    mountCard({
       row: { id: '1', name: 'Invoicing', category: 'Finance', sku: 'INV-1' },
       fields: [
         { key: 'category', label: 'Category', cardIcon: 'ion:pricetag-outline' },
         { key: 'sku', label: 'SKU' },
       ],
     });
+
+  it('carries the icon its column declares, and none it does not declare', () => {
+    const wrapper = withAnIconAndAPlainField();
     const [category, sku] = wrapper.findAll('.data-table__card-meta');
     expect(category.find('.data-table__card-meta-icon').exists()).toBe(true);
     expect(sku.find('.data-table__card-meta-icon').exists()).toBe(false);
     expect(sku.find('.data-table__card-meta-label').text()).toBe('SKU');
+  });
+
+  it('says what its value is: the icon where the column has one, otherwise the field name in sight', () => {
+    // A bare «EUR», «1» or «46» under the title leaves the person guessing whether it is stock, prices or
+    // diners: a stacked row of a table names each value, the way the list's header names its column.
+    const wrapper = withAnIconAndAPlainField();
+    const [category, sku] = wrapper.findAll('.data-table__card-meta-label');
+    expect(category.classes()).toContain('data-table__card-meta-label--hidden');
+    expect(sku.classes()).not.toContain('data-table__card-meta-label--hidden');
+    const style = source.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '';
+    expect(style).toMatch(/\.data-table__card-meta-label--hidden \{[^}]*clip-path: inset\(50%\)/);
+    expect(style).not.toMatch(/\.data-table__card-meta-label \{[^}]*clip-path/);
   });
 });
 
