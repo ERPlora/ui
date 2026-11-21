@@ -102,6 +102,7 @@ describe('order-ticket.css: the visual language of an order ticket', () => {
     expect(valueOf(css, notice, 'background')).toContain('var(--ep-danger-tint)');
     expect(valueOf(css, `${notice} strong`, 'overflow-wrap')).toBe('anywhere');
     expect(valueOf(css, `${notice}-contains`, 'display')).toBe('block');
+    expect(valueOf(css, `${notice}-contains`, 'overflow-wrap')).toBe('anywhere');
   });
 
   it('keeps every target of a cook’s finger at least 48 px', () => {
