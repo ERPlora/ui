@@ -54,6 +54,12 @@ describe('stat-card.css: the look of a figure card', () => {
     expect(valueOf(css, `${LIVE} .ep-stat-card__trend[data-trend]`, 'color')).toBe('var(--ep-data-on-gradient)');
   });
 
+  // StatusPill measures its words against its tint over the card's surface; on the gradient that surface must be there.
+  it('on the lively card the status pill lays the card’s own surface under its tint, where its contrast is measured', () => {
+    expect(custom(`${LIVE} .ep-stat-card__status`, '--status-pill-surface')).toBe('var(--ion-card-background)');
+    expect(custom(`${CARD} .ep-stat-card__status`, '--status-pill-surface')).toBeUndefined();
+  });
+
   it('the soft card keeps the surface and writes its trend in the theme’s AA text colours', () => {
     expect(valueOf(css, `${CARD} .ep-stat-card__note`, 'color')).toBe('var(--ep-text-muted)');
     expect(valueOf(css, `${CARD} .ep-stat-card__trend[data-trend='success']`, 'color')).toBe('var(--ep-success-text)');

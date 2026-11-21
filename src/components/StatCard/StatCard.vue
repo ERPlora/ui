@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // The figure card: a label, a big value and its icon, with an optional note and trend, in one of the six colours of
-// data. Its look is the theme sheet stat-card.css, so the brandbook paints it with the same rules.
+// data. A status («Sold out») is a StatusPill of its own tone in place of the trend: the figure keeps its colour. Its look is the theme sheet stat-card.css, so the brandbook paints it with the same rules.
 //   <div class="ep-stat-grid">
 //     <StatCard :label="t('home.sales')" :value="formatMoney(total, locale, money)" icon="ion:wallet-outline"
 //               :tone="1" variant="live" :trend="{ direction: 'up', label: t('home.salesUp', { n }) }"
@@ -15,9 +15,18 @@ import { type RouteLocationRaw, RouterLink } from 'vue-router';
 
 import HubIcon from '../../shell/HubIcon.vue';
 import { sparkPoints } from '../Chart/scale';
+import StatusPill from '../StatusPill/StatusPill.vue';
 import en from './locales/en.json';
 import es from './locales/es.json';
-import type { StatCardTone, StatCardTrend, StatCardTrendDirection, StatCardTrendTone, StatCardVariant } from './types';
+import type {
+  StatCardStatus,
+  StatCardStatusTone,
+  StatCardTone,
+  StatCardTrend,
+  StatCardTrendDirection,
+  StatCardTrendTone,
+  StatCardVariant,
+} from './types';
 
 const props = withDefaults(
   defineProps<{
@@ -32,6 +41,8 @@ const props = withDefaults(
     /** A line under the label: the period, what is included. */
     note?: string;
     trend?: StatCardTrend;
+    /** Something about the figure apart from its value, shown in place of the trend. */
+    status?: StatCardStatus;
     /** The figure's recent values, oldest first, drawn as a line under it; its meaning is the figure and the trend. */
     sparkline?: readonly number[];
     /** Where the whole card leads. */
@@ -49,6 +60,7 @@ const props = withDefaults(
     variant: 'soft',
     note: undefined,
     trend: undefined,
+    status: undefined,
     sparkline: undefined,
     to: undefined,
     loading: false,
@@ -68,6 +80,11 @@ const TREND_ICONS: Record<StatCardTrendDirection, string> = {
   flat: 'ion:remove-outline',
 };
 const TREND_TONES: Record<StatCardTrendDirection, StatCardTrendTone> = { up: 'success', down: 'danger', flat: 'neutral' };
+const STATUS_ICONS: Record<StatCardStatusTone, string> = {
+  success: 'ion:checkmark-circle-outline',
+  warning: 'ion:warning-outline',
+  danger: 'ion:alert-circle-outline',
+};
 
 const state = computed(() => {
   if (props.loading) return 'loading';
@@ -162,6 +179,16 @@ const busyLabel = computed(() => (state.value === 'loading' ? t('statCard.loadin
         class="ep-stat-card__meta ep-stat-card__empty"
       >
         {{ emptyLabel || t('statCard.empty') }}
+      </p>
+      <p
+        v-else-if="status"
+        class="ep-stat-card__meta ep-stat-card__status"
+      >
+        <StatusPill
+          :tone="status.tone"
+          :label="status.label"
+          :icon="STATUS_ICONS[status.tone]"
+        />
       </p>
       <p
         v-else-if="trend"

@@ -3,7 +3,8 @@
 // from the helpers of `statuses.ts` (`<StatusPill v-bind="businessStatusPill(row.status)" />`). The text is the tone
 // mixed with black (light) or white (dark), each tone by its own amount, to read at WCAG AA on every surface. It never
 // grows past its box: the label wraps between words, a word that alone does not fit ends in «…», and the label is the
-// pill's `title`, so the whole text is one hover away.
+// pill's `title`, so the whole text is one hover away. An icon, when given, takes the place of the dot.
+import HubIcon from '../../shell/HubIcon.vue';
 import type { StatusPillSize, StatusPillTone } from './types';
 
 withDefaults(
@@ -18,8 +19,10 @@ withDefaults(
     busy?: boolean;
     /** `sm` is tighter, for dense rows. */
     size?: StatusPillSize;
+    /** `set:name` of a registered icon, painted before the label in place of the dot. */
+    icon?: string;
   }>(),
-  { label: '', tone: 'neutral', dot: true, busy: false, size: 'md' },
+  { label: '', tone: 'neutral', dot: true, busy: false, size: 'md', icon: undefined },
 );
 
 defineSlots<{ default?: () => unknown }>();
@@ -28,11 +31,16 @@ defineSlots<{ default?: () => unknown }>();
 <template>
   <span
     class="status-pill"
-    :class="{ 'status-pill--dot': dot, 'status-pill--busy': busy }"
+    :class="{ 'status-pill--dot': dot && !icon, 'status-pill--busy': busy }"
     :data-tone="tone"
     :data-size="size"
     :title="$slots.default ? undefined : label || undefined"
   >
+    <HubIcon
+      v-if="icon"
+      class="status-pill__icon"
+      :name="icon"
+    />
     <span class="status-pill__label"><slot>{{ label }}</slot></span>
   </span>
 </template>
@@ -40,7 +48,8 @@ defineSlots<{ default?: () => unknown }>();
 <style scoped>
 .status-pill {
   /* The tone (neutral by default) and how much of it each part takes: the tint over the surface,
-     and the text, darkened in light and lightened in dark. A tone rule below reassigns them. */
+     and the text, darkened in light and lightened in dark. A tone rule below reassigns them. On a
+     coloured background the page sets `--status-pill-surface`, the surface the tint is laid on. */
   --status-pill-tone: var(--ep-medium, var(--ion-color-medium, #636469));
   --status-pill-wash: 14%;
   --status-pill-ink: 75%;
@@ -58,7 +67,7 @@ defineSlots<{ default?: () => unknown }>();
   font-weight: 500;
   line-height: 1.4;
   color: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-ink), black);
-  background: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-wash), transparent);
+  background: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-wash), var(--status-pill-surface, transparent));
 }
 :root.ion-palette-dark .status-pill {
   color: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-ink-dark), white);
@@ -100,6 +109,12 @@ defineSlots<{ default?: () => unknown }>();
   text-overflow: ellipsis;
   white-space: normal;
   overflow-wrap: normal;
+}
+
+/* The icon is decoration too: the label says the status. */
+.status-pill__icon {
+  flex: none;
+  font-size: 1.2em;
 }
 
 /* The dot: decoration, so a pseudo-element (nothing for a screen reader to read). */

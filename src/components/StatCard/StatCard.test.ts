@@ -1,6 +1,6 @@
 // StatCard — the figure card: a label, a big value, its icon, an optional note and trend, in one of the six data tones
 // and in a lively (gradient) or soft (surface) variant. With a destination the whole card is one link; it also paints
-// its loading, empty and error states, and the error keeps its own action.
+// its loading, empty and error states, and the error keeps its own action. A status goes apart, in a StatusPill.
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
@@ -9,6 +9,7 @@ import { createShellI18n } from '../../shell/i18n';
 import HubIcon from '../../shell/HubIcon.vue';
 import * as root from '../../index';
 import * as components from '../index';
+import StatusPill from '../StatusPill/StatusPill.vue';
 import * as entry from './index';
 import StatCard from './StatCard.vue';
 
@@ -229,5 +230,54 @@ describe('StatCard: the sparkline', () => {
   ])('draws none %s', async (_state, props) => {
     const { wrapper } = await mountCard({ sparkline: [5, 15, 10], ...props });
     expect(wrapper.find('.ep-stat-card__spark').exists()).toBe(false);
+  });
+});
+
+describe('StatCard: a status apart from the figure', () => {
+  const SOLD_OUT = { tone: 'danger', label: 'Sold out' } as const;
+
+  it('paints the status as a pill of its own tone, with icon and words, in the bottom row in place of the trend', async () => {
+    const { wrapper } = await mountCard({ tone: 6, status: SOLD_OUT, trend: { direction: 'up', label: '3 more' } });
+    const row = wrapper.get('.ep-stat-card__status');
+    expect(row.classes()).toContain('ep-stat-card__meta');
+    const pill = row.getComponent(StatusPill);
+    expect(pill.props()).toMatchObject({ tone: 'danger', label: 'Sold out', icon: 'ion:alert-circle-outline' });
+    expect(row.text()).toBe('Sold out');
+    expect(wrapper.find('.ep-stat-card__trend').exists()).toBe(false);
+  });
+
+  it('leaves the colour of the figure alone: the card keeps its data tone and its variant', async () => {
+    const soft = (await mountCard({ tone: 6, status: SOLD_OUT })).wrapper;
+    expect(soft.attributes('data-tone')).toBe('6');
+    expect(soft.classes()).toContain('ep-stat-card--soft');
+    const live = (await mountCard({ tone: 1, variant: 'live', status: { tone: 'warning', label: 'Mismatch' } })).wrapper;
+    expect(live.attributes('data-tone')).toBe('1');
+    expect(live.classes()).toContain('ep-stat-card--live');
+    expect(live.getComponent(StatusPill).props('tone')).toBe('warning');
+  });
+
+  it.each([
+    ['success', 'ion:checkmark-circle-outline'],
+    ['warning', 'ion:warning-outline'],
+    ['danger', 'ion:alert-circle-outline'],
+  ] as const)('a %s status has its own icon, so the colour is never the only sign', async (tone, icon) => {
+    const { wrapper } = await mountCard({ status: { tone, label: 'x' } });
+    expect(wrapper.getComponent(StatusPill).props('icon')).toBe(icon);
+  });
+
+  it('keeps the sparkline under the status', async () => {
+    const { wrapper } = await mountCard({ status: SOLD_OUT, sparkline: [3, 1, 0] });
+    const parts = [...wrapper.element.children].map((part) => part.getAttribute('class'));
+    expect(parts.slice(-2)).toEqual(['ep-stat-card__meta ep-stat-card__status', 'ep-stat-card__spark']);
+  });
+
+  it.each([
+    ['loading', { loading: true }],
+    ['empty', { value: null }],
+    ['error', { error: true }],
+  ])('shows no status while %s: the figure it speaks of is not there', async (_state, props) => {
+    const { wrapper } = await mountCard({ status: SOLD_OUT, ...props });
+    expect(wrapper.findComponent(StatusPill).exists()).toBe(false);
+    expect(wrapper.find('.ep-stat-card__status').exists()).toBe(false);
   });
 });
