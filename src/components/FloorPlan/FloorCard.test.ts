@@ -131,6 +131,21 @@ describe('FloorCard', () => {
     c.wrapper.unmount();
   });
 
+  it('a long press (the context menu) asks for the table actions instead of the browser menu, never for one that may not be picked', async () => {
+    const c = card();
+    const press = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    c.host().dispatchEvent(press);
+    expect(press.defaultPrevented).toBe(true);
+    expect(c.wrapper.emitted('actions')).toEqual([['t1']]);
+    expect(c.selected()).toEqual([]);
+    await c.wrapper.setProps({ table: seated({ pickable: false }) });
+    const dimmed = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    c.host().dispatchEvent(dimmed);
+    expect(dimmed.defaultPrevented).toBe(true);
+    expect(c.wrapper.emitted('actions')).toHaveLength(1);
+    c.wrapper.unmount();
+  });
+
   it('keeps its status border, dashed when reserved, and marks a destination with a primary outline apart from it', () => {
     expect(rule('.floor-card')).toMatch(/border: 2px solid var\(--card-edge\)/);
     expect(rule(".floor-card[data-status='reserved']")).toContain('border-style: dashed');
