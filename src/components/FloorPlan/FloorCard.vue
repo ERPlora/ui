@@ -119,8 +119,8 @@ function onClick(): void {
   --card-edge: color-mix(in srgb, var(--ion-color-primary) 36%, var(--ion-border-color));
 }
 .floor-card[data-status='occupied'][data-bill] {
-  --card-accent: var(--ep-data-3);
-  --card-edge: color-mix(in srgb, var(--ep-data-3) 36%, var(--ion-border-color));
+  --card-accent: var(--ep-bill-requested);
+  --card-edge: color-mix(in srgb, var(--ep-bill-requested) 36%, var(--ion-border-color));
 }
 .floor-card[data-status='reserved'] {
   --card-accent: var(--ep-warning-text);

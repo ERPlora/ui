@@ -320,7 +320,9 @@ número, estado, plazas, reserva, tiempo, el importe de la cuenta de una mesa oc
 la frase entera para un lector de pantalla) y avisan de la que se elige; los
 datos y las órdenes son de la app. `FLOOR_STATUS_ICONS` y `FLOOR_STAT_ICONS` dan el icono de cada estado y de cada cifra.
 Una mesa ocupada con `billRequested` (la marca es de una de sus cuentas, no de la mesa) se pinta de un color propio,
-`--ep-data-3` (violeta), que no es el de ningún otro estado ni el ámbar o el rojo del tiempo, y su estado lleva el icono
+`--ep-bill-requested` (el violeta de la tercera serie de datos y, con la paleta «Violeta», cuyo primario también es
+violeta, el verde azulado de la cuarta), lejos del de cualquier otro estado y del ámbar y el rojo del tiempo en todas las
+paletas, en claro y en oscuro; el plano y la tarjeta del teléfono usan ese mismo token. Su estado lleva el icono
 de la cuenta (`ion:receipt-outline`) en lugar del suyo; el texto lo escribe la página: «Cuenta pedida» en `statusLabel`,
 `caption` y `accessible`. En una mesa libre, reservada o bloqueada la marca no pinta nada.
 

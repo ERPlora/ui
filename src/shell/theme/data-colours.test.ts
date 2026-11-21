@@ -63,9 +63,10 @@ describe('colours of data (--ep-data-*)', () => {
   });
 
   it('no palette changes series 2 to 6: a measure reads the same colour in every business', () => {
+    // A palette may use a series (`var(--ep-data-4)`); it may not declare one.
     for (const id of PALETTE_IDS) {
       for (const selector of [`:root[data-ep-palette='${id}']`, `:root.ion-palette-dark[data-ep-palette='${id}']`]) {
-        expect(blocks(palettes, selector).join(';'), selector).not.toMatch(/--ep-data-[2-6]/);
+        expect(blocks(palettes, selector).join(';'), selector).not.toMatch(/--ep-data-[2-6][\w-]*\s*:/);
       }
     }
   });
