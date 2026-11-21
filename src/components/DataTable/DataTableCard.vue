@@ -144,7 +144,7 @@ function hasValue(column: DataTableColumn<T>): boolean {
             class="data-table__card-meta-icon"
             :name="column.cardIcon"
           />
-          <span class="data-table__card-meta-label">{{ column.label }}</span>
+          <span :class="['data-table__card-meta-label', { 'data-table__card-meta-label--hidden': column.cardIcon }]">{{ column.label }}</span>
           <span class="data-table__card-meta-value">
             <slot
               v-if="column.cell"
@@ -215,7 +215,8 @@ ion-card.data-table__card { display: flex; flex-direction: column; margin: 0; }
 .data-table__card-description { margin: 0; color: var(--ep-text-muted); font-size: 14px; line-height: 1.5; }
 .data-table__card-meta { display: flex; align-items: center; gap: 0.5rem; min-width: 0; color: var(--ep-text-muted); font-size: 12px; }
 .data-table__card-meta-icon { flex: none; width: 16px; height: 16px; color: var(--ep-primary-text); font-size: 16px; }
-.data-table__card-meta-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+/* The column's icon says what the value is, so its name is left for screen readers; without one it is in sight. */
+.data-table__card-meta-label--hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .data-table__card-meta-value { min-width: 0; color: var(--color); font-weight: 500; }
 .data-table__card-note--danger, .data-table__card-note--danger .data-table__card-meta-icon, .data-table__card-note--danger .data-table__card-meta-value { color: var(--ep-danger-text); }
 .data-table__field-text { display: block; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
