@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { watch } from 'vue';
 
 import { ApiError } from '../../sdk/errors';
 import { asked, assistantWith, CARD, CREATE, done, hub, LIST, onCard } from './__tests__/assistant-state';
@@ -319,6 +320,16 @@ describe('the conversation', () => {
     expect(assistant.state.files).toEqual([]);
     expect(assistant.state.open).toBe(false);
     expect(storage.getItem(HISTORY_KEY)).toBeNull();
+  });
+
+  it('another person between two rounds of a turn takes nothing of it, and the turn ends without a failure', async () => {
+    const { post } = hub([done({ append: [asked(LIST)], pending: [LIST], continuation: 'tok' })], [{ type: 'text', text: 'Ninguno.' }, done()]);
+    const assistant = assistantWith(post);
+    // Vue runs its watchers between two rounds; the panel's, on the session's person, hands the assistant over there.
+    const handOver = watch(() => assistant.state.thread.conversation.length, (length) => length > 1 && assistant.forUser('u2'));
+    await expect(assistant.ask('¿Cuántos tengo?')).resolves.toBeUndefined();
+    handOver();
+    expect([assistant.state.thread.user, assistant.state.thread.bubbles, assistant.state.busy, post.mock.calls.length]).toEqual(['u2', [], false, 1]);
   });
 
   it('«New conversation» empties it without leaving', async () => {

@@ -194,9 +194,7 @@ export function createAssistant(deps: AssistantDeps) {
   async function round(current: Turn, decision: Decision | undefined): Promise<Next> {
     controller = new AbortController();
     const said = newRound();
-    const onFrame = frameReader(current, said, (usage) => {
-      state.usage = usage;
-    });
+    const onFrame = frameReader(current, said, (usage) => { state.usage = usage; });
     const body = bodyOf(current, state.thread, decision);
     try {
       await send(body, { onFrame, signal: controller.signal });
@@ -211,11 +209,13 @@ export function createAssistant(deps: AssistantDeps) {
     return afterRound(current, said);
   }
 
+  /** Drives the turn it starts with; between two rounds Vue may run watchers that end it or hand the panel over. */
   async function run(decision?: Decision): Promise<void> {
-    if (!turn) return;
+    const current = turn;
+    if (!current) return;
     state.busy = true;
     let next: Next = { decision };
-    while (next) next = await round(turn, next.decision);
+    while (next && turn === current) next = await round(current, next.decision);
   }
 
   async function ask(text: string, options: { setup?: boolean } = {}): Promise<void> {
