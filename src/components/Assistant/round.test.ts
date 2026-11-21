@@ -29,12 +29,12 @@ describe('the frames of a round, written into its turn', () => {
     const read = frameReader(turn, round, onUsage);
     const closed = done({ pending: [LIST] });
     read({ type: 'executed', call_id: 'r1', name: 'demo__item__list', app: 'demo', app_name: 'Demo', screen: 'items', kind: 'query', outcome: 'ok', code: '' });
-    read({ type: 'usage', used: 3, limit: 30, resets_at: null, demo: false });
+    read({ type: 'usage', used: 3, limit: 30, resets_at: null, demo: true });
     read({ type: 'confirm', card: CARD, call: CREATE });
     read({ type: 'error', code: 'assistant.unavailable', retriable: true });
     read(closed);
     expect(turn.executed).toEqual([{ name: 'demo__item__list', kind: 'query', outcome: 'ok', app: 'demo', app_name: 'Demo', screen: 'items' }]);
-    expect(onUsage.mock.calls).toEqual([[{ used: 3, limit: 30, resets_at: null, demo: false }]]);
+    expect(onUsage.mock.calls).toEqual([[{ used: 3, limit: 30, resets_at: null, demo: true }]]);
     expect(round.confirm).toEqual({ card: CARD, call: CREATE });
     expect(round.failure).toEqual({ code: 'assistant.unavailable', details: { retriable: true } });
     expect(round.done).toBe(closed);
