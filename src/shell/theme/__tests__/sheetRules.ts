@@ -89,6 +89,15 @@ export const selectorsOf = (css: string): string[] => rules(css).flatMap((rule) 
 /** A literal colour: a hex value or an `rgb()`/`hsl()` call. Colours come from the theme's tokens. */
 export const LITERAL_COLOUR = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?)\(/i;
 
+/** What keeps the sheet of a content card from being one: glass, a literal colour or `!important`. Empty when none. */
+export function contentCardFaults(css: string): string[] {
+  return [
+    /glass|backdrop-filter/.test(css) ? 'glass' : '',
+    LITERAL_COLOUR.test(css) ? 'a literal colour' : '',
+    css.includes('!important') ? '!important' : '',
+  ].filter(Boolean);
+}
+
 /** The number of pixels of a length in px or rem (a rem is 16 px), `undefined` for anything else. */
 export function pixels(value: string | undefined): number | undefined {
   const match = /^(\d*\.?\d+)(px|rem)$/.exec(value?.trim() ?? '');

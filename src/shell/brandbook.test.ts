@@ -65,6 +65,34 @@ describe('ERPlora brandbook', () => {
     expect(primitives).not.toMatch(/\.home-|\.pos-|\.widget|\.data-card|\.settings-card/);
   });
 
+  it('shows the figure card with the real sheets: both variants, the six data tones and its three states', () => {
+    const page = read('docs/brandbook.html');
+    const sheets = [...page.matchAll(/href="\.\.\/src\/shell\/theme\/([\w-]+)\.css"/g)].map((m) => m[1]);
+    expect(sheets.indexOf('stat-card')).toBeGreaterThan(sheets.indexOf('brand'));
+    const cards = [...page.matchAll(/<(?:article|a)\b[^>]*class="[^"]*\bep-stat-card\b[^"]*"[^>]*>/g)].map((m) => m[0]);
+    expect(cards.some((card) => card.includes('ep-stat-card--live'))).toBe(true);
+    expect(cards.some((card) => card.includes('ep-stat-card--soft'))).toBe(true);
+    for (const tone of ['1', '2', '3', '4', '5', '6']) {
+      expect(cards.some((card) => card.includes(`data-tone="${tone}"`)), `tone ${tone}`).toBe(true);
+    }
+    for (const state of ['loading', 'empty', 'error']) {
+      expect(cards.some((card) => card.includes(`data-state="${state}"`)), state).toBe(true);
+    }
+  });
+
+  it('uses only classes of the figure card that its sheet and its component define', () => {
+    const page = read('docs/brandbook.html');
+    const sheet = read('src/shell/theme/stat-card.css');
+    const component = read('src/components/StatCard/StatCard.vue');
+    const used = new Set([...page.matchAll(/\bep-stat-(?:card|grid)[\w-]*/g)].map((m) => m[0]));
+    expect(used.size).toBeGreaterThan(10);
+    for (const name of used) {
+      // The soft variant is the card's own look: its marker has no rule of its own.
+      if (name !== 'ep-stat-card--soft') expect(sheet, name).toMatch(new RegExp(`\\.${name}(?![\\w-])`));
+      if (name !== 'ep-stat-grid') expect(component, name).toContain(name);
+    }
+  });
+
   it('sets the button height only on the default size, preserving Ionic small and large', () => {
     const primitives = plain(read('src/shell/theme/brand.css'));
     expect(block(primitives, 'ion-button')).not.toContain('height:');

@@ -155,6 +155,37 @@
      below (4.87:1 with white; the brand one is 3.3:1). */
   --ep-primary-brand: #1496d6;
   --ep-primary-accessible: #0e78ad;
+
+  /* ── Colours of data: six series shared by the figure card (StatCard) and the charts ──
+     Series 1 is the business palette's primary; 2 to 6 are fixed per mode, so a measure reads the
+     same colour in every business. Each series has the darker ends of its gradient, where white
+     text reads ≥ 4.5:1 and a white icon ≥ 3:1 (data-colours.test.ts measures every palette).
+     More than six categories are grouped, never given a seventh colour. */
+  --ep-data-1: var(--ion-color-primary);
+  --ep-data-2: #c65f24;
+  --ep-data-3: #6d55c7;
+  --ep-data-4: #087f8c;
+  --ep-data-5: #a83d72;
+  --ep-data-6: #5c6b7a;
+  --ep-data-1-from: color-mix(in srgb, var(--ep-data-1) 65%, #0f172a);
+  --ep-data-1-to: color-mix(in srgb, var(--ep-data-1) 42%, #312e81);
+  --ep-data-2-from: #b64a1a;
+  --ep-data-2-to: #8f2f23;
+  --ep-data-3-from: #5846a8;
+  --ep-data-3-to: #3f387f;
+  --ep-data-4-from: #0c6d78;
+  --ep-data-4-to: #155267;
+  --ep-data-5-from: #9c365f;
+  --ep-data-5-to: #70284f;
+  --ep-data-6-from: #526272;
+  --ep-data-6-to: #374552;
+  --ep-data-1-gradient: linear-gradient(135deg, var(--ep-data-1-from), var(--ep-data-1-to));
+  --ep-data-2-gradient: linear-gradient(135deg, var(--ep-data-2-from), var(--ep-data-2-to));
+  --ep-data-3-gradient: linear-gradient(135deg, var(--ep-data-3-from), var(--ep-data-3-to));
+  --ep-data-4-gradient: linear-gradient(135deg, var(--ep-data-4-from), var(--ep-data-4-to));
+  --ep-data-5-gradient: linear-gradient(135deg, var(--ep-data-5-from), var(--ep-data-5-to));
+  --ep-data-6-gradient: linear-gradient(135deg, var(--ep-data-6-from), var(--ep-data-6-to));
+  --ep-data-on-gradient: #ffffff;
 }
 
 /* Neutral dark (zinc), consistent with the light theme. */
@@ -214,6 +245,23 @@
   --ep-danger-tint: #352429;
   --ep-danger-text: #f0707c;
   --ep-text-muted: #9aa0ac;
+
+  /* Colours of data on dark: brighter series for lines and icons, gradients that keep white text AA. */
+  --ep-data-2: #ff9a62;
+  --ep-data-3: #b5a3ff;
+  --ep-data-4: #45d0d8;
+  --ep-data-5: #f08ab7;
+  --ep-data-6: #aebccc;
+  --ep-data-2-from: #a6431c;
+  --ep-data-2-to: #7c2d24;
+  --ep-data-3-from: #50409c;
+  --ep-data-3-to: #382f73;
+  --ep-data-4-from: #0b606b;
+  --ep-data-4-to: #124759;
+  --ep-data-5-from: #8e3158;
+  --ep-data-5-to: #662544;
+  --ep-data-6-from: #485867;
+  --ep-data-6-to: #303d4b;
 }
 
 /* ── Contrast 'aa' (theme.ts `setThemeContrast('aa')`; createShell `{ contrast: 'aa' }`) ──────────

@@ -27,6 +27,8 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - pedir confirmación antes de algo irreversible → `useConfirm` (o `ConfirmDialog`)
 - el estado de un registro en una etiqueta de color → `StatusPill`
 - cuánto se ha gastado de un límite / una cifra de uso → `UsageMeter` / `UsageCounter`
+- una cifra de Inicio, de un informe o de una app (ventas de hoy, tickets), con tendencia o destino → `StatCard`, en
+  una fila `ep-stat-grid`
 - informar de un problema sin salir de la app → `ReportProblemModal`
 - la persona / un icono → `UserAvatar` / `HubIcon`
 - el marco de una pantalla (barra superior, Atrás, acciones, pestañas) → `AppPage`
@@ -158,9 +160,17 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 `import { UsageCounter } from '@erplora/ui/components'`
 - **Para qué sirve:** una cifra grande con su etiqueta y una pista («Activos ayer 3»), en el formato del idioma de la persona.
 - **Úsalo cuando** se ponen cifras de uso junto a un `UsageMeter`, dos o más en fila.
-- **No lo uses cuando** es la cifra resumen de un panel de inicio, con tendencia o enlace: aún no existe (ver al final).
+- **No lo uses cuando** es la cifra resumen de un panel de inicio, con tendencia o enlace → `StatCard`.
 - **API:** props `label`, `value` (número o texto), `hint`, `locale`.
 - **Ionic:** ninguno.
+
+### `StatCard`
+`import { StatCard } from '@erplora/ui/components'`
+- **Para qué sirve:** la tarjeta de cifra, uno de los ocho tipos de tarjeta: la etiqueta, el valor grande y su icono, con una nota y una tendencia opcionales, en uno de los seis colores de datos (`--ep-data-1` a `--ep-data-6`, los mismos de los gráficos). Con destino, toda la tarjeta es un enlace: un solo foco y un solo toque. Pinta su carga, su vacío (sin valor: «—» y «No hay datos en este periodo») y su error, que conserva su propia acción, «Reintentar». Superficie opaca, nunca cristal.
+- **Úsalo cuando** Inicio, un informe o una app enseñan sus cifras. La variante viva (el degradado del tono) es para la fila principal de 2 a 4 cifras: una sola fila, un tono por cifra y nunca dos filas vivas seguidas. La suave (la superficie, con el color en el icono) es para 5 cifras o más y para las filas secundarias. La misma medida lleva el mismo tono en todas las pantallas: Ventas 1, Tickets 2, Ticket medio 3, Mesas 4, Clientes 5, Inventario 6. Un estado (agotado, descuadre) no cambia el tono de la cifra.
+- **No lo uses cuando** son cifras de uso junto a un `UsageMeter` → `UsageCounter`; el resumen de una zona del plano de mesas → `FloorSummary`.
+- **API:** props `label`, `value` (el texto ya formateado con `formatMoney` o `formatQuantity`; sin valor, el vacío), `icon` (`juego:nombre` registrado), `tone` (1 a 6; 1 por defecto), `variant` (`soft` por defecto, o `live`), `note`, `trend` (`{ direction: 'up' | 'down' | 'flat', label, tone? }`: lo que sube va en verde y lo que baja en rojo, salvo que `tone` diga otra cosa), `to`, `loading`, `error`, `emptyLabel`, `testid`; evento `retry`. Mientras carga y con error la tarjeta no abre nada, y la variante viva solo pinta una cifra: los demás estados van en la superficie. La fila es un `div` con la clase `ep-stat-grid`: cuatro tarjetas por fila a lo ancho y dos en la tableta y el teléfono. El aspecto vive en `src/shell/theme/stat-card.css`, que carga `createShell`, y el brandbook lo enseña con esa misma hoja.
+- **Ionic:** `ion-skeleton-text` (la carga) e `ion-button` (Reintentar), con `HubIcon`, `RouterLink` y las clases `ep-surface` y `ep-icon-tile`.
 
 ## Estados y avisos
 
@@ -402,7 +412,7 @@ impresora del dispositivo, `useMyApps`), que no pinta pantallas; los datos van p
 
 ## Lo que aún no existe
 
-Las tarjetas de entidad, la tarjeta de cifra, la baldosa táctil genérica y el panel de ajustes están en diseño. La fila como tarjeta ya existe: es la tarjeta del propio `DataTable`, y no se monta a mano. De la baldosa
+Las tarjetas de entidad, la baldosa táctil genérica y el panel de ajustes están en diseño. La fila como tarjeta ya existe: es la tarjeta del propio `DataTable`, y no se monta a mano; la tarjeta de cifra es `StatCard`. De la baldosa
 táctil (una superficie, un único toque) ya existe la de la mesa en el teléfono, `FloorCard`; la mesa que se arrastra en
 el plano, `FloorTile`, no es un tipo de tarjeta. Mientras no existan, no se maqueta una tarjeta
 nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño de la pieza común.

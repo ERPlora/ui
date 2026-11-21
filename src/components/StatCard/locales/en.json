@@ -1,0 +1,13 @@
+{
+  "statCard": {
+    "loading": "Loading {label}",
+    "empty": "No data for this period",
+    "error": "Couldn't load",
+    "retry": "Retry",
+    "trend": {
+      "up": "Up",
+      "down": "Down",
+      "flat": "No change"
+    }
+  }
+}

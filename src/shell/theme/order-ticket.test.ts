@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { compiledComponentCss } from '../../components/__tests__/themeContrast';
 import {
-  LITERAL_COLOUR,
+  contentCardFaults,
   outweighs,
   pixels,
   rules,
@@ -80,9 +80,7 @@ describe('order-ticket.css: the visual language of an order ticket', () => {
   });
 
   it('is an opaque content card: no glass, and colours only from the theme', () => {
-    expect(css).not.toMatch(/glass|backdrop-filter/);
-    expect(css).not.toMatch(LITERAL_COLOUR);
-    expect(css).not.toContain('!important');
+    expect(contentCardFaults(css)).toEqual([]);
   });
 
   it('strikes the name of a dish once it is done or will not be cooked, and colours its state icon', () => {
