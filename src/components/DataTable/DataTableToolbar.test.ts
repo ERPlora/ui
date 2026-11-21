@@ -229,6 +229,14 @@ describe('DataTableToolbar inside the table', () => {
     expect(boxed).toEqual([true, true]);
   });
 
+  it('sizes that select to the option it shows, so a long option («Todos los tipos») is never cut', () => {
+    const rule = toolbarSource.match(/\.data-table__bar-main > :slotted\(ion-select\) \{([^}]*)\}/)?.[1] ?? '';
+    const declared = (property: string) => rule.match(new RegExp(`(?:^|;)\\s*${property}:\\s*([^;]+);`))?.[1].trim();
+    // Ionic's select fills its box (`width: 100%`): without its own width every filter came out exactly as wide as its cap.
+    expect(declared('width')).toBe('auto');
+    expect(Number.parseFloat(declared('max-width') ?? '0')).toBeGreaterThanOrEqual(16);
+  });
+
   it('counts every record of the query next to the title, not only the page on screen', async () => {
     const rows = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `Invoice ${i + 1}` }));
     const t = mountTable({ rows, columns: COLUMNS, title: 'Invoices', serverSide: true, total: 56 });

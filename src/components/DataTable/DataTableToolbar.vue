@@ -293,8 +293,9 @@ onUpdated(nameSearchBox);
 /* Toolbar selects: visible background and border, like the search box. */
 .data-table__columns-select { min-width: 6.5rem; max-width: 9rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem; }
 .data-table__page-size-select { min-width: 4.25rem; max-width: 5.5rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.35rem; --padding-bottom: 0.35rem; }
-/* A select the page adds in the `filters` (or `toolbar`) slot: boxed like the two above. */
-.data-table__bar-main > :slotted(ion-select) { min-width: 6.5rem; max-width: 8rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem; }
+/* A select the page adds in the `filters` (or `toolbar`) slot: boxed like the two above and as wide as the option it
+   shows. Ionic's select fills its box, so a fixed cap cut a longer option («Todos los tipos») even with room to spare. */
+.data-table__bar-main > :slotted(ion-select) { width: auto; min-width: 6.5rem; max-width: 16rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem; }
 
 /* The funnel of the filters panel (`filterable`): a 44px tool button, solid while filtering, with the count of
    filtered columns. */
