@@ -7,7 +7,7 @@ import { FLOOR_BILL_ICON, isBillRequested, occupiedAmount, type FloorTable } fro
 import TableGlyph from './TableGlyph.vue';
 
 const props = defineProps<{ table: FloorTable }>();
-const emit = defineEmits<{ select: [id: string] }>();
+const emit = defineEmits<{ select: [id: string]; actions: [id: string] }>();
 
 const amount = computed(() => occupiedAmount(props.table));
 const bill = computed(() => isBillRequested(props.table));
@@ -31,6 +31,12 @@ watch(() => [props.table.accessible, props.table.pickable], syncNative, { flush:
 function onClick(): void {
   if (props.table.pickable !== false) emit('select', props.table.id);
 }
+
+// A long press on a touch screen, a right click or the menu key: the table's actions, never the browser's menu.
+function onContextMenu(event: MouseEvent): void {
+  event.preventDefault();
+  if (props.table.pickable !== false) emit('actions', props.table.id);
+}
 </script>
 
 <template>
@@ -44,6 +50,7 @@ function onClick(): void {
     :data-bill="bill ? 'requested' : undefined"
     :data-testid="table.testid"
     @click="onClick"
+    @contextmenu="onContextMenu"
   >
     <span class="floor-card__layout">
       <span

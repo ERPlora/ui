@@ -5,7 +5,7 @@ import FloorCard from './FloorCard.vue';
 import type { FloorTable } from './model';
 
 const props = defineProps<{ tables: FloorTable[]; label: string }>();
-const emit = defineEmits<{ select: [id: string] }>();
+const emit = defineEmits<{ select: [id: string]; actions: [id: string] }>();
 
 const byNumber = new Intl.Collator(undefined, { numeric: true });
 const sorted = computed(() => [...props.tables].sort((a, b) => byNumber.compare(a.number, b.number)));
@@ -26,6 +26,7 @@ const sorted = computed(() => [...props.tables].sort((a, b) => byNumber.compare(
       <FloorCard
         :table="table"
         @select="(id: string) => emit('select', id)"
+        @actions="(id: string) => emit('actions', id)"
       />
     </div>
   </div>

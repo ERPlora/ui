@@ -35,6 +35,12 @@ describe('FloorCards', () => {
     expect(c.wrapper.emitted('select')).toEqual([['t2']]);
   });
 
+  it('passes on which table asked for its actions', () => {
+    const c = cards();
+    c.wrapper.findAllComponents(FloorCard)[1].vm.$emit('actions', 't2');
+    expect(c.wrapper.emitted('actions')).toEqual([['t2']]);
+  });
+
   it('lays the cards two to a row from the list, not from the card', () => {
     expect(rule('.floor-cards')).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
   });
