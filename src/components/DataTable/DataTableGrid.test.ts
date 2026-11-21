@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { ionIconSrc } from '../../shell/icons';
 import { createShellI18n } from '../../shell/i18n';
-import { settle, text } from './__tests__/harness';
+import { clearLayout, dataRows, mountTable, playBackLayout, settle, text } from './__tests__/harness';
 import DataTableGrid from './DataTableGrid.vue';
 import { DATA_TABLE_ICONS } from './model';
 import type { DataTableAction, DataTableColumn } from './types';
@@ -25,6 +25,7 @@ const ROWS: Row[] = [
 ];
 const EDIT: DataTableAction<Row> = { id: 'edit', label: 'Edit', icon: 'create-outline' };
 const DROP: DataTableAction<Row> = { id: 'drop', label: 'Drop', icon: 'trash-outline' };
+const SEND: DataTableAction<Row> = { id: 'send', label: 'Send', icon: 'send-outline' };
 
 /** What the table's sort says of every column: none sortable, none sorted. */
 const UNSORTED = {
@@ -199,5 +200,42 @@ describe('DataTableGrid', () => {
     expect(text(actionsHead(g))).toBe('Acciones');
     expect(rows(g)[0].querySelector('ion-checkbox')?.getAttribute('aria-label')).toBe('Seleccionar fila');
     expect(aria(rows(g)[0].querySelector('[data-testid="bills-row-a0-menu"]'), 'aria-label')).toBe('Más acciones');
+  });
+});
+
+describe('DataTableGrid inside the table', () => {
+  const headLabel = (t: ReturnType<typeof mountTable>) => t.element.querySelector('.data-table__row--head .data-table__cell--actions > span');
+  const buttons = (t: ReturnType<typeof mountTable>) => [...dataRows(t)[0].querySelectorAll('.data-table__actions > ion-button')];
+
+  afterEach(clearLayout);
+
+  it('speaks with the table’s own texts in its heads and its rows', async () => {
+    const labels = { selectAll: 'Tick every bill', actions: 'Tools', selectRow: 'Tick this bill', moreActions: 'Other tools' };
+    const t = mountTable({ rows: ROWS, columns: COLUMNS, selectable: true, actions: [EDIT, DROP, SEND], testid: 'bills', labels }, { attachTo: document.body });
+    await settle();
+    const checkboxes = [...t.element.querySelectorAll('.data-table__select-cell > ion-checkbox')].map((box) => box.getAttribute('aria-label'));
+    expect([checkboxes[0], checkboxes[1], text(headLabel(t))]).toEqual(['Tick every bill', 'Tick this bill', 'Tools']);
+    expect(aria(t.element.querySelector('[data-testid="bills-row-a-menu"]'), 'aria-label')).toBe('Other tools');
+  });
+
+  it('names the actions head only for assistive tech once the box folds the row actions into «⋮»', async () => {
+    // The list needs more than its box while a row shows more than its pinned button and «⋮».
+    playBackLayout(40, (el, box) => (el.classList.contains('data-table__scroll') ? box + (el.querySelectorAll('.data-table__actions > ion-button').length > 2 ? 100 : 0) : 0));
+    const t = mountTable({ rows: [ROWS[0]], columns: COLUMNS, actions: [{ ...EDIT, pinned: true }, DROP, SEND] });
+    await settle();
+    expect(buttons(t)).toHaveLength(2);
+    expect(headLabel(t)?.classList.contains('data-table__sr-only')).toBe(true);
+  });
+
+  it('names the actions head only for assistive tech when «Actions» does not fit its column, with the actions unfolded', async () => {
+    const t = mountTable({ rows: [ROWS[0]], columns: COLUMNS, actions: [EDIT] });
+    await settle();
+    const cell = t.element.querySelector('.data-table__row--head .data-table__cell--actions') as HTMLElement;
+    Object.defineProperty(cell, 'clientWidth', { configurable: true, get: () => 40 });
+    Object.defineProperty(headLabel(t), 'scrollWidth', { configurable: true, get: () => 63 });
+    await t.setProps({ rows: [{ ...ROWS[0] }] });
+    await settle();
+    expect(buttons(t).map((button) => button.getAttribute('aria-label'))).toEqual(['Edit']);
+    expect(headLabel(t)?.classList.contains('data-table__sr-only')).toBe(true);
   });
 });
