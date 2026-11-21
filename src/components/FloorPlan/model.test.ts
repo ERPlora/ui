@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolveIcon } from '../../shell/icons';
-import { floorTable, held, seated } from './__tests__/tables';
+import { billless, seated } from './__tests__/tables';
 import { FLOOR_STAT_ICONS, FLOOR_STATUS_ICONS, occupiedAmount, zoneColor } from './model';
 
 describe('floor plan model', () => {
@@ -23,9 +23,8 @@ describe('floor plan model', () => {
   });
 
   it('gives the bill of an occupied table only, and nothing when it did not arrive', () => {
-    const bill = { amount: '42,50 €' };
-    expect(occupiedAmount(seated(bill))).toBe('42,50 €');
+    expect(occupiedAmount(seated({ amount: '42,50 €' }))).toBe('42,50 €');
     expect(occupiedAmount(seated({ amount: '0,00 €' }))).toBe('0,00 €');
-    expect([floorTable(bill), held(bill), floorTable({ ...bill, status: 'blocked' }), seated()].map(occupiedAmount)).toEqual(['', '', '', '']);
+    expect(billless().map(occupiedAmount)).toEqual(['', '', '', '', '']);
   });
 });

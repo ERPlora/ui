@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
 import { scopedStyle } from './__tests__/styles';
-import { floorTable, held, seated } from './__tests__/tables';
+import { billless, floorTable, held, seated } from './__tests__/tables';
 import FloorCard from './FloorCard.vue';
 import type { FloorTable } from './model';
 
@@ -69,8 +69,7 @@ describe('FloorCard', () => {
   });
 
   it('writes no bill for a table that is free, reserved or blocked, nor for one whose bill did not arrive', () => {
-    const bill = { amount: '42,50 €' };
-    for (const table of [floorTable(bill), held(bill), floorTable({ ...bill, status: 'blocked' }), seated(), seated({ amount: '' })]) {
+    for (const table of billless()) {
       const c = card(table);
       expect(c.part('amount').exists(), table.status).toBe(false);
       c.wrapper.unmount();
