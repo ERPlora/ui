@@ -11,7 +11,8 @@
  *   __body, __notes                  the ion-card-content and the ticket's note
  *   __menu, __menu-icon, __menu-label, __menu-name, __menu-count   the ion-item that heads a set menu
  *   __dish[data-status], __dish--menu    the ion-item of a dish, one of a menu's hanging from it
- *   __qty, __dish-body, __name, __modifiers, __dish-note, __void, __meta, __state   the parts of a dish
+ *   __qty, __dish-body, __name, __allergy, __modifiers, __dish-note, __void, __meta, __state   the parts of a dish
+ *   __allergy-icon, __allergy-contains   the icon of the allergy notice and what of the allergy the dish contains
  *   __foot, __step, __more           the foot with the main step and the button that opens the other steps
  *   .ep-order-ticket-steps, __list   the ion-popover of the other steps and its ion-list
  *   .ep-station-dot                  the colour of a station before its name
@@ -231,6 +232,33 @@
   line-height: 1.2;
   font-weight: 700;
   overflow-wrap: break-word;
+}
+.ep-order-ticket .ep-order-ticket__allergy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--ep-radius-sm);
+  background: color-mix(in srgb, var(--ep-danger-tint) 70%, transparent);
+  color: var(--ep-danger-text);
+  font-size: 1rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+.ep-order-ticket .ep-order-ticket__allergy-icon {
+  flex: none;
+  margin-top: 0.05rem;
+  font-size: 1.25rem;
+}
+.ep-order-ticket .ep-order-ticket__allergy strong {
+  overflow-wrap: anywhere;
+}
+.ep-order-ticket .ep-order-ticket__allergy-contains {
+  display: block;
+  margin-top: 0.15rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 .ep-order-ticket .ep-order-ticket__modifiers {
   display: block;

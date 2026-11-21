@@ -95,6 +95,16 @@ describe('order-ticket.css: the visual language of an order ticket', () => {
     expect(icon('cancelled')).toContain('var(--ep-danger-text)');
   });
 
+  it('marks an allergy inline with the danger tint and text that wraps', () => {
+    const notice = `${TICKET} .ep-order-ticket__allergy`;
+    expect(valueOf(css, notice, 'display')).toBe('flex');
+    expect(valueOf(css, notice, 'color')).toBe('var(--ep-danger-text)');
+    expect(valueOf(css, notice, 'background')).toContain('var(--ep-danger-tint)');
+    expect(valueOf(css, `${notice} strong`, 'overflow-wrap')).toBe('anywhere');
+    expect(valueOf(css, `${notice}-contains`, 'display')).toBe('block');
+    expect(valueOf(css, `${notice}-contains`, 'overflow-wrap')).toBe('anywhere');
+  });
+
   it('keeps every target of a cook’s finger at least 48 px', () => {
     expect(valueOf(css, `${TICKET} .ep-order-ticket__headline`, '--min-height')).toBe('var(--ep-touch-lg)');
     for (const [selector, property] of [
