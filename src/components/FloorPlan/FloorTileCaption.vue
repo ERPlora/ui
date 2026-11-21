@@ -18,23 +18,28 @@ const amount = computed(() => occupiedAmount(props.table));
       {{ table.caption }}
     </span>
     <span
-      v-if="amount"
-      class="table-tile__amount"
-      data-part="amount"
-    >{{ amount }}</span>
-    <span
-      v-if="table.holder"
-      class="table-tile__hold"
+      v-if="amount || table.holder"
+      class="table-tile__detail"
     >
       <span
-        class="table-tile__hold-name"
-        data-part="hold-name"
-      >{{ table.holder }}</span>
+        v-if="amount"
+        class="table-tile__amount"
+        data-part="amount"
+      >{{ amount }}</span>
       <span
-        v-if="table.holdTime"
-        class="table-tile__hold-time"
-        data-part="hold-time"
-      >· {{ table.holdTime }}</span>
+        v-if="table.holder"
+        class="table-tile__hold"
+      >
+        <span
+          class="table-tile__hold-name"
+          data-part="hold-name"
+        >{{ table.holder }}</span>
+        <span
+          v-if="table.holdTime"
+          class="table-tile__hold-time"
+          data-part="hold-time"
+        >· {{ table.holdTime }}</span>
+      </span>
     </span>
     <span
       v-if="inactiveLabel"
@@ -69,7 +74,14 @@ const amount = computed(() => occupiedAmount(props.table));
   gap: 0.25em;
   white-space: nowrap;
 }
+/* A bill and a later reservation share one line: a third would reach the table drawn under this one. */
+.table-tile__detail {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+}
 .table-tile__amount {
+  flex: none;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -79,6 +91,11 @@ const amount = computed(() => occupiedAmount(props.table));
   max-width: 100%;
   min-width: 0;
   color: var(--ep-warning-text);
+}
+.table-tile__amount + .table-tile__hold::before {
+  flex: none;
+  margin-inline: 0.3em;
+  content: '·';
 }
 .table-tile__hold-name {
   min-width: 0;

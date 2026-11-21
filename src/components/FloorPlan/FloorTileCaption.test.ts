@@ -30,11 +30,21 @@ describe('FloorTileCaption', () => {
     expect(caption(held({ holdTime: '' })).part('hold-time').exists()).toBe(false);
   });
 
-  it('writes the bill of an occupied table on its own line, right under its guests', () => {
+  it('writes the bill of an occupied table on the line right under its guests', () => {
     const c = caption(seated({ amount: '42,50 €' }));
     expect(c.part('status').text()).toBe('Occupied · 3/4 pax');
     expect(c.part('amount').text()).toBe('42,50 €');
     expect(c.wrapper.findAll('[data-part]').map((part) => part.attributes('data-part'))).toEqual(['status', 'amount']);
+  });
+
+  it('never runs to a third line: a bill and a later reservation share the line under the guests', () => {
+    const lines = (table: FloorTable) => {
+      const rows = [...caption(table).wrapper.element.children];
+      return rows.map((row) => [...row.querySelectorAll('[data-part]')].map((part) => part.getAttribute('data-part')));
+    };
+    expect(lines(seated({ amount: '64,00 €', holder: 'Lucía Martín', holdTime: '22:30' }))).toEqual([[], ['amount', 'hold-name', 'hold-time']]);
+    expect(lines(seated({ amount: '42,50 €' }))).toEqual([[], ['amount']]);
+    expect(lines(held())).toEqual([[], ['hold-name', 'hold-time']]);
   });
 
   it('writes no bill for a table that is free, reserved or blocked, nor for one whose bill did not arrive', () => {
@@ -57,9 +67,20 @@ describe('FloorTileCaption', () => {
     expect(rule('.table-tile__hold-time')).toContain('flex: none');
   });
 
-  it('keeps the bill on one line with figures of even width, so it never wraps nor jumps as it changes', () => {
+  it('keeps the bill whole and bold, with figures of even width, so it never wraps nor jumps as it changes', () => {
     const bill = rule('.table-tile__amount');
     expect(bill).toContain('white-space: nowrap');
     expect(bill).toContain('font-variant-numeric: tabular-nums');
+    expect(bill).toContain('font-weight: 750');
+  });
+
+  it('on the shared line the bill and the hour stay whole and the reservation name is what gives way', () => {
+    const line = rule('.table-tile__detail');
+    expect(line).toContain('display: flex');
+    expect(line).toContain('max-width: 100%');
+    expect(line).toContain('min-width: 0');
+    expect(rule('.table-tile__amount')).toContain('flex: none');
+    expect(rule('.table-tile__hold')).toContain('min-width: 0');
+    expect(rule('.table-tile__amount + .table-tile__hold::before')).toContain("content: '·'");
   });
 });

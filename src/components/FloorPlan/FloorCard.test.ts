@@ -81,6 +81,7 @@ describe('FloorCard', () => {
     const bill = rule('.floor-card__amount');
     expect(bill).toContain('white-space: nowrap');
     expect(bill).toContain('font-variant-numeric: tabular-nums');
+    expect(bill).toContain('color: var(--ion-text-color)');
   });
 
   it('hands its full name to the button Ionic draws, and keeps it in step as the time passes', async () => {
