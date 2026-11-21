@@ -24,11 +24,16 @@ describe('order-board.css: the board around the order tickets', () => {
 
   it('keeps the bar in sight while the board scrolls, with tabs a finger can take', () => {
     expect(valueOf(css, BAR, 'position')).toBe('sticky');
-    expect(valueOf(css, BAR, 'top')).toBe('0');
     expect(valueOf(css, BAR, 'container-type')).toBe('inline-size');
     expect(valueOf(css, `${BAR} ion-segment-button`, 'min-height')).toBe('var(--ep-touch-min)');
     expect(valueOf(css, `${BAR} .ep-order-board-bar__fullscreen`, 'min-height')).toBe('var(--ep-touch-min)');
     expect(css).toMatch(/@container \(max-width: 26rem\) \{[^@]*\.ep-order-board-bar ion-segment-button/);
+  });
+
+  // A sticky box stops at the padding of the box that scrolls, and Ionic's content pads it (`--padding-top`): with
+  // `top: 0` the tickets showed through the strip above the bar.
+  it('sticks the bar to the top edge of the scrolling box, over its padding, so no ticket shows above it', () => {
+    expect(valueOf(css, BAR, 'top')).toBe('calc(-1 * var(--padding-top, 0px))');
   });
 
   it('right-aligns the quantities of the totals over the alignment of their column', () => {

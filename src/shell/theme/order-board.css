@@ -3,7 +3,7 @@
  * classes on Ionic's pieces.
  *
  *   .ep-order-board                  the grid of tickets, and of the loading ones
- *   .ep-order-board-bar              the bar, sticky while the board scrolls
+ *   .ep-order-board-bar              the bar, stuck to the top edge of the box that scrolls
  *     __main, __views, __stations    its first row, the ion-segment of the views and the ion-segment of the stations
  *     __count, __fullscreen          the count beside a view's name, the ion-button of «Full screen»
  *   .ep-order-board-totals, __num    the table of what is left of each dish, its right-aligned quantities
@@ -19,10 +19,12 @@
   align-items: start;
 }
 
+/* A sticky box stops at the padding of the box that scrolls: the bar rises over Ionic's content padding
+   (`--padding-top`), so nothing shows above it. Another scrolling box declares its own top padding there. */
 .ep-order-board-bar {
   container-type: inline-size;
   position: sticky;
-  top: 0;
+  top: calc(-1 * var(--padding-top, 0px));
   z-index: 2;
   margin-bottom: 0.75rem;
   padding: 0 0 0.5rem;
