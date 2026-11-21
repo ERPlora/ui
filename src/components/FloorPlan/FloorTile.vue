@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 
 import FloorTileCaption from './FloorTileCaption.vue';
-import type { FloorBox, FloorTable } from './model';
+import { isBillRequested, type FloorBox, type FloorTable } from './model';
 import TableGlyph from './TableGlyph.vue';
 
 const props = withDefaults(
@@ -36,6 +36,7 @@ const style = computed(() => ({
   '--tile-slot': `${props.box.slot}px`,
 }));
 const unreachable = computed(() => props.table.pickable === false);
+const bill = computed(() => (isBillRequested(props.table) ? 'requested' : undefined));
 </script>
 
 <template>
@@ -44,6 +45,7 @@ const unreachable = computed(() => props.table.pickable === false);
     :style="style"
     :data-status="table.status"
     :data-timer="table.tone"
+    :data-bill="bill"
     :data-testid="table.testid"
   >
     <TableGlyph :table="table" />

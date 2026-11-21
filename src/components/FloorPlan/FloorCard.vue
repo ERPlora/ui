@@ -2,13 +2,15 @@
 import { IonCard } from '@ionic/vue';
 import { computed, onMounted, useTemplateRef, watch } from 'vue';
 
-import { occupiedAmount, type FloorTable } from './model';
+import HubIcon from '../../shell/HubIcon.vue';
+import { FLOOR_BILL_ICON, isBillRequested, occupiedAmount, type FloorTable } from './model';
 import TableGlyph from './TableGlyph.vue';
 
 const props = defineProps<{ table: FloorTable }>();
 const emit = defineEmits<{ select: [id: string] }>();
 
 const amount = computed(() => occupiedAmount(props.table));
+const bill = computed(() => isBillRequested(props.table));
 const card = useTemplateRef<{ $el: HTMLElement }>('card');
 
 // ion-card hands an `aria-label` to the button it draws only once, when it loads, and none of the other ARIA:
@@ -39,6 +41,7 @@ function onClick(): void {
     :class="{ 'floor-card--dimmed': table.pickable === false, 'floor-card--target': table.pickable === true }"
     :data-status="table.status"
     :data-shape="table.shape"
+    :data-bill="bill ? 'requested' : undefined"
     :data-testid="table.testid"
     @click="onClick"
   >
@@ -67,7 +70,13 @@ function onClick(): void {
         >{{ ` · ${table.holdTime}` }}</span></span>
       </span>
       <span class="floor-card__status">
-        <span data-part="status">{{ table.statusLabel }}</span>
+        <span
+          class="floor-card__state"
+          data-part="status"
+        ><HubIcon
+          v-if="bill"
+          :name="FLOOR_BILL_ICON"
+        />{{ table.statusLabel }}</span>
         <span
           v-if="table.timed"
           class="floor-card__time"
@@ -108,6 +117,10 @@ function onClick(): void {
 .floor-card[data-status='occupied'] {
   --card-accent: var(--ep-primary-text);
   --card-edge: color-mix(in srgb, var(--ion-color-primary) 36%, var(--ion-border-color));
+}
+.floor-card[data-status='occupied'][data-bill] {
+  --card-accent: var(--ep-data-3);
+  --card-edge: color-mix(in srgb, var(--ep-data-3) 36%, var(--ion-border-color));
 }
 .floor-card[data-status='reserved'] {
   --card-accent: var(--ep-warning-text);
@@ -187,6 +200,11 @@ function onClick(): void {
   font-size: 11px;
   font-weight: 750;
   line-height: 1.2;
+}
+.floor-card__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
 }
 .floor-card__time {
   padding: 2px 5px;

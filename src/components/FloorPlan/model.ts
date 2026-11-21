@@ -15,6 +15,9 @@ export interface FloorGlyphTable {
   tone: FloorTimerTone;
   /** How far the time occupied has gone towards the critical one, 0–100. */
   progress: number;
+  /** One of the bills open at an occupied table has been requested: the mark is that bill's, not the table's. Painted
+   *  apart, with `FLOOR_BILL_ICON` by its status; ignored on any other table. */
+  billRequested?: boolean;
 }
 
 export interface FloorTable extends FloorGlyphTable {
@@ -78,6 +81,8 @@ export const FLOOR_STATUS_ICONS: Readonly<Record<FloorTableStatus, string>> = Ob
   blocked: 'ion:ban-outline',
 });
 
+export const FLOOR_BILL_ICON = 'ion:receipt-outline';
+
 export const FLOOR_STAT_ICONS: Readonly<Record<FloorStatKey, string>> = Object.freeze({
   available: 'ion:checkmark-circle-outline',
   occupied: 'ion:people-outline',
@@ -88,6 +93,15 @@ export const FLOOR_STAT_ICONS: Readonly<Record<FloorStatKey, string>> = Object.f
 /** What an occupied table shows as its bill; any other table shows none, whatever it carries. */
 export function occupiedAmount(table: Pick<FloorTable, 'status' | 'amount'>): string {
   return table.status === 'occupied' ? (table.amount ?? '') : '';
+}
+
+export function isBillRequested(table: Pick<FloorGlyphTable, 'status' | 'billRequested'>): boolean {
+  return table.status === 'occupied' && table.billRequested === true;
+}
+
+/** The icon by a table's written status: the bill's once it is requested, its status's otherwise. */
+export function statusIcon(table: Pick<FloorGlyphTable, 'status' | 'billRequested'>): string {
+  return isBillRequested(table) ? FLOOR_BILL_ICON : FLOOR_STATUS_ICONS[table.status];
 }
 
 export function zoneColor(color: string | null | undefined): string {
