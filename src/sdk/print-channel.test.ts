@@ -1,7 +1,8 @@
 // A fake socket and fake timers stand in for the server here; the e2e drives the real one.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createPrintChannel, MAX_ERROR_LENGTH, type PrintChannelEvent, type PrintJob, type PrintSocket } from './print-channel';
+import { createPrintChannel, type PrintChannelEvent, type PrintSocket } from './print-channel';
+import { MAX_ERROR_LENGTH, type PrintJob } from './print-job';
 
 class FakeSocket implements PrintSocket {
   sent: Record<string, unknown>[] = [];

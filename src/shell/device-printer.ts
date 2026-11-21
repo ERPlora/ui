@@ -3,7 +3,7 @@
 // (RD 1619/2012 art. 14.4). There is no fallback: this runs unattended, so every refusal of the app fails the job and
 // the hub keeps it in the queue. A drawer that does not open after the paper came out does not fail the job, since
 // the hub would print the ticket again; it is reported through `onDrawerFailed`, like a drawer-only job that fails.
-import type { PrintJob } from '../sdk/print-channel';
+import type { PrintJob } from '../sdk/print-job';
 import { afterTheLoad, type NativeBridge, whileTheHubLands } from './native-bridge';
 
 export interface DevicePrinterDeps {
