@@ -35,11 +35,7 @@ import DataTableState from './DataTableState.vue';
 import DataTableToolbar from './DataTableToolbar.vue';
 import { useDataTableLabels } from './labels';
 import {
-  activeFilters,
   DATA_TABLE_ICONS,
-  declaredFilters,
-  filterColumnsOf,
-  filterCount,
   filterRows,
   gridTemplate,
   pagerState,
@@ -50,6 +46,7 @@ import {
 } from './model';
 import { cardRowActions, listRowActions } from './rowActions';
 import { useCardParts } from './useCardParts';
+import { useColumnFilters } from './useColumnFilters';
 import { useColumnSort } from './useColumnSort';
 import { useFilterControls } from './useFilterControls';
 import { useMediaQuery } from './useMediaQuery';
@@ -335,36 +332,18 @@ const cardsOn = computed(() => viewMode.value === 'cards' && cardViewEnabled.val
 const windowed = computed(() => isMobile.value || cardsOn.value);
 
 // ── Column filters ────────────────────────────────────────────────────────────────────────────
-/** The active filters on screen (own state; `filters` from the parent overrides it, like `search`). */
-const filterValues = ref<DataTableFilters>({});
-/** Every filter, as a column: the columns' own in column order, then `filterFields` (types.ts). */
-const filterColumns = computed(() => filterColumnsOf(props.columns, props.filterFields));
-/** The filtered columns (a range counts once): a name no column declares is no filter. */
-const filterCountNow = computed(() => filterCount(filterColumns.value, filterValues.value));
-const filtering = computed(() => filterCountNow.value > 0);
-const sameFilters = (a: DataTableFilters, b: DataTableFilters): boolean => {
-  const keys = Object.keys(a);
-  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
-};
-
-function setFilters(next: DataTableFilters): void {
-  const active = declaredFilters(filterColumns.value, next);
-  if (sameFilters(active, filterValues.value)) return;
-  filterValues.value = active;
-  if (!props.serverSide) {
+const { filterValues, filterColumns, filterCountNow, filtering, setFilters, setFilter, clearFilters } = useColumnFilters<T>({
+  columns: () => props.columns,
+  filterFields: () => props.filterFields,
+  filters: () => props.filters,
+  serverSide: () => props.serverSide,
+  update: (filters) => emit('update:filters', filters),
+  query: (filters) => emit('filtersChange', filters),
+  refiltered: () => {
     clientPage.value = 0;
     mobileShown.value = 0;
-  }
-  emit('update:filters', active);
-  if (props.serverSide) emit('filtersChange', active);
-}
-/** One control of the filter row changed: applied at once. */
-function setFilter(name: string, value: string): void {
-  setFilters({ ...filterValues.value, [name]: value });
-}
-function clearFilters(): void {
-  setFilters({});
-}
+  },
+});
 // ── Filters panel (`filterable`) ─────────────────────────────────────────────────────────────
 /** The column filters live behind the funnel: `filterable`, or the cards (an open row of controls would
  *  take half a phone before the first card). */
@@ -514,19 +493,6 @@ watch(
     }
   },
   { immediate: true },
-);
-// `filters` from the parent is what the person is looking at; `undefined` = not controlled.
-watch(
-  () => props.filters,
-  (value) => {
-    if (value === undefined) return;
-    filterValues.value = activeFilters(value);
-    if (!props.serverSide) {
-      clientPage.value = 0;
-      mobileShown.value = 0;
-    }
-  },
-  { immediate: true, deep: true },
 );
 watch(
   () => props.rows,
