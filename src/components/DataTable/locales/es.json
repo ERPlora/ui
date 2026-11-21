@@ -7,6 +7,7 @@
     "selected": "{n} seleccionado | {n} seleccionados",
     "add": "Añadir",
     "moreActions": "Más acciones",
+    "rowAction": "{action}: {name}",
     "rowsPerPage": "Filas por página",
     "perPageShort": "{n} / pág.",
     "viewList": "Vista lista",
