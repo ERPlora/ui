@@ -106,9 +106,10 @@ const alignClass = (column: DataTableColumn<T>) => column.align ? `data-table__c
 
 <style scoped>
 .data-table__cell { display: flex; align-items: center; min-width: 0; }
-/* Its own stacking context: a control with a z-index of its own (Ionic's ion-toggle has 2, the sticky head's) stays
-   under the head and the pinned actions. */
+/* Its own stacking context: a control with a z-index of its own (Ionic's ion-toggle and ion-checkbox have 2, the
+   sticky head's) stays under the head and the pinned actions. */
 .data-table__row--data > .data-table__cell { isolation: isolate; }
+.data-table__row--data > .data-table__select-cell { isolation: isolate; }
 .data-table__cell--right { justify-content: flex-end; text-align: right; }
 .data-table__cell--center { justify-content: center; text-align: center; }
 .data-table__cell--pinned { position: sticky; right: 0; z-index: 1; background: inherit; margin-right: -1rem; padding-right: 1rem; }

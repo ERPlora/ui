@@ -64,6 +64,11 @@ describe('what a cell holds stays under the sticky head and the pinned actions',
   it('every data cell is a stacking context of its own', () => {
     expect(source).toContain('.data-table__row--data > .data-table__cell { isolation: isolate; }');
   });
+
+  // Ionic's ion-checkbox carries the same z-index: a row's selection box covered the head's «select all» box.
+  it('so is the selection cell of a row', () => {
+    expect(source).toContain('.data-table__row--data > .data-table__select-cell { isolation: isolate; }');
+  });
 });
 
 describe('the focused row rhythm', () => {
