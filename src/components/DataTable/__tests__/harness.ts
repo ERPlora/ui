@@ -248,3 +248,10 @@ export const ROWS = [
   { id: '2', name: 'Luis', total: '20,00 €' },
   { id: '3', name: 'Marta', total: '30,00 €' },
 ];
+
+/** Two people and the one column that names them, for the tests that only need a short list. */
+export const PEOPLE: Record<string, unknown>[] = [
+  { id: 1, name: 'Ana' },
+  { id: 2, name: 'Luis' },
+];
+export const NAME = [{ key: 'name', label: 'Name' }];
