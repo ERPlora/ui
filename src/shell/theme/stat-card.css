@@ -121,11 +121,24 @@
 .ep-stat-card .ep-stat-card__chevron {
   flex: none;
   align-self: flex-start;
+  margin-inline-start: auto;
   color: var(--stat-card-ink);
   font-size: 1.125rem;
 }
 .ep-stat-card--live .ep-stat-card__chevron {
   color: var(--ep-data-on-gradient);
+}
+
+/* A narrow card (two a row on a phone): the icon and the arrow share the top line, the label and note go under them. */
+@container (max-width: 13rem) {
+  .ep-stat-card .ep-stat-card__head {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .ep-stat-card .ep-stat-card__heading {
+    flex-basis: 100%;
+    order: 1;
+  }
 }
 
 .ep-stat-card .ep-stat-card__value {
@@ -148,6 +161,10 @@
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.4;
+}
+.ep-stat-card .ep-stat-card__text {
+  flex: 1 1 6rem;
+  min-width: 0;
 }
 .ep-stat-card .ep-stat-card__trend[data-trend='success'] {
   color: var(--ep-success-text);

@@ -142,7 +142,7 @@ const busyLabel = computed(() => (state.value === 'loading' ? t('statCard.loadin
         role="status"
       >
         <HubIcon name="ion:cloud-offline-outline" />
-        <span>{{ t('statCard.error') }}</span>
+        <span class="ep-stat-card__text">{{ t('statCard.error') }}</span>
         <IonButton
           fill="clear"
           class="ep-stat-card__retry"
@@ -166,7 +166,7 @@ const busyLabel = computed(() => (state.value === 'loading' ? t('statCard.loadin
           :name="TREND_ICONS[trend.direction]"
           :label="t(`statCard.trend.${trend.direction}`)"
         />
-        <span>{{ trend.label }}</span>
+        <span class="ep-stat-card__text">{{ trend.label }}</span>
       </p>
     </template>
   </component>

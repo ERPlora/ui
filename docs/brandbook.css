@@ -59,9 +59,9 @@ main { overflow: hidden; }
 .book-subheading:first-of-type { margin-top: 0; }
 .book-note { max-width: 760px; margin: 0 0 1.25rem; color: var(--ep-text-muted); font-size: .9rem; }
 .book-section .ep-stat-grid + .ep-stat-grid { margin-top: .875rem; }
-/* Without Ionic's scripts the page imitates the two Ionic pieces of the figure card: the skeleton bar and the clear
-   Retry button. */
-ion-skeleton-text { background: color-mix(in srgb, var(--ion-text-color) 9%, transparent); }
+/* Without Ionic's scripts the page draws the two Ionic pieces of the figure card: the skeleton bars of its loading
+   state (still, as a picture of it) and the clear Retry button. */
+.book-section .ep-stat-card__bone { background: color-mix(in srgb, var(--ion-text-color) 9%, transparent); }
 button.ep-stat-card__retry { padding: 0 .75rem; border: 0; border-radius: var(--ep-radius-sm); background: transparent; color: var(--ep-danger-text); font-weight: 600; cursor: pointer; }
 .preview-bottom { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem; margin-top: 1rem; }
 .demo-list, .demo-action { padding: 1.25rem; }

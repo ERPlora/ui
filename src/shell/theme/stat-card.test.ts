@@ -80,6 +80,25 @@ describe('stat-card.css: the look of a figure card', () => {
     });
   }
 
+  it('in a narrow card (two a row on a phone) the label goes under the icon, so no word is split', () => {
+    const narrow = [...css.matchAll(/@container \(max-width: ([\d.]+)rem\)\s*\{((?:[^{}]*\{[^}]*\})+)\s*\}/g)].find((m) =>
+      m[2].includes('.ep-stat-card__heading'),
+    );
+    expect(narrow, 'a container query of the card itself').toBeDefined();
+    // Half of a 375 px phone's row is about 165 px; a card in a row of four on a desktop is over 230 px.
+    expect(Number(narrow![1]) * 16).toBeGreaterThan(165);
+    expect(Number(narrow![1]) * 16).toBeLessThan(230);
+    expect(valueOf(narrow![2], `${CARD} .ep-stat-card__head`, 'flex-wrap')).toBe('wrap');
+    expect(valueOf(narrow![2], `${CARD} .ep-stat-card__heading`, 'flex-basis')).toBe('100%');
+    expect(valueOf(narrow![2], `${CARD} .ep-stat-card__heading`, 'order')).toBe('1');
+  });
+
+  it('wraps the words of its bottom row next to their icon, never leaving the icon alone on a line', () => {
+    expect(valueOf(css, `${CARD} .ep-stat-card__meta`, 'flex-wrap')).toBe('wrap');
+    expect(valueOf(css, `${CARD} .ep-stat-card__text`, 'flex')).toBe('1 1 6rem');
+    expect(valueOf(css, `${CARD} .ep-stat-card__text`, 'min-width')).toBe('0');
+  });
+
   it('keeps its Retry at least 48 px tall', () => {
     expect(valueOf(css, `${CARD} .ep-stat-card__retry`, 'min-height')).toBe('var(--ep-touch-min)');
     expect(pixels(valueOf(css, CARD, 'min-height'))).toBeGreaterThanOrEqual(48);

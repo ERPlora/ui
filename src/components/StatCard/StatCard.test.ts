@@ -86,6 +86,7 @@ describe('StatCard: the figure', () => {
     const { wrapper } = await mountCard({ trend: { direction, label: '12.4 % more than last Tuesday', tone } });
     const trend = wrapper.get('.ep-stat-card__trend');
     expect(trend.text()).toBe('12.4 % more than last Tuesday');
+    expect(trend.get('.ep-stat-card__text').text()).toBe('12.4 % more than last Tuesday');
     expect(trend.attributes('data-trend')).toBe(shown);
     const glyph = trend.findComponent(HubIcon);
     expect(glyph.props('name')).toBe(icon);
@@ -166,7 +167,7 @@ describe('StatCard: loading, empty and error', () => {
     expect(wrapper.classes()).toContain('ep-stat-card--soft');
     const error = wrapper.get('.ep-stat-card__error');
     expect(error.attributes('role')).toBe('status');
-    expect(error.text()).toContain("Couldn't load");
+    expect(error.get('.ep-stat-card__text').text()).toBe("Couldn't load");
     const retry = wrapper.get('ion-button.ep-stat-card__retry');
     expect(retry.text()).toBe('Retry');
     expect(focusables(wrapper)).toEqual([retry.element]);
