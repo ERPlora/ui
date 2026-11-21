@@ -41,6 +41,17 @@ describe('desk cards load the next ones at the end of the scroll', () => {
     expect(info(t)).toBe('25 records');
   });
 
+  it('client: grown cards start again from one page when the filters change', async () => {
+    const t = cardsOf({ columns: [{ key: 'name', label: 'Name', filter: { type: 'text' } }] });
+    await settle();
+    await scrollToEnd(t);
+    expect(cards(t)).toHaveLength(20);
+    await t.setProps({ filters: { name: 'Servicio' } });
+    await settle();
+    expect(cards(t)).toHaveLength(10);
+    expect(info(t)).toBe('Showing 1–10 of 25 records');
+  });
+
   it('the indicator sits after the last card, inside the cards', async () => {
     const t = cardsOf();
     await settle();
