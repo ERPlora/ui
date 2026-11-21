@@ -3,7 +3,6 @@
 # the lint and is listed here while a block of it is frozen in eslint-suppressions.json, so that it does not grow.
 # <ceiling> <path> <issue>: the ceiling is the file's exact size in lines. The list only shrinks: no new entries
 # and no higher ceilings. A file that shrinks lowers its ceiling to its new size and leaves once it fits its limit.
-608 src/components/Assistant/state.test.ts erplora-next#77
 413 src/components/Assistant/state.ts erplora-next#77
 985 src/components/DataTable/DataTable.filters.test.ts erplora-next#77
 705 src/components/DataTable/DataTable.test.ts erplora-next#77
@@ -15,6 +14,4 @@
 341 src/sdk/print-channel.ts erplora-next#77
 733 src/sdk/stream-manager.test.ts erplora-next#77
 363 src/sdk/stream-manager.ts erplora-next#77
-957 src/shell/device-notices.test.ts erplora-next#77
-452 src/shell/device-notices.ts erplora-next#77
-542 src/shell/tabbar-peek.test.ts erplora-next#77
+950 src/shell/device-notices.test.ts erplora-next#77

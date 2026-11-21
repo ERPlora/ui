@@ -24,23 +24,16 @@ vi.mock('@ionic/vue', async (importOriginal) => ({
 }));
 
 import {
-  ANDROID_NOTIFICATIONS,
-  askToNotify,
   bootNoticeTaps,
   createNoticeDoor,
-  createNoticeListening,
   type DeviceNotice,
-  isOlderAppRefusal,
-  KEEP_LISTENING_COMMAND,
-  NOT_THE_LINKED_HUB,
-  NOTICE_LISTENING_COPY_KEYS,
-  type NativeBridge,
-  nativeBridge,
-  PRIMER_ANSWERED_KEY,
   stopNoticeListening,
   TOLD_KEY,
   useDeviceNotices,
 } from './device-notices';
+import { isOlderAppRefusal, type NativeBridge, nativeBridge, NOT_THE_LINKED_HUB } from './native-bridge';
+import { createNoticeListening, KEEP_LISTENING_COMMAND, NOTICE_LISTENING_COPY_KEYS } from './notice-listening';
+import { ANDROID_NOTIFICATIONS, askToNotify, PRIMER_ANSWERED_KEY } from './notice-permission';
 import { createShellI18n } from './i18n';
 import en from './locales/en.json';
 import es from './locales/es.json';
