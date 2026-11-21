@@ -22,13 +22,14 @@ export type DataTableColumnPriority = 'high' | 'normal' | 'low';
  * How a column filters (free text by «contains», a closed domain by equality, never the other way
  * round):
  *   - `text`: free text, «contains», case-insensitive, on what the cell paints;
- *   - `select`: a closed domain (`options`), exact equality on the row's field;
+ *   - `select`: a closed domain (`options`), exact equality on the row's field; a list field (a sale's
+ *     payment methods) matches when one of its items is the value;
  *   - `date`: one day (`YYYY-MM-DD`), the local day of the row's date or date-time;
  *   - `range`: a numeric range, both ends inclusive and each optional (`<key>_from`, `<key>_to`);
  *   - `daterange`: a range of days, both ends inclusive and each optional (`<key>_from`, `<key>_to`);
  *   - `boolean`: a yes/no («All», «Yes», «No»), as `'true'`/`'false'`;
  *   - `lookup`: one choice among more than a list can hold (staff, accounts…): the page's `load`
- *     asks the server for what is typed; exact equality on the row's field.
+ *     asks the server for what is typed; exact equality on the row's field, or one of its items in a list.
  */
 export type DataTableFilterType = 'text' | 'select' | 'date' | 'range' | 'daterange' | 'boolean' | 'lookup';
 
