@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { DataTableColumn } from './types';
-import { useCardParts } from './useCardParts';
+import { cardTitleColumn, useCardParts } from './useCardParts';
 
 type Row = { id: string; code: string; name: string; currency: string };
 const row: Row = { id: '1', code: 'L1', name: 'Tarifa mayorista 1', currency: 'EUR' };
@@ -39,5 +39,22 @@ describe('useCardParts', () => {
     const p = parts();
     expect(p.cardTitleOf(row)).toBe('');
     expect(keys(p.cardFields(row))).toEqual(['code', 'name', 'currency']);
+  });
+});
+
+describe('cardTitleColumn', () => {
+  type Row = Record<string, unknown>;
+  const col = (c: Partial<DataTableColumn<Row>> & { key: string }): DataTableColumn<Row> => ({ label: c.key, ...c });
+  const cols = [col({ key: 'code' }), col({ key: 'name' }), col({ key: 'currency' })];
+  const row = { code: 'L1', name: 'Tarifa mayorista 1', currency: 'EUR' };
+  it('is the first column whose text reads like the title (trimmed, numbers too)', () => {
+    expect(cardTitleColumn('Tarifa mayorista 1', row, cols)?.key).toBe('name');
+    expect(cardTitleColumn(' L1 ', row, cols)?.key).toBe('code');
+    expect(cardTitleColumn(12, { n: 12 }, [col({ key: 'n' })])?.key).toBe('n');
+  });
+  it('none for an empty title, a non-text title, or a column painted by a slot', () => {
+    expect(cardTitleColumn('', row, cols)).toBeUndefined();
+    expect(cardTitleColumn(null, row, cols)).toBeUndefined();
+    expect(cardTitleColumn('Tarifa mayorista 1', row, [col({ key: 'name', cell: 'name-cell' })])).toBeUndefined();
   });
 });

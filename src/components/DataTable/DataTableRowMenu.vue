@@ -2,7 +2,7 @@
 import { IonContent, IonIcon, IonItem, IonLabel, IonList, IonPopover } from '@ionic/vue';
 
 import { ionIconSrc } from '../../shell/icons';
-import { actionLabel, toneStyle } from './model';
+import { actionLabel, toneStyle } from './rowActions';
 import type { DataTableAction } from './types';
 
 const props = withDefaults(

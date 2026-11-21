@@ -9,7 +9,7 @@ import { createShellI18n } from '../../shell/i18n';
 import DataTablePager from './DataTablePager.vue';
 import pagerSource from './DataTablePager.vue?raw';
 import tableSource from './DataTable.vue?raw';
-import type { PagerState } from './model';
+import type { PagerState } from './pager';
 
 const desk = (current: number, pages = 6): PagerState<unknown> => ({
   visible: [],
