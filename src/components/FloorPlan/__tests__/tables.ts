@@ -53,3 +53,9 @@ export function held(overrides: Partial<FloorTable> = {}): FloorTable {
     ...overrides,
   });
 }
+
+/** Tables that show no bill: free, reserved or blocked though they carry one, and occupied without one. */
+export function billless(): FloorTable[] {
+  const bill = { amount: '42,50 €' };
+  return [floorTable(bill), held(bill), floorTable({ ...bill, status: 'blocked' }), seated(), seated({ amount: '' })];
+}
