@@ -86,6 +86,14 @@ describe('useColumnFilters', () => {
     expect(f.query).toHaveBeenCalledTimes(3);
   });
 
+  it('a new value for a filter in use is a change', () => {
+    const f = setup({ server: true });
+    f.setFilter('name', 'ana');
+    f.setFilter('name', 'luis');
+    expect(f.query.mock.calls).toEqual([[{ name: 'ana' }], [{ name: 'luis' }]]);
+    expect(f.filterValues.value).toEqual({ name: 'luis' });
+  });
+
   it('a field’s name is declared too, and «Clear» lifts every filter at once', () => {
     const f = setup({ fields: [ZONE] });
     f.setFilters({ zone: 'north', name: 'ana' });
