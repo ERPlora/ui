@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Before the tap only our own poster is painted: no iframe and no thumbnail, so nothing is requested from Google. The
-// player's sandbox has neither `allow-popups` nor `allow-top-navigation`: without it, a tap on the YouTube logo inside
-// the player replaces the whole app window with youtube.com. Without the referrer policy, YouTube refuses to play.
+// player's sandbox allows popups, so its logo and title open youtube.com in a new tab, but not `allow-top-navigation`,
+// so they can never replace the app's window. Without the referrer policy, YouTube refuses to play.
 import { computed, nextTick, shallowRef, useId, useTemplateRef, watch } from 'vue';
 
 import HubIcon from '../../shell/HubIcon.vue';
@@ -24,14 +24,16 @@ const props = withDefaults(
     duration?: string;
     /** Icon next to the title (`set:name`, registered in `shell/icons.ts`). */
     icon?: string;
+    /** The person's language (`es`, `pt-BR`): the player's captions and controls come in it. */
+    language?: string;
   }>(),
-  { duration: undefined, icon: undefined },
+  { duration: undefined, icon: undefined, language: undefined },
 );
 
 const locale = useComponentLocale();
 const text = computed(() => CATALOGUES[shellLocale(locale.value)]);
 const playLabel = computed(() => text.value.play.replace('{title}', () => props.title));
-const src = computed(() => youtubeEmbedSrc(props.videoId));
+const src = computed(() => youtubeEmbedSrc(props.videoId, props.language));
 const online = useOnline();
 const captionId = useId();
 
@@ -83,8 +85,9 @@ async function play(): Promise<void> {
       :src="src"
       :title="title"
       referrerpolicy="strict-origin-when-cross-origin"
-      allow="autoplay; encrypted-media; picture-in-picture"
-      sandbox="allow-scripts allow-same-origin allow-presentation"
+      allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+      allowfullscreen
+      sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
     />
     <div
       v-else-if="!online"
