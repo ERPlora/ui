@@ -187,7 +187,7 @@ function matchesFilter<T extends object>(column: DataTableColumn<T>, row: T, fil
   }
   if (filter.type === 'date') return dayOf(field) === wanted;
   if (filter.type === 'boolean') return isOn(field) === (wanted === 'true');
-  return String(field ?? '') === wanted;
+  return Array.isArray(field) ? field.some((item) => String(item) === wanted) : String(field ?? '') === wanted;
 }
 
 /** Client mode: the rows every active column filter keeps (AND), in order. */
