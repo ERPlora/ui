@@ -78,7 +78,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 
 ### `FormModal`
 `import { FormModal } from '@erplora/ui/components'`
-- **Para qué sirve:** un formulario corto en un diálogo, con Guardar y Cancelar, su estado de envío y el error del servidor (el mensaje arriba y el de cada campo en el slot).
+- **Para qué sirve:** un formulario corto en un diálogo, con Guardar y Cancelar, su estado de envío y el error del servidor (el mensaje arriba y el de cada campo en el slot). Nunca pasa del alto de la pantalla: si no cabe, los campos se desplazan entre el título y los botones, que siempre se ven (también en una tableta en horizontal con un pie de varias filas).
 - **Úsalo cuando** se crea o edita algo de pocos campos sin salir de la pantalla.
 - **No lo uses cuando** el formulario de una entidad es largo → una página con `AppPage`; es una pregunta de sí o no → `useConfirm`.
 - **API:** `v-model:open`, `title`, `submitLabel`, `pending`, `error`, `size` (`sm` 420 px, `md` 480 px, `lg` 640 px para una ventana de lectura), `phoneLayout` (`sheet`, `card`), `submitDisabled`, `readonly`, `canDismiss`, `testid`; slot por defecto con `{ fieldErrors, pending }` y slot `footer`; eventos `submit` (no cierra: la página pone `open = false` cuando su orden sale bien) y `cancel`. `useRefusal` mantiene los errores de un rechazo mientras se corrige.
