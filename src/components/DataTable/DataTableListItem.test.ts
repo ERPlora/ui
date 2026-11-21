@@ -58,6 +58,19 @@ describe('the list item owns its cell layout', () => {
 });
 
 
+describe('what a cell holds stays under the sticky head and the pinned actions', () => {
+  // Ionic's ion-toggle carries `position: relative; z-index: 2` on its host, the head's own z-index: later in
+  // the page, it painted over the head while the list scrolled under it.
+  it('every data cell is a stacking context of its own', () => {
+    expect(source).toContain('.data-table__row--data > .data-table__cell { isolation: isolate; }');
+  });
+
+  // Ionic's ion-checkbox carries the same z-index: a row's selection box covered the head's «select all» box.
+  it('so is the selection cell of a row', () => {
+    expect(source).toContain('.data-table__row--data > .data-table__select-cell { isolation: isolate; }');
+  });
+});
+
 describe('the focused row rhythm', () => {
   it('keeps a comfortable minimum height and vertical separation around actions', () => {
     expect(source).toMatch(/\.data-table__row--data \{[^}]*min-height: 80px/);

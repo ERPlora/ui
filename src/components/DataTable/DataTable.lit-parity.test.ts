@@ -307,6 +307,10 @@ const ADDED: Record<string, string> = {
     'the card title wraps, two lines at most (Polaris, Material), instead of the Lit one-line «…»',
   '.data-table__row--data > .data-table__cell:not(.data-table__cell--actions)':
     'a data cell drops what does not fit under, instead of squeezing a chip beside a badge to its icon (measured in Chromium at 820/834 px)',
+  '.data-table__row--data > .data-table__cell':
+    'a cell’s own stacking context: the z-index of an ion-toggle in it (2, the head’s) painted it over the sticky head (measured in Chromium)',
+  '.data-table__row--data > .data-table__select-cell':
+    'the same for a row’s ion-checkbox (z-index 2), which covered the head’s «select all» box (measured in Chromium)',
   '.data-table__field-text':
     'a card value’s own box, which ends a word too long for the card in «…» (a 54-character email ran past it, measured in Chromium)',
   '.data-table__field-text--unfolded': 'a tapped clipped card value unfolds in place, as a cell does',
