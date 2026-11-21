@@ -50,7 +50,7 @@
   },
   "src/components/DataTable/DataTable.vue": {
     "vue/max-lines-per-block": {
-      "count": 3
+      "count": 2
     }
   },
   "src/components/DataTable/model.ts": {

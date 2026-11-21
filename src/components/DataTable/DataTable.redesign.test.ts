@@ -4,7 +4,7 @@ import cardSource from './DataTableCard.vue?raw';
 import listSource from './DataTableListItem.vue?raw';
 import actionsSource from './DataTableRowActions.vue?raw';
 import stateSource from './DataTableState.vue?raw';
-import source from './DataTable.vue?raw';
+import { tableSource as source, toolbarSource } from './__tests__/part-sources';
 import { gridTemplate } from './model';
 
 const styles = (input: string) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '';
@@ -13,6 +13,7 @@ const card = styles(cardSource);
 const list = styles(listSource);
 const actions = styles(actionsSource);
 const state = styles(stateSource);
+const toolbar = styles(toolbarSource);
 
 describe('the default focused presentation', () => {
   it('gives each card room for its icon, a name and its switch: 260px at least, one column when narrower', () => {
@@ -38,11 +39,11 @@ describe('the default focused presentation', () => {
   });
 
   it('uses 44px toolbar controls, not desktop-only smaller targets', () => {
-    expect(table).toMatch(/\.data-table__add-button \{ min-height: 44px/);
-    expect(table).toMatch(/\.data-table__filter-button \{[^}]*width: 44px; height: 44px/);
-    expect(table).toMatch(/\.data-table__columns-select \{[^}]*min-height: 44px/);
-    expect(table).toMatch(/\.data-table__page-size-select \{[^}]*min-height: 44px/);
-    expect(table).toMatch(/\.data-table__view-segment ion-segment-button \{ min-width: 44px; min-height: 44px/);
+    expect(toolbar).toMatch(/\.data-table__add-button \{ min-height: 44px/);
+    expect(toolbar).toMatch(/\.data-table__filter-button \{[^}]*width: 44px; height: 44px/);
+    expect(toolbar).toMatch(/\.data-table__columns-select \{[^}]*min-height: 44px/);
+    expect(toolbar).toMatch(/\.data-table__page-size-select \{[^}]*min-height: 44px/);
+    expect(toolbar).toMatch(/\.data-table__view-segment ion-segment-button \{ min-width: 44px; min-height: 44px/);
   });
 
   it('loads with labelled Ionic skeletons and keeps complete empty and error actions', () => {
