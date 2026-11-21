@@ -8,6 +8,4 @@
 705 src/components/DataTable/DataTable.test.ts erplora-next#77
 517 src/components/DataTable/DataTable.visual.test.ts erplora-next#77
 1127 src/components/DataTable/DataTable.vue erplora-next#86
-561 src/components/DataTable/model.test.ts erplora-next#77
-420 src/components/DataTable/model.ts erplora-next#77
 555 src/components/DataTable/useDataTableLayout.ts erplora-next#77

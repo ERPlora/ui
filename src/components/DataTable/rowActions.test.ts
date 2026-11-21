@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cardRowActions, listRowActions } from './rowActions';
+import { cardRowActions, inlineActions, listRowActions, rowActionsFolded, slotActions, toneStyle, visibleActions } from './rowActions';
 import type { DataTableAction, DataTableActionCell } from './types';
 
 type Row = { id: string; paid?: boolean };
@@ -107,5 +107,75 @@ describe('the row’s title names each action for a screen reader', () => {
   it('without a title, or a blank one, the short label stays the name', () => {
     expect(names(listRowActions([action('Edit')], row, unfolded))).toEqual([undefined]);
     expect(names(cardRowActions([action('Edit')], row, '  '))).toEqual([undefined]);
+  });
+});
+
+describe('row actions', () => {
+  type Row = Record<string, unknown>;
+  const rows: Row[] = [{ id: 'a', update: null }, { id: 'b', update: '2.0' }];
+  const open: DataTableAction<Row> = { id: 'open', label: 'Open', icon: 'open-outline' };
+  const update: DataTableAction<Row> = { id: 'update', label: 'Update', icon: 'cloud-download-outline', hidden: (r) => !r.update };
+  const use: DataTableAction<Row> = { id: 'use', label: 'Use template' };
+
+  it('visibleActions drops what is hidden for that row', () => {
+    expect(visibleActions([open, update], rows[0]).map((a) => a.id)).toEqual(['open']);
+    expect(visibleActions([open, update], rows[1]).map((a) => a.id)).toEqual(['open', 'update']);
+  });
+
+  it('slotActions keeps a column only for actions some row shows', () => {
+    expect(slotActions([open, update], rows).map((a) => a.id)).toEqual(['open', 'update']);
+    expect(slotActions([open, update], [rows[0]]).map((a) => a.id)).toEqual(['open']);
+  });
+
+  it('folds only when collapsed and there is more than one, or a single TEXT action', () => {
+    expect(rowActionsFolded(false, [open, update])).toBe(false);
+    expect(rowActionsFolded(true, [open, update])).toBe(true);
+    expect(rowActionsFolded(true, [open])).toBe(false);
+    expect(rowActionsFolded(true, [use])).toBe(true);
+    expect(rowActionsFolded(true, [])).toBe(false);
+    expect(rowActionsFolded(true, [{ ...open, showLabel: true }]), 'an icon with its label is wider than «⋮»').toBe(true);
+  });
+});
+
+describe('inlineActions: the actions that keep a button at each fold of the row', () => {
+  const action = (id: string, extra: Partial<DataTableAction<Row>> = {}): DataTableAction<Row> => ({ id, label: id, icon: 'ellipse', ...extra });
+  const open = action('open', { pinned: true });
+  const manage = action('manage');
+  const pay = action('pay');
+  const transfer = action('transfer', { menuOnly: true });
+  const ids = (actions: DataTableAction<Row>[]) => actions.map((a) => a.id);
+
+  it('unfolded: every action but the `menuOnly` ones, however many (the box has room)', () => {
+    expect(ids(inlineActions([open, manage, pay, transfer], 'none', 2))).toEqual(['open', 'manage', 'pay']);
+    expect(ids(inlineActions([manage, pay, action('x'), action('y')], 'none', 1))).toEqual(['manage', 'pay', 'x', 'y']);
+  });
+
+  it('`extra`: the first `maxInline`, in their order; a pinned one counts first and never leaves', () => {
+    expect(ids(inlineActions([manage, pay, action('x')], 'extra', 2))).toEqual(['manage', 'pay']);
+    expect(ids(inlineActions([manage, pay, open], 'extra', 2)), 'pinned takes a place, kept in order').toEqual(['manage', 'open']);
+    expect(ids(inlineActions([open, manage, pay, transfer], 'extra', 1))).toEqual(['open']);
+    expect(ids(inlineActions([open, action('main', { pinned: true }), manage], 'extra', 1)), 'pinned ones beyond the limit stay').toEqual([
+      'open',
+      'main',
+    ]);
+    expect(ids(inlineActions([manage, pay], 'extra', 0))).toEqual([]);
+  });
+
+  it('`all`: only the pinned ones; `menuOnly` never, even pinned', () => {
+    expect(ids(inlineActions([open, manage, pay, transfer], 'all', 2))).toEqual(['open']);
+    expect(ids(inlineActions([action('odd', { pinned: true, menuOnly: true }), manage], 'all', 2))).toEqual([]);
+    expect(ids(inlineActions([action('odd', { pinned: true, menuOnly: true })], 'none', 2))).toEqual([]);
+  });
+});
+
+describe('toneStyle', () => {
+  it('paints from the --ion-color token with Ionic’s default hex', () => {
+    expect(toneStyle('danger', 'clear')).toBe('--color: var(--ion-color-danger, #c5000f);');
+    expect(toneStyle('medium', 'text')).toBe('color: var(--ion-color-medium, #636469);');
+    expect(toneStyle('brand', 'clear')).toBe('--color: var(--ion-color-brand);');
+  });
+  it('refuses an empty or unsafe tone (it goes into CSS)', () => {
+    expect(toneStyle(undefined, 'clear')).toBeUndefined();
+    expect(toneStyle('red;}', 'clear')).toBeUndefined();
   });
 });

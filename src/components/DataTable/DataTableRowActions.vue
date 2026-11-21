@@ -2,7 +2,8 @@
 import { IonButton, IonIcon, IonSpinner } from '@ionic/vue';
 
 import { ionIconSrc } from '../../shell/icons';
-import { actionLabel, DATA_TABLE_ICONS, iconWithLabel, toneStyle } from './model';
+import { DATA_TABLE_ICONS } from './model';
+import { actionLabel, iconWithLabel, toneStyle } from './rowActions';
 import type { DataTableAction, DataTableActionCell } from './types';
 
 const props = withDefaults(

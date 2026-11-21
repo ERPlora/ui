@@ -1,7 +1,21 @@
 import { computed } from 'vue';
 
-import { cardTitleColumn as titleColumnByText, cellText } from './model';
+import { cellText } from './model';
 import type { DataTableColumn } from './types';
+
+/** The column a card title already shows, so the default card body does not repeat it: the
+ *  first visible column whose text reads exactly like the title. Only text titles; a column painted
+ *  by a slot is never matched (the table cannot tell what it paints). */
+export function cardTitleColumn<T extends object>(
+  title: unknown,
+  row: T,
+  columns: readonly DataTableColumn<T>[],
+): DataTableColumn<T> | undefined {
+  if (typeof title !== 'string' && typeof title !== 'number') return undefined;
+  const text = String(title).trim();
+  if (!text) return undefined;
+  return columns.find((c) => !c.cell && cellText(c, row).trim() === text);
+}
 
 /** What a card is made of: its title, the column that title comes from, and the fields of its body. */
 export function useCardParts<T extends object>(source: {
@@ -25,7 +39,7 @@ export function useCardParts<T extends object>(source: {
   }
   function cardTitleColumnOf(row: T): DataTableColumn<T> | undefined {
     const title = source.title();
-    return named.value ?? (title ? titleColumnByText(title(row), row, source.visible()) : undefined);
+    return named.value ?? (title ? cardTitleColumn(title(row), row, source.visible()) : undefined);
   }
   /** The default card body leaves out the column the title already shows. */
   function cardFields(row: T): DataTableColumn<T>[] {

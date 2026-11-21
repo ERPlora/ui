@@ -3,7 +3,7 @@
 import { IonButton, IonIcon, IonSelect, IonSelectOption } from '@ionic/vue';
 import { computed } from 'vue';
 
-import { entityWord, pageList, type PagerState } from './model';
+import { entityWord, pageList, type PagerState } from './pager';
 import type { DataTableEntityLabel, DataTableLabels } from './types';
 import { usePartChrome } from './usePartChrome';
 
