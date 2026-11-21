@@ -395,6 +395,19 @@ describe('filterRows (client mode)', () => {
     expect(ids(filterRows(ROWS, COLUMNS, { status: 'act' }))).toEqual([]);
   });
 
+  it('a closed domain on a list field: the row holds the value among its others (a sale paid with two methods)', () => {
+    const rows: Row[] = [
+      { id: '1', methods: ['Cash'] },
+      { id: '2', methods: ['Card'] },
+      { id: '3', methods: ['Cash', 'Card'] },
+      { id: '4', methods: [] },
+    ];
+    const methods = [col({ key: 'method', filter: { type: 'select', key: 'methods', options: [] } })];
+    expect(ids(filterRows(rows, methods, { methods: 'Card' }))).toEqual(['2', '3']);
+    expect(ids(filterRows(rows, methods, { methods: 'Cash' }))).toEqual(['1', '3']);
+    expect(ids(filterRows(rows, methods, { methods: 'Ca' })), 'still exact equality, item by item').toEqual([]);
+  });
+
   it('a filter with its own key reads that field of the row (an id behind a painted name)', () => {
     expect(ids(filterRows(ROWS, COLUMNS, { city_id: 'm' }))).toEqual(['1', '3']);
   });
