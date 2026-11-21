@@ -1,10 +1,12 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
+import HubIcon from '../../shell/HubIcon.vue';
 import { scopedStyle } from './__tests__/styles';
-import { billless, floorTable, held, seated } from './__tests__/tables';
+import { billless, floorTable, held, requested, seated, unrequested } from './__tests__/tables';
 import FloorCard from './FloorCard.vue';
-import type { FloorTable } from './model';
+import { FLOOR_BILL_ICON, type FloorTable } from './model';
+import TableGlyph from './TableGlyph.vue';
 
 const { rule, style } = scopedStyle('FloorCard.vue');
 
@@ -72,6 +74,27 @@ describe('FloorCard', () => {
     for (const table of billless()) {
       const c = card(table);
       expect(c.part('amount').exists(), table.status).toBe(false);
+      c.wrapper.unmount();
+    }
+  });
+
+  it('an occupied table whose bill was requested says it with the bill icon by its status, in its own colour, keeping its time and bill', () => {
+    const c = card(requested());
+    expect(c.host().getAttribute('data-status')).toBe('occupied');
+    expect(c.host().getAttribute('data-bill')).toBe('requested');
+    expect(c.wrapper.findComponent(TableGlyph).attributes('data-bill')).toBe('requested');
+    expect(c.part('status').findComponent(HubIcon).props('name')).toBe(FLOOR_BILL_ICON);
+    expect(['status', 'time', 'amount'].map((name) => c.part(name).text())).toEqual(['Bill requested', '0:35', '42,50 €']);
+    expect(c.part('meta').text()).toBe('3/4 pax');
+    c.wrapper.unmount();
+  });
+
+  it('no other table carries the mark nor an icon by its status: free, reserved or blocked ones, nor an occupied one without it', () => {
+    for (const table of unrequested()) {
+      const c = card(table);
+      expect(c.host().hasAttribute('data-bill'), table.status).toBe(false);
+      expect(c.wrapper.findComponent(TableGlyph).attributes('data-bill'), table.status).toBeUndefined();
+      expect(c.part('status').findComponent(HubIcon).exists(), table.status).toBe(false);
       c.wrapper.unmount();
     }
   });

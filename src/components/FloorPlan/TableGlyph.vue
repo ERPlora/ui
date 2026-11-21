@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import type { FloorGlyphTable } from './model';
+import { isBillRequested, type FloorGlyphTable } from './model';
 import { filledSeats, seatSpots } from './seats';
 
 const props = withDefaults(defineProps<{ table: FloorGlyphTable; variant?: 'plan' | 'mini' }>(), { variant: 'plan' });
@@ -10,6 +10,7 @@ const spots = computed(() => seatSpots(props.table.capacity, props.table.shape, 
 const filled = computed(() => filledSeats(props.table.capacity, props.table.guests));
 const progress = computed(() => Math.max(0, Math.min(100, props.table.progress)));
 const dash = computed(() => `${progress.value} ${100 - progress.value}`);
+const bill = computed(() => (isBillRequested(props.table) ? 'requested' : undefined));
 
 function seatStyle(spot: { x: number; y: number; rotation: number }): Record<string, string> {
   return { left: `${spot.x}%`, top: `${spot.y}%`, '--seat-rotation': `${spot.rotation}deg` };
@@ -23,6 +24,7 @@ function seatStyle(spot: { x: number; y: number; rotation: number }): Record<str
     :data-status="table.status"
     :data-shape="table.shape"
     :data-tone="table.tone"
+    :data-bill="bill"
     aria-hidden="true"
   >
     <span
@@ -96,13 +98,18 @@ function seatStyle(spot: { x: number; y: number; rotation: number }): Record<str
 
 <style scoped>
 .table-glyph {
+  --glyph-accent: var(--ep-primary-text);
   --glyph-seat-empty: color-mix(in srgb, var(--ion-color-medium) 35%, var(--ion-card-background));
-  --glyph-seat-filled: var(--ep-primary-text);
-  --glyph-timer: var(--ep-primary-text);
+  --glyph-seat-filled: var(--glyph-accent);
+  --glyph-timer: var(--glyph-accent);
   position: absolute;
   inset: 0;
   container-type: inline-size;
   pointer-events: none;
+}
+/* The seats and the arc of a table whose bill was requested take its colour; the timer's amber and red still win. */
+.table-glyph[data-bill] {
+  --glyph-accent: var(--table-bg);
 }
 .table-glyph[data-tone='warning'] {
   --glyph-timer: var(--ep-warning-text);

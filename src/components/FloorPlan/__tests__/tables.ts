@@ -59,3 +59,21 @@ export function billless(): FloorTable[] {
   const bill = { amount: '42,50 €' };
   return [floorTable(bill), held(bill), floorTable({ ...bill, status: 'blocked' }), seated(), seated({ amount: '' })];
 }
+
+/** Occupied, with one of its bills marked as requested: the page writes its status as «Bill requested». */
+export function requested(overrides: Partial<FloorTable> = {}): FloorTable {
+  return seated({
+    billRequested: true,
+    amount: '42,50 €',
+    statusLabel: 'Bill requested',
+    caption: 'Bill requested · 3/4 pax',
+    accessible: 'Table 4 · Dining room · 4 pax · Bill requested · 3 guests · 35 min · Bill 42,50 €',
+    ...overrides,
+  });
+}
+
+/** Tables that show no requested bill: free, reserved or blocked though they carry the mark, and occupied without it. */
+export function unrequested(): FloorTable[] {
+  const mark = { billRequested: true };
+  return [floorTable(mark), held(mark), floorTable({ ...mark, status: 'blocked' }), seated(), seated({ billRequested: false })];
+}

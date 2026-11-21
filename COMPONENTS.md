@@ -316,32 +316,38 @@ habla de un sitio concreto de la pantalla → en línea.
 ## Plano de mesas
 
 Son piezas de presentación: reciben cada mesa con sus textos ya escritos en el idioma de la persona (`FloorTable`:
-número, estado, plazas, reserva, tiempo, el importe de la cuenta de una mesa ocupada y la frase entera para un lector de
-pantalla) y avisan de la que se elige; los
+número, estado, plazas, reserva, tiempo, el importe de la cuenta de una mesa ocupada, si se ha pedido una de sus cuentas y
+la frase entera para un lector de pantalla) y avisan de la que se elige; los
 datos y las órdenes son de la app. `FLOOR_STATUS_ICONS` y `FLOOR_STAT_ICONS` dan el icono de cada estado y de cada cifra.
+Una mesa ocupada con `billRequested` (la marca es de una de sus cuentas, no de la mesa) se pinta de un color propio,
+`--ep-bill-requested` (el violeta de la tercera serie de datos y, con la paleta «Violeta», cuyo primario también es
+violeta, el verde azulado de la cuarta), lejos del de cualquier otro estado y del ámbar y el rojo del tiempo en todas las
+paletas, en claro y en oscuro; el plano y la tarjeta del teléfono usan ese mismo token. Su estado lleva el icono
+de la cuenta (`ion:receipt-outline`) en lugar del suyo; el texto lo escribe la página: «Cuenta pedida» en `statusLabel`,
+`caption` y `accessible`. En una mesa libre, reservada o bloqueada la marca no pinta nada.
 
 ### `TableGlyph`
 `import { TableGlyph } from '@erplora/ui/components'`
 - **Para qué sirve:** el dibujo de una mesa cuadrada, redonda o rectangular: una silla por plaza alrededor (en una mesa alargada, en sus lados largos), llenas según los comensales (en proporción por encima de doce plazas), y en una mesa ocupada el arco del tiempo que lleva. Es decorativo: el nombre lo dice quien lo contiene.
 - **Úsalo cuando** una mesa se dibuja fuera del plano, como en el selector de mesas del TPV; `variant="mini"` dibuja también la mesa en su forma y su estado.
 - **No lo uses cuando** la mesa va en el plano → `FloorTile`, que ya la dibuja; en el teléfono → `FloorCards`.
-- **API:** props `table` (`FloorGlyphTable`: `status`, `shape`, `capacity`, `guests`, `ratio`, `tone`, `progress` de 0 a 100) y `variant` (`plan`, `mini`).
+- **API:** props `table` (`FloorGlyphTable`: `status`, `shape`, `capacity`, `guests`, `ratio`, `tone`, `progress` de 0 a 100 y `billRequested` opcional, que en una mesa ocupada pinta la mesa, las sillas y el arco del color de la cuenta pedida, salvo el ámbar y el rojo del tiempo) y `variant` (`plan`, `mini`).
 - **Ionic:** ninguno (HTML y SVG con los tokens del tema).
 
 ### `FloorTile`
 `import { FloorTile } from '@erplora/ui/components'`
-- **Para qué sirve:** la mesa del plano, en su sitio y a su tamaño: el número y una línea dentro (el tiempo, la hora de la reserva o el estado), las sillas y el arco alrededor, y debajo su etiqueta, de dos líneas como mucho: el estado con las plazas y, en la siguiente, el importe de la cuenta de una mesa ocupada y la reserva si la hay, que corta un nombre largo con puntos suspensivos y nunca el importe ni la hora (una tercera línea llegaría a la mesa de debajo). Es la pieza que se arrastra al editar el plano: queda fuera de los tipos de tarjeta.
+- **Para qué sirve:** la mesa del plano, en su sitio y a su tamaño: el número y una línea dentro (el tiempo, la hora de la reserva o el estado), las sillas y el arco alrededor, y debajo su etiqueta, de dos líneas como mucho: el estado con las plazas y, en la siguiente, el importe de la cuenta de una mesa ocupada y la reserva si la hay, que corta un nombre largo con puntos suspensivos y nunca el importe ni la hora (una tercera línea llegaría a la mesa de debajo). Con la cuenta pedida, la mesa entera va del color de la cuenta pedida y su estado lleva el icono de la cuenta, sin quitar el número, el tiempo, los comensales ni el importe. Es la pieza que se arrastra al editar el plano: queda fuera de los tipos de tarjeta.
 - **Úsalo cuando** se pinta el plano de una zona en tableta y escritorio.
 - **No lo uses cuando** es el teléfono → `FloorCards`; la mesa se dibuja sin plano → `TableGlyph`.
-- **API:** props `table` (`FloorTable`; su `amount` opcional es el importe ya escrito con `formatMoney` y solo se pinta en una mesa ocupada: libre, reservada, bloqueada o sin dato, no pinta nada), `box` (`FloorBox`: `x`, `y`, `width`, `height` en px y `slot`, el ancho de su sitio y el límite de su etiqueta), `inactiveLabel` (la apaga en gris con su nota), `editing` (se agarra para moverla), `dragging` (levantada mientras se arrastra). Mientras se elige un destino, `table.pickable` la marca (`true`) o la atenúa y la deja fuera de alcance (`false`). No emite eventos: el plano escucha el toque, el teclado y el arrastre sobre ella.
+- **API:** props `table` (`FloorTable`; su `amount` opcional es el importe ya escrito con `formatMoney` y solo se pinta en una mesa ocupada: libre, reservada, bloqueada o sin dato, no pinta nada; su `billRequested` opcional, igual, solo en una mesa ocupada, que lleva entonces `data-bill="requested"`), `box` (`FloorBox`: `x`, `y`, `width`, `height` en px y `slot`, el ancho de su sitio y el límite de su etiqueta), `inactiveLabel` (la apaga en gris con su nota), `editing` (se agarra para moverla), `dragging` (levantada mientras se arrastra). Mientras se elige un destino, `table.pickable` la marca (`true`) o la atenúa y la deja fuera de alcance (`false`). No emite eventos: el plano escucha el toque, el teclado y el arrastre sobre ella.
 - **Ionic:** ninguno (un `<button>` propio por mesa), con `TableGlyph` y `HubIcon`.
 
 ### `FloorCards`, `FloorCard`
 `import { FloorCards } from '@erplora/ui/components'` (y `FloorCard`, la tarjeta suelta)
-- **Para qué sirve:** las mesas en el teléfono, dos por fila y ordenadas por número, en una lista con nombre. Cada `FloorCard` es una baldosa táctil: una superficie con un único toque, sin botones ni acciones dentro, con el dibujo de la mesa, el número con sus plazas o su reserva y el estado escrito con su tiempo y, en una mesa ocupada, el importe de su cuenta (si no cabe al lado, baja debajo del tiempo); borde del color de su estado (discontinuo si está reservada) y contorno primario cuando es destino.
+- **Para qué sirve:** las mesas en el teléfono, dos por fila y ordenadas por número, en una lista con nombre. Cada `FloorCard` es una baldosa táctil: una superficie con un único toque, sin botones ni acciones dentro, con el dibujo de la mesa, el número con sus plazas o su reserva y el estado escrito con su tiempo y, en una mesa ocupada, el importe de su cuenta (si no cabe al lado, baja debajo del tiempo); borde del color de su estado (discontinuo si está reservada) y contorno primario cuando es destino. Con la cuenta pedida, el número, el estado (con el icono de la cuenta delante) y el borde van del color de la cuenta pedida.
 - **Úsalo cuando** el plano de mesas se ve en un teléfono.
 - **No lo uses cuando** hay sitio para el plano → `FloorTile`; la tarjeta es de otra cosa: aún no hay baldosa táctil genérica, y se avisa antes de maquetar una.
-- **API:** `FloorCards`: props `tables` (`FloorTable[]`) y `label` (el nombre de la lista); evento `select(id)`. `FloorCard`: prop `table` (su `amount`, como en `FloorTile`); evento `select(id)`, que no sale de una mesa con `pickable: false` (atenuada y anunciada como no disponible, nunca apagada).
+- **API:** `FloorCards`: props `tables` (`FloorTable[]`) y `label` (el nombre de la lista); evento `select(id)`. `FloorCard`: prop `table` (su `amount` y su `billRequested`, como en `FloorTile`); evento `select(id)`, que no sale de una mesa con `pickable: false` (atenuada y anunciada como no disponible, nunca apagada).
 - **Ionic:** `ion-card` con `button` (al menos 112 px de alto, superficie opaca y nunca cristal), con `TableGlyph`.
 
 ### `FloorSkeleton`

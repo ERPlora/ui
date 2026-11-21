@@ -374,6 +374,10 @@
   --ion-color-primary-shade: #5C10B4;
   --ion-color-primary-tint: #8E58F2;
 
+  /* The violet primary is close to the bill-requested violet of the floor plan: it takes the fourth data series,
+     in light and in dark. */
+  --ep-bill-requested: var(--ep-data-4);
+
   --ion-background-color: #FBF7FA;
   --ion-background-color-rgb: 251, 247, 250;
   --ion-text-color: #1A1024;

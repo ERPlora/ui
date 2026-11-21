@@ -186,6 +186,10 @@
   --ep-data-5-gradient: linear-gradient(135deg, var(--ep-data-5-from), var(--ep-data-5-to));
   --ep-data-6-gradient: linear-gradient(135deg, var(--ep-data-6-from), var(--ep-data-6-to));
   --ep-data-on-gradient: #ffffff;
+
+  /* A table of the floor plan whose bill was requested: the third data series, far from every other table state and
+     from the timer's amber and red. The violet palette, whose primary is violet too, gives it the fourth. */
+  --ep-bill-requested: var(--ep-data-3);
 }
 
 /* Neutral dark (zinc), consistent with the light theme. */

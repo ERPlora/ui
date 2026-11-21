@@ -2,10 +2,11 @@
 import { computed } from 'vue';
 
 import HubIcon from '../../shell/HubIcon.vue';
-import { FLOOR_STATUS_ICONS, occupiedAmount, type FloorTable } from './model';
+import { occupiedAmount, statusIcon, type FloorTable } from './model';
 
 const props = defineProps<{ table: FloorTable; inactiveLabel: string }>();
 const amount = computed(() => occupiedAmount(props.table));
+const icon = computed(() => statusIcon(props.table));
 </script>
 
 <template>
@@ -14,7 +15,7 @@ const amount = computed(() => occupiedAmount(props.table));
       class="table-tile__status"
       data-part="status"
     >
-      <HubIcon :name="FLOOR_STATUS_ICONS[table.status]" />
+      <HubIcon :name="icon" />
       {{ table.caption }}
     </span>
     <span

@@ -1,10 +1,11 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
+import HubIcon from '../../shell/HubIcon.vue';
 import { scopedStyle } from './__tests__/styles';
-import { floorTable, held, seated } from './__tests__/tables';
+import { floorTable, held, requested, seated, unrequested } from './__tests__/tables';
 import FloorTile from './FloorTile.vue';
-import type { FloorBox, FloorTable } from './model';
+import { FLOOR_BILL_ICON, FLOOR_STATUS_ICONS, type FloorBox, type FloorTable } from './model';
 import TableGlyph from './TableGlyph.vue';
 
 const { rule } = scopedStyle('FloorTile.vue');
@@ -49,6 +50,26 @@ describe('FloorTile', () => {
     expect(t.button().find('[data-part="amount"]').exists()).toBe(false);
     expect([t.part('number').text(), t.part('line').text(), t.part('status').text()]).toEqual(['4', '0:35', 'Occupied · 3/4 pax']);
     expect(tile(floorTable({ amount: '42,50 €' })).part('amount').exists()).toBe(false);
+  });
+
+  it('an occupied table whose bill was requested is painted apart, with the bill icon by its status, and keeps all it says', () => {
+    const t = tile(requested());
+    expect(t.el.getAttribute('data-status')).toBe('occupied');
+    expect(t.el.getAttribute('data-bill')).toBe('requested');
+    expect(t.wrapper.findComponent(TableGlyph).attributes('data-bill')).toBe('requested');
+    expect(t.part('status').findComponent(HubIcon).props('name')).toBe(FLOOR_BILL_ICON);
+    const said = ['number', 'line', 'status', 'amount'].map((name) => t.part(name).text());
+    expect(said).toEqual(['4', '0:35', 'Bill requested · 3/4 pax', '42,50 €']);
+    expect(t.button().attributes('aria-label')).toBe(requested().accessible);
+  });
+
+  it('no other table carries the mark: free, reserved or blocked ones, nor an occupied one without it', () => {
+    for (const table of unrequested()) {
+      const t = tile(table);
+      expect(t.el.hasAttribute('data-bill'), table.status).toBe(false);
+      expect(t.wrapper.findComponent(TableGlyph).attributes('data-bill'), table.status).toBeUndefined();
+      expect(t.part('status').findComponent(HubIcon).props('name')).toBe(FLOOR_STATUS_ICONS[table.status]);
+    }
   });
 
   it('a reservation paints its name and its hour apart, and no hold line without one', () => {

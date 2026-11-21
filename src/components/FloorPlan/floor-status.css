@@ -21,3 +21,7 @@
 [data-status='blocked'] {
   --table-edge: var(--ion-color-medium-shade);
 }
+/* A requested bill: a colour of its own, apart from the other states and from the timer's amber and red. */
+[data-status='occupied'][data-bill] {
+  --table-bg: var(--ep-bill-requested);
+}
