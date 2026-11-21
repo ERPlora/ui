@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import HubIcon from '../../shell/HubIcon.vue';
-import { FLOOR_STATUS_ICONS, type FloorTable } from './model';
+import { computed } from 'vue';
 
-defineProps<{ table: FloorTable; inactiveLabel: string }>();
+import HubIcon from '../../shell/HubIcon.vue';
+import { FLOOR_STATUS_ICONS, occupiedAmount, type FloorTable } from './model';
+
+const props = defineProps<{ table: FloorTable; inactiveLabel: string }>();
+const amount = computed(() => occupiedAmount(props.table));
 </script>
 
 <template>
@@ -14,6 +17,11 @@ defineProps<{ table: FloorTable; inactiveLabel: string }>();
       <HubIcon :name="FLOOR_STATUS_ICONS[table.status]" />
       {{ table.caption }}
     </span>
+    <span
+      v-if="amount"
+      class="table-tile__amount"
+      data-part="amount"
+    >{{ amount }}</span>
     <span
       v-if="table.holder"
       class="table-tile__hold"
@@ -59,6 +67,11 @@ defineProps<{ table: FloorTable; inactiveLabel: string }>();
   align-items: center;
   justify-content: center;
   gap: 0.25em;
+  white-space: nowrap;
+}
+.table-tile__amount {
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .table-tile__hold {

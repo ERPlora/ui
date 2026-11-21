@@ -43,6 +43,14 @@ describe('FloorTile', () => {
     expect(t.wrapper.findComponent(TableGlyph).props('table')).toMatchObject({ status: 'occupied', guests: 3, tone: 'critical' });
   });
 
+  it('writes the bill of an occupied table in its label under it, never over its number, its time or its guests', () => {
+    const t = tile(seated({ amount: '42,50 €' }));
+    expect(t.wrapper.find('.table-tile__caption [data-part="amount"]').text()).toBe('42,50 €');
+    expect(t.button().find('[data-part="amount"]').exists()).toBe(false);
+    expect([t.part('number').text(), t.part('line').text(), t.part('status').text()]).toEqual(['4', '0:35', 'Occupied · 3/4 pax']);
+    expect(tile(floorTable({ amount: '42,50 €' })).part('amount').exists()).toBe(false);
+  });
+
   it('a reservation paints its name and its hour apart, and no hold line without one', () => {
     const t = tile(held());
     expect(t.part('hold-name').text()).toBe('Maximiliana Fernández');

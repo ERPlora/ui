@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
 import { scopedStyle } from './__tests__/styles';
-import { floorTable, held } from './__tests__/tables';
+import { floorTable, held, seated } from './__tests__/tables';
 import FloorTileCaption from './FloorTileCaption.vue';
 import type { FloorTable } from './model';
 
@@ -30,6 +30,20 @@ describe('FloorTileCaption', () => {
     expect(caption(held({ holdTime: '' })).part('hold-time').exists()).toBe(false);
   });
 
+  it('writes the bill of an occupied table on its own line, right under its guests', () => {
+    const c = caption(seated({ amount: '42,50 €' }));
+    expect(c.part('status').text()).toBe('Occupied · 3/4 pax');
+    expect(c.part('amount').text()).toBe('42,50 €');
+    expect(c.wrapper.findAll('[data-part]').map((part) => part.attributes('data-part'))).toEqual(['status', 'amount']);
+  });
+
+  it('writes no bill for a table that is free, reserved or blocked, nor for one whose bill did not arrive', () => {
+    const bill = { amount: '42,50 €' };
+    for (const table of [floorTable(bill), held(bill), floorTable({ ...bill, status: 'blocked' }), seated(), seated({ amount: '' })]) {
+      expect(caption(table).part('amount').exists(), table.status).toBe(false);
+    }
+  });
+
   it('says why a table is greyed out', () => {
     expect(caption(floorTable(), 'Inactive').part('inactive').text()).toBe('Inactive');
   });
@@ -42,5 +56,11 @@ describe('FloorTileCaption', () => {
     expect(name).toContain('text-overflow: ellipsis');
     expect(name).toContain('white-space: nowrap');
     expect(rule('.table-tile__hold-time')).toContain('flex: none');
+  });
+
+  it('keeps the bill on one line with figures of even width, so it never wraps nor jumps as it changes', () => {
+    const bill = rule('.table-tile__amount');
+    expect(bill).toContain('white-space: nowrap');
+    expect(bill).toContain('font-variant-numeric: tabular-nums');
   });
 });

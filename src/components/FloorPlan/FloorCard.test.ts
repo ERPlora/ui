@@ -56,6 +56,34 @@ describe('FloorCard', () => {
     c.wrapper.unmount();
   });
 
+  it('writes the bill of an occupied table next to its time', () => {
+    const c = card(seated({ amount: '42,50 €' }));
+    const parts = c.wrapper.findAll('.floor-card__status [data-part]');
+    expect(parts.map((part) => [part.attributes('data-part'), part.text()])).toEqual([
+      ['status', 'Occupied'],
+      ['time', '0:35'],
+      ['amount', '42,50 €'],
+    ]);
+    expect(c.part('meta').text()).toBe('3/4 pax');
+    c.wrapper.unmount();
+  });
+
+  it('writes no bill for a table that is free, reserved or blocked, nor for one whose bill did not arrive', () => {
+    const bill = { amount: '42,50 €' };
+    for (const table of [floorTable(bill), held(bill), floorTable({ ...bill, status: 'blocked' }), seated(), seated({ amount: '' })]) {
+      const c = card(table);
+      expect(c.part('amount').exists(), table.status).toBe(false);
+      c.wrapper.unmount();
+    }
+  });
+
+  it('lets the bill drop under the time on a narrow card instead of running out of it, and keeps it on one line', () => {
+    expect(rule('.floor-card__status')).toContain('flex-wrap: wrap');
+    const bill = rule('.floor-card__amount');
+    expect(bill).toContain('white-space: nowrap');
+    expect(bill).toContain('font-variant-numeric: tabular-nums');
+  });
+
   it('hands its full name to the button Ionic draws, and keeps it in step as the time passes', async () => {
     const c = card();
     await vi.waitFor(() => expect(c.native()?.getAttribute('aria-label')).toBe(seated().accessible));
