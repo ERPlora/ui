@@ -18,6 +18,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - elegir uno entre muchos, o buscarlo en el servidor → `Combo`
 - marcar los alérgenos que lleva un plato o producto / decirlos debajo de su nombre → `AllergenSelect` / `AllergenRow`
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
+- elegir un día / una hora → `DateField` / `TimeField`
 - enseñar un importe, una fecha o una cantidad → `formatMoney`, `formatDateTime`, `formatQuantity`
 - decir que no hay datos → `EmptyState`
 - confirmar algo que la persona acaba de hacer → `toastSuccess`, `toastError`…
@@ -133,6 +134,14 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **No lo uses cuando** es una cantidad o un número que no es dinero → `ion-input`; solo se enseña el importe → `formatMoney`.
 - **API:** `v-model` (el texto tal cual: al guardar se lee con `parseMoney` y un importe guardado se escribe con `moneyFieldText`), `label`, `testid`, `money` (`{ currency, decimals }`), `signed`, `errorText`, `helperText`, `showError`, `disabled`.
 - **Ionic:** `ion-input`, `ion-button`.
+
+### `DateField`, `TimeField`
+`import { DateField, TimeField } from '@erplora/ui/components'`
+- **Para qué sirve:** el día o la hora de un formulario. Cerrado es un campo con contorno como los demás, de solo lectura (no abre el teclado), que enseña el valor en el idioma de la app («23/11/2026» o «11/23/2026»; «14:30» o «02:30 PM»). Al tocarlo, o con Intro, Espacio o la flecha abajo, abre el calendario o la rueda de horas de Ionic (`ion-datetime`) en un `ion-popover` anclado al campo, con los colores de la paleta activa, el idioma de la app, la semana desde el día en que la empieza ese idioma y las 24 horas o AM/PM según el idioma; abajo, Aceptar y Cancelar, y Borrar si el campo no es obligatorio. Nunca el selector nativo del dispositivo, que pinta con sus colores y en su idioma.
+- **Úsalo cuando** un formulario o una barra pide un día o una hora.
+- **No lo uses cuando** se filtra una lista por fechas → los filtros `date` y `daterange` de `DataTable`; solo se enseña la fecha → `formatDateTime`.
+- **API:** `v-model` (`DateField`: `AAAA-MM-DD`; `TimeField`: `HH:MM`; `''` o `null` es sin valor, y Borrar deja `''`), `label`, `testid` (el del `ion-input`), `min` y `max` (en el mismo formato), `minuteStep` (solo `TimeField`: los minutos cada tantos desde la hora en punto), `required` (sin Borrar), `disabled`, `errorText`, `helperText`, `name` (su nombre en el formulario y en un rechazo del servidor). Al elegir, el formulario que lo rodea oye un `input` nativo, como de un campo escrito: así `FormModal` quita la marca de un rechazo.
+- **Ionic:** `ion-input`, `ion-popover`, `ion-datetime`, con `HubIcon`.
 
 ### `ColorInput`
 `import { ColorInput } from '@erplora/ui/components'`
