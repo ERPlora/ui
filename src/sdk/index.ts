@@ -76,14 +76,12 @@ export {
 } from "./optimistic";
 export {
   createPrintChannel,
-  errorText,
-  MAX_ERROR_LENGTH,
   type PrintChannel,
   type PrintChannelEvent,
   type PrintChannelOptions,
-  type PrintJob,
   type PrintSocket,
 } from "./print-channel";
+export { errorText, MAX_ERROR_LENGTH, type PrintJob } from "./print-job";
 export { createSseParser, type SseFrame, type SseParser } from "./sse-parser";
 export {
   createStreamManager,

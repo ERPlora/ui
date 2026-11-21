@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { PrintJob } from '../sdk/print-channel';
+import type { PrintJob } from '../sdk/print-job';
 import { NOT_THE_LINKED_HUB } from './native-bridge';
 import { createDevicePrinter } from './device-printer';
 

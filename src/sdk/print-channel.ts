@@ -4,30 +4,7 @@
 // 1 s doubling up to 30 s. It never reconnects into a refusal: a close in 4400–4499 (session ended, device not set up,
 // printing off…) or a beat that says the device prints for nothing stops it for good.
 import { backoffDelay } from './backoff';
-
-/** A job as the hub hands it in a `job` frame, camelCased. */
-export interface PrintJob {
-  jobId: string;
-  role: string;
-  /** `document` (a ticket, an order…), `test_page` or `drawer`. */
-  kind: string;
-  documentType: string;
-  /** The first copy. */
-  document: Record<string, unknown>;
-  /** Every copy after the first (a receipt or an invoice marked duplicate); none with one copy. */
-  copyDocument: Record<string, unknown> | null;
-  /** `receipt` (a thermal printer) or `a4` (the system printer, with its page in `html`). */
-  format: string;
-  html: string;
-  copies: number;
-  openDrawer: boolean;
-  /** The printer's id in the hub. */
-  printerId: string;
-  /** The printer as the installed app's commands take it (`network:<ip>:<port>`, `bluetooth:<mac>`, `usb:<queue>`). */
-  target: string;
-  paperWidth: number;
-  attempts: number;
-}
+import { errorText, jobOf, type PrintJob } from './print-job';
 
 /** The part of a WebSocket the channel uses; the browser's `WebSocket` fits it. */
 export interface PrintSocket {
@@ -69,8 +46,6 @@ export interface PrintChannel {
   running(): boolean;
 }
 
-/** The longest error the hub keeps (`printing`'s `DeviceError`): a longer one would be refused as a bad frame. */
-export const MAX_ERROR_LENGTH = 500;
 /** The first wait before reconnecting; it doubles up to `backoff.ts`'s cap (30 s). */
 export const RECONNECT_BASE_MS = 1_000;
 /** The beat until the hub says otherwise (it does, in `ready`). */
@@ -83,46 +58,6 @@ const isFatalClose = (code: number) => code >= 4400 && code < 4500;
 
 /** A frame the channel sent that the hub answers, in order. */
 type Asked = { type: 'hello' } | { type: 'claim'; role: string } | { type: 'done' } | { type: 'failed' } | { type: 'beat' };
-
-/** The device's error as the hub keeps it: text, never empty, at most {@link MAX_ERROR_LENGTH} characters. */
-export function errorText(error: unknown): string {
-  let text: string;
-  if (typeof error === 'string') text = error;
-  else if (error instanceof Error) text = error.message;
-  else {
-    try {
-      text = JSON.stringify(error) ?? String(error);
-    } catch {
-      text = String(error);
-    }
-  }
-  text = text.trim() || 'the device could not print';
-  return text.slice(0, MAX_ERROR_LENGTH);
-}
-
-function jobOf(frame: Record<string, unknown>): PrintJob {
-  const text = (key: string) => (typeof frame[key] === 'string' ? (frame[key] as string) : '');
-  const record = (value: unknown) =>
-    value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
-  return {
-    jobId: text('jobId'),
-    role: text('role'),
-    kind: text('kind') || 'document',
-    documentType: text('documentType'),
-    // Passed on as it came: a document that is not an object is not repaired into an empty one, the printer refuses it
-    // and the hub is told (a corrupt row shows instead of cutting blank paper).
-    document: (frame.document ?? {}) as Record<string, unknown>,
-    copyDocument: record(frame.copyDocument),
-    format: text('format') || 'receipt',
-    html: text('html'),
-    copies: Number.isInteger(frame.copies) && (frame.copies as number) > 0 ? (frame.copies as number) : 1,
-    openDrawer: frame.openDrawer === true,
-    printerId: text('printerId'),
-    target: text('target'),
-    paperWidth: Number(frame.paperWidth) || 0,
-    attempts: Number(frame.attempts) || 0,
-  };
-}
 
 export function createPrintChannel(options: PrintChannelOptions): PrintChannel {
   const random = options.random ?? Math.random;

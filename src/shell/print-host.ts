@@ -12,9 +12,9 @@ import {
   createPrintChannel,
   type PrintChannel,
   type PrintChannelEvent,
-  type PrintJob,
   type PrintSocket,
 } from '../sdk/print-channel';
+import type { PrintJob } from '../sdk/print-job';
 
 /** Enough of `window.location` to name the channel. */
 export interface PageLocation {
