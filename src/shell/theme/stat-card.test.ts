@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { colour, contrast, themes } from '../../components/__tests__/themeContrast';
-import { LITERAL_COLOUR, pixels, rules, rulesFor, selectorsOf, themeSheet, valueOf } from './__tests__/sheetRules';
+import { contentCardFaults, pixels, rules, rulesFor, selectorsOf, themeSheet, valueOf } from './__tests__/sheetRules';
 
 const css = themeSheet('stat-card.css');
 /** The sheet without its `@media` blocks: the look every person gets, before reduced motion or forced colours. */
@@ -31,9 +31,7 @@ describe('stat-card.css: the look of a figure card', () => {
   });
 
   it('is an opaque content card: no glass, and colours only from the theme', () => {
-    expect(css).not.toMatch(/glass|backdrop-filter/);
-    expect(css).not.toMatch(LITERAL_COLOUR);
-    expect(css).not.toContain('!important');
+    expect(contentCardFaults(css)).toEqual([]);
   });
 
   it('paints series 1 unless the card says another tone, and each tone reads its own data colour and gradient', () => {
