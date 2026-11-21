@@ -3,7 +3,7 @@
 // reads (`deviceVoice.ts`), the Windows app included: its WebView2 reads with Windows' voices, and the app answers that
 // it has no system voice. A reading the system voice cannot do (no voice, the engine broke) falls back to the browser's
 // voice when there is one; else it fails, for the panel to say so under the answer.
-import type { NativeBridge } from '../../shell/device-notices';
+import type { NativeBridge } from '../../shell/native-bridge';
 import { DEVICE_LANGS, type DeviceReader, type DeviceReading } from './deviceVoice';
 import type { AssistantLanguage } from './voices';
 
