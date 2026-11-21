@@ -151,6 +151,12 @@ describe('StatCard: loading, empty and error', () => {
     expect(wrapper.find('.ep-stat-card__trend').exists()).toBe(false);
   });
 
+  it('with no value a lively card keeps the surface, where its muted text reads', async () => {
+    const { wrapper } = await mountCard({ value: null, variant: 'live' });
+    expect(wrapper.classes()).toContain('ep-stat-card--soft');
+    expect(wrapper.classes()).not.toContain('ep-stat-card--live');
+  });
+
   it('the empty text can be the page’s own, and it is translated by default', async () => {
     expect((await mountCard({ value: null, emptyLabel: 'No sales yet' })).wrapper.get('.ep-stat-card__empty').text()).toBe(
       'No sales yet',
@@ -171,6 +177,7 @@ describe('StatCard: loading, empty and error', () => {
     const retry = wrapper.get('ion-button.ep-stat-card__retry');
     expect(retry.text()).toBe('Retry');
     expect(focusables(wrapper)).toEqual([retry.element]);
+    expect(iconNames(wrapper)).not.toContain('ion:chevron-forward-outline');
     await retry.trigger('click');
     expect(wrapper.emitted('retry')).toEqual([[]]);
   });
