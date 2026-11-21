@@ -19,6 +19,7 @@ const SHEETS = [
   'polish.css',
   'order-ticket.css',
   'order-board.css',
+  'stat-card.css',
   'global.css',
   'print.css',
 ];

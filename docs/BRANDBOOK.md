@@ -77,6 +77,29 @@ el modo; sus valores exactos están en `src/shell/brandbook.ts` y se comprueban 
 | `--ion-color-medium` | `#6b7280` | Información neutra y etiquetas |
 | `--ep-primary-accessible` | `#0e78ad` | Azul sólido AA sobre blanco |
 
+### Colores de datos
+
+Seis series, `--ep-data-1` a `--ep-data-6`, para la tarjeta de cifra (`StatCard`) y los gráficos. Una
+medida lleva siempre la misma serie: Ventas 1, Tickets 2, Ticket medio 3, Mesas 4, Clientes 5 e
+Inventario 6.
+
+| Serie | Claro | Oscuro | Uso |
+|---|---|---|---|
+| `--ep-data-1` | primario de la paleta | primario de la paleta | Ventas, la medida principal |
+| `--ep-data-2` | `#c65f24` | `#ff9a62` | Naranja quemado, no el ámbar de aviso |
+| `--ep-data-3` | `#6d55c7` | `#b5a3ff` | Violeta |
+| `--ep-data-4` | `#087f8c` | `#45d0d8` | Turquesa, no el verde de éxito |
+| `--ep-data-5` | `#a83d72` | `#f08ab7` | Baya |
+| `--ep-data-6` | `#5c6b7a` | `#aebccc` | Pizarra |
+
+- Cada serie trae los extremos de su degradado, `--ep-data-N-from` y `--ep-data-N-to`, y el degradado,
+  `--ep-data-N-gradient`, donde el texto blanco (`--ep-data-on-gradient`) llega a 4,5:1 y un icono blanco
+  a 3:1 en todas las paletas y en los dos modos. La serie 1 oscurece el primario; en Minimal oscuro,
+  cuyo primario es blanco, su degradado es grafito.
+- El color de datos dice qué medida es, no cómo va: un estado (agotado, descuadre) va aparte, con texto
+  e icono, y nunca cambia el tono de la cifra.
+- Más de seis categorías se agrupan; no se añaden colores.
+
 ## 4. Tipografía y números
 
 - **Hub y shell de producto:** `system-ui`, `-apple-system`, `Segoe UI`, Roboto, sans-serif. No se

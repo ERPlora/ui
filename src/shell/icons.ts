@@ -118,6 +118,9 @@ import {
   pricetag,
   shieldCheckmarkOutline,
   fingerPrintOutline,
+  trendingUpOutline,
+  trendingDownOutline,
+  removeOutline,
 } from 'ionicons/icons';
 import { HELP_ION_ICONS } from './help-icons';
 import { SET_ICONS, svgUrl } from './set-icons';
@@ -235,6 +238,9 @@ export const ION_ICONS: Readonly<Record<string, string>> = Object.freeze({
   pricetag,
   'shield-checkmark-outline': shieldCheckmarkOutline,
   'finger-print-outline': fingerPrintOutline,
+  'trending-up-outline': trendingUpOutline,
+  'trending-down-outline': trendingDownOutline,
+  'remove-outline': removeOutline,
   ...HELP_ION_ICONS,
 });
 
