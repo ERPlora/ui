@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { IonCard } from '@ionic/vue';
-import { onMounted, useTemplateRef, watch } from 'vue';
+import { computed, onMounted, useTemplateRef, watch } from 'vue';
 
-import type { FloorTable } from './model';
+import { occupiedAmount, type FloorTable } from './model';
 import TableGlyph from './TableGlyph.vue';
 
 const props = defineProps<{ table: FloorTable }>();
 const emit = defineEmits<{ select: [id: string] }>();
 
+const amount = computed(() => occupiedAmount(props.table));
 const card = useTemplateRef<{ $el: HTMLElement }>('card');
 
 // ion-card hands an `aria-label` to the button it draws only once, when it loads, and none of the other ARIA:
@@ -73,6 +74,11 @@ function onClick(): void {
           :data-tone="table.tone"
           data-part="time"
         >{{ table.short }}</span>
+        <span
+          v-if="amount"
+          class="floor-card__amount"
+          data-part="amount"
+        >{{ amount }}</span>
       </span>
     </span>
   </ion-card>
@@ -172,6 +178,7 @@ function onClick(): void {
 }
 .floor-card__status {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 3px;
   grid-area: status;
@@ -187,6 +194,11 @@ function onClick(): void {
   background: var(--ep-primary-tint);
   color: var(--ep-primary-text);
   font-size: 10px;
+}
+.floor-card__amount {
+  color: var(--ion-text-color);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .floor-card__time[data-tone='warning'] {
   background: var(--ep-warning-tint);

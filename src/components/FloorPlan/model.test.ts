@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolveIcon } from '../../shell/icons';
-import { FLOOR_STAT_ICONS, FLOOR_STATUS_ICONS, zoneColor } from './model';
+import { billless, seated } from './__tests__/tables';
+import { FLOOR_STAT_ICONS, FLOOR_STATUS_ICONS, occupiedAmount, zoneColor } from './model';
 
 describe('floor plan model', () => {
   it('gives every status its own registered icon, so a status is never the colour alone', () => {
@@ -19,5 +20,11 @@ describe('floor plan model', () => {
     expect(zoneColor('tertiary')).toBe('var(--ion-color-tertiary)');
     expect(zoneColor(null)).toBe('var(--ion-color-primary)');
     expect(zoneColor('')).toBe('var(--ion-color-primary)');
+  });
+
+  it('gives the bill of an occupied table only, and nothing when it did not arrive', () => {
+    expect(occupiedAmount(seated({ amount: '42,50 €' }))).toBe('42,50 €');
+    expect(occupiedAmount(seated({ amount: '0,00 €' }))).toBe('0,00 €');
+    expect(billless().map(occupiedAmount)).toEqual(['', '', '', '', '']);
   });
 });

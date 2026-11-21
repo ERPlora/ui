@@ -28,6 +28,8 @@ export interface FloorTable extends FloorGlyphTable {
   caption: string;
   /** The places, or the guests over the places. */
   pax: string;
+  /** The bill of an occupied table in the business's currency, written with `formatMoney`; unset without one. */
+  amount?: string;
   /** Who holds its reservation and from what hour; empty without one. */
   holder: string;
   holdTime: string;
@@ -82,6 +84,11 @@ export const FLOOR_STAT_ICONS: Readonly<Record<FloorStatKey, string>> = Object.f
   reserved: 'ion:time-outline',
   guests: 'ion:person-outline',
 });
+
+/** What an occupied table shows as its bill; any other table shows none, whatever it carries. */
+export function occupiedAmount(table: Pick<FloorTable, 'status' | 'amount'>): string {
+  return table.status === 'occupied' ? (table.amount ?? '') : '';
+}
 
 export function zoneColor(color: string | null | undefined): string {
   return `var(--ion-color-${color || 'primary'})`;

@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import HubIcon from '../../shell/HubIcon.vue';
-import { FLOOR_STATUS_ICONS, type FloorTable } from './model';
+import { computed } from 'vue';
 
-defineProps<{ table: FloorTable; inactiveLabel: string }>();
+import HubIcon from '../../shell/HubIcon.vue';
+import { FLOOR_STATUS_ICONS, occupiedAmount, type FloorTable } from './model';
+
+const props = defineProps<{ table: FloorTable; inactiveLabel: string }>();
+const amount = computed(() => occupiedAmount(props.table));
 </script>
 
 <template>
@@ -15,18 +18,28 @@ defineProps<{ table: FloorTable; inactiveLabel: string }>();
       {{ table.caption }}
     </span>
     <span
-      v-if="table.holder"
-      class="table-tile__hold"
+      v-if="amount || table.holder"
+      class="table-tile__detail"
     >
       <span
-        class="table-tile__hold-name"
-        data-part="hold-name"
-      >{{ table.holder }}</span>
+        v-if="amount"
+        class="table-tile__amount"
+        data-part="amount"
+      >{{ amount }}</span>
       <span
-        v-if="table.holdTime"
-        class="table-tile__hold-time"
-        data-part="hold-time"
-      >· {{ table.holdTime }}</span>
+        v-if="table.holder"
+        class="table-tile__hold"
+      >
+        <span
+          class="table-tile__hold-name"
+          data-part="hold-name"
+        >{{ table.holder }}</span>
+        <span
+          v-if="table.holdTime"
+          class="table-tile__hold-time"
+          data-part="hold-time"
+        >· {{ table.holdTime }}</span>
+      </span>
     </span>
     <span
       v-if="inactiveLabel"
@@ -61,11 +74,28 @@ defineProps<{ table: FloorTable; inactiveLabel: string }>();
   gap: 0.25em;
   white-space: nowrap;
 }
+/* A bill and a later reservation share one line: a third would reach the table drawn under this one. */
+.table-tile__detail {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+}
+.table-tile__amount {
+  flex: none;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .table-tile__hold {
   display: flex;
   max-width: 100%;
   min-width: 0;
   color: var(--ep-warning-text);
+}
+.table-tile__amount + .table-tile__hold::before {
+  flex: none;
+  margin-inline: 0.3em;
+  content: '·';
 }
 .table-tile__hold-name {
   min-width: 0;

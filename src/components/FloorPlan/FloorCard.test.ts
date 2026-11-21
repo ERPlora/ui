@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
 import { scopedStyle } from './__tests__/styles';
-import { floorTable, held, seated } from './__tests__/tables';
+import { billless, floorTable, held, seated } from './__tests__/tables';
 import FloorCard from './FloorCard.vue';
 import type { FloorTable } from './model';
 
@@ -54,6 +54,34 @@ describe('FloorCard', () => {
     expect(c.part('time').exists()).toBe(false);
     expect(card(floorTable()).part('meta').text()).toBe('4 pax');
     c.wrapper.unmount();
+  });
+
+  it('writes the bill of an occupied table next to its time', () => {
+    const c = card(seated({ amount: '42,50 €' }));
+    const parts = c.wrapper.findAll('.floor-card__status [data-part]');
+    expect(parts.map((part) => [part.attributes('data-part'), part.text()])).toEqual([
+      ['status', 'Occupied'],
+      ['time', '0:35'],
+      ['amount', '42,50 €'],
+    ]);
+    expect(c.part('meta').text()).toBe('3/4 pax');
+    c.wrapper.unmount();
+  });
+
+  it('writes no bill for a table that is free, reserved or blocked, nor for one whose bill did not arrive', () => {
+    for (const table of billless()) {
+      const c = card(table);
+      expect(c.part('amount').exists(), table.status).toBe(false);
+      c.wrapper.unmount();
+    }
+  });
+
+  it('lets the bill drop under the time on a narrow card instead of running out of it, and keeps it on one line', () => {
+    expect(rule('.floor-card__status')).toContain('flex-wrap: wrap');
+    const bill = rule('.floor-card__amount');
+    expect(bill).toContain('white-space: nowrap');
+    expect(bill).toContain('font-variant-numeric: tabular-nums');
+    expect(bill).toContain('color: var(--ion-text-color)');
   });
 
   it('hands its full name to the button Ionic draws, and keeps it in step as the time passes', async () => {
