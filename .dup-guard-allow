@@ -1,0 +1,2 @@
+duplicados src/components/DataTable/DataTable.states.test.ts:212-219 Two «no matches» tests end the same way (search typed, own empty message, no reset); the pair was already repeated in DataTable.test.ts and moves here unchanged.
+duplicados src/components/DataTable/DataTable.states.test.ts:244-251 Two «no matches» tests end the same way (search typed, own empty message, no reset); the pair was already repeated in DataTable.test.ts and moves here unchanged.
