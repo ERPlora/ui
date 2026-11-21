@@ -16,7 +16,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - un formulario corto en un diálogo → `FormModal`
 - guardar una página de ajustes / un número de ajustes → `SettingsFormFooter` / `SettingsNumberField`
 - elegir uno entre muchos, o buscarlo en el servidor → `Combo`
-- marcar los alérgenos que lleva un plato o producto → `AllergenSelect`
+- marcar los alérgenos que lleva un plato o producto / decirlos debajo de su nombre → `AllergenSelect` / `AllergenRow`
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
 - enseñar un importe, una fecha o una cantidad → `formatMoney`, `formatDateTime`, `formatQuantity`
 - decir que no hay datos → `EmptyState`
@@ -112,9 +112,17 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 `import { AllergenSelect, ALLERGEN_CODES, allergenName, formatAllergens } from '@erplora/ui/components'`
 - **Para qué sirve:** marcar y desmarcar los catorce alérgenos de declaración obligatoria, cada uno por su nombre y en el orden del reglamento europeo. Los nombres salen en el idioma del negocio; los códigos estables viajan en `v-model` y siempre se emiten en el orden de la lista. `allergenName` traduce un código y `formatAllergens` escribe una selección con esos mismos nombres y orden, para fichas y líneas de detalle.
 - **Úsalo cuando** un plato, producto o alergia de una persona declara cualquier subconjunto de esa lista cerrada.
-- **No lo uses cuando** se elige una sola opción → `ion-select` o `Combo`; son puntos de solo lectura → `CollapsibleChecklist`; la lista no es la de los catorce alérgenos.
+- **No lo uses cuando** se elige una sola opción → `ion-select` o `Combo`; los alérgenos solo se enseñan → `AllergenRow`; son puntos de solo lectura → `CollapsibleChecklist`; la lista no es la de los catorce alérgenos.
 - **API:** `v-model` (`AllergenCode[]`), `label`, `helperText`, `errorText`, `disabled`, `testid`; `ALLERGEN_CODES` fija los códigos y su orden, `allergenName(code, locale)` y `formatAllergens(codes, locale)` dan los textos. Es un `fieldset` con nombre, ayuda y error asociados; cada casilla se maneja con toque o teclado.
 - **Ionic:** `ion-list`, `ion-item`, `ion-checkbox`, `ion-note`.
+
+### `AllergenRow`
+`import { AllergenRow } from '@erplora/ui/components'`
+- **Para qué sirve:** la línea «Alérgenos: Gluten, Leche» debajo del nombre de un plato, una opción o una línea de la cuenta. Recibe los códigos en cualquier orden y los escribe por su nombre, en el orden de la lista y en el idioma del negocio; sin ninguno de los catorce no pinta nada, así que la página no necesita su propio `v-if`.
+- **Úsalo cuando** se enseñan, de solo lectura, los alérgenos de algo cuyo nombre ya está en pantalla (la hoja de un grupo de suplementos, la línea del TPV); con `name` cuando la fila va separada de su nombre, como los platos de un menú («Paella · Alérgenos: Pescado»).
+- **No lo uses cuando** se marcan o desmarcan → `AllergenSelect`; la ficha ya pone su propia etiqueta «Alérgenos» → `formatAllergens`; es la alergia de un cliente, que pide atención → `InlineFeedback`.
+- **API:** props `codes` (los que no son de la lista se ignoran), `name`, `testid`. Es un `span` en bloque, que cabe dentro de una etiqueta, con texto secundario (`--ep-text-muted`) de 0,75 rem que parte las palabras largas. No es una tarjeta: es una línea de detalle dentro de la que la lleva.
+- **Ionic:** ninguno.
 
 ### `MoneyInput`
 `import { MoneyInput } from '@erplora/ui/components'`
