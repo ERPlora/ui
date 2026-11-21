@@ -8,7 +8,7 @@ import { computed, type MaybeRefOrGetter, onBeforeUnmount, ref, shallowRef, toVa
 import { useI18n } from 'vue-i18n';
 
 import { useLiveClient } from '../../sdk/live-client';
-import { nativeBridge } from '../../shell/device-notices';
+import { nativeBridge } from '../../shell/native-bridge';
 import { assistantConfig } from './config';
 import { base64Of, browserVoice, canDictate, type Recording, recordVoice, type VoiceEnv } from './input';
 import { useAssistant } from './state';

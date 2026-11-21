@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { PrintJob } from '../sdk/print-channel';
-import { NOT_THE_LINKED_HUB } from './device-notices';
+import { NOT_THE_LINKED_HUB } from './native-bridge';
 import { createDevicePrinter } from './device-printer';
 
 function job(overrides: Partial<PrintJob> = {}): PrintJob {

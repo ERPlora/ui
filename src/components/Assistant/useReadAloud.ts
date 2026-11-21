@@ -1,7 +1,7 @@
 import { computed, onBeforeUnmount, type Ref, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { nativeBridge } from '../../shell/device-notices';
+import { nativeBridge } from '../../shell/native-bridge';
 import { type AssistantConfig, assistantConfig } from './config';
 import { createDeviceReader, deviceEnv } from './deviceVoice';
 import type { Bubble } from './history';

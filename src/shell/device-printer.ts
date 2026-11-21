@@ -4,7 +4,7 @@
 // the hub keeps it in the queue. A drawer that does not open after the paper came out does not fail the job, since
 // the hub would print the ticket again; it is reported through `onDrawerFailed`, like a drawer-only job that fails.
 import type { PrintJob } from '../sdk/print-channel';
-import { afterTheLoad, type NativeBridge, whileTheHubLands } from './device-notices';
+import { afterTheLoad, type NativeBridge, whileTheHubLands } from './native-bridge';
 
 export interface DevicePrinterDeps {
   invoke: NativeBridge['invoke'];
