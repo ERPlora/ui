@@ -451,10 +451,13 @@ ion-modal.modal-default.show-modal ~ ion-modal.ep-form-modal.modal-default {
 :root.ion-palette-dark ion-modal.ep-form-modal::part(content) {
   border: 1px solid var(--ion-border-color, #26282e);
 }
-/* As tall as its content (Ionic's `.ion-page` would fill a fixed height). */
+/* As tall as its content (Ionic's `.ion-page` would fill a fixed height), up to the window's own cap: on a low screen
+   the fields scroll between the title and the buttons instead of pushing the buttons out of the window. */
 ion-modal.ep-form-modal .ion-delegate-host {
   position: relative;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  max-height: var(--max-height);
   contain: content;
 }
 ion-modal.ep-form-modal ion-toolbar {
@@ -471,6 +474,7 @@ ion-modal.ep-form-modal .ep-form-modal__form {
   margin: 0;
 }
 ion-modal.ep-form-modal .ep-form-modal__body {
+  min-height: 0;
   max-height: 70vh;
   overflow-y: auto;
 }
@@ -510,14 +514,7 @@ ion-modal.ep-form-modal ion-select::part(text) {
     --border-radius: var(--ep-radius-sheet-top, 18px 18px 0 0);
     align-items: flex-end;
   }
-  /* Capped like the sheet, so what does not fit scrolls instead of being cut off. */
-  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ion-delegate-host {
-    display: flex;
-    flex-direction: column;
-    max-height: 90vh;
-  }
   ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__body {
-    min-height: 0;
     max-height: none;
   }
   ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__footer {
