@@ -6,7 +6,7 @@
 import { onBeforeUnmount, type Ref, watch } from 'vue';
 
 import { useLiveClient } from '../sdk/live-client';
-import { type NativeBridge, nativeBridge } from './device-notices';
+import { type NativeBridge, nativeBridge } from './native-bridge';
 import { createDevicePrinter } from './device-printer';
 import {
   createPrintChannel,

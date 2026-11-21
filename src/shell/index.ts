@@ -69,31 +69,14 @@ export type {
   SessionUser,
   ShellSession,
 } from './session';
-export {
-  ANDROID_NOTIFICATIONS,
-  askToNotify,
-  bootNoticeTaps,
-  createNoticeDoor,
-  createNoticeListening,
-  isOlderAppRefusal,
-  KEEP_LISTENING_COMMAND,
-  nativeBridge,
-  NOT_THE_LINKED_HUB,
-  NOTICE_LISTENING_COPY_KEYS,
-  PRIMER_ANSWERED_KEY,
-  stopNoticeListening,
-  TOLD_KEY,
-  useDeviceNotices,
-} from './device-notices';
-export type {
-  AskToNotifyDeps,
-  DeviceNotice,
-  NativeBridge,
-  NoticeDoor,
-  NoticeDoorDeps,
-  NoticeListening,
-  NoticeListeningDeps,
-} from './device-notices';
+export { bootNoticeTaps, createNoticeDoor, stopNoticeListening, TOLD_KEY, useDeviceNotices } from './device-notices';
+export type { DeviceNotice, NoticeDoor, NoticeDoorDeps } from './device-notices';
+export { isOlderAppRefusal, nativeBridge, NOT_THE_LINKED_HUB } from './native-bridge';
+export type { NativeBridge } from './native-bridge';
+export { createNoticeListening, KEEP_LISTENING_COMMAND, NOTICE_LISTENING_COPY_KEYS } from './notice-listening';
+export type { NoticeListening, NoticeListeningDeps } from './notice-listening';
+export { ANDROID_NOTIFICATIONS, askToNotify, PRIMER_ANSWERED_KEY } from './notice-permission';
+export type { AskToNotifyDeps } from './notice-permission';
 export { createDevicePrinter } from './device-printer';
 export type { DevicePrinterDeps } from './device-printer';
 export { createPrintHost, printChannelUrl, usePrintHost } from './print-host';
