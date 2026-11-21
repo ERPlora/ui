@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
+import HubIcon from '../../shell/HubIcon.vue';
 import * as root from '../../index';
 import * as components from '../index';
 import StatusPill from './StatusPill.vue';
@@ -82,6 +83,22 @@ describe('StatusPill', () => {
     expect(pill.attributes('title')).toBe('Since 1 Oct');
   });
 
+  it('has no icon unless asked for one', () => {
+    expect(mountPill().findComponent(HubIcon).exists()).toBe(false);
+  });
+
+  it('paints an icon before the label in place of the dot, a shape beside the colour, hidden from a screen reader', () => {
+    const pill = mountPill({ label: 'Sold out', tone: 'danger', icon: 'ion:alert-circle-outline' });
+    const icon = pill.getComponent(HubIcon);
+    expect(icon.props('name')).toBe('ion:alert-circle-outline');
+    expect(icon.classes()).toContain('status-pill__icon');
+    expect(icon.attributes('aria-hidden')).toBe('true');
+    expect(pill.element.firstElementChild).toBe(icon.element);
+    expect(pill.classes()).not.toContain('status-pill--dot');
+    expect(pill.get('.status-pill__label').text()).toBe('Sold out');
+    expect(pill.attributes('title')).toBe('Sold out');
+  });
+
   // A table cell clips what overflows it, so a pill as wide as its text came out «● Document pend» in a narrow
   // one. The pill is never wider than its box, its label wraps between words and a word that alone does not fit
   // ends in «…» (the whole text stays in the DOM and in `title`). happy-dom does not lay out, so this pins the
@@ -118,8 +135,12 @@ describe('StatusPill', () => {
         'font-weight: 500',
         'line-height: 1.4',
         'color: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-ink), black)',
-        'background: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-wash), transparent)',
+        'background: color-mix(in srgb, var(--status-pill-tone) var(--status-pill-wash), var(--status-pill-surface, transparent))',
       ]);
+    });
+
+    it('its icon keeps its size beside a label that wraps, a little larger than the text', () => {
+      expect(declarations('.status-pill__icon')).toEqual(['flex: none', 'font-size: 1.2em']);
     });
 
     // `overflow-wrap: normal`: Ionic gives `body` `break-word`, and the long word was split mid-letter.

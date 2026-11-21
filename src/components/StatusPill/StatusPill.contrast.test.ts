@@ -161,7 +161,11 @@ const toneVars = (tone: string): Vars => ({ ...BASE, ...vars(pillCss, `.status-p
 describe('StatusPill colours', () => {
   it('derive from one tone per pill: the tint is the tone over the surface, the text the tone darkened (light) or lightened (dark)', () => {
     const base = blocks(pillCss, '.status-pill').join(';');
-    expect(base).toMatch(/background:\s*color-mix\(in srgb, var\(--status-pill-tone\) var\(--status-pill-wash\), transparent\)/);
+    // On a coloured background (a lively figure card) the page lays a measured surface under the tint with
+    // `--status-pill-surface`; elsewhere the tint is see-through over whatever surface holds the pill.
+    expect(base).toMatch(
+      /background:\s*color-mix\(in srgb, var\(--status-pill-tone\) var\(--status-pill-wash\), var\(--status-pill-surface, transparent\)\)/,
+    );
     expect(base).toMatch(/color:\s*color-mix\(in srgb, var\(--status-pill-tone\) var\(--status-pill-ink\), black\)/);
     const dark = blocks(pillCss, ':root.ion-palette-dark .status-pill').join(';');
     expect(dark).toMatch(/color:\s*color-mix\(in srgb, var\(--status-pill-tone\) var\(--status-pill-ink-dark\), white\)/);

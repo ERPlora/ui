@@ -9,6 +9,7 @@
  *   __head, __icon, __heading, __label, __note, __chevron   the top row: icon, label, note and the link arrow
  *   __value                          the figure
  *   __meta, __trend[data-trend], __empty, __error, __retry  the bottom row: trend, «no data» or the error and Retry
+ *   __status                         the bottom row with a status: a StatusPill in place of the trend
  *   __spark                          the sparkline under it: an svg with one polyline, in the card's ink
  *   __bone (--icon, --label, --value, --line)               the ion-skeleton-text while it loads
  */
@@ -182,6 +183,10 @@
 .ep-stat-card .ep-stat-card__trend ion-icon {
   flex: none;
   font-size: 1rem;
+}
+/* The status pill lays its tint over the surface; on the gradient that is the card's own surface, so it reads the same. */
+.ep-stat-card--live .ep-stat-card__status {
+  --status-pill-surface: var(--ion-card-background);
 }
 .ep-stat-card .ep-stat-card__empty {
   color: var(--ep-text-muted);

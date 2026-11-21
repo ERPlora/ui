@@ -97,7 +97,8 @@ Inventario 6.
   a 3:1 en todas las paletas y en los dos modos. La serie 1 oscurece el primario; en Minimal oscuro,
   cuyo primario es blanco, su degradado es grafito.
 - El color de datos dice qué medida es, no cómo va: un estado (agotado, descuadre) va aparte, con texto
-  e icono, y nunca cambia el tono de la cifra.
+  e icono, y nunca cambia el tono de la cifra. En `StatCard` es su `status`, un `StatusPill` de éxito,
+  atención o peligro en la fila de abajo, en lugar de la tendencia.
 - Más de seis categorías se agrupan; no se añaden colores.
 - En los gráficos (`BarChart`, `LineChart`, `BarList` y la minigráfica de `StatCard`, hoja
   `charts.css`), cada serie pinta sus barras o líneas a 3:1 o más sobre la tarjeta en todas las paletas y

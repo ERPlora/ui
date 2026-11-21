@@ -74,7 +74,10 @@ button.ep-stat-card__retry, button.ep-chart__retry { padding: 0 .75rem; border: 
 .demo-list p { display: flex; flex-direction: column; flex: 1; margin: 0; }
 .demo-list small { color: var(--ep-text-muted); }
 .demo-avatar { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--ep-primary-tint); color: var(--ep-primary-text); font-size: .7rem; font-weight: 700; }
-.demo-pill { padding: .2rem .55rem; border-radius: var(--ep-radius-pill); background: var(--ep-success-tint); color: var(--ep-success-text); font-size: .7rem; }
+.demo-pill { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .55rem; border-radius: var(--ep-radius-pill); background: var(--ep-success-tint); color: var(--ep-success-text); font-size: .7rem; }
+/* The page's picture of StatusPill, whose look lives in its component: each tone on the theme's accessible tint pair. */
+.demo-pill[data-tone='warning'] { background: var(--ep-warning-tint); color: var(--ep-warning-text); }
+.demo-pill[data-tone='danger'] { background: var(--ep-danger-tint); color: var(--ep-danger-text); }
 .demo-action > p { color: var(--ep-text-muted); font-size: .875rem; }
 .type-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem; }
 .type-grid article { padding: 2rem; border: 1px solid var(--ep-border); border-radius: var(--ep-radius-lg); background: var(--ion-card-background); }

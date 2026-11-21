@@ -91,6 +91,23 @@ describe('ERPlora brandbook', () => {
     expect(sparked.some((card) => card.includes('ep-stat-card--soft'))).toBe(true);
   });
 
+  it('shows a status apart from the figure: «Agotado» in danger and «Descuadre» in warning, each card in its data tone', () => {
+    const page = read('docs/brandbook.html');
+    const cards = [...page.matchAll(/<(article|a)\b[^>]*class="[^"]*\bep-stat-card\b[^"]*"[^>]*>[\s\S]*?<\/\1>/g)].map((m) => m[0]);
+    const statusOf = (card: string) =>
+      /<p class="ep-stat-card__meta ep-stat-card__status"><span class="demo-pill" data-tone="(\w+)"><span aria-hidden="true">[^<]+<\/span>([^<]+)<\/span><\/p>/.exec(card);
+    const withStatus = cards.map((card) => ({ card, status: statusOf(card) })).filter(({ status }) => status);
+    const shown = withStatus.map(({ card, status }) => [status![1], status![2], /data-tone="(\d)"/.exec(card)?.[1]]);
+    expect(shown).toEqual(expect.arrayContaining([['danger', 'Agotado', '6'], ['warning', 'Descuadre', '1']]));
+    for (const { card } of withStatus) expect(card, 'the status takes the place of the trend').not.toContain('ep-stat-card__trend');
+    const book = plain(read('docs/brandbook.css'));
+    for (const tone of ['warning', 'danger']) {
+      const rule = block(book, `.demo-pill[data-tone='${tone}']`);
+      expect(rule, tone).toContain(`background: var(--ep-${tone}-tint);`);
+      expect(rule, tone).toContain(`color: var(--ep-${tone}-text);`);
+    }
+  });
+
   it('shows the charts with their real sheet: bars and a line with two series and their legend, a bar list and its states', () => {
     const page = read('docs/brandbook.html');
     const sheets = [...page.matchAll(/href="\.\.\/src\/shell\/theme\/([\w-]+)\.css"/g)].map((m) => m[1]);
