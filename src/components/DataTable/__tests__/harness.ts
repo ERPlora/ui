@@ -241,3 +241,10 @@ export async function tap(el: HTMLElement, pointerType: 'touch' | 'mouse'): Prom
   el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType }));
   await click(el);
 }
+
+/** Three records with a name and a total, for the tests that only need a table on screen. */
+export const ROWS = [
+  { id: '1', name: 'Ana', total: '10,00 €' },
+  { id: '2', name: 'Luis', total: '20,00 €' },
+  { id: '3', name: 'Marta', total: '30,00 €' },
+];
