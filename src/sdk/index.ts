@@ -85,20 +85,20 @@ export {
   type PrintSocket,
 } from "./print-channel";
 export { createSseParser, type SseFrame, type SseParser } from "./sse-parser";
+export { WATCHDOG_MS } from "./stream-connection";
 export {
   createStreamManager,
   HIDDEN_CLOSE_MS,
   RESUBSCRIBE_DEBOUNCE_MS,
-  WATCHDOG_MS,
   type ActiveSubscription,
   type LiveSubscription,
   type StreamManager,
-  type StreamManagerOptions,
   type StreamStatus,
   type SubEvent,
   type SubListener,
   type Unsubscribe,
 } from "./stream-manager";
+export { type StreamManagerOptions } from "./stream-state";
 export {
   encodeSubscriptions,
   MAX_QUERY_BYTES,
