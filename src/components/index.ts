@@ -21,3 +21,4 @@ export * from './CollapsibleChecklist';
 export * from './AlignedCardGrid';
 export * from './YouTubeEmbed';
 export * from './FloorPlan';
+export * from './Chart';

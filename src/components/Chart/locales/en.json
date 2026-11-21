@@ -1,0 +1,8 @@
+{
+  "chart": {
+    "loading": "Loading the chart",
+    "empty": "No data for this period",
+    "error": "Couldn't load the chart",
+    "retry": "Retry"
+  }
+}

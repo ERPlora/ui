@@ -78,6 +78,30 @@ describe('stat-card.css: the look of a figure card', () => {
     });
   }
 
+  it('draws the sparkline as a 2 px line in the card’s ink, white on the lively card, at the foot of the card', () => {
+    const spark = `${CARD} .ep-stat-card__spark`;
+    expect(valueOf(css, spark, 'color')).toBe('var(--stat-card-ink)');
+    expect(valueOf(css, spark, 'margin-top')).toBe('auto');
+    expect(valueOf(css, `${CARD} .ep-stat-card__meta + .ep-stat-card__spark`, 'margin-top')).toBe('0.5rem');
+    expect(valueOf(css, `${spark} polyline`, 'stroke')).toBe('currentColor');
+    expect(valueOf(css, `${spark} polyline`, 'stroke-width')).toBe('2');
+    expect(valueOf(css, `${spark} polyline`, 'fill')).toBe('none');
+    expect(valueOf(css, `${LIVE} .ep-stat-card__spark`, 'color')).toBe('var(--ep-data-on-gradient)');
+  });
+
+  for (const { name, scope } of themes()) {
+    it(`a soft card’s sparkline reads 3:1 on the card, every tone — ${name}`, () => {
+      const failures: string[] = [];
+      const surface = colour('var(--ion-card-background)', scope);
+      for (const series of SERIES) {
+        const ink = colour(custom(CARD, '--stat-card-ink')!, { ...scope, '--stat-card-tone': `var(--ep-data-${series})` });
+        const ratio = contrast(ink, surface);
+        if (ratio < 3) failures.push(`series ${series}: ${ratio.toFixed(2)}:1`);
+      }
+      expect(failures, failures.join('; ')).toEqual([]);
+    });
+  }
+
   it('in a narrow card (two a row on a phone) the label goes under the icon, so no word is split', () => {
     const narrow = [...css.matchAll(/@container \(max-width: ([\d.]+)rem\)\s*\{((?:[^{}]*\{[^}]*\})+)\s*\}/g)].find((m) =>
       m[2].includes('.ep-stat-card__heading'),

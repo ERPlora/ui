@@ -104,3 +104,18 @@ export function pixels(value: string | undefined): number | undefined {
   if (!match) return undefined;
   return Number(match[1]) * (match[2] === 'rem' ? 16 : 1);
 }
+
+/** The body of the first at-rule of `css` that starts with `prelude` (`@media (pointer: coarse)`), its nested rules
+ *  included; empty when there is none. */
+export function atRuleBody(css: string, prelude: string): string {
+  const start = css.indexOf(prelude);
+  if (start < 0) return '';
+  const open = css.indexOf('{', start);
+  let depth = 0;
+  for (let index = open; index < css.length; index += 1) {
+    if (css[index] === '{') depth += 1;
+    if (css[index] === '}') depth -= 1;
+    if (depth === 0) return css.slice(open + 1, index);
+  }
+  return '';
+}

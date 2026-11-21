@@ -3,7 +3,8 @@
 // data. Its look is the theme sheet stat-card.css, so the brandbook paints it with the same rules.
 //   <div class="ep-stat-grid">
 //     <StatCard :label="t('home.sales')" :value="formatMoney(total, locale, money)" icon="ion:wallet-outline"
-//               :tone="1" variant="live" :trend="{ direction: 'up', label: t('home.salesUp', { n }) }" to="/sales" />
+//               :tone="1" variant="live" :trend="{ direction: 'up', label: t('home.salesUp', { n }) }"
+//               :sparkline="salesByHour" to="/sales" />
 //   </div>
 // The page formats the value; no value is the empty state. While loading and on error the card opens nothing: on
 // error its own action is Retry (`retry`). The lively variant only paints a figure; the other states keep the surface.
@@ -13,6 +14,7 @@ import { useI18n } from 'vue-i18n';
 import { type RouteLocationRaw, RouterLink } from 'vue-router';
 
 import HubIcon from '../../shell/HubIcon.vue';
+import { sparkPoints } from '../Chart/scale';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import type { StatCardTone, StatCardTrend, StatCardTrendDirection, StatCardTrendTone, StatCardVariant } from './types';
@@ -30,6 +32,8 @@ const props = withDefaults(
     /** A line under the label: the period, what is included. */
     note?: string;
     trend?: StatCardTrend;
+    /** The figure's recent values, oldest first, drawn as a line under it; its meaning is the figure and the trend. */
+    sparkline?: readonly number[];
     /** Where the whole card leads. */
     to?: RouteLocationRaw;
     loading?: boolean;
@@ -45,6 +49,7 @@ const props = withDefaults(
     variant: 'soft',
     note: undefined,
     trend: undefined,
+    sparkline: undefined,
     to: undefined,
     loading: false,
     error: false,
@@ -72,6 +77,7 @@ const state = computed(() => {
 const linked = computed(() => Boolean(props.to) && (state.value === 'ready' || state.value === 'empty'));
 const live = computed(() => props.variant === 'live' && state.value === 'ready');
 const trendTone = computed(() => props.trend && (props.trend.tone ?? TREND_TONES[props.trend.direction]));
+const spark = computed(() => (state.value === 'ready' && props.sparkline ? sparkPoints(props.sparkline) : ''));
 const busyLabel = computed(() => (state.value === 'loading' ? t('statCard.loading', { label: props.label }) : undefined));
 </script>
 
@@ -168,6 +174,18 @@ const busyLabel = computed(() => (state.value === 'loading' ? t('statCard.loadin
         />
         <span class="ep-stat-card__text">{{ trend.label }}</span>
       </p>
+      <svg
+        v-if="spark"
+        class="ep-stat-card__spark"
+        viewBox="0 0 100 32"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <polyline
+          :points="spark"
+          vector-effect="non-scaling-stroke"
+        />
+      </svg>
     </template>
   </component>
 </template>

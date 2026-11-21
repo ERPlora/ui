@@ -1,0 +1,8 @@
+{
+  "chart": {
+    "loading": "Cargando el gráfico",
+    "empty": "No hay datos en este periodo",
+    "error": "No se pudo cargar el gráfico",
+    "retry": "Reintentar"
+  }
+}
