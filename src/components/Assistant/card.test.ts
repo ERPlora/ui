@@ -331,7 +331,42 @@ describe('the lines of a dangerous write', () => {
 
 describe('the one line of a normal write', () => {
   it('says its first data, never the empty ones', () => {
-    expect(cardLine(card(), opts)).toBe('Corte caballero · 15,00\u00a0€ · assistant.card.yes');
+    expect(cardLine(card(), opts)).toBe('Corte caballero · 15,00\u00a0€ · Online: assistant.card.yes');
+  });
+
+  // A name, an amount or a day reads on its own; a bare «Sí» says nothing of what it turns on (the drawer's settings
+  // read «Sí · Sí»). Each yes or no goes by the name of its datum, as a dangerous write's lines say it.
+  const drawer = (opening: boolean, closing: boolean, labels: [string, string]) =>
+    card({
+      operation: 'cash_register.settings.update',
+      app: 'cash_register',
+      app_name: 'Caja',
+      action: 'update',
+      fields: [
+        { name: 'require_opening_balance', label: labels[0], kind: 'bool', value: opening },
+        { name: 'require_closing_balance', label: labels[1], kind: 'bool', value: closing },
+      ],
+    });
+
+  it('says a yes or a no by the name of its datum, in Spanish and in English', () => {
+    const es_ = drawer(true, true, ['Exigir fondo de apertura', 'Exigir recuento al cierre']);
+    expect(cardLine(es_, said(es))).toBe('Exigir fondo de apertura: Sí · Exigir recuento al cierre: Sí');
+    const en_ = drawer(true, false, ['Require an opening float', 'Require a count to close']);
+    expect(cardLine(en_, said(en))).toBe('Require an opening float: Yes · Require a count to close: No');
+  });
+
+  it('names a yes or a no as the dangerous lines do, and leaves the data that read on their own by their value', () => {
+    const product = card({
+      fields: [
+        { name: 'name', label: 'Name', kind: 'text', value: 'Café' },
+        { name: 'price', label: 'Price', kind: 'money', value: 150 },
+        { name: 'is_active', label: 'Activo', kind: 'bool', value: false },
+      ],
+    });
+    expect(cardLine(product, said(es))).toBe('Café · 1,50\u00a0€ · Activo: No');
+    expect(cardLine(card({ fields: [{ name: 'name', label: 'Name', kind: 'bool', value: true }] }), said(es))).toBe('Nombre: Sí');
+    const titled = { name: 'name', label: 'Disponible', kind: 'bool' as const, value: true, titled: true };
+    expect(cardLine(card({ fields: [titled] }), said(es))).toBe('Disponible: Sí');
   });
 });
 

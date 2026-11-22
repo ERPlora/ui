@@ -93,6 +93,30 @@ describe('AssistantConfirm', () => {
     expect(sentences).toContain(said);
   });
 
+  it('a yes or a no goes by the name of its datum: the drawer’s settings say what they turn on, in Spanish and in English', async () => {
+    const settings: AssistantCard = {
+      ...NORMAL,
+      operation: 'cash_register.settings.update',
+      app: 'cash_register',
+      app_name: 'Caja',
+      action: 'update',
+      fields: [
+        { name: 'require_opening_balance', label: 'Exigir fondo de apertura', kind: 'bool', value: true },
+        { name: 'require_closing_balance', label: 'Exigir recuento al cierre', kind: 'bool', value: true },
+      ],
+    };
+    await card(settings);
+    expect(body()).toContain('Cambiar en Caja: Exigir fondo de apertura: Sí · Exigir recuento al cierre: Sí');
+    document.body.innerHTML = '';
+    const english = { ...settings, app_name: 'Cash register' };
+    english.fields = [
+      { name: 'require_opening_balance', label: 'Require an opening float', kind: 'bool', value: true },
+      { name: 'require_closing_balance', label: 'Require a count to close', kind: 'bool', value: false },
+    ];
+    await card(english, false, 'en');
+    expect(body()).toContain('Change in Cash register: Require an opening float: Yes · Require a count to close: No');
+  });
+
   it('a write outside the old list of verbs names its own, in Spanish and in English, never «Do this»', async () => {
     const rectify: AssistantCard = {
       ...HIGH,
