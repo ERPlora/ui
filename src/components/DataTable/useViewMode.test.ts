@@ -124,6 +124,14 @@ describe('useViewMode: the hand-over to cards when the folded list does not fit'
     expect([view.fitCards.value, view.viewMode.value]).toEqual([false, 'table']);
   });
 
+  it('a list that starts as a list by defaultView="table" keeps the cards it hands over to', async () => {
+    viewport(false);
+    const { view } = mountView({ defaultView: 'table' });
+    view.measureCardsFit(FOLDED);
+    await nextTick();
+    expect([view.fitCards.value, view.viewMode.value]).toEqual([true, 'cards']);
+  });
+
   it('never hands over on a phone, after a choice by hand, with defaultView="cards" or without cards', () => {
     viewport(true);
     const phone = mountView().view;

@@ -58,6 +58,13 @@ describe('useContentAfter: is there content in flow after a table that fills its
     expect(after()).toBe(true);
   });
 
+  it('tells the layout each reading, so the measurement pass waits for what it paints', async () => {
+    const { sibling, writes } = mountTable();
+    sibling();
+    await observed();
+    expect(writes).toEqual([false, true]);
+  });
+
   it('only what follows the table counts', async () => {
     const { table, parent, after } = mountTable();
     parent.insertBefore(document.createElement('p'), table);
