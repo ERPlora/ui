@@ -107,6 +107,15 @@ describe('the name column gives up its 10rem before the list gives up anything e
     expect(rowButtons(t)).toEqual(['edit', 'stock']);
   });
 
+  // A short date in the high column fits the common floor, as does every other column: 10rem 536 · 5.5rem 464.
+  it('a high column whose text fits the common floor takes that floor, and the list does not go to cards', async () => {
+    const day = { key: 'day', label: 'Date', priority: 'high' };
+    const t = await mountAt(470, { columns: [day, ...PLAIN], rows: [{ ...ROWS[0], day: 'Sat 21 Nov' }], actions: ACTIONS, views: ['table', 'cards'] });
+    expect(isCards(t)).toBe(false);
+    expect(rowButtons(t)).toEqual(['edit', 'stock']);
+    expect(nameTrack(t)).toBe('minmax(5.5rem,1.4fr)');
+  });
+
   it('a box that widens again gives the name its 10rem back', async () => {
     const t = await mountAt(500, { columns: [NAME_COLUMN, ...LOW], actions: ACTIONS, views: false });
     await resize(540);
