@@ -21,7 +21,7 @@
 // `-filters-clear`, `-filters-toggle`, `-filters-count`, `-filters-panel`, `-filters-apply`,
 // `-filters-close`…
 import { IonButton, IonIcon } from '@ionic/vue';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import { ionIconSrc } from '../../shell/icons';
 import DataTableCard from './DataTableCard.vue';
@@ -49,6 +49,7 @@ import { useCardParts } from './useCardParts';
 import { useColumnFilters } from './useColumnFilters';
 import { useColumnSort } from './useColumnSort';
 import { useFilterControls } from './useFilterControls';
+import { useFilterPanel } from './useFilterPanel';
 import { useMediaQuery } from './useMediaQuery';
 import { useRowMenu } from './useRowMenu';
 import { useRowSelection } from './useRowSelection';
@@ -69,7 +70,6 @@ import type {
   DataTableView,
 } from './types';
 import { type DataTableFitStep, useDataTableLayout } from './useDataTableLayout';
-import { useFilterSheet } from './useFilterSheet';
 
 const props = withDefaults(
   defineProps<{
@@ -345,42 +345,14 @@ const { filterValues, filterColumns, filterCountNow, filtering, setFilters, setF
   },
 });
 // ── Filters panel (`filterable`) ─────────────────────────────────────────────────────────────
-/** The column filters live behind the funnel: `filterable`, or the cards (an open row of controls would
- *  take half a phone before the first card). */
-const filtersFolded = computed(() => props.filterable || cardsOn.value);
-const filterPanelOpen = ref(false);
-const showFunnel = computed(() => filtersFolded.value && filterColumns.value.length > 0);
-// Below 834 px the panel is a sheet over the content area: where that area begins and ends.
-const { sheet: panelIsSheet } = useFilterSheet(() => root.value, () => filterPanelOpen.value);
-
-function openFilterPanel(): void {
-  filterPanelOpen.value = true;
-  void nextTick(() => root.value?.querySelector<HTMLElement>(':scope > .data-table__surface > .data-table__drawer')?.focus());
-}
-/** Closes the panel (its draft is dropped) and gives the focus back to the funnel. */
-function closeFilterPanel(): void {
-  if (!filterPanelOpen.value) return;
-  filterPanelOpen.value = false;
-  void nextTick(() => {
-    const funnel = root.value?.querySelector<HTMLElement>('.data-table__filter-button');
-    // An ion-button does not delegate its focus: its native button takes it.
-    (funnel?.shadowRoot?.querySelector<HTMLElement>('button') ?? funnel)?.focus();
+const { filtersFolded, filterPanelOpen, showFunnel, panelIsSheet, closeFilterPanel, toggleFilterPanel, applyFilterPanel } =
+  useFilterPanel<T>({
+    root,
+    filterable: () => props.filterable,
+    cardsOn: () => cardsOn.value,
+    filterColumns: () => filterColumns.value,
+    setFilters,
   });
-}
-function toggleFilterPanel(): void {
-  if (filterPanelOpen.value) closeFilterPanel();
-  else openFilterPanel();
-}
-/** «Apply» of the panel: its draft applied, and the panel closed. */
-function applyFilterPanel(draft: DataTableFilters): void {
-  setFilters(draft);
-  closeFilterPanel();
-}
-// Its columns stopped declaring filters, the page dropped `filterable` or the list came back from the
-// cards: nothing left to show (what was applied stays).
-watch(showFunnel, (shown) => {
-  if (!shown) filterPanelOpen.value = false;
-});
 
 // ── What a filter control paints besides its value (`filterErrors`, lookups, ranges) ─────────
 const filterControls = useFilterControls<T>({ filterErrors: () => props.filterErrors, label });
