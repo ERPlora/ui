@@ -337,6 +337,7 @@ const ADDED: Record<string, string> = {
     'row motion is disabled with reduced motion in its own component',
   '.data-table__actions .data-table__action--main': 'the card’s main action reads as such',
   '.data-table__empty, .data-table__error, .data-table__loading': 'the table gives the library’s notices their room',
+  '.data-table__empty': 'a page’s own empty notice sits in the middle of the table, as the Lit table’s did',
   '.data-table__loading': 'the skeletons sit centred under their label',
   '.data-table__empty ion-button, .data-table__error ion-button': 'the empty and failed states’ actions have a 44px target',
   '.data-table__loading-label': 'the skeleton loading state keeps its visible loading label',
