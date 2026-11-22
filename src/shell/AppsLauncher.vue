@@ -270,11 +270,14 @@ async function open(app: MyApp): Promise<void> {
   font-size: 26px;
 }
 
-/* A long name is cut at two lines; the whole of it is the tile's title and accessible name. */
+/* A name breaks only between words, not where Ionic's `body` would break a long word: a word wider than the tile
+   ends in «…», and a long name is cut at two lines. The whole of it is the tile's title and accessible name. */
 .apps-launcher-name {
   display: -webkit-box;
   max-width: 100%;
   overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
   font-size: 0.8125rem;
   line-height: 1.25;
   text-align: center;
