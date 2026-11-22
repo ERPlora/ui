@@ -49,4 +49,10 @@ describe('DataTableSelectionBar inside the table', () => {
     await settle();
     expect([count(t.element), text(clearButton(t.element))]).toEqual(['2 people ticked', 'Untick']);
   });
+
+  it('is not painted by a table that does not select, even when the page hands it selected keys', async () => {
+    const t = mountTable({ rows: PEOPLE, columns: NAME, selected: ['1'] });
+    await settle();
+    expect(t.element.querySelector('.data-table__selection-bar')).toBeNull();
+  });
 });
