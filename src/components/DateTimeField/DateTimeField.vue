@@ -90,10 +90,10 @@ function pickTime(value: string): void {
 </template>
 
 <style scoped>
-/* Side by side while both fit their value («11/23/2026», «09:30 AM»); one under the other on a narrow window. */
+/* Side by side while both fit their value and a long label; one under the other on a phone. */
 .ep-date-time-field {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
   gap: 0.5rem 0.75rem;
   align-items: start;
 }
