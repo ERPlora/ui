@@ -17,6 +17,7 @@ import {
   pagerSource,
   panelSource,
   rowSource,
+  selectionSource,
   stateSource,
   tableSource as source,
   toolbarSource,
@@ -401,7 +402,7 @@ const RESTYLED: Record<string, string[]> = {
 };
 
 const LIT = parse(litCss);
-const scoped = [source, gridSource, toolbarSource, cardSource, listSource, actionsSource, stateSource, identitySource, pagerSource, panelSource, rowSource]
+const scoped = [source, gridSource, toolbarSource, cardSource, listSource, actionsSource, stateSource, identitySource, pagerSource, panelSource, rowSource, selectionSource]
   .map((input) => input.match(/<style scoped>([\s\S]*?)<\/style>/)?.[1] ?? '')
   .concat(controlsCss)
   .join('\n');

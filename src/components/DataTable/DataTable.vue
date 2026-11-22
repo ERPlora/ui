@@ -20,10 +20,8 @@
 // lookup adds `-chosen`, `-clear`, `-search`, `-option`, `-empty`, `-error`, `-field-error`),
 // `-filters-clear`, `-filters-toggle`, `-filters-count`, `-filters-panel`, `-filters-apply`,
 // `-filters-close`…
-import { IonButton, IonIcon } from '@ionic/vue';
 import { computed, ref, watch } from 'vue';
 
-import { ionIconSrc } from '../../shell/icons';
 import DataTableCard from './DataTableCard.vue';
 import DataTableFilterPanel from './DataTableFilterPanel.vue';
 import DataTableFilterRow from './DataTableFilterRow.vue';
@@ -31,10 +29,11 @@ import DataTableGrid from './DataTableGrid.vue';
 import DataTableInfinite from './DataTableInfinite.vue';
 import DataTablePager from './DataTablePager.vue';
 import DataTableRowMenu from './DataTableRowMenu.vue';
+import DataTableSelectionBar from './DataTableSelectionBar.vue';
 import DataTableState from './DataTableState.vue';
 import DataTableToolbar from './DataTableToolbar.vue';
 import { useDataTableLabels } from './labels';
-import { DATA_TABLE_ICONS, filterRows, gridTemplate, rowKeyOf, searchRows } from './model';
+import { filterRows, gridTemplate, rowKeyOf, searchRows } from './model';
 import { cardRowActions, listRowActions } from './rowActions';
 import { useCardParts } from './useCardParts';
 import { useColumnFilters } from './useColumnFilters';
@@ -240,8 +239,6 @@ const slots = defineSlots<{
   [cell: string]: CellSlot | undefined;
 }>();
 
-const ICONS = DATA_TABLE_ICONS;
-const icon = ionIconSrc;
 const root = ref<HTMLElement | null>(null);
 const { text: label } = useDataTableLabels(() => props.labels);
 
@@ -609,24 +606,12 @@ const { cardTitleOf, cardTitleColumnOf, cardFields } = useCardParts<T>({
           @filter="setFilter"
           @clear="clearFilters"
         />
-        <div
+        <DataTableSelectionBar
           v-if="selectable && selection.size > 0"
-          class="data-table__selection-bar"
-        >
-          <strong>{{ label('selected', { n: selection.size }) }}</strong>
-          <ion-button
-            class="data-table__selection-clear"
-            fill="clear"
-            size="small"
-            @click="setSelection(new Set())"
-          >
-            <ion-icon
-              :icon="icon(ICONS.clear)"
-              style="font-size: 14px"
-              aria-hidden="true"
-            />{{ ` ${label('clear')}` }}
-          </ion-button>
-        </div>
+          :count="selection.size"
+          :labels="labels"
+          @clear="setSelection(new Set())"
+        />
       </div>
 
       <DataTableState
@@ -898,10 +883,6 @@ const { cardTitleOf, cardTitleColumnOf, cardFields } = useCardParts<T>({
   .data-table__surface--panel > .data-table__pager { grid-column: 1; grid-row: 3; }
   .data-table__surface--panel > .data-table__drawer { position: static; grid-column: 2; grid-row: 1 / -1; width: auto; max-width: none; height: auto; min-height: 0; animation: none; }
 }
-.data-table__selection-bar { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.7rem; border-radius: 10px; font-size: 13px; color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
-/* `padding: revert`: the browser's own button padding, which normalize.css would zero. */
-.data-table__selection-clear { margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; cursor: pointer; font-weight: 500; color: inherit; background: none; border: 0; font: inherit; padding: revert; }
-.data-table__selection-clear:hover { text-decoration: underline; }
 
 /* ── Cards ───────────────────────────────────────────────────────────────────────────────── */
 /* Each card is as tall as its content; rows pack at the top. */
