@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { reactive, ref } from 'vue';
 
 import type { DataTableLabelKey } from './types';
 import { useTableStates } from './useTableStates';
+import { clearPage, mountTable, NAME, settle, viewport } from './__tests__/harness';
 
 const label = (key: DataTableLabelKey): string => (key === 'loadError' ? 'Couldn’t load the data' : key);
 
@@ -136,5 +137,17 @@ describe('useTableStates', () => {
     expect(s.noMatches.value).toBe(false);
     s.props.rows = [{ id: 'a' }];
     expect(s.noMatches.value).toBe(true);
+  });
+});
+
+describe('useTableStates inside the table', () => {
+  afterEach(clearPage);
+
+  it('with no sizes to choose, more than one page still brings the pager', async () => {
+    viewport(false);
+    const rows = Array.from({ length: 12 }, (_, i) => ({ id: String(i + 1), name: `Row ${i + 1}` }));
+    const t = mountTable({ rows, columns: NAME, pageSizeOptions: [] });
+    await settle();
+    expect(t.find('.data-table__pager').exists()).toBe(true);
   });
 });

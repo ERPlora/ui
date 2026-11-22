@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { reactive, ref } from 'vue';
 
 import type { DataTableColumn } from './types';
 import { useVisibleColumns } from './useVisibleColumns';
+import { clearLayout, mountTable, playBackLayout, setBoxWidth, settle } from './__tests__/harness';
 
 type Row = { id: string };
 const COLUMNS: DataTableColumn<Row>[] = [
@@ -58,6 +59,14 @@ describe('useVisibleColumns', () => {
     expect(keys(c.listColumns.value)).toEqual(['zone']);
   });
 
+  it('each pick adds to the ones before it', () => {
+    const c = setup();
+    c.onColumnsPicked(['name', 'notes', 'zone']);
+    c.onColumnsPicked(['notes', 'zone']);
+    expect([...c.columnChoice.value]).toEqual([['notes', true], ['name', false]]);
+    expect(keys(c.visibleColumns.value)).toEqual(['notes', 'zone']);
+  });
+
   it('a low column the person brings back by hand no longer yields to the box', () => {
     const c = setup();
     c.lowHidden.value = true;
@@ -65,5 +74,21 @@ describe('useVisibleColumns', () => {
     expect([...c.columnChoice.value]).toEqual([['zone', true]]);
     expect(keys(c.yieldingColumns.value)).toEqual([]);
     expect(keys(c.listColumns.value)).toEqual(['name', 'zone']);
+  });
+});
+
+describe('useVisibleColumns inside the table', () => {
+  afterEach(clearLayout);
+
+  it('in the cards, which keep the low columns the list gave up, the chooser marks them picked', async () => {
+    // A list that never fits its box: the table gives its low column up, folds its action, then turns into cards.
+    playBackLayout(40, (el) => (el.classList.contains('data-table__scroll') ? 10_000 : 0));
+    setBoxWidth(700);
+    const open = { id: 'open', label: 'Open', icon: 'open-outline' };
+    const t = mountTable({ rows: [{ id: 'a' }], columns: COLUMNS, actions: [open], views: ['table', 'cards'] });
+    await settle();
+    const chooser = t.element.querySelector('.data-table__columns-select') as HTMLElement & { value?: string[] };
+    expect(t.element.querySelector('.data-table__cards')).not.toBeNull();
+    expect(chooser.value).toEqual(['name', 'zone']);
   });
 });
