@@ -41,7 +41,7 @@ export const HOST_MESSAGES = {
     host: {
       verbs: {
         create: 'Create', delete: 'Delete', rectify: 'Rectify', mark_paid: 'Record the payment', remove: 'Remove',
-        settings_update: 'Change', bulk_delete: 'Delete', close: 'Close', add: 'Add', clear: 'Clear',
+        settings_update: 'Change', update: 'Change', bulk_delete: 'Delete', close: 'Close', add: 'Add', clear: 'Clear',
       },
       operations: { cart_checkout: { cart: { clear: 'Clear' } }, cash_register: { count: { add: 'Register count' } } },
       screens: { home: 'Home', settings: 'Settings' },
@@ -52,7 +52,7 @@ export const HOST_MESSAGES = {
     host: {
       verbs: {
         create: 'Crear', delete: 'Borrar', rectify: 'Rectificar', mark_paid: 'Registrar el cobro', remove: 'Quitar',
-        settings_update: 'Cambiar', bulk_delete: 'Borrar', close: 'Cerrar', add: 'Añadir', clear: 'Quitar',
+        settings_update: 'Cambiar', update: 'Cambiar', bulk_delete: 'Borrar', close: 'Cerrar', add: 'Añadir', clear: 'Quitar',
       },
       operations: { cart_checkout: { cart: { clear: 'Vaciar' } }, cash_register: { count: { add: 'Registrar arqueo' } } },
       screens: { home: 'Inicio', settings: 'Ajustes' },

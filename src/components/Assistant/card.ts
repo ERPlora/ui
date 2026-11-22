@@ -166,21 +166,26 @@ export function fieldText(field: AssistantField, format: CardFormat): string {
   }
 }
 
-/** A dangerous write's data, one line each: the title its app wrote, else its name in the person's language, else the
- *  server's label, and its value in words. What it sends and what it will do (its preview) are said alike. */
-export function fieldLines(fields: readonly AssistantField[], format: CardFormat): string[] {
-  return fields.map((field) => {
-    const key = field.titled ? null : fieldLabelKey(field.name);
-    return `${key ? format.t(key) : field.label}: ${fieldText(field, format)}`;
-  });
+/** A datum by its name and its value in words: the title its app wrote, else its name in the person's language, else
+ *  the server's label. */
+function namedText(field: AssistantField, format: CardFormat): string {
+  const key = field.titled ? null : fieldLabelKey(field.name);
+  return `${key ? format.t(key) : field.label}: ${fieldText(field, format)}`;
 }
 
-/** A normal write in one line: its first three data, the empty ones left out. */
+/** A dangerous write's data, one line each, by their names (`namedText`). What it sends and what it will do (its
+ *  preview) are said alike. */
+export function fieldLines(fields: readonly AssistantField[], format: CardFormat): string[] {
+  return fields.map((field) => namedText(field, format));
+}
+
+/** A normal write in one line: its first three data, the empty ones left out, each by its value; a yes or a no, which
+ *  says nothing alone, by its name too. */
 export function cardLine(card: AssistantCard, format: CardFormat): string {
   return card.fields
     .filter((field) => field.kind !== 'empty')
     .slice(0, 3)
-    .map((field) => fieldText(field, format))
+    .map((field) => (field.kind === 'bool' ? namedText(field, format) : fieldText(field, format)))
     .join(' · ');
 }
 
