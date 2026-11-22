@@ -255,7 +255,7 @@ const tid = (suffix: string): string | undefined => {
 
 /** Columns the person sees: their `hidden`, unless picked otherwise in the column chooser. */
 const visibleColumns = computed(() => props.columns.filter((c) => columnChoice.value.get(c.key) ?? c.hidden !== true));
-const rowSlots = computed(() => [...(['card', 'row-actions'] as const).filter((n) => slots[n]), ...visibleColumns.value.flatMap((c) => (c.cell ? [c.cell] : []))]);
+const rowSlots = (): string[] => [...(['card', 'row-actions'] as const).filter((n) => slots[n]), ...visibleColumns.value.flatMap((c) => (c.cell ? [c.cell] : []))];
 /** Shown columns the box may take away: `low`, and not picked by hand. */
 const yieldingColumns = computed(() =>
   visibleColumns.value.filter((c) => c.priority === 'low' && columnChoice.value.get(c.key) !== true),
@@ -673,7 +673,7 @@ const { cardTitleOf, cardTitleColumnOf, cardFields } = useCardParts<T>({
           @toggle="emit('toggle', $event)"
         >
           <template
-            v-for="name in rowSlots"
+            v-for="name in rowSlots()"
             :key="name"
             #[name]="slotProps"
           >
@@ -720,7 +720,7 @@ const { cardTitleOf, cardTitleColumnOf, cardFields } = useCardParts<T>({
           @toggle="emit('toggle', $event)"
         >
           <template
-            v-for="name in rowSlots"
+            v-for="name in rowSlots()"
             :key="name"
             #[name]="slotProps"
           >

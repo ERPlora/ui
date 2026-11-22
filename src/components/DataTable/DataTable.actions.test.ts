@@ -1,6 +1,10 @@
+import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { h, ref } from 'vue';
 
-import { byTestId, cards, click, mountTable, settle, text, viewport } from './__tests__/harness';
+import { createShellI18n } from '../../shell/i18n';
+import DataTable from './DataTable.vue';
+import { byTestId, cards, click, mountTable, PopoverStub, settle, text, viewport } from './__tests__/harness';
 
 type Row = Record<string, unknown>;
 
@@ -211,6 +215,29 @@ describe('custom controls and the default primary action', () => {
     await click(list.element.querySelector('.data-table__cell--actions .own'));
     expect(list.emitted('rowClick')).toBeUndefined();
     expect(text(cardsView.element.querySelector('.data-table__card-actions .own'))).toBe('Go 1');
+  });
+
+  // Slots are not reactive: a page that starts giving one later (a `v-if` on its template) is only seen if the
+  // table reads its slots on every render, not once in a computed.
+  it('a row-actions or card slot the page gives after the first paint reaches the list and the cards', async () => {
+    const given = ref(false);
+    const props = { rows: [{ id: '1', name: 'One' }], columns: [{ key: 'name', label: 'Name' }], actions: [{ id: 'edit', label: 'Edit' }], views: true };
+    const own = {
+      'row-actions': ({ row }: { row: Row }) => h('b', { class: 'own' }, `Go ${row.id}`),
+      card: ({ row }: { row: Row }) => h('i', { class: 'mine' }, `Card ${row.id}`),
+    };
+    const page = (defaultView: string) =>
+      mount({ render: () => h(DataTable as never, { ...props, defaultView }, given.value ? own : {}) }, {
+        global: { plugins: [createShellI18n({ locale: 'en' })], stubs: { IonPopover: PopoverStub } },
+      });
+    const list = page('list');
+    const cardsView = page('cards');
+    await settle();
+    given.value = true;
+    await settle();
+    expect(text(list.element.querySelector('.data-table__cell--actions .own'))).toBe('Go 1');
+    expect(text(cardsView.element.querySelector('.data-table__card-actions .own'))).toBe('Go 1');
+    expect(text(cardsView.element.querySelector('.mine'))).toBe('Card 1');
   });
 
   it('the list keeps two buttons; the card keeps its main one, and «⋮» holds the rest', async () => {
