@@ -1,152 +1,17 @@
 // Measurements run after render and resize, and write only on change, so none schedules a render loop.
-import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, type Ref, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, type Ref, ref } from 'vue';
 
+import { columnNeed, decideFitLevel, nextNeeds, sameNeeds } from './fitDecisions';
 import { ladderLength, type LadderColumn, ladderPhases, ladderRung } from './fitLadder';
 import { fitWholeRows } from './fitWholeRows';
+import { naturalActionsWidth, naturalCellWidth } from './naturalWidth';
 import type { DataTableView } from './types';
-
-/** Input of `decideRowActionsFit`: what gets measured of the hole the table lives in. */
-export interface RowActionsFitInput {
-  /** Visible width of the scrolling container (`clientWidth`). */
-  containerWidth: number;
-  /** Width the grid needs right now (`scrollWidth`: its minimum when it overflows). */
-  contentWidth: number;
-  /** Are the row actions folded into the «…» menu right now? */
-  collapsed: boolean;
-  /** Container width the current decision was taken at (`-1` = none yet). */
-  decidedAtWidth: number;
-}
-
-export interface RowActionsFitDecision {
-  collapsed: boolean;
-  decidedAtWidth: number;
-}
+import { useContentAfter } from './useContentAfter';
+import { useViewMode } from './useViewMode';
 
 /** What the list gives up, in this order, when it does not fit its box. Only the steps that
  *  change something for the table at hand make its ladder. */
 export type DataTableFitStep = 'hideLow' | 'foldAll';
-
-/** Input of `decideFitLevel`. */
-export interface FitLevelInput {
-  /** Visible width of the scrolling container (`clientWidth`). */
-  containerWidth: number;
-  /** Width the grid needs right now (`scrollWidth`: its minimum when it overflows). */
-  contentWidth: number;
-  /** Steps of the ladder applied right now (0 = none). */
-  level: number;
-  /** How many steps the table's ladder has. */
-  steps: number;
-  /** Container width the current decision was taken at (`-1` = none yet). */
-  decidedAtWidth: number;
-  /** The screen shows `level` (nothing written since the last render): the measurement is of it. */
-  settled: boolean;
-}
-
-export interface FitLevelDecision {
-  level: number;
-  decidedAtWidth: number;
-}
-
-/**
- * How many steps of the ladder (`DataTableFitStep`) the list needs to fit its box. Decided by
- * MEASURING, one step per measurement of what is on screen: what a step frees is only known once it
- * is painted. PURE, and it never oscillates: while the box keeps its width the level only goes up,
- * and only from a settled measurement (never twice from the same stale one). A box that changes
- * width is judged from scratch, with nothing given up; in ONE pass when nothing is (`contentWidth`
- * is then that very measurement).
- */
-export function decideFitLevel(input: FitLevelInput): FitLevelDecision {
-  const { containerWidth, contentWidth, level, steps, decidedAtWidth, settled } = input;
-  // No width, no measurement: inside `ion-content` the hole is 0 wide until Ionic hydrates.
-  if (!(containerWidth > 0)) return { level, decidedAtWidth };
-  const overflows = contentWidth > containerWidth;
-  if (containerWidth !== decidedAtWidth) {
-    if (level > 0) return { level: 0, decidedAtWidth: containerWidth };
-    return { level: overflows && steps > 0 ? 1 : 0, decidedAtWidth: containerWidth };
-  }
-  if (settled && overflows && level < steps) return { level: level + 1, decidedAtWidth };
-  return { level, decidedAtWidth };
-}
-
-/**
- * Do the row action buttons fit, or do they fold into the «…» menu? The one-step ladder of
- * `decideFitLevel`: folding narrows the grid, which fires the observer again; `decidedAtWidth`
- * makes the state move once at most while the hole keeps its size. A hole that changes size is
- * judged from scratch with the buttons out, in ONE pass when they already are out.
- */
-export function decideRowActionsFit(input: RowActionsFitInput): RowActionsFitDecision {
-  const { containerWidth, contentWidth, collapsed, decidedAtWidth } = input;
-  const next = decideFitLevel({ containerWidth, contentWidth, level: collapsed ? 1 : 0, steps: 1, decidedAtWidth, settled: true });
-  return { collapsed: next.level > 0, decidedAtWidth: next.decidedAtWidth };
-}
-
-/** The px a column asks for to hold its content whole: nothing while its
- *  floor holds it; beyond, its measured width rounded up, plus a pixel of slack for subpixel text. PURE. */
-export function columnNeed(natural: number, floor: number): number {
-  return natural > floor ? Math.ceil(natural) + 1 : 0;
-}
-
-/** Are `next` the needs on screen (`before`)? A text its box cuts reads its
- *  width rounded (`scrollWidth`) and held whole with its fraction: a pixel or two apart is the same column, or
- *  every rung would start the ladder again. A column measured for the first time, or that starts or stops asking
- *  for more than its floor, always counts: not measured is not «its floor holds it» (`gridTemplate`). PURE. */
-export function sameNeeds(next: Readonly<Record<string, number>>, before: Readonly<Record<string, number>>): boolean {
-  return Object.keys(next).every((key) => {
-    const was = before[key];
-    return was !== undefined && next[key] > 0 === was > 0 && Math.abs(next[key] - was) <= 2;
-  });
-}
-
-/** The needs after a measurement (`measured`, the columns on screen). With
- *  the same rows a need only grows: a text that wraps when its column is cut reads narrower then, and taken as
- *  true the column would flip between whole and cut forever. Other rows are measured afresh. A column the rung
- *  hides keeps what it asked. PURE. */
-export function nextNeeds(
-  before: Readonly<Record<string, number>>,
-  measured: Readonly<Record<string, number>>,
-  sameRows: boolean,
-): Record<string, number> {
-  const next: Record<string, number> = { ...before };
-  for (const [key, need] of Object.entries(measured)) next[key] = sameRows ? Math.max(before[key] ?? 0, need) : need;
-  return next;
-}
-
-/** Input of `decideCardsForFit`. */
-export interface CardsForFitInput {
-  /** Cards are declared and nothing else owns the view (no choice by hand, no phone, no
-   *  `defaultView="cards"`). */
-  allowed: boolean;
-  /** Width of the table's own box, in px (`0` = not laid out yet). */
-  hostWidth: number;
-  /** The list measured FOLDED with the fold decision settled at this width; `null` otherwise. */
-  folded: { containerWidth: number; contentWidth: number } | null;
-  /** The list is showing cards because it did not fit. */
-  fitCards: boolean;
-  /** Host width from which the list fits again (meaningful while `fitCards`). */
-  fitWidth: number;
-}
-
-export interface CardsForFitDecision {
-  fitCards: boolean;
-  fitWidth: number;
-}
-
-/**
- * The list does not fit its hole even with the row actions folded: hand over to the cards.
- * PURE, and it never oscillates: in cards the list cannot be measured, so the width it needs is
- * remembered (host width + overflow) and the list only comes back once the host reaches it.
- */
-export function decideCardsForFit(input: CardsForFitInput): CardsForFitDecision {
-  const { allowed, hostWidth, folded, fitCards, fitWidth } = input;
-  const idle = { fitCards: false, fitWidth: 0 };
-  if (!allowed) return idle;
-  if (!(hostWidth > 0)) return { fitCards, fitWidth };
-  if (fitCards) return hostWidth >= fitWidth ? idle : { fitCards, fitWidth };
-  if (folded && folded.containerWidth > 0 && folded.contentWidth > folded.containerWidth) {
-    return { fitCards: true, fitWidth: hostWidth + folded.contentWidth - folded.containerWidth };
-  }
-  return idle;
-}
 
 export interface DataTableLayoutSource {
   /** The table's root element (`.data-table`). */
@@ -184,8 +49,6 @@ const ACTION_BOXES = '.data-table__row--data > .data-table__cell--actions > .dat
 const HEAD_ACTIONS = '.data-table__row--head > .data-table__cell--actions';
 
 export function useDataTableLayout(source: DataTableLayoutSource) {
-  const viewMode = ref<DataTableView>('table');
-  const isMobile = ref(false);
   const xOverflow = ref(false);
   const actionsTrackPx = ref(0);
   const actionsLabelFits = ref(true);
@@ -203,14 +66,8 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   const columnsClipped = computed(() => rung.value.clipped);
   const lowColumnsHidden = computed(() => fitApplied('hideLow'));
   const rowActionsCollapsed = computed(() => fitApplied('foldAll'));
-  const fitCards = ref(false);
-  const contentAfter = ref(false);
 
-  /** The person picked a view: from then on nothing automatic touches it. */
-  let viewChosenByUser = false;
   let fitDecidedAtWidth = -1;
-  let fitCardsWidth = 0;
-  let fitShape = source.shape();
   /** The rows `contentWidths` was last measured on. */
   let measuredRows: string | undefined;
   /** A state was written that the DOM does not show yet. */
@@ -238,59 +95,9 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     });
   }
 
-  // ── Phone breakpoint ────────────────────────────────────────────────────────────────────────
-  let media: MediaQueryList | undefined;
-  const onMediaChange = (e: MediaQueryListEvent | { matches: boolean }): void => {
-    const matches = 'matches' in e ? e.matches : (media?.matches ?? false);
-    if (isMobile.value === matches) return;
-    isMobile.value = matches;
-    // Crossing to a phone (cards available) → cards; back to a desk → the list.
-    if (matches && source.cardViewEnabled()) viewMode.value = 'cards';
-    else if (!matches && viewMode.value === 'cards') viewMode.value = 'table';
-  };
-  function watchMedia(): void {
-    media?.removeEventListener('change', onMediaChange);
-    media = undefined;
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    media = window.matchMedia(`(max-width: ${source.cardBreakpoint()}px)`);
-    isMobile.value = media.matches;
-    media.addEventListener('change', onMediaChange);
-  }
-  watchMedia();
-  watch(source.cardBreakpoint, watchMedia);
-
-  /** The starting view, re-judged while the person has not chosen one by hand. */
-  function applyInitialView(): void {
-    if (viewChosenByUser) return;
-    const cards = source.cardViewEnabled();
-    if (isMobile.value && cards) viewMode.value = 'cards';
-    else if (source.defaultView() === 'cards' && cards) viewMode.value = 'cards';
-    else if (fitCards.value && cards) viewMode.value = 'cards';
-    else if (source.defaultView() === 'table') viewMode.value = 'table';
-  }
-
-  // Other columns/actions need a new measurement, taken in the list; the same ones in a
-  // new array (a parent re-render) keep the cards the list already handed over to.
-  watch(source.deps, () => {
+  const { viewMode, isMobile, fitCards, setViewMode, measureCardsFit } = useViewMode(source, write, () => {
     fitDecidedAtWidth = -1;
-    const shape = source.shape();
-    if (shape === fitShape) return;
-    fitShape = shape;
-    if (fitCards.value) {
-      fitCards.value = false;
-      fitCardsWidth = 0;
-      if (!viewChosenByUser) viewMode.value = 'table';
-    }
   });
-  watch([isMobile, source.cardViewEnabled, source.defaultView, fitCards], applyInitialView, { immediate: true });
-
-  /** The person's own choice of view. `true` when it changed what is shown. */
-  function setViewMode(mode: DataTableView): boolean {
-    viewChosenByUser = true;
-    if (viewMode.value === mode) return false;
-    viewMode.value = mode;
-    return true;
-  }
 
   // ── Measurements ──────────────────────────────────────────────────────────────────────────
   const scrollEl = (): HTMLElement | null => source.root.value?.querySelector<HTMLElement>(SCROLL) ?? null;
@@ -301,42 +108,6 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     const scroll = scrollEl();
     write(xOverflow, !!scroll && scroll.scrollWidth > scroll.clientWidth);
   }
-
-  /** Width an element takes in a row: its box plus its inline margins. */
-  const outerWidth = (el: Element): number => {
-    const style = getComputedStyle(el);
-    return el.getBoundingClientRect().width + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight) || 0);
-  };
-
-  /** The buttons of an actions box side by side: their widths, the gaps between them and the box's
-   *  own inline padding. Not the box's `scrollWidth` alone: the box packs its buttons to the END
-   *  (`justify-content: flex-end`), so what does not fit overflows towards the inline-START, which
-   *  `scrollWidth` never counts — the track stayed at the box's width and labelled buttons covered
-   *  the column before them (SaaS Billing at 1440px). */
-  function naturalActionsWidth(box: HTMLElement): number {
-    return sideBySide(box, outerWidth);
-  }
-
-  /** The children of a box side by side: `widthOf` each, the gaps between them and the box's inline padding. */
-  function sideBySide(box: HTMLElement, widthOf: (child: Element) => number): number {
-    const style = getComputedStyle(box);
-    let sum = 0;
-    let laidOut = 0;
-    for (const child of Array.from(box.children)) {
-      const width = widthOf(child);
-      if (width <= 0) continue;
-      sum += width;
-      laidOut += 1;
-    }
-    if (laidOut === 0) return 0;
-    const gap = parseFloat(style.columnGap) || 0;
-    return sum + gap * (laidOut - 1) + (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
-  }
-
-  /** Width a cell's content takes on one line: a text its box cuts counts
-   *  whole (`scrollWidth`), whatever the column is given right now. */
-  const naturalCellWidth = (cell: HTMLElement): number =>
-    sideBySide(cell, (child) => outerWidth(child) + Math.max(0, child.scrollWidth - child.getBoundingClientRect().width));
 
   /** What each column sized by its content asks for: its header and every row shown, on one line. Written only
    *  when it changes (`true`), and then the ladder is judged again from the start once the new needs are on screen
@@ -427,59 +198,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     measureCardsFit(foldedOnScreen && next.level >= steps ? { containerWidth, contentWidth } : null);
   }
 
-  /** Hand the list over to cards when it does not fit even folded, and back. */
-  function measureCardsFit(folded: CardsForFitInput['folded']): void {
-    const allowed = source.cardViewEnabled() && !viewChosenByUser && !isMobile.value && source.defaultView() !== 'cards';
-    const next = decideCardsForFit({
-      allowed,
-      hostWidth: source.root.value?.clientWidth ?? 0,
-      folded,
-      fitCards: fitCards.value,
-      fitWidth: fitCardsWidth,
-    });
-    fitCardsWidth = next.fitWidth;
-    if (next.fitCards === fitCards.value) return;
-    write(fitCards, next.fitCards);
-    if (next.fitCards) viewMode.value = 'cards';
-    else if (allowed) viewMode.value = 'table';
-  }
-
-  // ── fill: content in flow after the table ───────────────────────────────────────────────────
-  let siblingsObserver: MutationObserver | undefined;
-
-  /** Marks `contentAfter` while an element in flow follows the table in its parent. */
-  function syncContentAfter(): void {
-    let after = false;
-    const root = source.root.value;
-    if (source.fill() && root) {
-      for (let el = root.nextElementSibling; el; el = el.nextElementSibling) {
-        const style = getComputedStyle(el);
-        if (style.display !== 'none' && style.position !== 'absolute' && style.position !== 'fixed') {
-          after = true;
-          break;
-        }
-      }
-    }
-    write(contentAfter, after);
-  }
-
-  /** Watches the parent: children added/removed and a sibling shown or hidden. */
-  function observeSiblings(): void {
-    siblingsObserver?.disconnect();
-    siblingsObserver = undefined;
-    const root = source.root.value;
-    const parent = root?.parentNode;
-    if (source.fill() && root && parent && typeof MutationObserver !== 'undefined') {
-      siblingsObserver = new MutationObserver((records) => {
-        if (records.some((r) => r.target === parent || (r.target !== root && r.target.parentNode === parent))) {
-          syncContentAfter();
-        }
-      });
-      siblingsObserver.observe(parent, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'style', 'class'] });
-    }
-    syncContentAfter();
-  }
-  watch(source.fill, observeSiblings, { flush: 'post' });
+  const { contentAfter, syncContentAfter, observeSiblings } = useContentAfter(source, write);
 
   // ── Observers and the measurement pass ──────────────────────────────────────────────────────
   let hostObserver: ResizeObserver | undefined;
@@ -532,10 +251,8 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   onUpdated(afterRender);
   onBeforeUnmount(() => {
     window.removeEventListener('resize', onWindowResize);
-    media?.removeEventListener('change', onMediaChange);
     hostObserver?.disconnect();
     scrollObserver?.disconnect();
-    siblingsObserver?.disconnect();
   });
 
   return {
