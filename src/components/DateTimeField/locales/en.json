@@ -2,6 +2,7 @@
   "dateTimeField": {
     "done": "Done",
     "cancel": "Cancel",
-    "clear": "Clear"
+    "clear": "Clear",
+    "time": "Time"
   }
 }

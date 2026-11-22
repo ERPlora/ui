@@ -25,6 +25,10 @@ const props = defineProps<{
   helperText?: string;
   /** The field's name in the form, and in a refusal of the server. */
   name?: string;
+  /** A control of a row of filters, which styles it: no outline nor painted label (the label is its accessible name). */
+  compact?: boolean;
+  /** What it reads while empty. */
+  placeholder?: string;
 }>();
 /** The picked day, or '' once cleared. */
 const emit = defineEmits<{ 'update:modelValue': [day: string] }>();
@@ -48,6 +52,8 @@ const text = computed(() => formatDay(props.modelValue ?? '', locale.value));
     :error-text="errorText"
     :helper-text="helperText"
     :name="name"
+    :compact="compact"
+    :placeholder="placeholder"
     @pick="emit('update:modelValue', isoDay($event))"
   />
 </template>

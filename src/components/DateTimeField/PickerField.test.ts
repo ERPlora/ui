@@ -50,6 +50,22 @@ describe('PickerField: closed', () => {
   });
 });
 
+describe('PickerField: compact, in a row of controls', () => {
+  it('paints no outline nor label (its label is its accessible name) and reads its placeholder while empty', async () => {
+    const s = await setup({ compact: true, placeholder: 'From', text: '' });
+    const control = s.control();
+    expect([control.label, control.fill, control.placeholder]).toEqual([undefined, undefined, 'From']);
+    expect(control.querySelector('input')?.getAttribute('aria-label')).toBe('Day');
+    await s.tap();
+    expect(s.isOpen()).toBe(true);
+  });
+
+  it('a field of a form keeps its outline and label, with no placeholder', async () => {
+    const control = (await setup()).control();
+    expect([control.label, control.fill, control.placeholder]).toEqual(['Day', 'outline', undefined]);
+  });
+});
+
 describe('PickerField: opening the picker', () => {
   it('a tap opens ion-datetime in a popover anchored to the field', async () => {
     const s = await setup();

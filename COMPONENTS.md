@@ -18,7 +18,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - elegir uno entre muchos, o buscarlo en el servidor → `Combo`
 - marcar los alérgenos que lleva un plato o producto / decirlos debajo de su nombre → `AllergenSelect` / `AllergenRow`
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
-- elegir un día / una hora → `DateField` / `TimeField`
+- elegir un día / una hora / un día y una hora juntos → `DateField` / `TimeField` / `DateTimeField`
 - enseñar un importe, una fecha o una cantidad → `formatMoney`, `formatDateTime`, `formatQuantity`
 - decir que no hay datos → `EmptyState`
 - confirmar algo que la persona acaba de hacer → `toastSuccess`, `toastError`…
@@ -135,12 +135,13 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **API:** `v-model` (el texto tal cual: al guardar se lee con `parseMoney` y un importe guardado se escribe con `moneyFieldText`), `label`, `testid`, `money` (`{ currency, decimals }`), `signed`, `errorText`, `helperText`, `showError`, `disabled`.
 - **Ionic:** `ion-input`, `ion-button`.
 
-### `DateField`, `TimeField`
-`import { DateField, TimeField } from '@erplora/ui/components'`
+### `DateField`, `TimeField`, `DateTimeField`
+`import { DateField, DateTimeField, TimeField } from '@erplora/ui/components'`
 - **Para qué sirve:** el día o la hora de un formulario. Cerrado es un campo con contorno como los demás, de solo lectura (no abre el teclado), que enseña el valor en el idioma de la app («23/11/2026» o «11/23/2026»; «14:30» o «02:30 PM»). Al tocarlo, o con Intro, Espacio o la flecha abajo, abre el calendario o la rueda de horas de Ionic (`ion-datetime`) en un `ion-popover` anclado al campo, con los colores de la paleta activa, el idioma de la app, la semana desde el día en que la empieza ese idioma y las 24 horas o AM/PM según el idioma; abajo, Aceptar y Cancelar, y Borrar si el campo no es obligatorio. Nunca el selector nativo del dispositivo, que pinta con sus colores y en su idioma.
-- **Úsalo cuando** un formulario o una barra pide un día o una hora.
+  `DateTimeField` es la pareja de los dos, lado a lado (uno debajo del otro si no caben), para un instante: el día bajo la etiqueta del campo y la hora bajo «Hora».
+- **Úsalo cuando** un formulario o una barra pide un día, una hora o un instante (día y hora).
 - **No lo uses cuando** se filtra una lista por fechas → los filtros `date` y `daterange` de `DataTable`; solo se enseña la fecha → `formatDateTime`.
-- **API:** `v-model` (`DateField`: `AAAA-MM-DD`; `TimeField`: `HH:MM`; `''` o `null` es sin valor, y Borrar deja `''`), `label`, `testid` (el del `ion-input`), `min` y `max` (en el mismo formato), `minuteStep` (solo `TimeField`: los minutos cada tantos desde la hora en punto), `required` (sin Borrar), `disabled`, `errorText`, `helperText`, `name` (su nombre en el formulario y en un rechazo del servidor). Al elegir, el formulario que lo rodea oye un `input` nativo, como de un campo escrito: así `FormModal` quita la marca de un rechazo.
+- **API:** `v-model` (`DateField`: `AAAA-MM-DD`; `TimeField`: `HH:MM`; `''` o `null` es sin valor, y Borrar deja `''`), `label`, `testid` (el del `ion-input`), `min` y `max` (en el mismo formato), `minuteStep` (solo `TimeField`: los minutos cada tantos desde la hora en punto), `required` (sin Borrar), `disabled`, `errorText`, `helperText`, `name` (su nombre en el formulario y en un rechazo del servidor). Al elegir, el formulario que lo rodea oye un `input` nativo, como de un campo escrito: así `FormModal` quita la marca de un rechazo. Solo `DateField`: `compact` (control de una fila de filtros, que le da su estilo: sin contorno ni etiqueta pintada, que queda como su nombre accesible) y `placeholder` (lo que se lee mientras está vacío). `DateTimeField`: `v-model` `AAAA-MM-DDTHH:MM` (los segundos se ignoran; `''` mientras falte el día o la hora, y lo ya elegido sigue a la vista), `label` (la del día y el nombre del grupo), `testid` (el del grupo; sus campos llevan `<testid>-date` y `<testid>-time`), `minuteStep`, `required`, `disabled`, `errorText` y `helperText` (bajo el día) y `name` (en los dos campos).
 - **Ionic:** `ion-input`, `ion-popover`, `ion-datetime`, con `HubIcon`.
 
 ### `ColorInput`

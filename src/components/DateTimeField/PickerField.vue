@@ -1,8 +1,8 @@
 <script setup lang="ts">
-// The field DateField and TimeField share: read-only and outlined like the other fields of a form, it shows the
-// value as the person reads it and opens Ionic's own picker, ion-datetime, in a popover anchored to it, with Done,
-// Cancel and, unless the field is required, Clear. Never the device's native picker, which paints in its own
-// colours and language.
+// The field DateField and TimeField share: read-only and outlined like the other fields of a form (or bare, for a row
+// of filters that styles it), it shows the value as the person reads it and opens Ionic's own picker, ion-datetime,
+// in a popover anchored to it, with Done, Cancel and, unless the field is required, Clear. Never the device's native
+// picker, which paints in its own colours and language.
 import { IonDatetime, IonInput, IonPopover } from '@ionic/vue';
 import { computed, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -34,6 +34,10 @@ const props = defineProps<{
   helperText?: string;
   /** The field's name in the form, and in a refusal of the server. */
   name?: string;
+  /** A control of a row of filters, which styles it: no outline nor painted label (the label is its accessible name). */
+  compact?: boolean;
+  /** What it reads while empty. */
+  placeholder?: string;
 }>();
 
 const emit = defineEmits<{ pick: [value: string | null] }>();
@@ -78,10 +82,12 @@ function onChange(event: CustomEvent<{ value?: string | string[] | null }>): voi
       :data-testid="testid"
       :model-value="text"
       :readonly="true"
-      :label="label"
+      :label="compact ? undefined : label"
+      :aria-label="compact ? label : undefined"
       label-placement="floating"
-      fill="outline"
+      :fill="compact ? undefined : 'outline'"
       mode="md"
+      :placeholder="placeholder"
       :name="name"
       :required="required"
       :disabled="disabled"
