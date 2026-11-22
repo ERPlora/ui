@@ -36,6 +36,11 @@ describe('DataTableSelectionBar', () => {
     expect(bar.emitted('clear')).toHaveLength(1);
   });
 
+  it('draws the «Clear» icon at 14 px', () => {
+    const glyph = clearButton(mountBar().element.parentElement!).querySelector('ion-icon')!;
+    expect(glyph.style.fontSize).toBe('14px');
+  });
+
   it('says the page’s own texts before the catalogue’s', () => {
     const bar = mountBar({ count: 2, labels: { selected: '{n} bills ticked', clear: 'Untick' } });
     expect([count(bar.element.parentElement!), text(clearButton(bar.element.parentElement!))]).toEqual(['2 bills ticked', 'Untick']);
