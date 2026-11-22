@@ -20,7 +20,7 @@
 // lookup adds `-chosen`, `-clear`, `-search`, `-option`, `-empty`, `-error`, `-field-error`),
 // `-filters-clear`, `-filters-toggle`, `-filters-count`, `-filters-panel`, `-filters-apply`,
 // `-filters-close`…
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 import DataTableCard from './DataTableCard.vue';
 import DataTableFilterPanel from './DataTableFilterPanel.vue';
@@ -34,6 +34,7 @@ import DataTableState from './DataTableState.vue';
 import DataTableToolbar from './DataTableToolbar.vue';
 import { useDataTableLabels } from './labels';
 import { filterRows, gridTemplate, rowKeyOf, searchRows } from './model';
+import { DATA_TABLE_DEFAULTS, type DataTableEmits, type DataTableProps, type DataTableSlots } from './props';
 import { cardRowActions, listRowActions } from './rowActions';
 import { useCardParts } from './useCardParts';
 import { useColumnFilters } from './useColumnFilters';
@@ -44,208 +45,18 @@ import { useMediaQuery } from './useMediaQuery';
 import { usePagination } from './usePagination';
 import { useRowMenu } from './useRowMenu';
 import { useRowSelection } from './useRowSelection';
-import type {
-  DataTableAction,
-  DataTableActionCell,
-  DataTableActionEvent,
-  DataTableToggleEvent,
-  DataTableColumn,
-  DataTableEntityLabel,
-  DataTableFilterField,
-  DataTableFilters,
-  DataTableLabels,
-  DataTablePrimaryAction,
-  DataTableRowKey,
-  DataTableSort,
-  DataTableSortDir,
-  DataTableView,
-} from './types';
+import { useSearch } from './useSearch';
+import { useTableStates } from './useTableStates';
+import { useVisibleColumns } from './useVisibleColumns';
+import type { DataTableAction, DataTableActionCell, DataTableRowKey, DataTableView } from './types';
 import { type DataTableFitStep, useDataTableLayout } from './useDataTableLayout';
 
-const props = withDefaults(
-  defineProps<{
-    columns: DataTableColumn<T>[];
-    /** The records. Server mode: only the current page. */
-    rows: T[];
-    /** Stable key of a row: a field or a function (`id` by default). */
-    rowKey?: DataTableRowKey<T>;
-    pageSize?: number;
-    /** Options of the rows-per-page selector; empty = no selector (and no footer on a single page). */
-    pageSizeOptions?: number[];
-    /** The rows-per-page selector (on by default). Off: no selector, and the footer still counts. */
-    pageSizeChooser?: boolean;
-    /** No rows at all. Default: the «No results» label. */
-    emptyMessage?: string;
-    /** Client mode: rows exist but the search hides them all. Default: the «noMatches» label. */
-    noMatchesMessage?: string;
-    /** Why the rows could not be loaded: an error state with «Retry» (emits `retry`) instead of rows.
-     *  Painted under the `loadError` title unless it only repeats it. */
-    error?: string;
-    /** The rows are being loaded: an indicator instead of «empty»; rows on screen stay (busy). */
-    loading?: boolean;
-    /** Server mode: show the search box (client mode shows it with `searchKeys`). */
-    searchable?: boolean;
-    /** Client mode: fields the search box filters on. */
-    searchKeys?: string[];
-    /** Hint of the search box. Default: the «Search…» label. */
-    searchPlaceholder?: string;
-    /** `v-model:search`. `undefined` = not controlled: the table keeps what is typed. */
-    search?: string;
-    /** `v-model:filters` (the column filters by name). `undefined` = not controlled. */
-    filters?: DataTableFilters;
-    /** The column filters live behind the toolbar's funnel (with the count in use), in a panel inside
-     *  the table, instead of a row under the toolbar. Same `filters`, `filtersChange` and hooks. The
-     *  cards fold them so without it; this folds them in the list view too. */
-    filterable?: boolean;
-    /** Filters with no column of their own (a field the list does not paint): after the columns' own,
-     *  in the panel and the filter row; never in the column chooser (`DataTableFilterField`). */
-    filterFields?: DataTableFilterField[];
-    /** What the server refused (a 422's `fieldErrors`, or the page's own reading of an amount), by
-     *  filter name: painted under its control until that value changes; the funnel turns red. */
-    filterErrors?: Record<string, string>;
-    /** Sort, page and search are the parent's: they are emitted, never applied to `rows`. */
-    serverSide?: boolean;
-    /** Server mode: records of the whole query. */
-    total?: number;
-    /** Server mode: current page, 0-based. */
-    page?: number;
-    /** Server mode, windowed (cards, a phone): the most rows the parent can keep in its window (the server's
-     *  longest page). A query with more pages there too (previous / next) instead of growing at the end of
-     *  the scroll; without it, the window always grows. */
-    maxWindow?: number;
-    /** Server mode: active sort column. */
-    sort?: string;
-    /** Server mode: direction of the active sort. */
-    sortDir?: DataTableSortDir;
-    /** Overrides of the chrome texts for this table (the rest come from i18n). */
-    labels?: Partial<DataTableLabels>;
-    /** Row action buttons (emit `action`). Every row action goes here, not in the `row-actions`
-     *  slot: these fold into «⋮» when the box is narrow. Mark the row's main one `pinned`
-     *  (it never folds) and a delicate one `menuOnly` (never a button). */
-    actions?: DataTableAction<T>[];
-    /** Buttons a list row keeps, two at most (and by default); the rest go into «⋮», a `pinned` one
-     *  taking a place first. A card keeps one, its main action. */
-    maxInlineActions?: number;
-    /** A labelled create button in the toolbar (emits `add`). */
-    addable?: boolean;
-    /** The highlighted button of the toolbar (emits `primaryAction`). */
-    primaryAction?: DataTablePrimaryAction;
-    /** The visible-columns chooser (on by default). */
-    columnPicker?: boolean;
-    /** A list with no record at all (loaded, nothing searched) paints only its empty state: no
-     *  toolbar, no footer. A load, a failure or a search that finds nothing keep the toolbar. */
-    hideToolbarWhenEmpty?: boolean;
-    /** Fill the container's height: rows scroll inside, toolbar and footer stay. */
-    fill?: boolean;
-    /** Heading of the toolbar, with the record count. */
-    title?: string;
-    /** List/cards switch: `true` or the views offered. Cards are only shown when declared here. */
-    views?: boolean | DataTableView[];
-    defaultView?: DataTableView;
-    /** The whole row (and card) opens the record: emits `rowClick`, also on Enter/Space. */
-    rowClickable?: boolean;
-    /** Row selection with checkboxes and a selection bar. */
-    selectable?: boolean;
-    /** `v-model:selected` (row keys). `undefined` = the table keeps its own selection. */
-    selected?: string[];
-    cardTitle?: (row: T) => string | number | null | undefined;
-    /** Key of the column the card title stands for: never repeated in the card body, even when the
-     *  title's text is not that column's (a name over a code). Without `cardTitle`, the title is
-     *  that column's painted text. Without it, the body leaves out the column whose text IS the
-     *  title. */
-    cardTitleColumn?: string;
-    cardIcon?: (row: T) => string | undefined;
-    /** Phone breakpoint in px of the WINDOW (640 by default): at or below it the table behaves as on a
-     *  phone (cards when `views` offers them, no pager, no column chooser). Per table: raise it for
-     *  a wide list (Businesses 900, Members or Invoices 1100…). It is a floor: above it the cards
-     *  still come when the list does not fit its own box. */
-    cardBreakpoint?: number;
-    /** What the footer counts: `{ one, many }` or a function of the count returning the noun
-     *  («4 businesses», «1 invoice»). Default: the «record(s)» label. */
-    entityLabel?: DataTableEntityLabel;
-    /** Prefix of the `data-testid` hooks; none without it. */
-    testid?: string;
-  }>(),
-  {
-    rowKey: 'id' as never,
-    pageSize: 10,
-    pageSizeOptions: () => [10, 25, 50, 100],
-    pageSizeChooser: true,
-    emptyMessage: undefined,
-    noMatchesMessage: undefined,
-    error: undefined,
-    searchKeys: () => [],
-    searchPlaceholder: undefined,
-    search: undefined,
-    filters: undefined,
-    filterErrors: undefined,
-    filterFields: undefined,
-    total: 0,
-    page: 0,
-    maxWindow: undefined,
-    sort: undefined,
-    sortDir: 'asc',
-    labels: undefined,
-    actions: () => [],
-    maxInlineActions: 2,
-    primaryAction: undefined,
-    columnPicker: true,
-    title: '',
-    views: false,
-    defaultView: undefined,
-    selected: undefined,
-    cardTitle: undefined,
-    cardTitleColumn: undefined,
-    cardIcon: undefined,
-    cardBreakpoint: 640,
-    entityLabel: undefined,
-    testid: undefined,
-  },
-);
-
-const emit = defineEmits<{
-  rowClick: [row: T];
-  action: [event: DataTableActionEvent<T>];
-  sortChange: [sort: DataTableSort];
-  pageChange: [page: number];
-  /** Server mode, windowed (cards, a phone): grow the window of `rows` by one page, from the first row. */
-  loadMore: [];
-  /** A column's switch was flipped (`DataTableColumn.toggle`). */
-  toggle: [payload: DataTableToggleEvent<T>];
-  pageSizeChange: [size: number];
-  'update:search': [value: string];
-  'update:filters': [filters: DataTableFilters];
-  /** Server mode: the column filters changed; query again with these (the active ones, by name). */
-  filtersChange: [filters: DataTableFilters];
-  'update:selected': [keys: string[]];
-  columnsChange: [visible: string[]];
-  viewChange: [view: DataTableView];
-  add: [];
-  primaryAction: [];
-  retry: [];
-}>();
-
-type RowSlot = (props: { row: T }) => unknown;
-/** A column's `cell` slot (any name a column declares). */
-type CellSlot = (props: { row: T; value: unknown; column: DataTableColumn<T> }) => unknown;
-const slots = defineSlots<{
-  /** The page's filters (a status select…): right after the search box. */
-  filters?(): unknown;
-  toolbar?(): unknown;
-  'row-actions'?: RowSlot;
-  card?: RowSlot;
-  /** Replaces the content of the empty state (the search is the page's, through v-model:search). */
-  empty?(): unknown;
-  [cell: string]: CellSlot | undefined;
-}>();
+const props = withDefaults(defineProps<DataTableProps<T>>(), DATA_TABLE_DEFAULTS);
+const emit = defineEmits<DataTableEmits<T>>();
+const slots = defineSlots<DataTableSlots<T>>();
 
 const root = ref<HTMLElement | null>(null);
 const { text: label } = useDataTableLabels(() => props.labels);
-
-// ── Own state (client mode) ───────────────────────────────────────────────────────────────────
-const q = ref('');
-/** The person's pick in the column chooser, per key; untouched columns follow their `hidden`. */
-const columnChoice = ref(new Map<string, boolean>());
 
 const keyOf = (row: T): string => rowKeyOf(row, props.rowKey ?? ('id' as DataTableRowKey<T>));
 const tid = (suffix: string): string | undefined => {
@@ -253,13 +64,13 @@ const tid = (suffix: string): string | undefined => {
   return prefix ? `${prefix}-${suffix}` : undefined;
 };
 
-/** Columns the person sees: their `hidden`, unless picked otherwise in the column chooser. */
-const visibleColumns = computed(() => props.columns.filter((c) => columnChoice.value.get(c.key) ?? c.hidden !== true));
+// ── Columns ───────────────────────────────────────────────────────────────────────────────────
+const { columnChoice, visibleColumns, yieldingColumns, listColumns, shownColumns, onColumnsPicked } = useVisibleColumns<T>(props, {
+  lowHidden: () => lowColumnsHidden.value,
+  cardsOn: () => cardsOn.value,
+  picked: (keys) => emit('columnsChange', keys),
+});
 const rowSlots = (): string[] => [...(['card', 'row-actions'] as const).filter((n) => slots[n]), ...visibleColumns.value.flatMap((c) => (c.cell ? [c.cell] : []))];
-/** Shown columns the box may take away: `low`, and not picked by hand. */
-const yieldingColumns = computed(() =>
-  visibleColumns.value.filter((c) => c.priority === 'low' && columnChoice.value.get(c.key) !== true),
-);
 const hasSearch = computed(() => props.searchable || props.searchKeys.length > 0);
 const viewToggle = computed(() => (Array.isArray(props.views) ? props.views.length > 1 : props.views === true));
 const cardViewEnabled = computed(() => (Array.isArray(props.views) ? props.views.includes('cards') : props.views === true));
@@ -306,10 +117,6 @@ const {
   contentWidths,
   contentAfter,
 } = layout;
-/** The list's columns: the visible ones, minus the yielding ones while the box hides them. */
-const listColumns = computed(() =>
-  lowColumnsHidden.value ? visibleColumns.value.filter((c) => !yieldingColumns.value.includes(c)) : visibleColumns.value,
-);
 /** The table paints cards: picked, the default, the box's fit or a phone (`cardBreakpoint`). */
 const cardsOn = computed(() => viewMode.value === 'cards' && cardViewEnabled.value);
 /** Rows grow from the first one at the end of the scroll (the cards, and a phone's list) instead of paging. */
@@ -332,6 +139,11 @@ const { clientPage, mobileShown, pageSizeNow, pager, phonePaged, goTo, setPageSi
   askPageSize: (size) => emit('pageSizeChange', size),
   askMore: () => emit('loadMore'),
 });
+/** The rows start again from the first one: the own page and the grown window. */
+const restartRows = (): void => {
+  clientPage.value = 0;
+  mobileShown.value = 0;
+};
 
 // ── Column filters ────────────────────────────────────────────────────────────────────────────
 const { filterValues, filterColumns, filterCountNow, filtering, setFilters, setFilter, clearFilters } = useColumnFilters<T>({
@@ -341,10 +153,7 @@ const { filterValues, filterColumns, filterCountNow, filtering, setFilters, setF
   serverSide: () => props.serverSide,
   update: (filters) => emit('update:filters', filters),
   query: (filters) => emit('filtersChange', filters),
-  refiltered: () => {
-    clientPage.value = 0;
-    mobileShown.value = 0;
-  },
+  refiltered: restartRows,
 });
 // ── Filters panel (`filterable`) ─────────────────────────────────────────────────────────────
 const { filtersFolded, filterPanelOpen, showFunnel, panelIsSheet, closeFilterPanel, toggleFilterPanel, applyFilterPanel } =
@@ -373,20 +182,18 @@ const sorting = useColumnSort<T>({
   },
 });
 
+// ── Search ────────────────────────────────────────────────────────────────────────────────────
+const { q, onSearch, resetSearch } = useSearch(props, {
+  restart: restartRows,
+  update: (value) => emit('update:search', value),
+  clearFilters,
+});
+
 // ── Rows on screen ────────────────────────────────────────────────────────────────────────────
 const clientRows = computed(() =>
   sorting.sortedRows(filterRows(searchRows(props.rows, props.searchKeys, q.value), filterColumns.value, filterValues.value)),
 );
 
-const hasError = computed(() => !!props.error?.trim());
-/** A load in flight with nothing current to show (no rows yet, or only the failure). */
-const awaitingRows = computed(() => props.loading && (props.rows.length === 0 || hasError.value));
-/** The last load failed: rows, «empty» and counts would all be claims about missing data. */
-const loadFailed = computed(() => hasError.value && !awaitingRows.value);
-/** A text as it reads aloud: case, spacing and the closing full stop aside. */
-const asRead = (text: string) => text.trim().replace(/\s+/g, ' ').replace(/[.!…]+$/u, '').toLocaleLowerCase();
-/** The reason under the title, unless it only repeats the title (pages often hand the same text). */
-const errorReason = computed(() => (asRead(props.error ?? '') === asRead(label('loadError')) ? '' : props.error));
 /** The toolbar the props ask for (an empty list may still leave it out: `bareEmpty`). */
 const hasToolbar = computed(
   () =>
@@ -400,32 +207,13 @@ const hasToolbar = computed(
     !!slots.filters ||
     !!slots.toolbar,
 );
-/** `hideToolbarWhenEmpty` and no record at all: loaded, not failed, nothing searched. */
-const bareEmpty = computed(
-  () =>
-    props.hideToolbarWhenEmpty &&
-    !awaitingRows.value &&
-    !loadFailed.value &&
-    props.rows.length === 0 &&
-    (!props.serverSide || props.total === 0) &&
-    !q.value.trim() &&
-    !filtering.value,
-);
-const showTopbar = computed(() => hasToolbar.value && !bareEmpty.value);
-/** The rows-per-page selector exists (toolbar on a desk, else the footer). */
-const pageSizeSelectable = computed(() => props.pageSizeChooser && props.pageSizeOptions.length > 0);
-const showPager = computed(
-  () =>
-    !loadFailed.value &&
-    !bareEmpty.value &&
-    (awaitingRows.value
-      ? !hasToolbar.value && pageSizeSelectable.value
-      : pager.value.pages > 1 || props.pageSizeOptions.length > 0),
-);
-/** What the column chooser marks: what the current view paints (the cards keep the low columns). */
-const shownColumns = computed(() => (cardsOn.value ? visibleColumns.value : listColumns.value));
-/** Rows that exist but are all hidden by the search are not an empty list. */
-const noMatches = computed(() => props.rows.length > 0);
+const { awaitingRows, loadFailed, errorReason, showTopbar, pageSizeSelectable, showPager, noMatches } = useTableStates(props, {
+  query: () => q.value,
+  filtering: () => filtering.value,
+  hasToolbar: () => hasToolbar.value,
+  pages: () => pager.value.pages,
+  label,
+});
 const template = computed(() =>
   gridTemplate({
     selectable: props.selectable,
@@ -437,21 +225,6 @@ const template = computed(() =>
   }),
 );
 
-// ── Watchers ──────────────────────────────────────────────────────────────────────────────────
-// `search` from the parent is the query the person is looking at; `undefined` = not controlled.
-watch(
-  () => props.search,
-  (value) => {
-    if (value === undefined) return;
-    q.value = value;
-    if (!props.serverSide) {
-      clientPage.value = 0;
-      mobileShown.value = 0;
-    }
-  },
-  { immediate: true },
-);
-
 // ── Selection ─────────────────────────────────────────────────────────────────────────────────
 const { selection, allSelected, setSelection, toggleRow, toggleAll } = useRowSelection<T>({
   selected: () => props.selected,
@@ -461,36 +234,8 @@ const { selection, allSelected, setSelection, toggleRow, toggleAll } = useRowSel
 });
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────────────────────
-function onSearch(value: string): void {
-  q.value = value;
-  if (!props.serverSide) {
-    clientPage.value = 0;
-    mobileShown.value = 0;
-  }
-  emit('update:search', value);
-}
-/** Records only what the person changed against what is painted: a column the box hid and nobody
- *  touched stays the box's to bring back. */
-function onColumnsPicked(keys: string[]): void {
-  const picked = new Set(keys);
-  const shown = new Set(shownColumns.value.map((c) => c.key));
-  const choice = new Map(columnChoice.value);
-  for (const column of props.columns) {
-    if (picked.has(column.key) !== shown.has(column.key)) choice.set(column.key, picked.has(column.key));
-  }
-  columnChoice.value = choice;
-  emit('columnsChange', keys);
-}
 function onViewPicked(view: DataTableView): void {
   if (layout.setViewMode(view)) emit('viewChange', view);
-}
-/** «Show all»: drops the search and the column filters, so every row is back in one tap. */
-function resetSearch(): void {
-  q.value = '';
-  clientPage.value = 0;
-  mobileShown.value = 0;
-  emit('update:search', '');
-  clearFilters();
 }
 
 // ── Infinite scroll ───────────────────────────────────────────────────────────────────────────
