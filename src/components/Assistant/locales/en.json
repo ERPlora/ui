@@ -70,6 +70,7 @@
     "card": {
       "title": "Run this action?",
       "message": "{action} in {app}: {line}",
+      "bareMessage": "{action} in {app}.",
       "highMessage": "{action} in {app}. Check each datum before going on.",
       "run": "Run it",
       "cancel": "Cancel",

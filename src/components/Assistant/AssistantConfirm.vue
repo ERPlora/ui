@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // A normal write says its action (by the host's verb, `AssistantConfig.verbKey`), its app and its first data in one
-// line, and runs with one click; a dangerous one (`risk="high"`) lists every datum by its name and asks to type the
-// word in the person's language, or how many records, before it runs (the server checks what was typed again). When its
-// app declares a preview, it first says what will happen. Nothing runs on Cancel or Escape. It opens after mounting,
+// line (with no datum to show, its action and its app alone), and runs with one click; a dangerous one
+// (`risk="high"`) lists every datum by its name and asks to type the word in the person's language, or how many
+// records, before it runs (the server checks what was typed again). When its app declares a preview, it first says
+// what will happen. Nothing runs on Cancel or Escape. It opens after mounting,
 // because Ionic presents a modal only once it is in the page, and the last card stays painted while the dialog closes.
 import { IonButton } from '@ionic/vue';
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
@@ -37,9 +38,11 @@ const action = computed(() => (shown.value ? t(verbKeyOf(config, shown.value.ope
 const message = computed(() => {
   const card = shown.value;
   if (!card) return '';
-  return high.value
-    ? t('assistant.card.highMessage', { action: action.value, app: card.app_name })
-    : t('assistant.card.message', { action: action.value, app: card.app_name, line: cardLine(card, format.value) });
+  if (high.value) return t('assistant.card.highMessage', { action: action.value, app: card.app_name });
+  const line = cardLine(card, format.value);
+  return line
+    ? t('assistant.card.message', { action: action.value, app: card.app_name, line })
+    : t('assistant.card.bareMessage', { action: action.value, app: card.app_name });
 });
 const lines = computed(() => fieldLines(shown.value?.fields ?? [], format.value));
 /** What it will do: a dangerous card only (a normal one is a single line). */
