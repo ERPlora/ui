@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { base, change, control, ids, ROWS, typeIn } from './__tests__/filter-table';
+import { base, change, control, ids, pick, ROWS, typeIn } from './__tests__/filter-table';
 import { byTestId, click, mountTable, settle, text, viewport } from './__tests__/harness';
 
 beforeEach(() => {
@@ -38,7 +38,7 @@ describe('the other filter types', () => {
   const funnel = (t: ReturnType<typeof mountTable>) => byTestId(t, 'rules-filters-toggle')[0] as HTMLElement & { color?: string };
   const aria = (el: HTMLElement, name: string) =>
     el.getAttribute(name) ?? (el.shadowRoot ?? el).querySelector(`[${name}]`)?.getAttribute(name) ?? null;
-  type Field = HTMLElement & { type?: string; inputmode?: string; maxlength?: number; min?: number; max?: number; step?: string | number; errorText?: string; value?: unknown };
+  type Field = HTMLElement & { readonly?: boolean; type?: string; inputmode?: string; maxlength?: number; min?: number; max?: number; step?: string | number; errorText?: string; value?: unknown };
   const field = (t: ReturnType<typeof mountTable>, name: string) => control(t, name) as Field;
   const invalid = (el: HTMLElement) => el.classList.contains('ion-invalid') && el.classList.contains('ion-touched');
   async function openPanel(t: ReturnType<typeof mountTable>): Promise<void> {
@@ -50,9 +50,10 @@ describe('the other filter types', () => {
     await settle();
     await openPanel(t);
     expect(field(t, 'code').maxlength).toBe(20);
-    expect(field(t, 'issued_from').type).toBe('date');
-    expect(field(t, 'issued_to').type).toBe('date');
-    expect(aria(field(t, 'issued_from'), 'aria-label')).toBe('Issued: from');
+    expect([field(t, 'issued_from').readonly, field(t, 'issued_to').readonly], 'a day is picked in the calendar, never typed').toEqual([true, true]);
+    // Each end says «From» / «To» on screen, in a group named by its column.
+    expect([(field(t, 'issued_from') as Field & { label?: string }).label, (field(t, 'issued_to') as Field & { label?: string }).label]).toEqual(['From', 'To']);
+    expect(field(t, 'issued_from').closest('[role="group"]')?.getAttribute('aria-label')).toBe('Issued');
     expect([field(t, 'total_min').type, field(t, 'total_min').inputmode]).toEqual(['text', 'decimal']);
     expect([field(t, 'rate_from').type, field(t, 'rate_from').min, field(t, 'rate_from').max, String(field(t, 'rate_from').step)]).toEqual(['number', 0, 100, '0.5']);
     const yesNo = [...field(t, 'is_active').querySelectorAll('ion-select-option')];
@@ -69,7 +70,7 @@ describe('the other filter types', () => {
     const t = mountTable({ ...more, filterable: true }, { attachTo: document.body });
     await settle();
     await openPanel(t);
-    await change(field(t, 'issued_from'), '2026-10-05');
+    await pick(t, 'issued_from', '2026-10-05');
     await typeIn(field(t, 'total_max'), '99,0');
     await change(field(t, 'is_active'), 'false');
     const search = byTestId(t, 'rules-filter-user_id-search')[0] as HTMLInputElement;
@@ -89,12 +90,12 @@ describe('the other filter types', () => {
   it('the filter row paints them too, and applies them at once', async () => {
     const t = mountTable({ ...more, serverSide: true, total: 3, pageSizeOptions: [10] });
     await settle();
-    expect(field(t, 'issued_to').type).toBe('date');
+    expect(field(t, 'issued_to').readonly, 'a day is picked in the calendar, never typed').toBe(true);
     expect(field(t, 'total_min').inputmode).toBe('decimal');
     expect(field(t, 'code').maxlength).toBe(20);
     expect(control(t, 'user_id').classList.contains('data-table-lookup')).toBe(true);
     await change(field(t, 'is_active'), 'true');
-    await change(field(t, 'issued_to'), '2026-10-10');
+    await pick(t, 'issued_to', '2026-10-10');
     expect(t.emitted('filtersChange')).toEqual([[{ is_active: 'true' }], [{ is_active: 'true', issued_to: '2026-10-10' }]]);
   });
 

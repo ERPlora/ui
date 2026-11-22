@@ -60,6 +60,11 @@ describe('DateField', () => {
     expect(s.shared().props()).toMatchObject({ errorText: 'Closed that day.', helperText: 'Pick a day', disabled: true });
   });
 
+  it('compact, as a control of a row of filters: it hands its placeholder over', async () => {
+    const s = await setup({ compact: true, placeholder: 'From', modelValue: '' });
+    expect(s.shared().props()).toMatchObject({ compact: true, placeholder: 'From', label: 'Day' });
+  });
+
   it('a new day from the page is shown at once', async () => {
     const s = await setup();
     await s.wrapper.setProps({ modelValue: '2027-01-05' });

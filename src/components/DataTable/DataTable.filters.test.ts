@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { base, change, COLUMNS, control, ids, ROWS, typeIn } from './__tests__/filter-table';
+import { dateFieldProps } from '../DateTimeField/__tests__/pickers';
+import { base, change, COLUMNS, control, ids, pick, ROWS, typeIn } from './__tests__/filter-table';
 import { byTestId, click, mountTable, settle, text, type, viewport } from './__tests__/harness';
 
 beforeEach(() => {
@@ -98,9 +99,9 @@ describe('the filter row', () => {
     expect(to.closest('.data-table__filter-range')).toBe(group);
   });
 
-  it('a date range’s ends are date boxes and a numeric range’s stay short boxes, with the same hooks', async () => {
-    // As narrow as a number box, a date end lets its calendar icon cover the last character of
-    // «dd/mm/yyyy»: its group is marked for the date width.
+  it('a date range’s ends are the app’s day fields and a numeric range’s stay short boxes, with the same hooks', async () => {
+    // As narrow as a number box, a date end lets its calendar icon cover the last character of the day: its group is
+    // marked for the date width.
     const columns = [
       { key: 'issued', label: 'Issued', filter: { type: 'daterange' } },
       { key: 'rate', label: 'Rate', filter: { type: 'range' } },
@@ -110,18 +111,29 @@ describe('the filter row', () => {
     const dates = control(t, 'issued_from').closest('.data-table__filter-range');
     expect(dates?.classList.contains('data-table__filter-range--date')).toBe(true);
     expect(control(t, 'issued_to').closest('.data-table__filter-range')).toBe(dates);
-    for (const name of ['issued_from', 'issued_to']) expect((control(t, name) as HTMLElement & { type?: string }).type).toBe('date');
+    for (const name of ['issued_from', 'issued_to']) expect(dateFieldProps(t, `rules-filter-${name}`)).toMatchObject({ compact: true });
     const numbers = control(t, 'rate_from').closest('.data-table__filter-range');
     expect(numbers?.className).toBe('data-table__filter-range');
     expect(control(t, 'rate_to').closest('.data-table__filter-range')).toBe(numbers);
-    for (const name of ['issued_from', 'issued_to', 'rate_from', 'rate_to']) expect(control(t, name).classList.contains('data-table__filter')).toBe(true);
+    // A day field takes the row's box around its own field.
+    for (const name of ['rate_from', 'rate_to']) expect(control(t, name).classList.contains('data-table__filter')).toBe(true);
+    for (const name of ['issued_from', 'issued_to']) expect(control(t, name).closest('.data-table__filter')).not.toBeNull();
   });
 
-  it('a day is a date input', async () => {
-    const t = mountTable(base);
+  it('a day is picked in the app’s calendar (DateField), named and read as its column, never the device’s picker', async () => {
+    const t = mountTable({ ...base, filters: { day: '2026-10-14' } });
     await settle();
-    expect((control(t, 'day') as HTMLElement & { type?: string }).type).toBe('date');
+    expect(dateFieldProps(t, 'rules-filter-day')).toMatchObject({ compact: true, label: 'Day', placeholder: 'Day', modelValue: '2026-10-14' });
     expect(control(t, 'day').getAttribute('aria-label')).toBe('Day');
+    expect(control(t, 'day').value).toBe('10/14/2026');
+    expect((control(t, 'day') as HTMLElement & { type?: string }).type).not.toBe('date');
+  });
+
+  it('a date range’s ends are named by their column and read «From» / «To» while empty', async () => {
+    const t = mountTable({ ...base, columns: [{ key: 'issued', label: 'Issued', filter: { type: 'daterange' } }] });
+    await settle();
+    expect(dateFieldProps(t, 'rules-filter-issued_from')).toMatchObject({ compact: true, label: 'Issued: from', placeholder: 'From' });
+    expect(dateFieldProps(t, 'rules-filter-issued_to')).toMatchObject({ compact: true, label: 'Issued: to', placeholder: 'To' });
   });
 
   it('speaks Spanish: «Filtros», «Todos», «Desde»/«Hasta», «Limpiar filtros»', async () => {
@@ -161,7 +173,7 @@ describe('client mode filters the rows', () => {
     await settle();
     await typeIn(control(t, 'rate_from'), '5');
     expect(ids(t)).toEqual(['1', '2']);
-    await change(control(t, 'day'), '2026-10-14');
+    await pick(t, 'day', '2026-10-14');
     expect(ids(t)).toEqual(['1']);
     await type(t, 'marta');
     expect(ids(t)).toEqual([]);
@@ -298,8 +310,9 @@ describe('a range says its column on screen', () => {
   const ranges = { rows: [], columns: RANGES, testid: 'rules', pageSizeOptions: [] };
   const group = (t: ReturnType<typeof mountTable>, end: string) => control(t, end).closest('[role="group"]') as HTMLElement;
   const hint = (t: ReturnType<typeof mountTable>, end: string) => (control(t, end) as HTMLElement & { placeholder?: string }).placeholder;
-  /** The visible text of a range's group (its ends are boxes with no text of their own). */
-  const heading = (t: ReturnType<typeof mountTable>, end: string) => [...group(t, end).children].filter((child) => child.localName !== 'ion-input');
+  /** The visible text of a range's group (its ends are boxes with no text of their own, or day fields around one). */
+  const heading = (t: ReturnType<typeof mountTable>, end: string) =>
+    [...group(t, end).children].filter((child) => child.localName !== 'ion-input' && !child.querySelector('ion-input'));
 
   it('(a) in the row each pair is headed by its column, before its ends, which keep «From» / «To»', async () => {
     const t = mountTable(ranges);
@@ -327,10 +340,10 @@ describe('a range says its column on screen', () => {
     expect([hint(t, 'issued_from'), hint(t, 'issued_to')]).toEqual(['Desde', 'Hasta']);
   });
 
-  it('(b) a date range shows its column although its ends are date boxes (no placeholder painted)', async () => {
+  it('(b) a date range shows its column before its ends, which are the app’s day fields', async () => {
     const t = mountTable(ranges);
     await settle();
-    for (const end of ['issued_from', 'issued_to']) expect((control(t, end) as HTMLElement & { type?: string }).type).toBe('date');
+    for (const end of ['issued_from', 'issued_to']) expect(dateFieldProps(t, `rules-filter-${end}`)).toMatchObject({ compact: true });
     const [label] = heading(t, 'issued_from');
     expect(label?.localName).not.toBe('ion-input');
     expect(text(label)).toBe('Issued');
@@ -348,7 +361,9 @@ describe('a range says its column on screen', () => {
     for (const [column, from, to] of [['Total', 'total_from', 'total_to'], ['Issued', 'issued_from', 'issued_to']]) {
       expect(text(group(t, from))).toBe(column);
       expect(heading(t, from).filter((child) => text(child).includes(column))).toHaveLength(1);
-      expect([hint(t, from), hint(t, to)]).toEqual(['From', 'To']);
+      // A number's ends read it as their placeholder; a day field's, as its label.
+      const said = (end: string) => hint(t, end) ?? (control(t, end) as HTMLElement & { label?: string }).label;
+      expect([said(from), said(to)]).toEqual(['From', 'To']);
     }
   });
 

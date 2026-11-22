@@ -5,6 +5,7 @@
 import { IonButton, IonIcon, IonInput, IonSelect, IonSelectOption } from '@ionic/vue';
 import { computed, ref, useId, watch } from 'vue';
 
+import DateField from '../DateTimeField/DateField.vue';
 import DataTableLookup from './DataTableLookup.vue';
 import { activeFilters, declaredFilters } from './model';
 import type { DataTableColumn, DataTableFilters, DataTableLabels } from './types';
@@ -49,11 +50,14 @@ function clearFilterPanel(): void {
   filterDraft.value = {};
   emit('clear');
 }
-/** One control of the panel: `ionInput` (text, range) or `ionChange` (select, date) into the draft. */
+/** One control of the panel: `ionInput` (text, range) or `ionChange` (select) into the draft. */
 function onDraftFilter(name: string, ev: CustomEvent<{ value?: unknown }>): void {
-  const value = ev.detail.value;
+  draft(name, ev.detail.value === null || ev.detail.value === undefined ? '' : String(ev.detail.value));
+}
+/** A filter's new value into the draft, as text: what `onDraftFilter` read, or a day picked ('' once cleared). */
+function draft(name: string, value: string): void {
   answerError(name);
-  filterDraft.value = { ...filterDraft.value, [name]: value === null || value === undefined ? '' : String(value) };
+  filterDraft.value = { ...filterDraft.value, [name]: value };
 }
 /** A lookup of the panel: into the draft, with the label it was picked with. */
 function onDraftLookup(name: string, value: string, text: string): void {
@@ -142,7 +146,24 @@ watch(
             class="data-table__drawer-label"
             aria-hidden="true"
           >{{ column.label }}</span>
-          <div class="data-table__drawer-range">
+          <div
+            v-if="column.filter?.type === 'daterange'"
+            class="data-table__drawer-range"
+          >
+            <DateField
+              v-for="{ name, hint } in rangeEnds(column)"
+              :key="name"
+              :label="hint"
+              :model-value="filterDraft[name] ?? ''"
+              :error-text="errorOf(name)"
+              :testid="tid(`filter-${name}`)"
+              @update:model-value="draft(name, $event)"
+            />
+          </div>
+          <div
+            v-else
+            class="data-table__drawer-range"
+          >
             <ion-input
               v-for="{ name, hint, named } in rangeEnds(column)"
               :key="name"
@@ -155,23 +176,17 @@ watch(
               :value="filterDraft[name] ?? ''"
               :error-text="errorOf(name)"
               :data-testid="tid(`filter-${name}`)"
-              @ion-input="column.filter?.type === 'range' && onDraftFilter(name, $event)"
-              @ion-change="column.filter?.type === 'daterange' && onDraftFilter(name, $event)"
+              @ion-input="onDraftFilter(name, $event)"
             />
           </div>
         </div>
-        <ion-input
+        <DateField
           v-else-if="column.filter?.type === 'date'"
-          :class="invalidMark(filterName(column))"
-          type="date"
           :label="column.label"
-          label-placement="stacked"
-          fill="outline"
-          mode="md"
-          :value="filterDraft[filterName(column)] ?? ''"
+          :model-value="filterDraft[filterName(column)] ?? ''"
           :error-text="errorOf(filterName(column))"
-          :data-testid="tid(`filter-${filterName(column)}`)"
-          @ion-change="onDraftFilter(filterName(column), $event)"
+          :testid="tid(`filter-${filterName(column)}`)"
+          @update:model-value="draft(filterName(column), $event)"
         />
         <DataTableLookup
           v-else-if="column.filter?.type === 'lookup'"
