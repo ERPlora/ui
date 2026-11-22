@@ -262,6 +262,10 @@ describe('the rules that carry the look', () => {
     }
   });
 
+  it('a page’s own empty notice with a narrower box sits in the middle of the table, not at its start', () => {
+    expect(rule('.data-table__empty')).toContain('align-items: center');
+  });
+
   it('fill stretches the states; on a phone the list grows with the page', () => {
     expect(rule('.data-table--fill')).toMatch(/display: flex; flex-direction: column; height: 100%; min-height: 0/);
     expect(rule('.data-table--fill .data-table__empty, .data-table--fill .data-table__error, .data-table--fill .data-table__loading')).toContain('flex: 1 1 auto');
