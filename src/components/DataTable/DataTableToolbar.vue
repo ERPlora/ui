@@ -253,10 +253,6 @@ onUpdated(nameSearchBox);
 <style scoped src="./controls.css"></style>
 
 <style scoped>
-/* Shell shield: what every part of the table shares is in controls.css; this one only the toolbar needs.
-   Ionic's `::slotted(ion-icon[slot=start])` pull; the end margin is the `0.35rem` below. */
-:where(.data-table) ion-button > ion-icon[slot="start"] { margin-inline-start: -0.3em; }
-
 /* ONE flex row that wraps item by item; the spacer pushes the right cluster to the edge. */
 .data-table__bar-main { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .data-table__bar-main > ion-button { --padding-start: 0.5rem; --padding-end: 0.5rem; margin: 0; }

@@ -29,10 +29,11 @@ const { ICONS, icon, label } = usePartChrome(props);
       @click="emit('clear')"
     >
       <ion-icon
+        slot="start"
         :icon="icon(ICONS.clear)"
         style="font-size: 14px"
         aria-hidden="true"
-      />{{ ` ${label('clear')}` }}
+      />{{ label('clear') }}
     </ion-button>
   </div>
 </template>
