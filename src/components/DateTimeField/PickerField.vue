@@ -16,7 +16,7 @@ import { firstDayOfWeek } from './pickerValues';
 const props = defineProps<{
   label: string;
   /** The `data-testid` of the ion-input. */
-  testid: string;
+  testid?: string;
   /** The value as the person reads it. */
   text: string;
   /** The icon at the end of the field, `set:name`. */

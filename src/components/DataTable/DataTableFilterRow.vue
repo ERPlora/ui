@@ -3,6 +3,7 @@
 // each change handed over at once, and «Clear filters» while some filter filters. The table applies them.
 import { IonChip, IonIcon, IonInput, IonLabel, IonSelect, IonSelectOption } from '@ionic/vue';
 
+import DateField from '../DateTimeField/DateField.vue';
 import DataTableLookup from './DataTableLookup.vue';
 import type { DataTableColumn, DataTableFilters, DataTableLabels } from './types';
 import type { FilterControls } from './useFilterControls';
@@ -29,11 +30,14 @@ const emit = defineEmits<{ filter: [name: string, value: string]; clear: [] }>()
 const { ICONS, icon, label, tid } = usePartChrome(props);
 const { filterName, errorOf, invalidMark, answerError, choicesOf, lookupLabel, rememberPick, endBox, rangeEnds } = props.controls;
 
-/** Ionic's `ionInput` (text, range) or `ionChange` (select, date) of one filter control. */
+/** Ionic's `ionInput` (text, range) or `ionChange` (select) of one filter control. */
 function onFilter(name: string, ev: CustomEvent<{ value?: unknown }>): void {
-  const value = ev.detail.value;
+  handOver(name, ev.detail.value === null || ev.detail.value === undefined ? '' : String(ev.detail.value));
+}
+/** A filter's new value, as text: what `onFilter` read, or a day picked in a date filter ('' once cleared). */
+function handOver(name: string, value: string): void {
   answerError(name);
-  emit('filter', name, value === null || value === undefined ? '' : String(value));
+  emit('filter', name, value);
 }
 /** A lookup of the filter row: applied at once. */
 function onLookup(name: string, value: string, text: string): void {
@@ -79,8 +83,8 @@ function onLookup(name: string, value: string, text: string): void {
           {{ option.label }}
         </ion-select-option>
       </ion-select>
-      <!-- A range is headed by its column, «Total  From  To»: its ends alone say only «From» / «To», and a
-           date box paints «dd/mm/yyyy», never a placeholder. The group already names it for assistive tech. -->
+      <!-- A range is headed by its column, «Total  From  To»: its ends alone say only «From» / «To». The group
+           already names it for assistive tech. -->
       <span
         v-else-if="column.filter?.type === 'range' || column.filter?.type === 'daterange'"
         class="data-table__filter-range"
@@ -92,32 +96,47 @@ function onLookup(name: string, value: string, text: string): void {
           class="data-table__filter-range-label"
           aria-hidden="true"
         >{{ column.label }}</span>
-        <ion-input
-          v-for="{ name, hint, named } in rangeEnds(column)"
-          :key="name"
-          class="data-table__filter"
-          :class="invalidMark(name)"
-          v-bind="endBox(column)"
-          :debounce="250"
-          :aria-label="named"
-          :placeholder="hint"
-          :value="applied[name] ?? ''"
-          :error-text="errorOf(name)"
-          :data-testid="tid(`filter-${name}`)"
-          @ion-input="column.filter?.type === 'range' && onFilter(name, $event)"
-          @ion-change="column.filter?.type === 'daterange' && onFilter(name, $event)"
-        />
+        <template v-if="column.filter?.type === 'daterange'">
+          <DateField
+            v-for="{ name, hint, named } in rangeEnds(column)"
+            :key="name"
+            class="data-table__filter"
+            compact
+            :label="named"
+            :placeholder="hint"
+            :model-value="applied[name] ?? ''"
+            :error-text="errorOf(name)"
+            :testid="tid(`filter-${name}`)"
+            @update:model-value="handOver(name, $event)"
+          />
+        </template>
+        <template v-else>
+          <ion-input
+            v-for="{ name, hint, named } in rangeEnds(column)"
+            :key="name"
+            class="data-table__filter"
+            :class="invalidMark(name)"
+            v-bind="endBox(column)"
+            :debounce="250"
+            :aria-label="named"
+            :placeholder="hint"
+            :value="applied[name] ?? ''"
+            :error-text="errorOf(name)"
+            :data-testid="tid(`filter-${name}`)"
+            @ion-input="onFilter(name, $event)"
+          />
+        </template>
       </span>
-      <ion-input
+      <DateField
         v-else-if="column.filter?.type === 'date'"
         class="data-table__filter"
-        :class="invalidMark(filterName(column))"
-        type="date"
-        :aria-label="column.label"
-        :value="applied[filterName(column)] ?? ''"
+        compact
+        :label="column.label"
+        :placeholder="column.label"
+        :model-value="applied[filterName(column)] ?? ''"
         :error-text="errorOf(filterName(column))"
-        :data-testid="tid(`filter-${filterName(column)}`)"
-        @ion-change="onFilter(filterName(column), $event)"
+        :testid="tid(`filter-${filterName(column)}`)"
+        @update:model-value="handOver(filterName(column), $event)"
       />
       <DataTableLookup
         v-else-if="column.filter?.type === 'lookup'"

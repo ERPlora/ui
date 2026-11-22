@@ -205,7 +205,7 @@ describe('the filters panel (`filterable`)', () => {
     expect(fieldLabel(control(t, 'name'))).toBe('Name');
     expect(fieldLabel(control(t, 'status'))).toBe('Status');
     expect(fieldLabel(control(t, 'day'))).toBe('Day');
-    expect((control(t, 'day') as HTMLElement & { type?: string }).type).toBe('date');
+    expect((control(t, 'day') as HTMLElement & { readonly?: boolean }).readonly, 'a day is picked in the calendar, never typed').toBe(true);
     expect(aria(control(t, 'rate_from'), 'aria-label')).toBe('Rate: from');
     // Ionic paints `fill` only in md (the shell pins ios): every control of the panel carries both.
     for (const el of dialog.querySelectorAll<HTMLElement & { fill?: string; mode?: string }>('ion-input, ion-select')) {
@@ -324,7 +324,7 @@ describe('the filters panel (`filterable`)', () => {
     await openPanel(t);
     expect(control(t, 'status').value).toBe('active');
     expect(control(t, 'rate_from').value).toBe('5');
-    expect(control(t, 'day').value).toBe('2026-10-14');
+    expect(control(t, 'day').value).toBe('10/14/2026');
     expect(control(t, 'name').value).toBe('');
     await typeIn(control(t, 'rate_from'), '');
     await click(byTestId(t, 'rules-filters-apply')[0]);

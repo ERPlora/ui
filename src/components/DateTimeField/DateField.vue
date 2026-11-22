@@ -12,7 +12,7 @@ const props = defineProps<{
   modelValue?: string | null;
   label: string;
   /** The `data-testid` of the ion-input. */
-  testid: string;
+  testid?: string;
   /** The first day that can be picked, `YYYY-MM-DD`. */
   min?: string;
   /** The last day that can be picked, `YYYY-MM-DD`. */

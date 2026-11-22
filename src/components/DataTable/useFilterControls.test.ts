@@ -73,7 +73,6 @@ describe('useFilterControls', () => {
       { name: 'priceMin', hint: 'filterFrom', named: 'filterFromOf(Price)' },
       { name: 'priceMax', hint: 'filterTo', named: 'filterToOf(Price)' },
     ]);
-    expect(endBox(column('day', { type: 'daterange' }))).toEqual({ type: 'date' });
     expect(endBox(column('total', { type: 'range', amount: true }))).toEqual({ type: 'text', inputmode: 'decimal' });
     expect(endBox(column('rate', { type: 'range', min: 0, max: 100, step: 5 }))).toEqual({
       type: 'number',

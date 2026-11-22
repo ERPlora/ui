@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { dateFieldProps, pickIn } from '../DateTimeField/__tests__/pickers';
 import { mountFilterPart } from './__tests__/filter-part';
 import { byTestId, click, ionChange, mountTable, settle, text, viewport } from './__tests__/harness';
 import { rowSource } from './__tests__/part-sources';
@@ -78,11 +79,19 @@ describe('DataTableFilterRow', () => {
     send(control(m, 'status'), 'ionChange', 'open');
     send(control(m, 'total_to'), 'ionInput', 10);
     send(control(m, 'total_to'), 'ionChange', 11);
-    send(control(m, 'issued_from'), 'ionInput', '2026-10');
-    send(control(m, 'issued_from'), 'ionChange', '2026-10-01');
-    send(control(m, 'day'), 'ionChange', null);
+    await pickIn(m.wrapper, 'bills-filter-issued_from', '2026-10-01');
+    await pickIn(m.wrapper, 'bills-filter-day', '');
     send(control(m, 'customer'), 'ionInput', 'Ana');
     expect(m.row().emitted('filter')).toEqual([['status', 'open'], ['total_to', '10'], ['issued_from', '2026-10-01'], ['day', ''], ['customer', 'Ana']]);
+  });
+
+  it('days are picked in the app’s calendar, compact as the row’s controls, named and read as their filter', async () => {
+    const m = mountRow({ applied: { issued_from: '2026-10-01' } });
+    await settle();
+    expect(dateFieldProps(m.wrapper, 'bills-filter-issued_from')).toMatchObject({ compact: true, label: 'Issued: from', placeholder: 'From', modelValue: '2026-10-01' });
+    expect(dateFieldProps(m.wrapper, 'bills-filter-issued_to')).toMatchObject({ compact: true, label: 'Issued: to', placeholder: 'To', modelValue: '' });
+    expect(dateFieldProps(m.wrapper, 'bills-filter-day')).toMatchObject({ compact: true, label: 'Day', placeholder: 'Day', modelValue: '' });
+    expect(control(m, 'issued_from').value).toBe('10/01/2026');
   });
 
   it('«Clear filters» is there only while some filter filters, and asks to lift them on a click, Enter or Space', async () => {

@@ -4,11 +4,10 @@ import type { LabelParams } from './labels';
 import { filterKeys } from './model';
 import type { DataTableColumn, DataTableFilterOption, DataTableLabelKey } from './types';
 
-/** The box of a range's end: days for a date range; for a range, numbers within its bounds, or an
- *  amount as typed (a text box with the decimal keyboard: `2,50`). */
+/** The box of a numeric range's end: numbers within its bounds, or an amount as typed (a text box with the decimal
+ *  keyboard: `2,50`). A date range's ends are day fields. */
 function endBox<T>(column: DataTableColumn<T>): Record<string, string | number | undefined> {
   const filter = column.filter;
-  if (filter?.type === 'daterange') return { type: 'date' };
   if (filter?.type === 'range' && filter.amount) return { type: 'text', inputmode: 'decimal' };
   return {
     type: 'number',

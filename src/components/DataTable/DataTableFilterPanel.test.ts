@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { dateFieldProps, pickIn } from '../DateTimeField/__tests__/pickers';
 import { mountFilterPart } from './__tests__/filter-part';
 import { byTestId, click, mountTable, settle, text } from './__tests__/harness';
 import { gridSource, pagerSource, panelSource, rowSource, selectionSource, tableSource, toolbarSource } from './__tests__/part-sources';
@@ -91,7 +92,7 @@ describe('DataTableFilterPanel', () => {
     await settle();
     edit(control(m, 'status'), 'ionChange', 'active');
     edit(control(m, 'rate_to'), 'ionInput', 10);
-    edit(control(m, 'day'), 'ionChange', null);
+    await pickIn(m.wrapper, 'rules-filter-day', '');
     expect(m.panel().emitted()).toEqual({});
     await click(button(m, 'apply'));
     expect(m.panel().emitted('apply')).toEqual([[{ status: 'active', rate_to: '10', day: '' }]]);
@@ -119,7 +120,20 @@ describe('DataTableFilterPanel', () => {
     edit(control(m, 'name'), 'ionInput', 'ana');
     m.props.applied = { day: '2026-10-14' };
     await settle();
-    expect([control(m, 'status').value, control(m, 'name').value, control(m, 'day').value]).toEqual(['', '', '2026-10-14']);
+    expect([control(m, 'status').value, control(m, 'name').value, control(m, 'day').value]).toEqual(['', '', '10/14/2026']);
+  });
+
+  it('picks days in the app’s calendar: a day under its column, a range’s ends under «From» / «To» in their column’s group', async () => {
+    const issued: DataTableColumn<Row> = { key: 'issued', label: 'Issued', filter: { type: 'daterange' } };
+    const m = mountPanel({ columns: [...COLUMNS, issued], applied: { issued_from: '2026-10-01' } });
+    await settle();
+    expect(dateFieldProps(m.wrapper, 'rules-filter-day')).toMatchObject({ label: 'Day', compact: false });
+    expect(dateFieldProps(m.wrapper, 'rules-filter-issued_from')).toMatchObject({ label: 'From', modelValue: '2026-10-01', compact: false });
+    expect(dateFieldProps(m.wrapper, 'rules-filter-issued_to')).toMatchObject({ label: 'To', modelValue: '' });
+    expect(control(m, 'issued_to').closest('[role="group"]')?.getAttribute('aria-label')).toBe('Issued');
+    await pickIn(m.wrapper, 'rules-filter-issued_to', '2026-10-31');
+    await click(button(m, 'apply'));
+    expect(m.panel().emitted('apply')).toEqual([[{ issued_from: '2026-10-01', issued_to: '2026-10-31' }]]);
   });
 
   it('Close and Escape ask to close; an Escape a control inside already used does not', async () => {
