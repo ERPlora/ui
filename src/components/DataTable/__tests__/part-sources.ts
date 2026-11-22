@@ -9,5 +9,6 @@ export { default as identitySource } from '../DataTableIdentity.vue?raw';
 export { default as listSource } from '../DataTableListItem.vue?raw';
 export { default as pagerSource } from '../DataTablePager.vue?raw';
 export { default as actionsSource } from '../DataTableRowActions.vue?raw';
+export { default as selectionSource } from '../DataTableSelectionBar.vue?raw';
 export { default as stateSource } from '../DataTableState.vue?raw';
 export { default as toolbarSource } from '../DataTableToolbar.vue?raw';
