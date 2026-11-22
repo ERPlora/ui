@@ -202,6 +202,13 @@ describe('sameNeeds: a pixel of subpixel text is the same column', () => {
     expect(sameNeeds({ email: 205 }, {})).toBe(false);
     expect(sameNeeds({ email: 453 }, { email: 449 })).toBe(false);
   });
+  // Measured in Chrome (Time clock › Records at 834px): every column fit its floor, the first reading was taken as
+  // «nothing changed» and the short date kept the 10rem of a name not measured yet: the list went to cards.
+  it('a column measured for the first time is a change, even when its floor holds it', () => {
+    expect(sameNeeds({ work_date: 0, worked: 0 }, {})).toBe(false);
+    expect(sameNeeds({ work_date: 0, worked: 0 }, { work_date: 0 })).toBe(false);
+    expect(sameNeeds({ work_date: 0, worked: 0 }, { work_date: 0, worked: 0 })).toBe(true);
+  });
 });
 
 // Measured in Chrome (Time clock › Records at 834px): «Worked» paints its time in a box that wraps when the

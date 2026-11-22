@@ -88,12 +88,12 @@ export function columnNeed(natural: number, floor: number): number {
 
 /** Are `next` the needs on screen (`before`)? A text its box cuts reads its
  *  width rounded (`scrollWidth`) and held whole with its fraction: a pixel or two apart is the same column, or
- *  every rung would start the ladder again. A column that starts or stops asking for more than its floor always
- *  counts. PURE. */
+ *  every rung would start the ladder again. A column measured for the first time, or that starts or stops asking
+ *  for more than its floor, always counts: not measured is not «its floor holds it» (`gridTemplate`). PURE. */
 export function sameNeeds(next: Readonly<Record<string, number>>, before: Readonly<Record<string, number>>): boolean {
   return Object.keys(next).every((key) => {
-    const was = before[key] ?? 0;
-    return next[key] > 0 === was > 0 && Math.abs(next[key] - was) <= 2;
+    const was = before[key];
+    return was !== undefined && next[key] > 0 === was > 0 && Math.abs(next[key] - was) <= 2;
   });
 }
 
@@ -338,16 +338,16 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   const naturalCellWidth = (cell: HTMLElement): number =>
     sideBySide(cell, (child) => outerWidth(child) + Math.max(0, child.scrollWidth - child.getBoundingClientRect().width));
 
-  /** What each column sized by its content asks for: its header and every
-   *  row shown, on one line. Written only when it changes, and then the ladder is judged again from the start
+  /** What each column sized by its content asks for: its header and every row shown, on one line. Written only
+   *  when it changes (`true`), and then the ladder is judged again from the start once the new needs are on screen
    *  (the rung on screen was decided for other columns: shorter rows may fit whole again). */
-  function measureContentWidths(): void {
+  function measureContentWidths(): boolean {
     const scroll = scrollEl();
     const keys = source.columnKeys?.() ?? [];
-    if (!scroll || !(scroll.clientWidth > 0) || !keys.some((key) => key !== null)) return;
+    if (!scroll || !(scroll.clientWidth > 0) || !keys.some((key) => key !== null)) return false;
     const headers = [...scroll.querySelectorAll<HTMLElement>(HEAD_CELLS)];
     // Painted from other columns (a render on its way): measured once it lands.
-    if (headers.length !== keys.length) return;
+    if (headers.length !== keys.length) return false;
     const rows = [...scroll.querySelectorAll<HTMLElement>(DATA_ROWS)].map((row) => [...row.querySelectorAll<HTMLElement>(DATA_CELLS)]);
     const floor = 5.5 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
     const measured: Record<string, number> = {};
@@ -360,9 +360,10 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     const rowsKey = source.rowsKey?.() ?? '';
     const next = nextNeeds(contentWidths.value, measured, rowsKey === measuredRows);
     measuredRows = rowsKey;
-    if (sameNeeds(next, contentWidths.value)) return;
+    if (sameNeeds(next, contentWidths.value)) return false;
     fitDecidedAtWidth = -1;
     write(contentWidths, next);
+    return true;
   }
 
   /** Natural width of the widest row's buttons (they never shrink: `flex: 0 0 auto`). */
@@ -507,8 +508,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     measureXOverflow();
     measureActionsTrack();
     measureActionsLabel();
-    measureContentWidths();
-    measureRowActionsFit();
+    if (!measureContentWidths()) measureRowActionsFit();
     fitWholeRows(scrollEl(), source.fill() && !isMobile.value);
   }
 

@@ -187,8 +187,9 @@ describe('a measurement that paints nothing never stalls the ladder', () => {
     const t = await mountAt(480, { columns: COLUMNS_4, actions: LABELLED });
     expect(isCards(t)).toBe(false);
     expect(rowButtons(t)).toEqual(['menu']);
+    // «Business» reads narrower than the common floor here, so it takes that floor, not the 10rem of a name not measured.
     expect((t.element.querySelector('.data-table__row--head') as HTMLElement).style.gridTemplateColumns).toBe(
-      'minmax(10rem,1.4fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 40px',
+      'minmax(5.5rem,1.4fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 40px',
     );
     expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
   });
