@@ -3,7 +3,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, type Ref, re
 
 import { columnNeed, decideFitLevel, nextNeeds, sameNeeds } from './fitDecisions';
 import { ladderLength, type LadderColumn, ladderPhases, ladderRung } from './fitLadder';
-import { fitWholeRows } from './fitWholeRows';
 import { naturalActionsWidth, naturalCellWidth } from './naturalWidth';
 import type { DataTableView } from './types';
 import { useContentAfter } from './useContentAfter';
@@ -212,7 +211,6 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
       measureXOverflow();
       measureActionsTrack();
       measureRowActionsFit();
-      fitWholeRows(scrollEl(), source.fill() && !isMobile.value);
     });
     scrollObserver.disconnect();
     if (!scroll) return;
@@ -228,13 +226,11 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     measureActionsTrack();
     measureActionsLabel();
     if (!measureContentWidths()) measureRowActionsFit();
-    fitWholeRows(scrollEl(), source.fill() && !isMobile.value);
   }
 
   const onWindowResize = (): void => {
     measureXOverflow();
     measureRowActionsFit();
-    fitWholeRows(scrollEl(), source.fill() && !isMobile.value);
     syncContentAfter();
   };
 

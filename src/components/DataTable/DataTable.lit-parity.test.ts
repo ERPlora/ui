@@ -337,6 +337,7 @@ const ADDED: Record<string, string> = {
     'row motion is disabled with reduced motion in its own component',
   '.data-table__actions .data-table__action--main': 'the card’s main action reads as such',
   '.data-table__empty, .data-table__error, .data-table__loading': 'the table gives the library’s notices their room',
+  '.data-table__empty': 'a page’s own empty notice sits in the middle of the table, as the Lit table’s did',
   '.data-table__loading': 'the skeletons sit centred under their label',
   '.data-table__empty ion-button, .data-table__error ion-button': 'the empty and failed states’ actions have a 44px target',
   '.data-table__loading-label': 'the skeleton loading state keeps its visible loading label',
@@ -392,7 +393,7 @@ const RESTYLED: Record<string, string[]> = {
   '.data-table__card-icon': ['display: inline-grid', 'place-items: center', 'flex: none', 'width: 44px', 'height: 44px', 'border-radius: var(--ep-radius-sm)', 'color: var(--ep-primary-text)', 'background: var(--ep-primary-tint)', 'font-size: 22px'],
   '.data-table__row--data': ['min-height: 80px', 'background: var(--background)', 'border-bottom: 1px solid var(--border-color-soft)', 'padding-top: 0.75rem', 'padding-bottom: 0.75rem', 'transition: background-color var(--ep-transition, 150ms ease), color var(--ep-transition, 150ms ease), box-shadow var(--ep-transition, 150ms ease), transform 120ms ease'],
   '.data-table__card-body': ['display: flex', 'flex: 1 1 auto', 'flex-direction: column', 'gap: 0.75rem'],
-  // A table that fills its page and ends after its last whole row keeps its pager at the bottom.
+  // A table that fills its page keeps its pager at the bottom, also on a phone, where its rows' box does not stretch.
   '.data-table__pager': ['display: flex', 'align-items: center', 'justify-content: space-between', 'gap: 0.75rem', 'margin-top: auto', 'padding: 0.55rem 1rem', 'border-top: 1px solid var(--border-color)', 'background: var(--header-background)', 'font-size: 12.5px', 'color: var(--color-muted)'],
   // Cards of a grid row are as tall as the tallest, with their footers on one line, and wide enough for a head with a switch.
   '.data-table__cards': ['display: grid', 'grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr))', 'gap: 0.75rem', 'padding: 1rem', 'grid-auto-rows: max-content', 'align-content: start', 'align-items: stretch'],

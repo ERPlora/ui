@@ -114,6 +114,8 @@ defineSlots<{ empty?: () => unknown }>();
 <style scoped>
 /* Room in the table for the library's notices; the boxes are theirs. */
 .data-table__empty, .data-table__error, .data-table__loading { display: flex; flex-direction: column; justify-content: center; padding: 2rem 1rem; }
+/* A page's own empty notice sits in the middle; the failed load's notice keeps the full width. */
+.data-table__empty { align-items: center; }
 .data-table__loading { align-items: center; gap: 0.75rem; padding: 3.5rem 1rem; text-align: center; color: var(--color-muted); }
 .data-table__empty ion-button, .data-table__error ion-button { min-height: 44px; }
 .data-table__loading-label { color: var(--color-muted); font-size: 0.875rem; text-align: center; }
