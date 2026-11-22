@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { ionIconSrc } from '../../shell/icons';
 import { click, mountPart, mountTable, NAME, PEOPLE, settle, text } from './__tests__/harness';
+import { selectionSource, toolbarSource } from './__tests__/part-sources';
+import { scopedRule } from './__tests__/scoped-rule';
 import DataTableSelectionBar from './DataTableSelectionBar.vue';
 import { DATA_TABLE_ICONS } from './model';
 
@@ -39,6 +41,20 @@ describe('DataTableSelectionBar', () => {
   it('draws the «Clear» icon at 14 px', () => {
     const glyph = clearButton(mountBar().element.parentElement!).querySelector('ion-icon')!;
     expect(glyph.style.fontSize).toBe('14px');
+  });
+
+  // Inside an ion-button the icon and the text are flex items: a space typed before the word is dropped when
+  // painted, so only Ionic's start slot sets the icon apart from the word (measured in Chromium, ios and md).
+  it('«Clear» carries its icon in the button’s start slot, and its word with no space typed before it', () => {
+    const clear = clearButton(mountBar().element.parentElement!);
+    expect(clear.querySelector('ion-icon')!.getAttribute('slot')).toBe('start');
+    expect(clear.textContent).toBe('Clear');
+  });
+
+  it('pulls its icon into the padding by the gap Ionic gives it, as the toolbar’s «Add» does, so the gap does not widen the button', () => {
+    for (const [name, source] of [['DataTableSelectionBar.vue', selectionSource], ['DataTableToolbar.vue', toolbarSource]]) {
+      expect([name, scopedRule(source, ':where(.data-table) ion-button > ion-icon[slot="start"]')]).toEqual([name, 'margin-inline-start: -0.3em;']);
+    }
   });
 
   it('says the page’s own texts before the catalogue’s', () => {

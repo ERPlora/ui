@@ -10,6 +10,8 @@
 * { box-sizing: border-box; }
 :where(.data-table) ion-button { height: auto; margin: 4px 2px; text-transform: inherit; font-weight: 500; --border-radius: 6px; }
 :where(.data-table) ion-button[fill="clear"] { font-weight: normal; --color: var(--ion-color-primary, #0054e9); }
+/* Ionic's `::slotted(ion-icon[slot=start])` pull into the padding: the gap after the icon no longer widens its button. */
+:where(.data-table) ion-button > ion-icon[slot="start"] { margin-inline-start: -0.3em; }
 :where(.data-table) ion-select { --border-radius: inherit; }
 ion-button { --box-shadow: none; }
 
