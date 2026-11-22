@@ -34,16 +34,7 @@ import DataTableRowMenu from './DataTableRowMenu.vue';
 import DataTableState from './DataTableState.vue';
 import DataTableToolbar from './DataTableToolbar.vue';
 import { useDataTableLabels } from './labels';
-import {
-  DATA_TABLE_ICONS,
-  filterRows,
-  gridTemplate,
-  pagerState,
-  phonePages,
-  rowKeyOf,
-  sameRecords,
-  searchRows,
-} from './model';
+import { DATA_TABLE_ICONS, filterRows, gridTemplate, rowKeyOf, searchRows } from './model';
 import { cardRowActions, listRowActions } from './rowActions';
 import { useCardParts } from './useCardParts';
 import { useColumnFilters } from './useColumnFilters';
@@ -51,6 +42,7 @@ import { useColumnSort } from './useColumnSort';
 import { useFilterControls } from './useFilterControls';
 import { useFilterPanel } from './useFilterPanel';
 import { useMediaQuery } from './useMediaQuery';
+import { usePagination } from './usePagination';
 import { useRowMenu } from './useRowMenu';
 import { useRowSelection } from './useRowSelection';
 import type {
@@ -255,11 +247,6 @@ const { text: label } = useDataTableLabels(() => props.labels);
 
 // ── Own state (client mode) ───────────────────────────────────────────────────────────────────
 const q = ref('');
-const clientPage = ref(0);
-/** 0 = `pageSize`. */
-const clientPageSize = ref(0);
-/** Rows the end of the scroll has accumulated while windowed (0 = one page). */
-const mobileShown = ref(0);
 /** The person's pick in the column chooser, per key; untouched columns follow their `hidden`. */
 const columnChoice = ref(new Map<string, boolean>());
 
@@ -331,6 +318,24 @@ const cardsOn = computed(() => viewMode.value === 'cards' && cardViewEnabled.val
 /** Rows grow from the first one at the end of the scroll (the cards, and a phone's list) instead of paging. */
 const windowed = computed(() => isMobile.value || cardsOn.value);
 
+// ── Pages ─────────────────────────────────────────────────────────────────────────────────────
+// Before the column filters: their watcher starts the rows again from the first page as it is created.
+const { clientPage, mobileShown, pageSizeNow, pager, phonePaged, goTo, setPageSize, loadMore } = usePagination<T>({
+  root,
+  serverSide: () => props.serverSide,
+  rows: () => props.rows,
+  clientRows: () => clientRows.value,
+  total: () => props.total,
+  page: () => props.page,
+  pageSize: () => props.pageSize,
+  maxWindow: () => props.maxWindow,
+  windowed: () => windowed.value,
+  keyOf,
+  askPage: (page) => emit('pageChange', page),
+  askPageSize: (size) => emit('pageSizeChange', size),
+  askMore: () => emit('loadMore'),
+});
+
 // ── Column filters ────────────────────────────────────────────────────────────────────────────
 const { filterValues, filterColumns, filterCountNow, filtering, setFilters, setFilter, clearFilters } = useColumnFilters<T>({
   columns: () => props.columns,
@@ -374,23 +379,6 @@ const sorting = useColumnSort<T>({
 // ── Rows on screen ────────────────────────────────────────────────────────────────────────────
 const clientRows = computed(() =>
   sorting.sortedRows(filterRows(searchRows(props.rows, props.searchKeys, q.value), filterColumns.value, filterValues.value)),
-);
-const pageSizeNow = computed(() => (props.serverSide ? props.pageSize : clientPageSize.value || props.pageSize));
-const pager = computed(() =>
-  pagerState({
-    serverSide: props.serverSide,
-    rows: props.serverSide ? props.rows : clientRows.value,
-    total: props.total,
-    page: props.serverSide ? props.page : clientPage.value,
-    pageSize: pageSizeNow.value,
-    isMobile: windowed.value,
-    mobileShown: mobileShown.value,
-    maxWindow: props.maxWindow,
-  }),
-);
-/** Windowed in server mode with a query longer than the parent's window: it pages instead of growing. */
-const phonePaged = computed(() =>
-  phonePages({ serverSide: props.serverSide, isMobile: windowed.value, total: props.total, maxWindow: props.maxWindow }),
 );
 
 const hasError = computed(() => !!props.error?.trim());
@@ -466,24 +454,6 @@ watch(
   },
   { immediate: true },
 );
-watch(
-  () => props.rows,
-  (now, before) => {
-    // A phone that pages scrolls WITH the page: tapped at the foot, the new page would open at its end.
-    if (scrollToNewPage) {
-      scrollToNewPage = false;
-      root.value?.scrollIntoView({ block: 'start' });
-    }
-    // A new result set starts at one page; the same records refreshed keep the window.
-    if (!props.serverSide && mobileShown.value !== 0 && !sameRecords(before, now, keyOf)) mobileShown.value = 0;
-  },
-);
-
-// A server window is the parent's: a phone counts from row 1 and a desk shows one page, so
-// crossing the breakpoint asks for the first page again unless the window already is just that.
-watch(windowed, () => {
-  if (props.serverSide && (props.page !== 0 || props.rows.length > props.pageSize)) emit('pageChange', 0);
-});
 
 // ── Selection ─────────────────────────────────────────────────────────────────────────────────
 const { selection, allSelected, setSelection, toggleRow, toggleAll } = useRowSelection<T>({
@@ -526,27 +496,7 @@ function resetSearch(): void {
   clearFilters();
 }
 
-// ── Pager ─────────────────────────────────────────────────────────────────────────────────────
-/** A phone paging past `maxWindow` asked for another page: its rows show from the first once they arrive. */
-let scrollToNewPage = false;
-function goTo(page: number): void {
-  if (phonePaged.value) scrollToNewPage = true;
-  if (props.serverSide) emit('pageChange', page);
-  else clientPage.value = page;
-}
-function setPageSize(size: number): void {
-  if (props.serverSide) {
-    emit('pageSizeChange', size);
-    return;
-  }
-  clientPageSize.value = size;
-  clientPage.value = 0;
-  mobileShown.value = 0;
-}
-function loadMore(): void {
-  if (props.serverSide) emit('loadMore');
-  else mobileShown.value = Math.min((mobileShown.value || pageSizeNow.value) + pageSizeNow.value, pager.value.count);
-}
+// ── Infinite scroll ───────────────────────────────────────────────────────────────────────────
 /** A table that fills its page scrolls its cards itself, but not at a phone's width, where its CSS lets the
  *  page scroll: Ionic listens to the cards, or to the page. */
 const phoneWidth = useMediaQuery('(max-width: 640px)');
