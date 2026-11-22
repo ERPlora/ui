@@ -40,11 +40,6 @@
       "count": 1
     }
   },
-  "src/components/DataTable/DataTable.vue": {
-    "vue/max-lines-per-block": {
-      "count": 1
-    }
-  },
   "src/components/DataTable/model.ts": {
     "complexity": {
       "count": 1
