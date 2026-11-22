@@ -54,6 +54,12 @@ export interface SessionMe {
   permissions: string[];
   menu: SessionMenuSection[];
   apps: SessionApp[];
+  /**
+   * Per app, the paths of the menu entries this person may not open: the project's router gate answers an address
+   * under one of them with «No access». The Hub sends it; the SaaS, whose menu does not depend on a permission, does
+   * not.
+   */
+  locked?: Record<string, string[]>;
   language: string;
 }
 
