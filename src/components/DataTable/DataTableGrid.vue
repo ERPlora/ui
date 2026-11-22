@@ -3,7 +3,6 @@
 // a sortable head per column and the actions head, then one row per record on screen. The table keeps what is
 // sorted, selected and folded; this paints it and hands over each pick.
 import { IonCheckbox, IonIcon } from '@ionic/vue';
-import { computed } from 'vue';
 
 import DataTableListItem from './DataTableListItem.vue';
 import type { DataTableActionCell, DataTableColumn, DataTableLabels } from './types';
@@ -51,8 +50,6 @@ defineSlots<{ 'row-actions'?: (props: { row: T }) => unknown; [cell: string]: un
 
 const { icon, label } = usePartChrome(props);
 const { isSortable, isSorted, caretIcon, ariaSort } = props.sorting;
-/** The columns whose cell is the page's own slot, handed down to each row. */
-const cellColumns = computed(() => props.columns.filter((column) => column.cell));
 const alignClass = (column: DataTableColumn<T>): string | undefined =>
   column.align === 'right' ? 'data-table__cell--right' : column.align === 'center' ? 'data-table__cell--center' : undefined;
 </script>
@@ -134,20 +131,14 @@ const alignClass = (column: DataTableColumn<T>): string | undefined =>
         @menu="(event, menuRow) => emit('menu', event, menuRow)"
         @toggle="emit('toggle', $event)"
       >
-        <template #row-actions="{ row: actionRow }">
-          <slot
-            name="row-actions"
-            :row="actionRow"
-          />
-        </template>
         <template
-          v-for="column in cellColumns"
-          :key="column.key"
-          #[column.cell]="cellProps"
+          v-for="(_, name) in $slots"
+          :key="name"
+          #[name]="slotProps"
         >
           <slot
-            :name="column.cell"
-            v-bind="cellProps"
+            :name="name"
+            v-bind="slotProps"
           />
         </template>
       </DataTableListItem>

@@ -165,6 +165,12 @@ describe('the card opens the record like the row', () => {
     await click(cards(t)[0].querySelector('[aria-haspopup="menu"]'));
     expect(t.element.querySelectorAll('.data-table__row-menu ion-item')).toHaveLength(7);
   });
+
+  it('a card with no action left for its row paints no actions bar', async () => {
+    const t = mountTable({ ...base, actions: [{ id: 'edit', label: 'Editar', hidden: (r: Row) => r.id === '1' }] });
+    await settle();
+    expect(cards(t).map((card) => !!card.querySelector('.data-table__card-actions'))).toEqual([false, true]);
+  });
 });
 
 // On a phone a 54-character email ran past the right edge of its card, cut with no «…». The default text
