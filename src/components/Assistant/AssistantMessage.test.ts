@@ -81,6 +81,36 @@ describe('AssistantMessage', () => {
     wrapper.unmount();
   });
 
+  it('a failed receipt says why in a sentence, as the server said it, and only in the language it was said in', async () => {
+    const executed = [
+      { name: 'demo.item.create', app: 'demo', outcome: 'error', reason: { es: 'Este elemento está cerrado: ábrelo para añadir líneas.' } },
+      // A host that says no reason (or a receipt kept from before it did): the receipt as it was.
+      { name: 'demo.item.create', app: 'demo', outcome: 'error' },
+      { name: 'demo.item.delete', app: 'demo', outcome: 'cancelled', reason: { es: 'No se dice.' } },
+    ];
+    const es = await mountBubble(answer({ text: 'No lo he hecho.', executed }));
+    expect(es.wrapper.findAll('[data-testid="assistant-receipt"]').map((row) => row.text())).toEqual([
+      'No se hizo, falló: Crear en Demo. Este elemento está cerrado: ábrelo para añadir líneas.',
+      'No se hizo, falló: Crear en Demo',
+      'No se hizo, cancelado: Borrar en Demo',
+    ]);
+    es.wrapper.unmount();
+    // Read in English, the receipt is said whole in English: without the reason, which was said in Spanish.
+    const en = await mountBubble(answer({ text: 'Not done.', executed }), {}, 'en');
+    expect(en.wrapper.findAll('[data-testid="assistant-receipt"]').map((row) => row.text())).toEqual([
+      'Not done, it failed: Create in Demo',
+      'Not done, it failed: Create in Demo',
+      'Not done, cancelled: Delete in Demo',
+    ]);
+    en.wrapper.unmount();
+    const english = [{ name: 'demo.item.create', app: 'demo', outcome: 'error', reason: { en: 'This item is closed: open it to add lines.' } }];
+    const said = await mountBubble(answer({ text: 'Not done.', executed: english }), {}, 'en');
+    expect(said.wrapper.find('[data-testid="assistant-receipt"]').text()).toBe(
+      'Not done, it failed: Create in Demo. This item is closed: open it to add lines.',
+    );
+    said.wrapper.unmount();
+  });
+
   it('a receipt names the action by its own verb, in Spanish and in English, never «Do this»', async () => {
     const executed = [
       { name: 'invoice.invoice.rectify', app: 'invoice', app_name: 'Facturación', outcome: 'ok' },

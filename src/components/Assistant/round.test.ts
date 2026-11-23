@@ -40,6 +40,14 @@ describe('the frames of a round, written into its turn', () => {
     expect(round.done).toBe(closed);
   });
 
+  it('keeps why a write failed, as the server said it, for its receipt', () => {
+    const turn = aTurn();
+    const read = frameReader(turn, newRound(), vi.fn());
+    const reason = { es: 'Este elemento está cerrado: ábrelo para añadir líneas.' };
+    read({ type: 'executed', call_id: 'c1', name: 'demo.item.add_line', app: 'demo', app_name: 'Demo', kind: 'command', outcome: 'error', code: 'demo.item_done', reason });
+    expect(turn.executed).toEqual([{ name: 'demo.item.add_line', kind: 'command', outcome: 'error', app: 'demo', app_name: 'Demo', reason }]);
+  });
+
   it('a spent allowance hands its own numbers to the usage, so that the foot never contradicts the refusal', () => {
     const onUsage = vi.fn();
     const read = frameReader(aTurn(), newRound(), onUsage);

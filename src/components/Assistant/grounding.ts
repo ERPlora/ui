@@ -19,7 +19,12 @@ export interface Executed {
   app_name?: string;
   /** The platform's screen it happened on, by its key (`assistant.screens.<key>`); none for an app's. */
   screen?: string;
+  /** Why it failed, in a sentence for its receipt, by the language it was said in (`{ es: '…' }`). */
+  reason?: Reason;
 }
+
+/** A sentence by the language it was said in: shown only to who reads that one. */
+export type Reason = Record<string, string>;
 
 export type GroundingNotice = 'claimed_change' | 'unread_id' | 'unknown_screen';
 

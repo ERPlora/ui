@@ -7,6 +7,7 @@ import { readSpaConfig } from '../../sdk/config';
 import { ApiError, parseErrorEnvelope } from '../../sdk/errors';
 import { createHeaderProvider } from '../../sdk/headers';
 import type { AssistantCard } from './card';
+import type { Reason } from './grounding';
 import type { ChatMessage } from './history';
 
 export interface PendingCall {
@@ -31,7 +32,7 @@ export interface TurnBody {
 }
 
 export type TurnFrame =
-  | { type: 'executed'; call_id: string; name: string; app: string; app_name?: string; screen?: string; kind: 'query' | 'command' | ''; outcome: 'ok' | 'error' | 'refused' | 'cancelled'; code: string }
+  | { type: 'executed'; call_id: string; name: string; app: string; app_name?: string; screen?: string; kind: 'query' | 'command' | ''; outcome: 'ok' | 'error' | 'refused' | 'cancelled'; code: string; reason?: Reason }
   | { type: 'confirm'; card: AssistantCard; call: PendingCall }
   | { type: 'text'; text: string }
   | { type: 'usage'; used: number; limit: number; resets_at: string | null; demo: boolean }
