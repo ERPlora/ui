@@ -70,6 +70,7 @@
     "card": {
       "title": "¿Ejecutar esta acción?",
       "message": "{action} en {app}: {line}",
+      "bareMessage": "{action} en {app}.",
       "highMessage": "{action} en {app}. Revisa cada dato antes de seguir.",
       "run": "Ejecutar",
       "cancel": "Cancelar",

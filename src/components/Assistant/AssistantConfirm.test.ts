@@ -62,6 +62,26 @@ describe('AssistantConfirm', () => {
     expect(wrapper.emitted('decide')).toEqual([[true, '', false]]);
   });
 
+  it.each([
+    ['es', 'Carrito y pago', 'Vaciar en Carrito y pago.'],
+    ['en', 'Cart & Checkout', 'Clear in Cart & Checkout.'],
+  ] as const)('in %s, a normal write with no datum to show says its action and its app, never a colon with nothing after it', async (locale, app, said) => {
+    const bare: AssistantCard = {
+      ...NORMAL,
+      operation: 'cart_checkout.cart.clear',
+      app: 'cart_checkout',
+      app_name: app,
+      action: 'clear',
+      fields: [{ name: 'note', label: 'Note', kind: 'empty', value: '' }],
+    };
+    await card(bare, false, locale);
+    const text = document.querySelector('[data-testid="assistant-confirm"] .assistant-confirm-text')?.textContent?.trim();
+    expect(text).toBe(said);
+    document.body.innerHTML = '';
+    await card({ ...bare, fields: [] }, false, locale);
+    expect(document.querySelector('[data-testid="assistant-confirm"] .assistant-confirm-text')?.textContent?.trim()).toBe(said);
+  });
+
   it('a dangerous one: every datum by its name, how many, and what to type before it runs', async () => {
     const { wrapper, dialog } = await card(HIGH);
     expect(dialog.props('tone')).toBe('danger');
