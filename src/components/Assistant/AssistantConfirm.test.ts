@@ -152,7 +152,7 @@ describe('AssistantConfirm', () => {
     expect(body()).toContain('Rectificar en Facturación. Revisa cada dato antes de seguir.');
     document.body.innerHTML = '';
     await card({ ...rectify, app_name: 'Invoicing', confirm_word: 'CONFIRM' }, false, 'en');
-    expect(body()).toContain('Rectify in Invoicing. Check each datum before going on.');
+    expect(body()).toContain('Rectify in Invoicing. Check each detail before you continue.');
     expect(body()).not.toContain('Do this');
   });
 
