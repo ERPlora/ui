@@ -51,9 +51,24 @@ export interface AssistantApproval {
   declined(error: unknown): boolean;
 }
 
+/** A file the host's own tools take as it is, beside what erplora.com reads (the Hub: a copy of a business, a
+ *  `.blueprint.zip`). The model hears only its name; the host's tool reads the file. */
+export interface AssistantToolFile {
+  /** Its ending, as the file picker offers it (`.zip`). */
+  extension: string;
+  /** Its type, also when the browser gives another or none. */
+  mime: string;
+  /** Its size at most, in bytes. */
+  maxBytes: number;
+  /** The key of the line said when one is larger, with `{name}`: the host's words. */
+  tooLargeKey: string;
+}
+
 export interface AssistantConfig {
   /** The route a turn is POSTed to (same origin). */
   turnUrl: string;
+  /** The files the host's tools take as they are, beside what erplora.com reads; none when not given. */
+  toolFiles?: readonly AssistantToolFile[];
   /** The pass of a request being repeated after an approval, sent as `X-Elevation-Token`. */
   elevationToken?: () => string | undefined;
   approval?: AssistantApproval;

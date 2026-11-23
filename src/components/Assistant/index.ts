@@ -14,6 +14,7 @@ export type {
   AssistantConfig,
   AssistantReportInput,
   AssistantSpeech,
+  AssistantToolFile,
   AssistantUsage,
 } from './config';
 export { MAX_AUDIO_BYTES, useDictation } from './dictation';

@@ -9,8 +9,9 @@ import { useI18n } from 'vue-i18n';
 import HubIcon from '../../shell/HubIcon.vue';
 import { useDictation } from './dictation';
 import { ASSISTANT_ICONS } from './icons';
+import { assistantConfig } from './config';
 import {
-  ACCEPT,
+  acceptOf,
   base64Of,
   browserVoice,
   bytesOf,
@@ -28,6 +29,8 @@ const { t } = useI18n({ useScope: 'global' });
 const assistant = useAssistant();
 const state = assistant.state;
 
+const toolFiles = assistantConfig().toolFiles ?? [];
+const accept = acceptOf(toolFiles);
 const picker = useTemplateRef<HTMLInputElement>('picker');
 const problem = shallowRef<Problem | null>(null);
 const dictation = useDictation({
@@ -76,14 +79,14 @@ async function onPicked(event: Event): Promise<void> {
   let total = state.files.reduce((sum, file) => sum + bytesOf(file.data), 0);
   let refused: Problem | null = null;
   for (const file of picked) {
-    const why = fileProblem(file, total);
+    const why = fileProblem(file, total, toolFiles);
     if (why) {
       refused ??= why;
       continue;
     }
     try {
       const data = await base64Of(file);
-      state.files.push({ name: file.name, mime: mimeOf(file), data });
+      state.files.push({ name: file.name, mime: mimeOf(file, toolFiles), data });
       total += file.size;
     } catch {
       refused ??= { key: 'assistant.files.unreadable', values: { name: file.name } };
@@ -146,7 +149,7 @@ function toggleMic(): void {
         type="file"
         class="assistant-composer-picker"
         multiple
-        :accept="ACCEPT"
+        :accept="accept"
         tabindex="-1"
         aria-hidden="true"
         data-testid="assistant-attach-input"
