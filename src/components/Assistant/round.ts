@@ -75,7 +75,7 @@ function refuse(round: Round, frame: ErrorFrame, onUsage: (usage: AssistantUsage
 export function frameReader(turn: Turn, round: Round, onUsage: (usage: AssistantUsage) => void): (frame: TurnFrame) => void {
   return (frame) => {
     if (frame.type === 'text') write(turn, round, frame.text);
-    else if (frame.type === 'executed') turn.executed.push({ name: frame.name, kind: frame.kind, outcome: frame.outcome, app: frame.app, app_name: frame.app_name, screen: frame.screen });
+    else if (frame.type === 'executed') turn.executed.push({ name: frame.name, kind: frame.kind, outcome: frame.outcome, app: frame.app, app_name: frame.app_name, screen: frame.screen, reason: frame.reason });
     else if (frame.type === 'usage') onUsage({ used: frame.used, limit: frame.limit, resets_at: frame.resets_at, demo: frame.demo });
     else if (frame.type === 'confirm') round.confirm = { card: frame.card, call: frame.call };
     else if (frame.type === 'error') refuse(round, frame, onUsage);

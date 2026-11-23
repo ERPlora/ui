@@ -65,6 +65,7 @@
       "ok": "Done: {action} in {app}",
       "cancelled": "Not done, cancelled: {action} in {app}",
       "error": "Not done, it failed: {action} in {app}",
+      "errorWhy": "Not done, it failed: {action} in {app}. {reason}",
       "refused": "Not done, not allowed: {action} in {app}"
     },
     "card": {

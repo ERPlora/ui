@@ -63,7 +63,7 @@ function finish(s: TurnContext, end: End = {}): null {
   if (end.stopped) bubble.stopped = true;
   bubble.executed = turn.executed
     .filter((row) => row.kind === 'command')
-    .map((row) => ({ name: row.name, app: row.app ?? '', app_name: row.app_name, screen: row.screen, outcome: row.outcome }));
+    .map((row) => ({ name: row.name, app: row.app ?? '', app_name: row.app_name, screen: row.screen, outcome: row.outcome, reason: row.reason }));
   if (bubble.text) {
     bubble.notices = groundingNotices({
       answer: bubble.text,

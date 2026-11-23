@@ -74,15 +74,19 @@ const failureText = computed(() =>
   failure.value ? [said(failure.value), renews.value].filter(Boolean).join(' ') : '',
 );
 
+type Receipt = NonNullable<Bubble['executed']>[number];
+
 const receipts = computed(() =>
-  (props.bubble.executed ?? []).map((row) => ({
-    outcome: row.outcome,
-    text: t(`assistant.receipts.${row.outcome}`, {
-      action: t(verbKeyOf(config, row.name)),
-      app: placeOf(row),
-    }),
-  })),
+  (props.bubble.executed ?? []).map((row) => ({ outcome: row.outcome, text: receiptText(row) })),
 );
+
+/** A receipt; a failure says why when the server said it in the language the screen is in: read in another, the
+ *  receipt is said whole in that one, without it. */
+function receiptText(row: Receipt): string {
+  const values = { action: t(verbKeyOf(config, row.name)), app: placeOf(row) };
+  const reason = row.outcome === 'error' ? row.reason?.[locale.value.split(/[-_]/)[0].toLowerCase()] : undefined;
+  return reason ? t('assistant.receipts.errorWhy', { ...values, reason }) : t(`assistant.receipts.${row.outcome}`, values);
+}
 
 /** Where an action happened, in the language the screen is in, never in the one of its turn: the platform by its
  *  screen, an app by its menu; one neither names (an app the menu does not list, a receipt kept from before it
@@ -400,7 +404,7 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
 }
 .assistant-receipts li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
 }
 /* The text in the readable grey (WCAG AA on white); the colour says it in the icon only. */
@@ -426,9 +430,13 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
 .assistant-notice {
   color: var(--ion-color-medium-shade, #5f6368);
 }
+/* An icon keeps its size and stays on the first line, however many lines its text takes. */
+.assistant-receipts :deep(ion-icon),
 .assistant-notice :deep(ion-icon) {
   flex: none;
   margin-top: 2px;
+}
+.assistant-notice :deep(ion-icon) {
   color: var(--ion-color-warning-shade, #b07d00);
 }
 .assistant-upgrade {

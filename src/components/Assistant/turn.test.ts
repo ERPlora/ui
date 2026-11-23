@@ -47,6 +47,15 @@ describe('the end of a turn', () => {
     expect(bubble.executed).toEqual([{ name: 'demo.item.create', app: '', outcome: 'ok' }]);
   });
 
+  it('keeps why a write failed with its receipt, kept with the conversation', async () => {
+    const reason = { es: 'Este elemento está cerrado: ábrelo para añadir líneas.' };
+    const failed = { type: 'executed', call_id: 'c1', name: 'demo.item.add_line', app: 'demo', kind: 'command', outcome: 'error', code: 'demo.item_done', reason };
+    const s = contextWith(hub([failed as TurnFrame, { type: 'text', text: 'No se pudo.' }, done()]).post);
+    const { bubble } = s.turn!;
+    await run(s);
+    expect(bubble.executed).toEqual([{ name: 'demo.item.add_line', app: 'demo', outcome: 'error', reason }]);
+  });
+
   it('an identifier the answer quotes from what a tool returned is no unread identifier', async () => {
     const read = { role: 'tool' as const, tool_call_id: 'r1', content: `{"id":"${ID}"}` };
     const s = contextWith(hub([{ type: 'text', text: `Es ${ID}.` }, done({ append: [read] })]).post);

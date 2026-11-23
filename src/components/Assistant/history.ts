@@ -1,7 +1,7 @@
 // The conversation lives only in this tab of the person's browser (`sessionStorage`), never on a server: a reload
 // brings it back, closing the tab loses it. It belongs to one person, so another one on the same till (a switch by PIN)
 // starts empty and the other's is removed. An attachment's data travels once, with its question; kept, it is its name.
-import type { GroundingNotice } from './grounding';
+import type { GroundingNotice, Reason } from './grounding';
 
 export const HISTORY_KEY = 'erplora.assistant.history';
 
@@ -44,7 +44,7 @@ export interface Bubble {
   /** The question that led to an answer (for «Report a problem»). */
   question?: string;
   /** What ran in the turn, for the receipts under the bubble. */
-  executed?: { name: string; app: string; app_name?: string; screen?: string; outcome: string }[];
+  executed?: { name: string; app: string; app_name?: string; screen?: string; outcome: string; reason?: Reason }[];
   /** Whether its turn brought pages of the web (any round of it), said with its report; unknown — kept before
    *  the mark, a host that does not say — when not there. */
   web?: boolean;
