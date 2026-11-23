@@ -404,7 +404,7 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
 }
 .assistant-receipts li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
 }
 /* The text in the readable grey (WCAG AA on white); the colour says it in the icon only. */
@@ -430,9 +430,13 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
 .assistant-notice {
   color: var(--ion-color-medium-shade, #5f6368);
 }
+/* An icon keeps its size and stays on the first line, however many lines its text takes. */
+.assistant-receipts :deep(ion-icon),
 .assistant-notice :deep(ion-icon) {
   flex: none;
   margin-top: 2px;
+}
+.assistant-notice :deep(ion-icon) {
   color: var(--ion-color-warning-shade, #b07d00);
 }
 .assistant-upgrade {
