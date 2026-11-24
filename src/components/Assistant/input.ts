@@ -1,7 +1,8 @@
 // The limits mirror what erplora.com accepts (the SaaS's assistant/attachments.py): files of the types it reads, at
 // most 8 MB each (its door takes about 9) and 20 MB per question; a dictation in a type it transcribes, at most two
-// minutes (its door takes 2 MB). On a touch screen Enter is a new line and the send button sends, as the messaging apps
-// do.
+// minutes (its door takes 2 MB). A file the host's own tools take (`AssistantConfig.toolFiles`) has the host's limit
+// instead. On a touch screen Enter is a new line and the send button sends, as the messaging apps do.
+import type { AssistantToolFile } from './config';
 
 export const MAX_FILE_BYTES = 8 * 1024 * 1024;
 export const MAX_QUESTION_BYTES = 20 * 1024 * 1024;
@@ -26,8 +27,12 @@ const BY_EXTENSION: Record<string, string> = {
 };
 const READ = new Set([...IMAGES, 'application/pdf', WORD, SHEET, 'text/plain', 'text/csv', 'text/markdown', 'application/json']);
 
-/** The file picker's `accept`: what erplora.com reads. */
-export const ACCEPT = [...IMAGES, 'application/pdf', '.docx', '.xlsx', '.txt', '.csv', '.md', '.json'].join(',');
+const READ_ACCEPT = [...IMAGES, 'application/pdf', '.docx', '.xlsx', '.txt', '.csv', '.md', '.json'];
+
+/** The file picker's `accept`: what erplora.com reads and what the host's tools take. */
+export function acceptOf(tools: readonly AssistantToolFile[] = []): string {
+  return [...READ_ACCEPT, ...tools.flatMap((tool) => [tool.extension, tool.mime])].join(',');
+}
 
 export function enterSends(event: KeyboardEvent, coarse: boolean): boolean {
   return event.key === 'Enter' && !event.shiftKey && !event.isComposing && !coarse;
@@ -38,8 +43,16 @@ function extension(name: string): string {
   return dot < 0 ? '' : name.slice(dot + 1).toLowerCase();
 }
 
-/** The file's type, by its extension when the browser gives none (a `.md` or a `.csv` often come without). */
-export function mimeOf(file: { name: string; type: string }): string {
+function toolOf(file: { name: string }, tools: readonly AssistantToolFile[]): AssistantToolFile | undefined {
+  const name = file.name.toLowerCase();
+  return tools.find((tool) => name.endsWith(tool.extension.toLowerCase()));
+}
+
+/** The file's type, by its extension when the browser gives none (a `.md` or a `.csv` often come without) or one
+ *  the host's tool does not name (Windows calls a zip `application/x-zip-compressed`). */
+export function mimeOf(file: { name: string; type: string }, tools: readonly AssistantToolFile[] = []): string {
+  const tool = toolOf(file, tools);
+  if (tool) return tool.mime;
   const type = file.type.split(';')[0].trim().toLowerCase();
   return type && READ.has(type) ? type : (BY_EXTENSION[extension(file.name)] ?? type);
 }
@@ -50,9 +63,15 @@ export interface Problem {
 }
 
 /** Why `file` cannot go with the question that already carries `total` bytes, or `null`. */
-export function fileProblem(file: { name: string; type: string; size: number }, total: number): Problem | null {
-  if (!READ.has(mimeOf(file))) return { key: 'assistant.files.unsupported', values: { name: file.name } };
-  if (file.size > MAX_FILE_BYTES) return { key: 'assistant.files.tooLarge', values: { name: file.name } };
+export function fileProblem(
+  file: { name: string; type: string; size: number },
+  total: number,
+  tools: readonly AssistantToolFile[] = [],
+): Problem | null {
+  const tool = toolOf(file, tools);
+  if (tool && file.size > tool.maxBytes) return { key: tool.tooLargeKey, values: { name: file.name } };
+  if (!tool && !READ.has(mimeOf(file))) return { key: 'assistant.files.unsupported', values: { name: file.name } };
+  if (!tool && file.size > MAX_FILE_BYTES) return { key: 'assistant.files.tooLarge', values: { name: file.name } };
   if (total + file.size > MAX_QUESTION_BYTES) return { key: 'assistant.files.tooMuch', values: {} };
   return null;
 }

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { LiveClient } from '../../sdk/live-client';
 import { accessibleName, configure, flush, memoryStorage, mountAssistant } from './__tests__/mount-assistant';
-import { type AssistantClip, configureAssistant } from './config';
+import { type AssistantClip, type AssistantToolFile, configureAssistant } from './config';
 import { type Assistant, createAssistant, installAssistant } from './state';
 import type { TurnBody, TurnOptions } from './stream';
 import AssistantComposer from './AssistantComposer.vue';
@@ -59,16 +59,23 @@ const microphone = () => ({
   MediaRecorder: Recorder as never,
 });
 
-async function composer(
-  options: { offline?: boolean; voice?: object; answer?: () => { text: string }; locale?: 'en' | 'es'; transcribes?: boolean } = {},
-) {
+interface ComposerOptions {
+  offline?: boolean;
+  voice?: object;
+  answer?: () => { text: string };
+  locale?: 'en' | 'es';
+  transcribes?: boolean;
+  toolFiles?: AssistantToolFile[];
+}
+
+async function composer(options: ComposerOptions = {}) {
   const sent: AssistantClip[] = [];
   // The host's transcription (the Hub's, through erplora.com), unless the test's host has none.
   const transcribe = vi.fn(async (_client: LiveClient, clip: AssistantClip) => {
     sent.push(clip);
     return (options.answer ?? (() => ({ text: 'dos cafés' })))();
   });
-  configure(options.transcribes === false ? {} : { transcribe });
+  configure({ ...(options.transcribes === false ? {} : { transcribe }), ...(options.toolFiles ? { toolFiles: options.toolFiles } : {}) });
   const m = await mountAssistant(AssistantComposer, {
     locale: options.locale ?? 'es',
     props: { offline: options.offline ?? false, voice: options.voice ?? {} },
@@ -165,6 +172,39 @@ describe('AssistantComposer', () => {
       'foto.heic no se puede adjuntar: imágenes, PDF, Word, Excel, texto o CSV.',
     );
     expect(m.wrapper.findAll('[data-testid="assistant-file"]').map((chip) => chip.text())).toEqual(['datos.csv']);
+  });
+
+  // The Hub's copy of a business (`.blueprint.zip`): its own tool loads it, with the limit of its own screen.
+  const ZIP: AssistantToolFile = { extension: '.zip', mime: 'application/zip', maxBytes: 20 * 1024 * 1024, tooLargeKey: 'host.files.tooBig' };
+  const zip = (size: number, type = 'application/zip') => {
+    const copy = new File(['PK'], 'copia.blueprint.zip', { type });
+    Object.defineProperty(copy, 'size', { value: size });
+    return copy;
+  };
+  const picker = (m: Awaited<ReturnType<typeof composer>>) =>
+    (m.wrapper.get('[data-testid="assistant-attach-input"]').element as HTMLInputElement).accept.split(',');
+
+  it('a zip is offered only by a host whose tools take it, and goes with the question as it is', async () => {
+    const plain = await composer();
+    expect(picker(plain)).not.toContain('.zip');
+    plain.wrapper.unmount();
+    const m = await composer({ toolFiles: [ZIP] });
+    expect(picker(m)).toEqual(expect.arrayContaining(['.zip', 'application/zip', 'application/pdf']));
+    // Larger than what erplora.com reads (8 MB), within what its tool takes.
+    await attach(m, zip(9 * 1024 * 1024, ''));
+    expect(m.wrapper.find('[data-testid="assistant-composer-problem"]').exists()).toBe(false);
+    expect(m.wrapper.findAll('[data-testid="assistant-file"]').map((chip) => chip.text())).toEqual(['copia.blueprint.zip']);
+    await m.wrapper.get('[data-testid="assistant-send"]').trigger('click');
+    expect(posted[0].messages[0].content).toEqual([
+      { type: 'input_file', filename: 'copia.blueprint.zip', mime_type: 'application/zip', data: 'UEs=' },
+    ]);
+  });
+
+  it('a zip larger than its tool takes is refused in the host\'s words', async () => {
+    const m = await composer({ toolFiles: [ZIP] });
+    await attach(m, zip(20 * 1024 * 1024 + 1));
+    expect(m.wrapper.get('[data-testid="assistant-composer-problem"]').text()).toBe('copia.blueprint.zip pasa de 20 MB.');
+    expect(m.wrapper.findAll('[data-testid="assistant-file"]')).toHaveLength(0);
   });
 
   it('no microphone where the browser cannot record', async () => {

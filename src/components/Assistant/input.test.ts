@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { AssistantToolFile } from './config';
 import {
-  ACCEPT,
+  acceptOf,
   base64Of,
   canDictate,
   enterSends,
@@ -39,8 +40,8 @@ describe('files', () => {
     expect(mimeOf(file('x.json', ''))).toBe('application/json');
     expect(mimeOf(file('carta.docx', ''))).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     expect(mimeOf(file('libro.xlsx', ''))).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    expect(ACCEPT).toContain('.docx');
-    expect(ACCEPT).toContain('application/pdf');
+    expect(acceptOf()).toContain('.docx');
+    expect(acceptOf()).toContain('application/pdf');
   });
 
   it('takes what it reads and says why it refuses the rest', () => {
@@ -58,6 +59,36 @@ describe('files', () => {
       key: 'assistant.files.tooMuch',
       values: {},
     });
+  });
+
+  // The Hub's copy of a business: its tool takes the file as it is, with its own limit and its own words.
+  const ZIP: AssistantToolFile = { extension: '.zip', mime: 'application/zip', maxBytes: 20 * MB, tooLargeKey: 'host.files.tooBig' };
+
+  it('a file the host\'s tools take is offered and recognised only for that host', () => {
+    expect(acceptOf().split(',')).not.toContain('.zip');
+    expect(acceptOf([ZIP]).split(',')).toEqual([...acceptOf().split(','), '.zip', 'application/zip']);
+    expect(mimeOf(file('copia.blueprint.zip', ''), [ZIP])).toBe('application/zip');
+    // Windows names a zip its own way: its ending says what it is.
+    expect(mimeOf(file('copia.blueprint.zip', 'application/x-zip-compressed'), [ZIP])).toBe('application/zip');
+    expect(mimeOf(file('copia.blueprint.zip', 'application/zip'), [ZIP])).toBe('application/zip');
+    expect(fileProblem(file('copia.blueprint.zip', 'application/zip'), 0)).toEqual({
+      key: 'assistant.files.unsupported',
+      values: { name: 'copia.blueprint.zip' },
+    });
+  });
+
+  it('a file the host\'s tools take has the host\'s limit and says so in the host\'s words', () => {
+    expect(fileProblem(file('copia.blueprint.zip', 'application/zip', 20 * MB), 0, [ZIP])).toBeNull();
+    expect(fileProblem(file('copia.blueprint.zip', 'application/zip', 20 * MB + 1), 0, [ZIP])).toEqual({
+      key: 'host.files.tooBig',
+      values: { name: 'copia.blueprint.zip' },
+    });
+    expect(fileProblem(file('copia.blueprint.zip', 'application/zip', 3 * MB), MAX_QUESTION_BYTES - 2 * MB, [ZIP])).toEqual({
+      key: 'assistant.files.tooMuch',
+      values: {},
+    });
+    // What erplora.com reads keeps its own limit beside it.
+    expect(fileProblem(file('big.pdf', 'application/pdf', 8 * MB + 1), 0, [ZIP])?.key).toBe('assistant.files.tooLarge');
   });
 
   it('reads a file as base64, without the data: prefix', async () => {

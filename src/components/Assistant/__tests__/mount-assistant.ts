@@ -46,6 +46,7 @@ export const HOST_MESSAGES = {
       operations: { cart_checkout: { cart: { clear: 'Clear' } }, cash_register: { count: { add: 'Register count' } } },
       screens: { home: 'Home', settings: 'Settings' },
       spentNote: 'Each business has its own assistant.',
+      files: { tooBig: '{name} is larger than 20 MB.' },
     },
   },
   es: {
@@ -57,6 +58,7 @@ export const HOST_MESSAGES = {
       operations: { cart_checkout: { cart: { clear: 'Vaciar' } }, cash_register: { count: { add: 'Registrar arqueo' } } },
       screens: { home: 'Inicio', settings: 'Ajustes' },
       spentNote: 'Cada negocio tiene su propio asistente.',
+      files: { tooBig: '{name} pasa de 20 MB.' },
     },
   },
 };
