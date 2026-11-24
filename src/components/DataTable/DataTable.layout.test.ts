@@ -149,7 +149,7 @@ describe('a list that does not fit even folded shows cards (#267)', () => {
 
   function playBackLayout(): void {
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
-      return this.classList.contains('data-table') || this.classList.contains('data-table__scroll') ? hole : 0;
+      return this.matches('.data-table, .data-table__bar, .data-table__scroll') ? hole : 0;
     });
     vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
       if (!this.classList.contains('data-table__scroll')) return 0;

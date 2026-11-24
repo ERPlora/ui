@@ -81,24 +81,35 @@ export function crossBreakpoint(matches: boolean): void {
   for (const listener of mediaListeners) listener({ matches });
 }
 
-/** Width of the table's box (the host and its scroller) that `playBackLayout` plays back. */
+/** Width of the table's box that `playBackLayout` plays back. */
 let box = 900;
 let boxObservers: { fire: () => void } = { fire: () => {} };
 
+/** What the open filters panel takes of the box beside the toolbar and the rows (the stylesheet's, from 834 px). */
+const PANEL = 360;
+
+/** The table is as wide as its box; its toolbar and its scroller, what the open filters panel leaves of it. */
+function playedWidth(el: Element): number {
+  if (el.classList.contains('data-table')) return box;
+  if (!el.matches('.data-table__bar, .data-table__scroll')) return 0;
+  return el.parentElement?.classList.contains('data-table__surface--panel') ? box - PANEL : box;
+}
+
 /**
- * happy-dom lays nothing out. This plays a layout back on a wide screen: the table and its scroller are as
- * wide as the box (900px until a test says otherwise), every element is `button` px square, and an element's
- * `scrollWidth` is what `scrollWidth` answers for it in the box it has. `clearLayout()` undoes it.
+ * happy-dom lays nothing out. This plays a layout back on a wide screen: the table, its toolbar and its scroller are
+ * as wide as the box (900px until a test says otherwise) less the filters panel open beside them, every element is
+ * `button` px square, and an element's `scrollWidth` is what `scrollWidth` answers for it in the room it has.
+ * `clearLayout()` undoes it.
  */
-export function playBackLayout(button: number, scrollWidth: (el: Element, box: number) => number): void {
+export function playBackLayout(button: number, scrollWidth: (el: Element, room: number) => number): void {
   viewport(false);
   box = 900;
   boxObservers = mockResizeObserver();
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
-    return this.classList.contains('data-table') || this.classList.contains('data-table__scroll') ? box : 0;
+    return playedWidth(this);
   });
   vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function (this: Element) {
-    return scrollWidth(this, box);
+    return scrollWidth(this, playedWidth(this) || box);
   });
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
     () => ({ width: button, height: button, top: 0, left: 0, right: button, bottom: button, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect,
