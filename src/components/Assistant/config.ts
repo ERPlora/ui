@@ -69,6 +69,10 @@ export interface AssistantConfig {
   turnUrl: string;
   /** The files the host's tools take as they are, beside what erplora.com reads; none when not given. */
   toolFiles?: readonly AssistantToolFile[];
+  /** Saves a file a read handed in the chat (a CSV export) where the host's screens save their downloads, also inside
+   *  its installed app, saying what it must with the panel's `t` (the host's words too); without it, the chat offers
+   *  no file. */
+  saveFile?: (filename: string, file: Blob, t: (key: string, values?: Record<string, unknown>) => string) => Promise<unknown>;
   /** The pass of a request being repeated after an approval, sent as `X-Elevation-Token`. */
   elevationToken?: () => string | undefined;
   approval?: AssistantApproval;

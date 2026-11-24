@@ -19,6 +19,7 @@ export interface Turn {
 
 type DoneFrame = Extract<TurnFrame, { type: 'done' }>;
 type ErrorFrame = Extract<TurnFrame, { type: 'error' }>;
+type ExecutedFrame = Extract<TurnFrame, { type: 'executed' }>;
 
 interface Failure {
   code: string;
@@ -71,11 +72,17 @@ function refuse(round: Round, frame: ErrorFrame, onUsage: (usage: AssistantUsage
   if (usage) onUsage(usage);
 }
 
+/** What ran, for the receipts and the check of the answer; a file a read handed goes under the answer right away. */
+function ran(turn: Turn, frame: ExecutedFrame): void {
+  turn.executed.push({ name: frame.name, kind: frame.kind, outcome: frame.outcome, app: frame.app, app_name: frame.app_name, screen: frame.screen, reason: frame.reason });
+  if (frame.file) (turn.bubble.handed ??= []).push(frame.file);
+}
+
 /** Writes each frame of a round into its turn as it arrives; the month's usage it reports goes to `onUsage`. */
 export function frameReader(turn: Turn, round: Round, onUsage: (usage: AssistantUsage) => void): (frame: TurnFrame) => void {
   return (frame) => {
     if (frame.type === 'text') write(turn, round, frame.text);
-    else if (frame.type === 'executed') turn.executed.push({ name: frame.name, kind: frame.kind, outcome: frame.outcome, app: frame.app, app_name: frame.app_name, screen: frame.screen, reason: frame.reason });
+    else if (frame.type === 'executed') ran(turn, frame);
     else if (frame.type === 'usage') onUsage({ used: frame.used, limit: frame.limit, resets_at: frame.resets_at, demo: frame.demo });
     else if (frame.type === 'confirm') round.confirm = { card: frame.card, call: frame.call };
     else if (frame.type === 'error') refuse(round, frame, onUsage);
