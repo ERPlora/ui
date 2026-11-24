@@ -68,6 +68,16 @@ describe('the thread of a tab', () => {
     expect(storage.getItem(HISTORY_KEY)).not.toContain('JVBERi0x');
   });
 
+  it('keeps a file the assistant handed by its name, never its content: the tab still has it until it reloads', () => {
+    const storage = memoryStorage();
+    const file = { filename: 'customers.csv', content_type: 'text/csv', content: 'name,email\nLucía,lucia@example.com\n' };
+    const handed = thread({ bubbles: [{ id: 'b2', role: 'assistant', text: 'Aquí lo tienes.', files: [], notices: [], done: true, handed: [file] }] });
+    saveThread(storage, handed);
+    expect(loadThread(storage, 'u1').bubbles[0].handed).toEqual([{ filename: 'customers.csv', content_type: 'text/csv' }]);
+    expect(storage.getItem(HISTORY_KEY)).not.toContain('lucia@example.com');
+    expect(handed.bubbles[0].handed).toEqual([file]);
+  });
+
   it('a storage that refuses (private mode, full) is ignored: the thread lives on in memory', () => {
     const refusing = { ...memoryStorage(), setItem: () => { throw new Error('QuotaExceededError'); } } as Storage;
     expect(() => saveThread(refusing, thread())).not.toThrow();

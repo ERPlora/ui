@@ -24,6 +24,10 @@
     "stopped": "Stopped.",
     "writing": "The assistant is writing",
     "goTo": "Go to {name}",
+    "handedFile": {
+      "download": "Download {name}",
+      "gone": "The file «{name}» is no longer here: ask for it again to download it."
+    },
     "retry": "Try again",
     "signIn": "Sign in again",
     "upgrade": "Upgrade plan",

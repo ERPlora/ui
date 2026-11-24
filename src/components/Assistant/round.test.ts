@@ -40,6 +40,16 @@ describe('the frames of a round, written into its turn', () => {
     expect(round.done).toBe(closed);
   });
 
+  it('a file a read hands the person goes under the answer as soon as the read ran, beside what ran; a read that hands none says `file: null`', () => {
+    const turn = aTurn();
+    const read = frameReader(turn, newRound(), vi.fn());
+    const file = { filename: 'inventario-productos.csv', content_type: 'text/csv', content: '﻿Nombre;SKU\nCaña;C-1\n' };
+    read({ type: 'executed', call_id: 'r1', name: 'demo.item.export', app: 'demo', app_name: 'Demo', kind: 'query', outcome: 'ok', code: '', file });
+    read({ type: 'executed', call_id: 'r2', name: 'demo.item.list', app: 'demo', app_name: 'Demo', kind: 'query', outcome: 'ok', code: '', file: null });
+    expect(turn.bubble.handed).toEqual([file]);
+    expect(turn.executed.map((row) => row.name)).toEqual(['demo.item.export', 'demo.item.list']);
+  });
+
   it('keeps why a write failed, as the server said it, for its receipt', () => {
     const turn = aTurn();
     const read = frameReader(turn, newRound(), vi.fn());
@@ -85,13 +95,20 @@ describe('the request of a round', () => {
   it('carries the whole conversation and the setup, and only what the turn still owes', () => {
     const thread = { ...emptyThread('u1'), setup: true };
     thread.conversation.push({ role: 'user', content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,AA' }, filename: 'a.png' }] });
-    expect(bodyOf(aTurn(), thread, undefined)).toEqual({
+    expect(bodyOf(aTurn(), { thread }, undefined)).toEqual({
       messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,AA' } }] }],
       setup: true,
     });
     const owing = { ...aTurn(), continuation: 'k1', pending: [CREATE] };
     const decision = { call_id: 'c1', accepted: true };
-    expect(bodyOf(owing, thread, decision)).toMatchObject({ continuation: 'k1', pending: [CREATE], decision });
+    expect(bodyOf(owing, { thread }, decision)).toMatchObject({ continuation: 'k1', pending: [CREATE], decision });
+  });
+
+  it('keeps the name of an attached image for a host whose turn takes it, so its tools may keep the image', () => {
+    const thread = emptyThread('u1');
+    const image = { type: 'image_url' as const, image_url: { url: 'data:image/png;base64,AA' }, filename: 'a.png' };
+    thread.conversation.push({ role: 'user', content: [image] });
+    expect(bodyOf(aTurn(), { thread, imageNames: true }, undefined).messages).toEqual([{ role: 'user', content: [image] }]);
   });
 
   it('a call that is not done is heard by the model as a «Cancel»', () => {
