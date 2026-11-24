@@ -235,7 +235,7 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   };
 
   onMounted(() => {
-    // In cards there is no list to observe: the host's own width says when it fits again.
+    // In cards there is no list to observe: the host says when the box changes; a render, when the filters panel does.
     if (typeof ResizeObserver !== 'undefined' && source.root.value) {
       hostObserver = new ResizeObserver(() => measureRowActionsFit());
       hostObserver.observe(source.root.value);

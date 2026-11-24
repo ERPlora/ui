@@ -105,13 +105,13 @@ export interface CardsForFitInput {
   /** Cards are declared and nothing else owns the view (no choice by hand, no phone, no
    *  `defaultView="cards"`). */
   allowed: boolean;
-  /** Width the list has or would have, in px, whatever is open beside it (`0` = not laid out yet). */
+  /** Width the list has, or would have instead of its cards, beside an open filters panel, in px (`0` = not laid out yet). */
   hostWidth: number;
   /** The list measured FOLDED with the fold decision settled at this width; `null` otherwise. */
   folded: { containerWidth: number; contentWidth: number } | null;
   /** The list is showing cards because it did not fit. */
   fitCards: boolean;
-  /** Host width from which the list fits again (meaningful while `fitCards`). */
+  /** Width from which the list fits again (meaningful while `fitCards`). */
   fitWidth: number;
 }
 
@@ -123,7 +123,7 @@ export interface CardsForFitDecision {
 /**
  * The list does not fit its hole even with the row actions folded: hand over to the cards.
  * PURE, and it never oscillates: in cards the list cannot be measured, so the width it needs is
- * remembered (host width + overflow) and the list only comes back once the host reaches it.
+ * remembered (its width + overflow) and the list only comes back once it would have it.
  */
 export function decideCardsForFit(input: CardsForFitInput): CardsForFitDecision {
   const { allowed, hostWidth, folded, fitCards, fitWidth } = input;
