@@ -95,13 +95,20 @@ describe('the request of a round', () => {
   it('carries the whole conversation and the setup, and only what the turn still owes', () => {
     const thread = { ...emptyThread('u1'), setup: true };
     thread.conversation.push({ role: 'user', content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,AA' }, filename: 'a.png' }] });
-    expect(bodyOf(aTurn(), thread, undefined)).toEqual({
+    expect(bodyOf(aTurn(), { thread }, undefined)).toEqual({
       messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,AA' } }] }],
       setup: true,
     });
     const owing = { ...aTurn(), continuation: 'k1', pending: [CREATE] };
     const decision = { call_id: 'c1', accepted: true };
-    expect(bodyOf(owing, thread, decision)).toMatchObject({ continuation: 'k1', pending: [CREATE], decision });
+    expect(bodyOf(owing, { thread }, decision)).toMatchObject({ continuation: 'k1', pending: [CREATE], decision });
+  });
+
+  it('keeps the name of an attached image for a host whose turn takes it, so its tools may keep the image', () => {
+    const thread = emptyThread('u1');
+    const image = { type: 'image_url' as const, image_url: { url: 'data:image/png;base64,AA' }, filename: 'a.png' };
+    thread.conversation.push({ role: 'user', content: [image] });
+    expect(bodyOf(aTurn(), { thread, imageNames: true }, undefined).messages).toEqual([{ role: 'user', content: [image] }]);
   });
 
   it('a call that is not done is heard by the model as a «Cancel»', () => {
