@@ -97,7 +97,7 @@ export function markWeb(turn: Turn, round: Round): void {
 }
 
 /** The conversation as the gateway takes it: an image's file name is the panel's, not a field of its part. */
-function forGateway(conversation: ChatMessage[]): ChatMessage[] {
+function withoutImageNames(conversation: ChatMessage[]): ChatMessage[] {
   return conversation.map((message) =>
     Array.isArray(message.content)
       ? {
@@ -108,8 +108,12 @@ function forGateway(conversation: ChatMessage[]): ChatMessage[] {
   );
 }
 
-export function bodyOf(turn: Turn, thread: Thread, decision: Decision | undefined): TurnBody {
-  const body: TurnBody = { messages: forGateway(thread.conversation), setup: thread.setup };
+/** The request of a round of `turn`, in the conversation of `host.thread`: each attached image with its name only for a
+ *  host whose turn takes it (`imageNames`). */
+export function bodyOf(turn: Turn, host: { thread: Thread; imageNames?: boolean }, decision: Decision | undefined): TurnBody {
+  const { thread } = host;
+  const messages = host.imageNames ? thread.conversation : withoutImageNames(thread.conversation);
+  const body: TurnBody = { messages, setup: thread.setup };
   if (turn.continuation) body.continuation = turn.continuation;
   if (turn.pending.length) body.pending = turn.pending;
   if (decision) body.decision = decision;

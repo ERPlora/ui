@@ -26,6 +26,8 @@ export interface TurnDeps {
   /** The host's approval of a request (the Hub's manager approval); none: each request runs as it is. */
   approval?: AssistantApproval;
   storage?: Storage;
+  /** Whether the host's turn takes each attached image with its name (`AssistantConfig.imageNames`). */
+  imageNames?: boolean;
 }
 
 /** What the assistant shares with its turns: the turn and the request in flight are one for both sides. */
@@ -120,7 +122,7 @@ async function round(s: TurnContext, current: Turn, decision: Decision | undefin
   s.controller = new AbortController();
   const said = newRound();
   const onFrame = frameReader(current, said, (usage) => { s.state.usage = usage; });
-  const body = bodyOf(current, s.state.thread, decision);
+  const body = bodyOf(current, { thread: s.state.thread, imageNames: s.imageNames }, decision);
   try {
     await send(s, body, { onFrame, signal: s.controller.signal });
   } catch (error) {

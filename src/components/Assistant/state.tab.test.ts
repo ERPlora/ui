@@ -6,6 +6,15 @@ import { type AssistantApproval, configureAssistant } from './config';
 import { HISTORY_KEY } from './history';
 import { forgetAssistant, installAssistant, useAssistant } from './state';
 
+/** The page's own configuration, as the host renders it: the turn's headers read it. */
+function pageConfig(): void {
+  const config = document.createElement('script');
+  config.id = 'spa-config';
+  config.type = 'application/json';
+  config.textContent = JSON.stringify({ csrfCookieName: 'csrftoken', csrfHeader: 'X-CSRFToken', liveUrl: '/api/live', apiBase: '/api', lang: 'es', deviceIdStorageKey: 'erplora.device' });
+  document.body.append(config);
+}
+
 describe("the tab's assistant (`useAssistant`), as the host configured it", () => {
   afterEach(() => {
     installAssistant(undefined);
@@ -19,11 +28,7 @@ describe("the tab's assistant (`useAssistant`), as the host configured it", () =
   });
 
   it("posts each turn to the host's route, through the host's approval, with the host's pass", async () => {
-    const config = document.createElement('script');
-    config.id = 'spa-config';
-    config.type = 'application/json';
-    config.textContent = JSON.stringify({ csrfCookieName: 'csrftoken', csrfHeader: 'X-CSRFToken', liveUrl: '/api/live', apiBase: '/api', lang: 'es', deviceIdStorageKey: 'erplora.device' });
-    document.body.append(config);
+    pageConfig();
     const fetcher = vi.fn<typeof fetch>(async () =>
       new Response('data: {"type":"text","text":"ok"}\n\ndata: {"type":"done","append":[],"pending":[],"continuation":null}\n\n', {
         headers: { 'Content-Type': 'text/event-stream' },
@@ -45,6 +50,23 @@ describe("the tab's assistant (`useAssistant`), as the host configured it", () =
     expect(new Headers(init?.headers).get('X-Elevation-Token')).toBe('pass');
     expect(run).toHaveBeenCalledTimes(1);
     expect(assistant.state.thread.bubbles.at(-1)?.text).toBe('ok');
+  });
+
+  it('gives the turn each attached image with its name when the host takes it (`imageNames`)', async () => {
+    pageConfig();
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      new Response('data: {"type":"done","append":[],"pending":[],"continuation":null}\n\n', {
+        headers: { 'Content-Type': 'text/event-stream' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetcher);
+    configureAssistant({ turnUrl: '/api/assistant/turn', imageNames: true });
+    const assistant = useAssistant();
+    assistant.forUser('u1');
+    assistant.state.files.push({ name: 'factura.png', mime: 'image/png', data: 'AA' });
+    await assistant.ask('');
+    const sent = JSON.parse(String(fetcher.mock.calls[0][1]?.body)) as { messages: { content: { filename?: string }[] }[] };
+    expect(sent.messages.at(-1)?.content.map((part) => part.filename)).toEqual(['factura.png']);
   });
 });
 
