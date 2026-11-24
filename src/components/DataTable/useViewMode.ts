@@ -14,8 +14,8 @@ export interface ViewModeSource {
 
 const TOOLBAR = ':scope > .data-table__surface > .data-table__bar';
 
-/** The width the rows have. An open filters panel takes its place inside the table's box, beside the toolbar and
- *  the rows, so the toolbar is as wide as they are; without one no panel opens and the room is the box. */
+/** The width the rows have: their toolbar's, since an open filters panel stands beside both inside the table's box.
+ *  A table without a toolbar has no funnel to open it, so its rows have the whole box. */
 function rowsRoom(root: HTMLElement | null): number {
   return (root?.querySelector<HTMLElement>(TOOLBAR) ?? root)?.clientWidth ?? 0;
 }
