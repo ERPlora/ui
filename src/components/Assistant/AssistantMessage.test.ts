@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { flushPromises } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { configure, mountAssistant } from './__tests__/mount-assistant';
 import AssistantMessage from './AssistantMessage.vue';
@@ -278,6 +279,52 @@ describe('AssistantMessage', () => {
     const { wrapper } = await mountBubble(answer({ text: 'Tienes 3.' }), { canReport: false });
     expect(wrapper.find('[data-testid="assistant-report"]').exists()).toBe(false);
     wrapper.unmount();
+  });
+
+  it('a file a read handed is under the answer: «Descargar …» gives the host the whole file to save', async () => {
+    const saveFile = vi.fn(async () => true);
+    configure({ saveFile });
+    const content = '﻿Nombre;SKU\nCaña;C-1\n';
+    const handed = [{ filename: 'inventario-productos.csv', content_type: 'text/csv', content }];
+    const { wrapper } = await mountBubble(answer({ text: 'Aquí tienes la carta.', handed }));
+    const button = wrapper.find('[data-testid="assistant-file"]');
+    expect(button.text()).toBe('Descargar inventario-productos.csv');
+    await button.trigger('click');
+    await flushPromises();
+    expect(saveFile).toHaveBeenCalledTimes(1);
+    const [name, blob, translate] = saveFile.mock.calls[0] as unknown as [string, Blob, (key: string) => string];
+    expect([name, blob.type, await blob.text()]).toEqual(['inventario-productos.csv', 'text/csv', content]);
+    // The host says its own words with the panel's: a toast of where the file went, or why it could not.
+    expect(translate('host.spentNote')).toBe('Cada negocio tiene su propio asistente.');
+  });
+
+  it('a file being saved cannot be asked for twice until the host answers', async () => {
+    let answered: (saved: boolean) => void = () => undefined;
+    configure({ saveFile: () => new Promise<boolean>((resolve) => (answered = resolve)) });
+    const handed = [{ filename: 'customers.csv', content_type: 'text/csv', content: 'name\nAna\n' }];
+    const { wrapper } = await mountBubble(answer({ text: 'Listo.', handed }));
+    // Ionic's button takes `disabled` as its property once it is defined, and reflects it later.
+    const disabled = () => (wrapper.find('[data-testid="assistant-file"]').element as HTMLIonButtonElement).disabled;
+    await wrapper.find('[data-testid="assistant-file"]').trigger('click');
+    expect(disabled()).toBe(true);
+    answered(true);
+    await flushPromises();
+    expect(disabled()).toBe(false);
+  });
+
+  it('a file kept from before a reload has no content: its name says it is gone and how to get it again', async () => {
+    configure({ saveFile: vi.fn() });
+    const { wrapper } = await mountBubble(answer({ text: 'Aquí la tienes.', handed: [{ filename: 'customers.csv', content_type: 'text/csv' }] }));
+    expect(wrapper.find('[data-testid="assistant-file"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="assistant-file-gone"]').text()).toBe(
+      'El fichero «customers.csv» ya no está aquí: pídelo otra vez para descargarlo.',
+    );
+  });
+
+  it('a host that saves no file offers none', async () => {
+    const handed = [{ filename: 'customers.csv', content_type: 'text/csv', content: 'name\nAna\n' }];
+    const { wrapper } = await mountBubble(answer({ text: 'Listo.', handed }));
+    expect(wrapper.find('[data-testid="assistant-files"]').exists()).toBe(false);
   });
 
   it('what was not done from the chat says so', async () => {

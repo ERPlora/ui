@@ -1,6 +1,7 @@
 // The conversation lives only in this tab of the person's browser (`sessionStorage`), never on a server: a reload
 // brings it back, closing the tab loses it. It belongs to one person, so another one on the same till (a switch by PIN)
 // starts empty and the other's is removed. An attachment's data travels once, with its question; kept, it is its name.
+// A file the assistant handed (a CSV export) lives in the tab until it reloads; kept, it is its name too.
 import type { GroundingNotice, Reason } from './grounding';
 
 export const HISTORY_KEY = 'erplora.assistant.history';
@@ -24,6 +25,14 @@ export interface ChatMessage {
   tool_call_id?: string;
 }
 
+/** A file a read of the host hands the person whole (a CSV export), as its screen's button saves it; without its
+ *  `content` once kept: it is said gone, to be asked for again. */
+export interface HandedFile {
+  filename: string;
+  content_type: string;
+  content?: string;
+}
+
 /** A bubble of the panel. */
 export interface Bubble {
   id: string;
@@ -45,6 +54,8 @@ export interface Bubble {
   question?: string;
   /** What ran in the turn, for the receipts under the bubble. */
   executed?: { name: string; app: string; app_name?: string; screen?: string; outcome: string; reason?: Reason }[];
+  /** The files the turn's reads handed the person, to download under the answer. */
+  handed?: HandedFile[];
   /** Whether its turn brought pages of the web (any round of it), said with its report; unknown — kept before
    *  the mark, a host that does not say — when not there. */
   web?: boolean;
@@ -75,6 +86,11 @@ export function withoutData(conversation: ChatMessage[]): ChatMessage[] {
   );
 }
 
+function keptBubble(bubble: Bubble): Bubble {
+  if (!bubble.handed) return bubble;
+  return { ...bubble, handed: bubble.handed.map(({ filename, content_type }) => ({ filename, content_type })) };
+}
+
 export function loadThread(storage: Storage | undefined, user: string): Thread {
   let raw: string | null = null;
   try {
@@ -102,7 +118,7 @@ export function loadThread(storage: Storage | undefined, user: string): Thread {
 
 export function saveThread(storage: Storage | undefined, thread: Thread): void {
   try {
-    storage?.setItem(HISTORY_KEY, JSON.stringify({ ...thread, conversation: withoutData(thread.conversation) }));
+    storage?.setItem(HISTORY_KEY, JSON.stringify({ ...thread, conversation: withoutData(thread.conversation), bubbles: thread.bubbles.map(keptBubble) }));
   } catch {
     // A storage that refuses (private mode, full): the thread lives on in memory until the tab closes.
   }

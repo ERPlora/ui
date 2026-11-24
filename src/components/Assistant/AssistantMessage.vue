@@ -1,17 +1,17 @@
 <script setup lang="ts">
 // Under the assistant's answer goes what the panel adds and the model never writes: «Go to …» for up to four screens it
-// names, the notices of what it said against what ran, a receipt of each action of the turn and a failure with its way
-// out. A receipt says its action by the host's verb (`AssistantConfig.verbKey`) and where it happened by the host's
+// names, «Download …» for each file a read handed (saved by the host, `AssistantConfig.saveFile`), the notices of what it
+// said against what ran, a receipt of each action of the turn and a failure with its way out. A receipt says its action by the host's verb (`AssistantConfig.verbKey`) and where it happened by the host's
 // screen (`placeKey`) or the app's menu name.
 import { IonButton, IonIcon } from '@ionic/vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import HubIcon from '../../shell/HubIcon.vue';
 import AssistantMarkdown from './AssistantMarkdown.vue';
 import { assistantConfig, spentNoteKeyOf, verbKeyOf } from './config';
 import { errorView } from './guide';
-import type { Bubble } from './history';
+import type { Bubble, HandedFile } from './history';
 import { ASSISTANT_ICONS } from './icons';
 import { linkPaths, parseMarkdown } from './markdown';
 
@@ -52,6 +52,19 @@ const goes = computed(() =>
     .slice(0, MAX_GO)
     .map((path) => ({ path, name: props.nameOf(path) as string })),
 );
+
+const handed = computed(() => (config.saveFile ? (props.bubble.handed ?? []) : []));
+/** The file whose saving the host has not answered yet, by its place: asked twice, it would be saved twice. */
+const saving = ref<number | null>(null);
+
+async function download(file: HandedFile, index: number): Promise<void> {
+  saving.value = index;
+  try {
+    await config.saveFile?.(file.filename, new Blob([file.content ?? ''], { type: file.content_type }), t);
+  } finally {
+    saving.value = null;
+  }
+}
 
 const failure = computed(() => (props.bubble.error ? errorView(props.bubble.error, props.bubble.details ?? {}) : null));
 
@@ -171,6 +184,39 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
       >
         {{ t('assistant.goTo', { name: go.name }) }}
       </ion-button>
+    </div>
+
+    <div
+      v-if="handed.length"
+      class="assistant-files"
+      data-testid="assistant-files"
+    >
+      <template
+        v-for="(file, index) in handed"
+        :key="index"
+      >
+        <ion-button
+          v-if="file.content !== undefined"
+          size="small"
+          fill="outline"
+          data-testid="assistant-file"
+          :disabled="saving === index"
+          @click="download(file, index)"
+        >
+          <HubIcon
+            slot="start"
+            name="ion:download-outline"
+          />
+          {{ t('assistant.handedFile.download', { name: file.filename }) }}
+        </ion-button>
+        <p
+          v-else
+          class="assistant-muted"
+          data-testid="assistant-file-gone"
+        >
+          {{ t('assistant.handedFile.gone', { name: file.filename }) }}
+        </p>
+      </template>
     </div>
 
     <ul
@@ -391,6 +437,7 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
   }
 }
 .assistant-goes,
+.assistant-files,
 .assistant-actions {
   display: flex;
   flex-wrap: wrap;
