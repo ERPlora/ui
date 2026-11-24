@@ -395,6 +395,7 @@ describe('the one line of a normal write', () => {
   it('a record its name says by a bare figure says what it is too: the table and its guests', () => {
     expect(cardLine(card({ fields: [datum('table', 'Mesa', '4'), datum('guests_count', 'Comensales', 3)] }), said(es))).toBe('Mesa: 4 · Comensales: 3');
     expect(cardLine(card({ fields: [datum('latitude', 'Latitud', '40.4155')] }), said(es))).toBe('Latitud: 40.4155');
+    expect(cardLine(card({ fields: [datum('min_price', 'Precio mínimo', 6500, 'money')] }), said(es))).toBe('Precio mínimo: 65,00 €');
   });
 
   it('what changes on a record says what it is, also a time or a figure with its unit: the old time is not the new one', () => {
