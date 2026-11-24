@@ -24,6 +24,10 @@
     "stopped": "Detenido.",
     "writing": "El asistente está escribiendo",
     "goTo": "Ir a {name}",
+    "handedFile": {
+      "download": "Descargar {name}",
+      "gone": "El fichero «{name}» ya no está aquí: pídelo otra vez para descargarlo."
+    },
     "retry": "Reintentar",
     "signIn": "Volver a entrar",
     "upgrade": "Mejorar plan",
