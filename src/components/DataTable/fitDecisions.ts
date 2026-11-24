@@ -105,7 +105,7 @@ export interface CardsForFitInput {
   /** Cards are declared and nothing else owns the view (no choice by hand, no phone, no
    *  `defaultView="cards"`). */
   allowed: boolean;
-  /** Width of the table's own box, in px (`0` = not laid out yet). */
+  /** Width the list has or would have, in px, whatever is open beside it (`0` = not laid out yet). */
   hostWidth: number;
   /** The list measured FOLDED with the fold decision settled at this width; `null` otherwise. */
   folded: { containerWidth: number; contentWidth: number } | null;

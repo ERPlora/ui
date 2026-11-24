@@ -8,12 +8,13 @@ import { useViewMode } from './useViewMode';
 
 const FOLDED = { containerWidth: 720, contentWidth: 748 };
 
-function mountView(options: { cards?: boolean; defaultView?: DataTableView } = {}) {
+function mountView(options: { cards?: boolean; defaultView?: DataTableView; toolbar?: number } = {}) {
   const cards = ref(options.cards ?? true);
   const breakpoint = ref(640);
   const deps = ref(0);
   const shape = ref('six columns');
   const hostWidth = ref(720);
+  const toolbarWidth = ref(options.toolbar ?? 0);
   const calls = { refit: 0, written: [] as unknown[] };
   let view: ReturnType<typeof useViewMode> | undefined;
   const Probe = defineComponent({
@@ -36,12 +37,15 @@ function mountView(options: { cards?: boolean; defaultView?: DataTableView } = {
           calls.refit += 1;
         },
       );
-      return () => h('div', { ref: root });
+      const toolbar = options.toolbar === undefined ? [] : [h('div', { class: 'data-table__bar' })];
+      return () => h('div', { ref: root }, [h('div', { class: 'data-table__surface' }, toolbar)]);
     },
   });
   const wrapper = mount(Probe);
-  Object.defineProperty(wrapper.element, 'clientWidth', { configurable: true, get: () => hostWidth.value });
-  return { wrapper, view: view as ReturnType<typeof useViewMode>, cards, breakpoint, deps, shape, hostWidth, calls };
+  const plays = (el: Element, width: () => number) => Object.defineProperty(el, 'clientWidth', { configurable: true, get: width });
+  plays(wrapper.element, () => hostWidth.value);
+  if (options.toolbar !== undefined) plays(wrapper.find('.data-table__bar').element, () => toolbarWidth.value);
+  return { wrapper, view: view as ReturnType<typeof useViewMode>, cards, breakpoint, deps, shape, hostWidth, toolbarWidth, calls };
 }
 
 afterEach(() => {
@@ -120,6 +124,20 @@ describe('useViewMode: the hand-over to cards when the folded list does not fit'
     view.measureCardsFit(null);
     expect(view.viewMode.value).toBe('cards');
     hostWidth.value = 748;
+    view.measureCardsFit(null);
+    expect([view.fitCards.value, view.viewMode.value]).toEqual([false, 'table']);
+  });
+
+  it('an open filters panel takes its place inside the box: the room is the toolbar’s, beside it', () => {
+    viewport(false);
+    const { view, hostWidth, toolbarWidth } = mountView({ toolbar: 646 });
+    hostWidth.value = 1008;
+    view.measureCardsFit({ containerWidth: 646, contentWidth: 804 });
+    expect(view.viewMode.value).toBe('cards');
+    toolbarWidth.value = 803;
+    view.measureCardsFit(null);
+    expect(view.viewMode.value).toBe('cards');
+    toolbarWidth.value = 804;
     view.measureCardsFit(null);
     expect([view.fitCards.value, view.viewMode.value]).toEqual([false, 'table']);
   });

@@ -12,6 +12,14 @@ export interface ViewModeSource {
   shape: () => string;
 }
 
+const TOOLBAR = ':scope > .data-table__surface > .data-table__bar';
+
+/** The width the rows have. An open filters panel takes its place inside the table's box, beside the toolbar and
+ *  the rows, so the toolbar is as wide as they are; without one no panel opens and the room is the box. */
+function rowsRoom(root: HTMLElement | null): number {
+  return (root?.querySelector<HTMLElement>(TOOLBAR) ?? root)?.clientWidth ?? 0;
+}
+
 /** Is the table on a phone (`cardBreakpoint` px wide or less)? */
 function usePhoneBreakpoint(source: ViewModeSource, viewMode: Ref<DataTableView>): Ref<boolean> {
   const isMobile = ref(false);
@@ -86,7 +94,7 @@ export function useViewMode(source: ViewModeSource, write: <V>(target: Ref<V>, v
     const allowed = source.cardViewEnabled() && !viewChosenByUser && !isMobile.value && source.defaultView() !== 'cards';
     const next = decideCardsForFit({
       allowed,
-      hostWidth: source.root.value?.clientWidth ?? 0,
+      hostWidth: rowsRoom(source.root.value),
       folded,
       fitCards: fitCards.value,
       fitWidth: fitCardsWidth,
