@@ -17,7 +17,7 @@ const NORMAL: AssistantCard = {
   fields: [
     { name: 'name', label: 'Name', kind: 'text', value: 'Corte caballero' },
     { name: 'price', label: 'Price', kind: 'money', value: 1500 },
-    { name: 'tax_category_key', label: 'Tax Category Key', kind: 'text', value: 'general' },
+    { name: 'tax_category_key', label: 'Categoría fiscal', kind: 'text', value: 'general' },
   ],
   count: null,
   confirm_word: '',
@@ -55,7 +55,7 @@ describe('AssistantConfirm', () => {
     const { wrapper, dialog } = await card(NORMAL);
     expect(dialog.props('open')).toBe(true);
     expect(dialog.props('title')).toBe('¿Ejecutar esta acción?');
-    expect(body()).toContain('Crear en Servicios: Corte caballero · 15,00 € · general');
+    expect(body()).toContain('Crear en Servicios: Corte caballero · Precio: 15,00 € · Categoría fiscal: general');
     expect(dialog.props('requireText')).toBeUndefined();
     expect(dialog.props('tone')).toBe('primary');
     dialog.vm.$emit('confirm');

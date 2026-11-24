@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type AssistantCard, cardLine, fieldLabelKey, fieldLines, fieldText, typedMatches } from './card';
+import { type AssistantCard, type AssistantField, cardLine, fieldLabelKey, fieldLines, fieldText, typedMatches } from './card';
 import { assistantMessages } from './messages';
 
 const { en, es } = assistantMessages;
@@ -190,6 +190,8 @@ describe('a datum that is a list', () => {
     const operations = { name: 'operations', label: 'Permisos', kind: 'list' as const, value: ['sale.sale.create', 'invoice.invoice.issue'] };
     expect(fieldText(operations, spoken(es))).toBe('2 elementos');
     expect(fieldLines([operations], spoken(es))).toEqual(['Permisos: 2 elementos']);
+    // How many, alone, says nothing of what: first on the line too, it says its name.
+    expect(cardLine(card({ fields: [operations] }), spoken(es))).toBe('Permisos: 2 elementos');
     expect(fieldText(list(['sale', 'invoice'], false), spoken(en))).toBe('2 items');
   });
 
@@ -222,8 +224,10 @@ describe('a datum that is an object', () => {
     expect(fieldText(template, opts)).toBe('cita_recordatorio · es · Ana, 10:00');
     expect(fieldLines([template], opts)).toEqual(['Plantilla: cita_recordatorio · es · Ana, 10:00']);
     const line = cardLine(card({ fields: [{ name: 'to', label: 'Teléfono', kind: 'text', value: '+34600111222' }, template] }), opts);
-    expect(line).toBe('+34600111222 · cita_recordatorio · es · Ana, 10:00');
+    expect(line).toBe('+34600111222 · Plantilla: cita_recordatorio · es · Ana, 10:00');
     expect(line).not.toMatch(/\b(name|language|variables):/);
+    // First on the line, its values would run into the line's own: it says its name too.
+    expect(cardLine(card({ fields: [template] }), opts)).toBe('Plantilla: cita_recordatorio · es · Ana, 10:00');
   });
 
   it('leaves out its empty data; one with none is a dash', () => {
@@ -331,11 +335,11 @@ describe('the lines of a dangerous write', () => {
 
 describe('the one line of a normal write', () => {
   it('says its first data, never the empty ones', () => {
-    expect(cardLine(card(), opts)).toBe('Corte caballero · 15,00\u00a0€ · Online: assistant.card.yes');
+    expect(cardLine(card(), opts)).toBe('Corte caballero · assistant.card.fields.price: 15,00\u00a0€ · Online: assistant.card.yes');
   });
 
-  // A name, an amount or a day reads on its own; a bare «Sí» says nothing of what it turns on (the drawer's settings
-  // read «Sí · Sí»). Each yes or no goes by the name of its datum, as a dangerous write's lines say it.
+  // A bare «Sí» says nothing of what it turns on (the drawer's settings read «Sí · Sí»). Each yes or no goes by the name
+  // of its datum, as a dangerous write's lines say it.
   const drawer = (opening: boolean, closing: boolean, labels: [string, string]) =>
     card({
       operation: 'cash_register.settings.update',
@@ -355,7 +359,7 @@ describe('the one line of a normal write', () => {
     expect(cardLine(en_, said(en))).toBe('Require an opening float: Yes · Require a count to close: No');
   });
 
-  it('names a yes or a no as the dangerous lines do, and leaves the data that read on their own by their value', () => {
+  it('names a yes or a no as the dangerous lines do, and leaves only what the write is about by its value', () => {
     const product = card({
       fields: [
         { name: 'name', label: 'Name', kind: 'text', value: 'Café' },
@@ -363,10 +367,58 @@ describe('the one line of a normal write', () => {
         { name: 'is_active', label: 'Activo', kind: 'bool', value: false },
       ],
     });
-    expect(cardLine(product, said(es))).toBe('Café · 1,50\u00a0€ · Activo: No');
+    expect(cardLine(product, said(es))).toBe('Café · Precio: 1,50\u00a0€ · Activo: No');
     expect(cardLine(card({ fields: [{ name: 'name', label: 'Name', kind: 'bool', value: true }] }), said(es))).toBe('Nombre: Sí');
     const titled = { name: 'name', label: 'Disponible', kind: 'bool' as const, value: true, titled: true };
     expect(cardLine(card({ fields: [titled] }), said(es))).toBe('Disponible: Sí');
+  });
+
+  // The data below are the Hub's, as its server draws them, each with the label its screen gives it.
+  const datum = (name: string, label: string, value: unknown, kind: AssistantField['kind'] = 'text'): AssistantField => ({ name, label, kind, value });
+  const service = datum('service', 'Servicio', 'Mechas');
+
+  it('after what the write is about, an amount says which one it is: the minimum price is not the price', () => {
+    const minimum = card({ fields: [service, datum('min_price', 'Precio mínimo', 6500, 'money')] });
+    expect(cardLine(minimum, said(es))).toBe('Mechas · Precio mínimo: 65,00 €');
+    expect(cardLine(card({ fields: [service, datum('price', 'Price', 6500, 'money')] }), said(es))).toBe('Mechas · Precio: 65,00 €');
+    expect(cardLine(card({ fields: [service, datum('price', 'Price', 6500, 'money')] }), { ...said(en), locale: 'en' })).toBe(
+      'Mechas · Price: €65.00',
+    );
+  });
+
+  it('a figure says what it is, wherever it goes: minutes, a position, a threshold, guests', () => {
+    const haircut = datum('service', 'Servicio', 'Corte y peinado');
+    expect(cardLine(card({ fields: [haircut, datum('duration_minutes', 'Duración (min)', 45)] }), said(es))).toBe(
+      'Corte y peinado · Duración (minutos): 45',
+    );
+    expect(cardLine(card({ fields: [haircut, datum('duration_minutes', 'Duration (min)', 45)] }), said(en))).toBe(
+      'Corte y peinado · Duration (minutes): 45',
+    );
+    const section = [datum('name', 'Nombre', 'Varios'), datum('tax_category_key', 'Categoría fiscal', 'Producto — general'), datum('sort_order', 'Posición', 0)];
+    expect(cardLine(card({ fields: section }), said(es))).toBe('Varios · Categoría fiscal: Producto — general · Posición: 0');
+    const notice = [datum('min_booking_notice', 'Antelación mínima para reservar (min)', 120), datum('allow_overlapping', 'Permitir citas solapadas', false, 'bool')];
+    expect(cardLine(card({ fields: notice }), said(es))).toBe('Antelación mínima para reservar (min): 120 · Permitir citas solapadas: No');
+    expect(cardLine(card({ fields: [datum('low_stock_threshold', 'Umbral de stock bajo', 12)] }), said(es))).toBe('Umbral de stock bajo: 12');
+    const option = [datum('group', 'Grupo', 'Extras'), datum('name', 'Nombre', 'Extra de bacon QA'), datum('sort_order', 'Orden', 1)];
+    expect(cardLine(card({ fields: option }), said(es))).toBe('Extras · Nombre: Extra de bacon QA · Orden: 1');
+  });
+
+  it('a record its name says by a bare figure says what it is too: the table and its guests', () => {
+    expect(cardLine(card({ fields: [datum('table', 'Mesa', '4'), datum('guests_count', 'Comensales', 3)] }), said(es))).toBe('Mesa: 4 · Comensales: 3');
+    expect(cardLine(card({ fields: [datum('latitude', 'Latitud', '40.4155')] }), said(es))).toBe('Latitud: 40.4155');
+  });
+
+  it('what changes on a record says what it is, also a time or a figure with its unit: the old time is not the new one', () => {
+    const booking = [datum('id', 'Reserva', 'Lucía QA · 27 nov 2026 · 14:00'), datum('time', 'Time', '14:30'), datum('party_size', 'Comensales', 6)];
+    expect(cardLine(card({ fields: booking }), said(es))).toBe('Lucía QA · 27 nov 2026 · 14:00 · Hora: 14:30 · Comensales: 6');
+    const location = [
+      datum('require_location_personal', 'Pedir la ubicación al fichar desde un dispositivo personal', true, 'bool'),
+      datum('geofence_radius_m', 'Radio permitido (m)', '100 m'),
+      datum('latitude', 'Latitud', '40.4155'),
+    ];
+    expect(cardLine(card({ fields: location }), said(es))).toBe(
+      'Pedir la ubicación al fichar desde un dispositivo personal: Sí · Radio permitido (m): 100 m · Latitud: 40.4155',
+    );
   });
 });
 

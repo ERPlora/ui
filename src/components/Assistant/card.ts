@@ -179,13 +179,22 @@ export function fieldLines(fields: readonly AssistantField[], format: CardFormat
   return fields.map((field) => namedText(field, format));
 }
 
-/** A normal write in one line: its first three data, the empty ones left out, each by its value; a yes or a no, which
- *  says nothing alone, by its name too. */
+/** Whether a datum says what it is by its value alone: a name, a record or a moment in words, or records by their
+ *  names. A figure, an amount or a yes or no says nothing of what it is, and an object's values would run into the
+ *  line's own. */
+function readsAlone(field: AssistantField): boolean {
+  if (field.kind === 'text') return !isFigure(field.value);
+  return field.kind === 'list' && field.named === true;
+}
+
+/** A normal write in one line: its first three data, the empty ones left out. The first, what the write is about (its
+ *  record or its name), by its value when it reads alone; every other by its name too, as the dangerous lines say
+ *  them: the minimum price is not the price, nor the new time the old one. */
 export function cardLine(card: AssistantCard, format: CardFormat): string {
   return card.fields
     .filter((field) => field.kind !== 'empty')
     .slice(0, 3)
-    .map((field) => (field.kind === 'bool' ? namedText(field, format) : fieldText(field, format)))
+    .map((field, index) => (index === 0 && readsAlone(field) ? fieldText(field, format) : namedText(field, format)))
     .join(' · ');
 }
 
