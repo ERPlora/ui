@@ -70,6 +70,22 @@ describe('the end of a turn', () => {
     await run(s);
     expect(bubble.notices).toEqual([]);
   });
+
+  it("checks a web address against what the host's own tools consulted in any round", async () => {
+    const said = (sources: string[][]) => {
+      const rounds = sources.map((names, at) =>
+        at < sources.length - 1
+          ? [done({ append: [asked(CREATE)], pending: [CREATE], sources: names })]
+          : [{ type: 'text', text: 'Lo dice https://boe.es/doc.' } as TurnFrame, done({ sources: names })],
+      );
+      return contextWith(hub(...rounds).post);
+    };
+    const consulted = said([['https://boe.es/doc'], []]);
+    await run(consulted);
+    const invented = said([[], []]);
+    await run(invented);
+    expect([consulted.state.thread.bubbles.at(-1)!.notices, invented.state.thread.bubbles.at(-1)!.notices]).toEqual([[], ['unread_link']]);
+  });
 });
 
 describe('a request that fails', () => {

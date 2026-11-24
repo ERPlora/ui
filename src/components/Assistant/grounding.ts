@@ -1,5 +1,5 @@
 // What the assistant says, checked against what really ran: the panel never trusts what an answer says of itself.
-// Three notices, painted outside the bubble and never written by the model:
+// Four notices, painted outside the bubble and never written by the model:
 // - `claimed_change`: the answer says the assistant changed something in this turn and no write of the turn went
 //   through. A claim is the assistant speaking of what it did, a change reported as done, or how things stay when the
 //   answer says it is done; an instruction, a supposition, how things work, a denial in the same clause and what a
@@ -7,6 +7,8 @@
 //   what the person should now see claim it too;
 // - `unread_id`: it writes an identifier (a UUID) that no tool of the turn returned and the person did not write; one
 //   inside a web address belongs to another site's page;
+// - `unread_link`: it writes a web address that no tool of the turn returned, the host's own tools did not consult and
+//   the person did not write; unchecked when the host does not say what its own tools consulted;
 // - `unknown_screen`: it links a screen this app does not serve.
 import { linkPaths, parseMarkdown } from './markdown';
 
@@ -26,7 +28,7 @@ export interface Executed {
 /** A sentence by the language it was said in: shown only to who reads that one. */
 export type Reason = Record<string, string>;
 
-export type GroundingNotice = 'claimed_change' | 'unread_id' | 'unknown_screen';
+export type GroundingNotice = 'claimed_change' | 'unread_id' | 'unread_link' | 'unknown_screen';
 
 // The assistant says what it did: a claim wherever it stands, next to an instruction or after a «cuando».
 const OWN = [
@@ -170,6 +172,14 @@ function claimsChange(answer: string, tried: boolean): boolean {
   return false;
 }
 const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+// What tells no page from another: the scheme and «www.» before the site.
+const SCHEME = /^(?:https?:\/\/)?(?:www\.)?/;
+
+/** Whether `answer` writes a web address whose page `read` never names; the root of a site read is read. */
+function writesUnreadLink(answer: string, read: string): boolean {
+  const pages = (answer.match(WEB_ADDRESS) ?? []).map((address) => address.toLowerCase().replace(SCHEME, '').replace(/\/+$/, ''));
+  return pages.some((page) => !read.includes(page));
+}
 
 export function groundingNotices(input: {
   answer: string;
@@ -178,6 +188,8 @@ export function groundingNotices(input: {
   results: string[];
   /** The person's last question. */
   question: string;
+  /** The web addresses the host's own tools consulted in the turn (a web search); none when the host does not say. */
+  sources?: string[];
   screenExists: (path: string) => boolean;
 }): GroundingNotice[] {
   const found: GroundingNotice[] = [];
@@ -187,6 +199,7 @@ export function groundingNotices(input: {
   const read = `${input.results.join('\n')}\n${input.question}`.toLowerCase();
   const ids = input.answer.replace(WEB_ADDRESS, ' ').match(UUID) ?? [];
   if (ids.some((id) => !read.includes(id.toLowerCase()))) found.push('unread_id');
+  if (input.sources && writesUnreadLink(input.answer, `${read}\n${input.sources.join('\n').toLowerCase()}`)) found.push('unread_link');
   if (linkPaths(parseMarkdown(input.answer)).some((path) => !input.screenExists(path))) found.push('unknown_screen');
   return found;
 }

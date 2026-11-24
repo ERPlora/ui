@@ -15,6 +15,8 @@ export interface Turn {
   results: string[];
   /** Whether the answer may quote pages of the web, so far (`fromTheWeb`): no round yet brought any. */
   web: boolean | undefined;
+  /** The web addresses the host's own tools consulted so far (`done.sources`); none while no round said. */
+  sources?: string[];
 }
 
 type DoneFrame = Extract<TurnFrame, { type: 'done' }>;
@@ -109,13 +111,14 @@ export function bodyOf(turn: Turn, thread: Thread, decision: Decision | undefine
   return body;
 }
 
-/** What a round's `done` leaves: the messages it appended, the tools' results (to check the answer against) and what
- *  the next round owes. */
+/** What a round's `done` leaves: the messages it appended, the tools' results and the addresses the host's own tools
+ *  consulted (to check the answer against), and what the next round owes. */
 export function settle(turn: Turn, conversation: ChatMessage[], closed: DoneFrame): void {
   conversation.push(...closed.append);
   for (const message of closed.append) {
     if (message.role === 'tool' && typeof message.content === 'string') turn.results.push(message.content);
   }
+  if (closed.sources) (turn.sources ??= []).push(...closed.sources);
   turn.pending = closed.pending;
   turn.continuation = closed.continuation;
 }

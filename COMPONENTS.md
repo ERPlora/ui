@@ -401,6 +401,8 @@ de la cuenta (`ion:receipt-outline`) en lugar del suyo; el texto lo escribe la p
 
 El host lo configura una vez al arrancar (`configureAssistant`) y suma `assistantMessages` a sus catálogos de textos.
 
+El `done` de cada ronda que manda el host puede traer `sources`, las direcciones web que consultaron sus propias herramientas (en el Hub y en el SaaS, la búsqueda en la web y los tipos de cambio). Una dirección de la respuesta que no sale de ahí, de un resultado del turno ni de la pregunta lleva, fuera de la burbuja, el aviso de una dirección web no consultada, como el de un identificador no leído; sin `sources`, las direcciones no se comprueban.
+
 ### `AssistantPanel`
 `import { AssistantPanel } from '@erplora/ui/components'`
 - **Para qué sirve:** el chat del asistente, el mismo en el Hub y en el SaaS: a la derecha desde 768 px y a pantalla completa en el teléfono, con dictado, lectura en voz alta y la tarjeta que aprueba cada escritura.
