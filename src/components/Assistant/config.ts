@@ -69,6 +69,10 @@ export interface AssistantConfig {
   turnUrl: string;
   /** The files the host's tools take as they are, beside what erplora.com reads; none when not given. */
   toolFiles?: readonly AssistantToolFile[];
+  /** Whether the host's turn takes each attached image with its file name (`filename`, beside `image_url`), so that its
+   *  tools may keep the image whole (the Hub, in Files): its server names it to the model and gives erplora.com the
+   *  part without it. Without it, an image goes as erplora.com takes it, without its name. */
+  imageNames?: boolean;
   /** The pass of a request being repeated after an approval, sent as `X-Elevation-Token`. */
   elevationToken?: () => string | undefined;
   approval?: AssistantApproval;

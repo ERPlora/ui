@@ -177,6 +177,7 @@ export function createAssistant(deps: AssistantDeps) {
     state,
     post: deps.post,
     approval: deps.approval,
+    imageNames: deps.imageNames,
     storage: deps.storage,
     openStorage: deps.openStorage,
     id: deps.id ?? (() => globalThis.crypto.randomUUID()),
@@ -222,6 +223,7 @@ export function useAssistant(): Assistant {
     shared = createAssistant({
       post: (body, options) => postTurn(body, { ...options, url: config.turnUrl, elevationToken: config.elevationToken }),
       approval: config.approval,
+      imageNames: config.imageNames,
       storage: browserStorage('sessionStorage'),
       openStorage: browserStorage('localStorage'),
     });
