@@ -175,9 +175,12 @@ const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/g
 // What tells no page from another: the scheme and «www.» before the site.
 const SCHEME = /^(?:https?:\/\/)?(?:www\.)?/;
 
+// What may close an address and is no part of its page: its last slash, and the Markdown marks around it (bold, code, a cell).
+const CLOSING = /[/*`|]+$/;
+
 /** Whether `answer` writes a web address whose page `read` never names; the root of a site read is read. */
 function writesUnreadLink(answer: string, read: string): boolean {
-  const pages = (answer.match(WEB_ADDRESS) ?? []).map((address) => address.toLowerCase().replace(SCHEME, '').replace(/\/+$/, ''));
+  const pages = (answer.match(WEB_ADDRESS) ?? []).map((address) => address.toLowerCase().replace(SCHEME, '').replace(CLOSING, ''));
   return pages.some((page) => !read.includes(page));
 }
 

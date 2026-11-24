@@ -41,6 +41,13 @@ describe('a web address of the answer', () => {
     }
   });
 
+  it('is the page consulted inside the marks of the Markdown around it', () => {
+    for (const answer of ['**https://boe.es/doc**', '*https://boe.es/doc*', '`https://boe.es/doc`', '| BOE | https://boe.es/doc|']) {
+      expect(notices(answer, [], { sources: ['https://boe.es/doc'] }), answer).toEqual([]);
+      expect(notices(answer, [], { sources: ['https://boe.es/otro'] }), answer).toEqual(['unread_link']);
+    }
+  });
+
   it('of another page of the site consulted is flagged', () => {
     expect(notices('Lo dice https://boe.es/otro', [], { sources: ['https://boe.es/doc'] })).toEqual(['unread_link']);
   });
