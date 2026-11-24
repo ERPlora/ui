@@ -63,6 +63,7 @@
     "notices": {
       "claimed_change": "El asistente ha dicho que hizo un cambio, pero no se ejecutó ninguna acción. No se ha modificado nada.",
       "unread_id": "Esta respuesta muestra un identificador que el asistente no ha leído de verdad. No te fíes de él.",
+      "unread_link": "Esta respuesta muestra una dirección web que el asistente no ha consultado de verdad. No te fíes de ella.",
       "unknown_screen": "Esta respuesta señala una pantalla que no existe aquí."
     },
     "receipts": {

@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { declined, ID, notices } from './__tests__/grounding';
 
 // An answer built on what erplora.com's own tools found (web search and currency rates, ui#92).
-// Their results stay on the server, so the panel never reads them: the answer names its sources by their web address,
-// written by the model or by the gateway under it (`server_tools.source_line`: a blank line, then one address per line).
+// Their results stay on the server, and the panel reads only the addresses they consulted (`done.sources`): the answer
+// names its sources by their web address, written by the model or by the gateway under it (`server_tools.source_line`:
+// a blank line, then one address per line).
 const LAW = 'https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-0190';
 const SOURCE_ID = '0190a3b4-1111-7222-8333-444455556666';
 
