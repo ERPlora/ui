@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type AssistantCard, type AssistantField, cardLine, fieldLabelKey, fieldLines, fieldText, typedMatches } from './card';
+import { serviceCard } from './__tests__/service-card';
 import { assistantMessages } from './messages';
 
 const { en, es } = assistantMessages;
@@ -15,23 +16,11 @@ const said = (catalogue: unknown) => ({
 });
 
 function card(fields: Partial<AssistantCard> = {}): AssistantCard {
-  return {
-    operation: 'service.service.create',
-    app: 'service',
-    app_name: 'Servicios',
-    action: 'create',
-    risk: 'normal',
-    fields: [
-      { name: 'name', label: 'Name', kind: 'text', value: 'Corte caballero' },
-      { name: 'price', label: 'Price', kind: 'money', value: 1500 },
-      { name: 'online', label: 'Online', kind: 'bool', value: true },
-      { name: 'note', label: 'Note', kind: 'empty', value: null },
-    ],
-    count: null,
-    confirm_word: '',
-    blocked: false,
-    ...fields,
-  };
+  const more: AssistantField[] = [
+    { name: 'online', label: 'Online', kind: 'bool', value: true },
+    { name: 'note', label: 'Note', kind: 'empty', value: null },
+  ];
+  return serviceCard(more, fields);
 }
 
 describe('each datum', () => {

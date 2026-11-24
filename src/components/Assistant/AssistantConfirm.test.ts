@@ -2,27 +2,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ConfirmDialog } from '../ConfirmDialog';
 import { configure, flush, mountAssistant } from './__tests__/mount-assistant';
+import { serviceCard } from './__tests__/service-card';
 import AssistantConfirm from './AssistantConfirm.vue';
 import type { AssistantCard } from './card';
 import { configureAssistant } from './config';
 
 beforeEach(() => configure());
 
-const NORMAL: AssistantCard = {
-  operation: 'service.service.create',
-  app: 'service',
-  app_name: 'Servicios',
-  action: 'create',
-  risk: 'normal',
-  fields: [
-    { name: 'name', label: 'Name', kind: 'text', value: 'Corte caballero' },
-    { name: 'price', label: 'Price', kind: 'money', value: 1500 },
-    { name: 'tax_category_key', label: 'Categoría fiscal', kind: 'text', value: 'general' },
-  ],
-  count: null,
-  confirm_word: '',
-  blocked: false,
-};
+const NORMAL: AssistantCard = serviceCard([{ name: 'tax_category_key', label: 'Categoría fiscal', kind: 'text', value: 'general' }]);
 const HIGH: AssistantCard = {
   ...NORMAL,
   operation: 'appointment.appointment.bulk_delete',
