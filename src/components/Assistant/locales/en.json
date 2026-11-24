@@ -63,6 +63,7 @@
     "notices": {
       "claimed_change": "The assistant said it made a change, but no action was run. Nothing was changed.",
       "unread_id": "This answer shows an identifier the assistant did not really read. Do not trust it.",
+      "unread_link": "This answer shows a web address the assistant did not really look up. Do not trust it.",
       "unknown_screen": "This answer points to a screen that does not exist here."
     },
     "receipts": {

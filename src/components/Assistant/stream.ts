@@ -37,8 +37,9 @@ export type TurnFrame =
   | { type: 'text'; text: string }
   | { type: 'usage'; used: number; limit: number; resets_at: string | null; demo: boolean }
   | ({ type: 'error'; code: string; retriable?: boolean } & Record<string, unknown>)
-  // `web`: whether the round brought pages of the web; a host that does not say leaves it out.
-  | { type: 'done'; append: ChatMessage[]; pending: PendingCall[]; continuation: string | null; web?: boolean };
+  // `web`: whether the round brought pages of the web; `sources`: the web addresses the host's own tools consulted in it.
+  // A host that does not say leaves them out.
+  | { type: 'done'; append: ChatMessage[]; pending: PendingCall[]; continuation: string | null; web?: boolean; sources?: string[] };
 
 /** Whether an answer may quote pages of the web, with one round more of its turn: any round that brought pages makes it
  *  so, and a later one that brought none never undoes it (the continuation after the tools starts from scratch); a round

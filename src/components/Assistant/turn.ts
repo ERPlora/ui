@@ -72,6 +72,7 @@ function finish(s: TurnContext, end: End = {}): null {
       executed: turn.executed,
       results: turn.results,
       question: turn.question,
+      sources: turn.sources,
       screenExists: s.screenExists,
     });
   }
