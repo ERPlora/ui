@@ -314,7 +314,7 @@ function focusFirstField(): void {
             :id="titleId"
             class="ep-form-modal__title"
           >
-            {{ title }}
+            <span class="ep-form-modal__title-text">{{ title }}</span>
           </ion-title>
           <ion-buttons slot="end">
             <ion-button
@@ -463,6 +463,11 @@ ion-modal.ep-form-modal .ion-delegate-host {
 ion-modal.ep-form-modal ion-toolbar {
   --padding-start: 16px;
   --padding-end: 8px;
+}
+/* Ionic's title is one line cut with «…» (`nowrap` in its shadow `.toolbar-title`): a long question takes the lines it
+   needs instead, as Material's and iOS's dialogs do. */
+ion-modal.ep-form-modal .ep-form-modal__title-text {
+  white-space: normal;
 }
 ion-modal.ep-form-modal .ep-form-modal__content,
 ion-modal.ep-form-modal .ep-form-modal__form {
