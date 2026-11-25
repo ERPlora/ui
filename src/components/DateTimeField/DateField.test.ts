@@ -46,6 +46,20 @@ describe('DateField', () => {
     expect(s.picker().props('presentation')).toBe('date');
   });
 
+  it('without a last day of its own, the calendar offers the years ahead up to the end of 2100', async () => {
+    for (const max of [undefined, '']) {
+      const s = await setup({ max });
+      await s.tap();
+      expect(s.picker().props('max')).toBe('2100-12-31');
+    }
+  });
+
+  it('a last day of its own, as a birthday up to today, stays the last one', async () => {
+    const s = await setup({ max: '2026-11-25' });
+    await s.tap();
+    expect(s.picker().props('max')).toBe('2026-11-25');
+  });
+
   it('keeps only the day of what the calendar answers, and Clear leaves it empty', async () => {
     const s = await setup();
     await s.tap();
