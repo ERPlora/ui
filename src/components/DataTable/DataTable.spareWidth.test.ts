@@ -1,15 +1,16 @@
 // A row with no room for every column whole: the short columns give what they have to spare to the ones that would be
 // cut, and what the list gives up next is decided at the same widths as without it. happy-dom lays nothing out: a fake
 // engine sizes the row from the minimum of each track of its template.
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { cellTextWidth, clearLayout, dataRows, mountTable, playBackLayout, resize, setBoxWidth, settle, templateWidth, text } from './__tests__/harness';
 
 type Table = ReturnType<typeof mountTable>;
 
 const PAD = 32;
-const CHAR = 8;
 const REM = 16;
+/** px of a character of the font on screen. */
+let char = 8;
 
 /** The minimum a track of the head's template takes, in px. */
 function trackMin(track: string): number {
@@ -23,10 +24,11 @@ function trackMin(track: string): number {
 }
 
 beforeEach(() => {
+  char = 8;
   // The box of every element is 0px wide, so a text takes what its characters say and nothing else.
   playBackLayout(0, (el) => {
     if (el.classList.contains('data-table__scroll')) return Math.round(templateWidth(el, PAD, trackMin));
-    return cellTextWidth(el, CHAR) ?? 0;
+    return cellTextWidth(el, char) ?? 0;
   });
 });
 
@@ -87,5 +89,35 @@ describe('the short columns lend what they have to spare before any column is cu
     expect(dataRows(t)).toHaveLength(1);
     expect(template(t).split(' ')[4]).toBe('minmax(73px,1fr)');
     expect(headers(t)).toContain('Ends');
+  });
+});
+
+// A web font arrives after the first paint, and a column that lends is as narrow as its text in the font it was
+// measured with.
+describe('a font that arrives late', () => {
+  const fonts = new EventTarget();
+
+  beforeEach(() => {
+    Object.defineProperty(document, 'fonts', { configurable: true, value: fonts });
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(document, 'fonts');
+  });
+
+  it('is measured once it is there', async () => {
+    const t = await mountAt(600);
+    expect(template(t).split(' ')[4]).toBe('minmax(49px,1fr)');
+    char = 9;
+    fonts.dispatchEvent(new Event('loadingdone'));
+    await settle();
+    expect(template(t).split(' ')[4]).toBe('minmax(55px,1fr)');
+  });
+
+  it('is nothing to a table that is gone', async () => {
+    const t = await mountAt(600);
+    const left = vi.spyOn(fonts, 'removeEventListener');
+    t.unmount();
+    expect(left).toHaveBeenCalledWith('loadingdone', expect.any(Function));
   });
 });
