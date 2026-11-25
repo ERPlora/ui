@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { IonInput } from '@ionic/vue';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { defineComponent, h, ref, shallowRef, type PropType } from 'vue';
@@ -11,6 +12,7 @@ import * as components from '../index';
 import SettingsFormFooter, { type SettingsFormFooterState } from './SettingsFormFooter.vue';
 import { useSettingsForm } from './settingsForm';
 import type { FormModalError } from './types';
+import { markedField } from './__tests__/form-modal';
 import { settingsFormOn, stopSettingsForms } from './__tests__/settings-form';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -276,5 +278,68 @@ describe('SettingsFormFooter', () => {
       await flushPromises();
       expect(hook('save-error').exists()).toBe(false);
     });
+  });
+});
+
+describe('SettingsFormFooter: a refusal whose message is the reason of one of the page fields', () => {
+  // A red warning before the amber one, a role with a name another role has: the server words the refusal and the
+  // field's reason the same. The field says it; the red notice stays for what no field of the page says.
+  afterEach(stopSettingsForms);
+
+  const TAKEN = 'There is already a role with that name.';
+  const taken = (fields: Record<string, string> = { name: TAKEN }): FormModalError => ({ status: 409, code: 'base.role_name_taken', message: TAKEN, fields });
+
+  interface Out {
+    name: string;
+  }
+
+  /** A settings page whose name field paints its refusal, as `SettingsNumberField` and the role editor do. */
+  function mountMarkedPage(refusal: FormModalError) {
+    const data = shallowRef<Out>({ name: 'Old' });
+    const { settings } = settingsFormOn<Out, Out, Partial<Out>>(data, async () => Promise.reject(refusal), { toForm: (out: Out): Out => ({ name: out.name }) });
+    const Page = defineComponent({
+      setup: () => () =>
+        h('form', [
+          markedField(IonInput, 'name', settings.fieldErrors.value.name, { name: 'name' }),
+          h(SettingsFormFooter, { settings, testid: 'demo-settings', ...TEXTS, errorHeading: 'The settings were not saved' }),
+        ]),
+    });
+    const wrapper = mount(Page, { attachTo: document.body, global: { plugins: [createShellI18n({ locale: 'en' })] } });
+    mounted.push(wrapper);
+    const hook = (suffix: string) => wrapper.find(`[data-testid="demo-settings-${suffix}"]`);
+    async function save(): Promise<void> {
+      settings.set('name', 'Cashier');
+      await flushPromises();
+      await hook('save').trigger('click');
+      await flushPromises();
+    }
+    return { wrapper, settings, hook, save };
+  }
+
+  it('is said once, under the field: no red notice repeats it', async () => {
+    const { wrapper, hook, save } = mountMarkedPage(taken());
+    await save();
+    expect((wrapper.find('[data-testid="name"]').element as HTMLElement & { errorText?: string }).errorText).toBe(TAKEN);
+    expect(hook('save-error').exists()).toBe(false);
+    expect(wrapper.text().split(TAKEN)).toHaveLength(1);
+  });
+
+  it('never shows up, not even for a moment, while the refusal lands', async () => {
+    const { wrapper, hook, save } = mountMarkedPage(taken());
+    const added: Element[] = [];
+    const watcher = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof Element) added.push(node);
+    });
+    watcher.observe(wrapper.element, { childList: true, subtree: true });
+    await save();
+    watcher.disconnect();
+    expect(added.filter((node) => node.matches('[data-testid="demo-settings-save-error"]'))).toEqual([]);
+    expect(hook('save-error').exists()).toBe(false);
+  });
+
+  it('a field the page does not paint keeps the reason in the red notice (a role that allows more than its editor)', async () => {
+    const { hook, save } = mountMarkedPage(taken({ states: TAKEN }));
+    await save();
+    expect(hook('save-error').text()).toContain(TAKEN);
   });
 });
