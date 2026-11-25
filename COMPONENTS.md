@@ -82,7 +82,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 
 ### `FormModal`
 `import { FormModal } from '@erplora/ui/components'`
-- **Para qué sirve:** un formulario corto en un diálogo, con Guardar y Cancelar, su estado de envío y el error del servidor (el mensaje arriba y el de cada campo en el slot). Nunca pasa del alto de la pantalla: si no cabe, los campos se desplazan entre el título y los botones, que siempre se ven (también en una tableta en horizontal con un pie de varias filas).
+- **Para qué sirve:** un formulario corto en un diálogo, con Guardar y Cancelar, su estado de envío y el error del servidor (el mensaje arriba y el de cada campo en el slot). Nunca pasa del alto de la pantalla: si no cabe, los campos se desplazan entre el título y los botones, que siempre se ven (también en una tableta en horizontal con un pie de varias filas). Un párrafo encima de un campo ya va separado de su rótulo, también dentro de `ConfirmDialog` (ver «Reglas»).
 - **Úsalo cuando** se crea o edita algo de pocos campos sin salir de la pantalla.
 - **No lo uses cuando** el formulario de una entidad es largo → una página con `AppPage`; es una pregunta de sí o no → `useConfirm`.
 - **API:** `v-model:open`, `title`, `submitLabel`, `pending`, `error`, `size` (`sm` 420 px, `md` 480 px, `lg` 640 px para una ventana de lectura), `phoneLayout` (`sheet`, `card`), `submitDisabled`, `readonly`, `canDismiss`, `testid`; slot por defecto con `{ fieldErrors, pending }` y slot `footer`; eventos `submit` (no cierra: la página pone `open = false` cuando su orden sale bien) y `cancel`. `useRefusal` mantiene los errores de un rechazo mientras se corrige.
@@ -482,6 +482,11 @@ nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño d
 - `.ep-glass` (tokens `--ep-glass-*`): material de cristal solo para superficies flotantes; se apaga con la preferencia
   «Efectos de transparencia». Es la clase de `src/shell/theme/glass.css`; en un overlay de Ionic, sus tokens van en
   `::part(content)` o en `--background`, y un componente no declara cristal propio.
+- Los huecos de un texto con lo que le sigue los da el tema (`src/shell/theme/global.css`), y la página no les pone
+  margen: un párrafo justo encima de un campo con contorno, o del bloque que el campo abre (un formulario, la envoltura
+  de otro componente), deja 14 px, lo que la mayoría de los formularios deja entre dos campos; el texto de una fila
+  (`ion-label`) deja el hueco de Ionic con el valor de su final (`ion-note` en `slot="end"`). Una rejilla con `gap` ya
+  separa sus textos: su párrafo lleva `margin: 0`, que gana.
 - Ningún prefijo `ok-`.
 - Una pieza sube a la librería cuando la necesita una segunda app (o el Hub y el SaaS): `src/components/<Nombre>/`,
   con su test, sus textos en `en` y `es`, su export en `src/components/index.ts` y su entrada en este catálogo. Lo que

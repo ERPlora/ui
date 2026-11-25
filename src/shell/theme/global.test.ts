@@ -8,10 +8,11 @@ import { describe, expect, it } from 'vitest';
 
 const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'global.css'), 'utf8');
 
-/** Bodies of the top-level `@layer base { … }` blocks (one level of nesting), comments removed. */
+/** Bodies of the top-level `@layer base { … }` blocks (one level of nesting), comments removed, each run of blanks as
+ *  one space. */
 function baseLayer(): string {
   const plain = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  return [...plain.matchAll(/@layer base\s*\{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}/g)].map((m) => m[1]).join('\n');
+  return [...plain.matchAll(/@layer base\s*\{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}/g)].map((m) => m[1]).join('\n').replace(/\s+/g, ' ');
 }
 
 /** Declarations of `selector` inside the `base` layer, whitespace-normalised. */
@@ -74,5 +75,25 @@ describe('global.css: the icon of a button keeps its gap to the label', () => {
       'ion-button > ion-spinner[slot="start"]',
       'ion-button > ion-spinner[slot="end"]',
     ]);
+  });
+});
+
+describe('global.css: a text does not touch what follows it', () => {
+  const FIELDS = ['.input-fill-outline', '.textarea-fill-outline', '.select-fill-outline'];
+  const next = FIELDS.map((field) => `+ ${field}`).join(', ');
+  const opensTheNextBlock = FIELDS.map((field) => `+ * > ${field}:first-child`).join(', ');
+
+  // An outlined field draws its label over its top edge, and preflight leaves a paragraph without its margin.
+  it('a paragraph right above an outlined field, or above the block one opens, keeps the gap between two fields', () => {
+    expect(baseRule(`p:has(${next}), p:has(${opensTheNextBlock})`)).toBe('margin-block-end: 14px;');
+  });
+
+  it('no other base rule touches a paragraph', () => {
+    expect(baseSelectors('p')).toHaveLength(1);
+  });
+
+  it('the text of a row keeps Ionic’s gap to the value at its end, and only that', () => {
+    expect(baseRule('ion-item > ion-label:has(~ ion-note[slot="end"])')).toBe('margin-inline-end: revert-layer;');
+    expect(baseSelectors('ion-item')).toEqual(['ion-item > ion-label:has(~ ion-note[slot="end"])']);
   });
 });
