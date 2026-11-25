@@ -1,7 +1,8 @@
 import type { DataTableColumn } from './types';
 
-/** rem a column without its own width keeps when its text is cut, and the ones a name does. */
-const COMMON_FLOOR = 5.5;
+/** rem a column without its own width keeps when its text is cut, and the ones a name does. What a column asks for
+ *  and has to spare is measured against the first (`useContentWidths`). */
+export const COMMON_FLOOR = 5.5;
 const NAME_FLOOR = 10;
 
 export interface ColumnFit {

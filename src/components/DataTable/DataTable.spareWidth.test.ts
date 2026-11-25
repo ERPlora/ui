@@ -8,23 +8,25 @@ import { cellTextWidth, clearLayout, dataRows, mountTable, playBackLayout, resiz
 type Table = ReturnType<typeof mountTable>;
 
 const PAD = 32;
-const REM = 16;
+/** px of a rem of the page. */
+let rem = 16;
 /** px of a character of the font on screen. */
 let char = 8;
 
 /** The minimum a track of the head's template takes, in px. */
 function trackMin(track: string): number {
   const held = /^minmax\(min\(([\d.]+)rem,(\d+)px\),/.exec(track);
-  if (held) return Math.min(Number(held[1]) * REM, Number(held[2]));
+  if (held) return Math.min(Number(held[1]) * rem, Number(held[2]));
   const floor = /^minmax\(([\d.]+)(rem|px),/.exec(track);
-  if (floor) return Number(floor[1]) * (floor[2] === 'rem' ? REM : 1);
+  if (floor) return Number(floor[1]) * (floor[2] === 'rem' ? rem : 1);
   const own = /^([\d.]+)(rem|px)$/.exec(track);
-  if (own) return Number(own[1]) * (own[2] === 'rem' ? REM : 1);
+  if (own) return Number(own[1]) * (own[2] === 'rem' ? rem : 1);
   throw new Error(`the fake engine does not size «${track}»`);
 }
 
 beforeEach(() => {
   char = 8;
+  rem = 16;
   // The box of every element is 0px wide, so a text takes what its characters say and nothing else.
   playBackLayout(0, (el) => {
     if (el.classList.contains('data-table__scroll')) return Math.round(templateWidth(el, PAD, trackMin));
@@ -32,7 +34,10 @@ beforeEach(() => {
   });
 });
 
-afterEach(clearLayout);
+afterEach(() => {
+  clearLayout();
+  document.documentElement.style.fontSize = '';
+});
 
 const COLUMNS = [
   { key: 'customer', label: 'Customer', priority: 'high', sortable: false },
@@ -75,6 +80,18 @@ describe('the short columns lend what they have to spare before any column is cu
     expect(headers(t)).toEqual(['Customer', 'Service', 'Professional', 'Repeats', 'Ends']);
     await resize(471);
     expect(headers(t)).toEqual(['Customer', 'Service', 'Professional', 'Repeats']);
+  });
+
+  // Text at 125 %: the common floor is 110px, and so are the floors that lend and take. Whole 721 · cut 582.
+  it('with a larger text on the page, what is lent is taken from the floors of that size', async () => {
+    document.documentElement.style.fontSize = '20px';
+    rem = 20;
+    const t = await mountAt(600);
+    const tracks = template(t).split(' ');
+    expect(tracks).toEqual(['minmax(73.63px,1.4fr)', 'minmax(67.17px,1fr)', 'minmax(99.49px,1fr)', 'minmax(249px,249px)', 'minmax(60.7px,1fr)']);
+    expect(tracks.reduce((sum, track) => sum + trackMin(track), 0)).toBeCloseTo(5 * 110, 1);
+    await resize(581);
+    expect(headers(t), 'and the low column goes where it went: under 582').toEqual(['Customer', 'Service', 'Professional', 'Repeats']);
   });
 
   it('a column the page paints with its own slot keeps the common floor', async () => {

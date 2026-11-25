@@ -1,5 +1,6 @@
 import { type Ref, ref } from 'vue';
 
+import { COMMON_FLOOR } from './columnTracks';
 import { columnNeed, columnSpare, nextNeeds, sameNeeds } from './fitDecisions';
 import { naturalCellWidth } from './naturalWidth';
 
@@ -54,7 +55,7 @@ export function useContentWidths(source: ContentWidthsSource) {
     const widths = naturalWidths(source.scroll(), source.columnKeys());
     if (!widths) return false;
     source.write(rem, parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
-    const floor = 5.5 * rem.value;
+    const floor = COMMON_FLOOR * rem.value;
     const byColumn = (px: (natural: number, floor: number) => number): Record<string, number> =>
       Object.fromEntries([...widths].map(([key, natural]) => [key, px(natural, floor)]));
     // A pixel counts: a column that lends is as narrow as its text. What the list gives up does not depend on it.
