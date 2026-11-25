@@ -36,6 +36,7 @@ describe('formFields', () => {
   it('a reason the page writes itself is said; the banner and the Ionic fields\' own text are not', () => {
     expect(isSaid(form('<label>Customer <small>Pick a customer.</small></label>'), 'Pick a customer.')).toBe(true);
     expect(isSaid(form('<div class="ep-form-modal__error">Pick a customer.</div>'), 'Pick a customer.')).toBe(false);
+    expect(isSaid(form('<div class="ep-settings-form-footer__error">Pick a customer.</div>'), 'Pick a customer.')).toBe(false);
     expect(isSaid(form('<ion-input><div>Pick a customer.</div></ion-input>'), 'Pick a customer.')).toBe(false);
   });
 

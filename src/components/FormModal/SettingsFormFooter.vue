@@ -80,6 +80,7 @@ function save(): void {
 <template>
   <InlineFeedback
     v-if="showsError"
+    class="ep-settings-form-footer__error"
     tone="danger"
     :data-testid="`${testid}-save-error`"
     :heading="errorHeading"

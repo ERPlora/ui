@@ -19,9 +19,9 @@ export function shownMessageOf(el: Element): string | null {
 
 /** Ionic hides a field's `error-text` unless the field is in this state. */
 export const PAINTS_ITS_MESSAGE = '.ion-invalid.ion-touched';
-/** Text that says nothing of a page's own: the banner, and the Ionic fields, which render their
- *  `error-text` even while they hide it. */
-const NOT_WRITTEN_BY_THE_PAGE = `.ep-form-modal__error, ${FIELD_HOSTS}`;
+/** Text that says nothing of a page's own: the refusal's notice (FormModal's banner, SettingsFormFooter's red one),
+ *  and the Ionic fields, which render their `error-text` even while they hide it. */
+const NOT_WRITTEN_BY_THE_PAGE = `.ep-form-modal__error, .ep-settings-form-footer__error, ${FIELD_HOSTS}`;
 
 /** The page wrote this reason itself under a field (`<small>{{ fieldErrors.customer }}</small>`). */
 function writes(el: Element, reason: string): boolean {
