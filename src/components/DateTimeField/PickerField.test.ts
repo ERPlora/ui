@@ -176,7 +176,8 @@ describe('PickerField: what the picker answers', () => {
 describe('PickerField: a tapped day', () => {
   /** Taps what `selector` finds in the open picker, Ionic's own control. */
   async function tapIn(s: Awaited<ReturnType<typeof setup>>, selector: string) {
-    s.picker().element.shadowRoot!.querySelector<HTMLElement>(selector)!.click();
+    const root = s.picker().element.shadowRoot as ShadowRoot;
+    (root.querySelector(selector) as HTMLElement).click();
     await settle();
   }
   const dayOf = (day: number) => `.calendar-day[data-month="11"][data-day="${day}"]`;
