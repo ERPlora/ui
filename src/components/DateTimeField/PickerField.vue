@@ -140,9 +140,10 @@ function onChange(event: CustomEvent<{ value?: string | string[] | null }>): voi
   color: var(--ep-text-muted);
   pointer-events: none;
 }
-/* ion-datetime draws its month 350 px wide; a phone gives it its width less a margin. */
+/* ion-datetime draws its month up to 350 px wide and 296 px at least (seven days of 40 px). Nearer than 30 px to a side of
+   the screen, Ionic pushes the popover to that side. */
 .ep-picker-field__popover--date {
-  --width: min(350px, calc(100vw - 16px));
+  --width: clamp(296px, calc(100vw - 64px), 350px);
 }
 .ep-picker-field__popover--time {
   --width: 16rem;
