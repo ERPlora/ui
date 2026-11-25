@@ -56,6 +56,21 @@
   ion-button > ion-spinner[slot="end"] {
     margin-inline-start: calc(0.3em * 1.35);
   }
+
+  /* Preflight's `margin: 0` also beats ion-item's `::slotted(ion-label)` margins, which would leave the text of a row
+     against the value at its end. Only the side of that gap comes back (Ionic's 8px), and only in a row with a value. */
+  ion-item > ion-label:has(~ ion-note[slot="end"]) {
+    margin-inline-end: revert-layer;
+  }
+
+  /* Preflight also takes the margin a paragraph has in the browser, and an outlined field draws its raised label over
+     its top edge, 6px into the text above it. The paragraph right above a field, or above the block a field opens (a
+     form, a field's own wrapper), keeps the gap most forms leave between two fields. Not layered, a page's own
+     `margin: 0` wins: that is how a grid, which already spaces its texts with its gap, opts out. */
+  p:has(+ .input-fill-outline, + .textarea-fill-outline, + .select-fill-outline),
+  p:has(+ * > .input-fill-outline:first-child, + * > .textarea-fill-outline:first-child, + * > .select-fill-outline:first-child) {
+    margin-block-end: 14px;
+  }
 }
 
 html,
