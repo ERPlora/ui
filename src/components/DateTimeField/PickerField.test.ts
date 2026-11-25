@@ -1,9 +1,9 @@
 // The field DateField and TimeField share: read-only and outlined like the other fields of a form, showing the value
-// as the person reads it, and opening Ionic's own picker (ion-datetime) in a popover anchored to it.
+// as the person reads it, and opening Ionic's own picker (ion-datetime) in a popover in the middle of the screen.
 import { afterEach, describe, expect, it } from 'vitest';
 
 import HubIcon from '../../shell/HubIcon.vue';
-import { type Control, mountPicker } from './__tests__/pickers';
+import { type Control, mountPicker, settle } from './__tests__/pickers';
 import PickerField from './PickerField.vue';
 
 const BASE = {
@@ -67,12 +67,11 @@ describe('PickerField: compact, in a row of controls', () => {
 });
 
 describe('PickerField: opening the picker', () => {
-  it('a tap opens ion-datetime in a popover anchored to the field', async () => {
+  it('a tap opens ion-datetime in a popover anchored to nothing, which Ionic shows whole in the middle of the screen', async () => {
     const s = await setup();
     await s.tap();
     expect(s.isOpen()).toBe(true);
-    const anchor = s.popover().props('event') as { target?: Element } | undefined;
-    expect(anchor?.target).toBe(s.field().element);
+    expect([s.popover().props('event'), s.popover().attributes('trigger')]).toEqual([undefined, undefined]);
     expect(s.picker().props()).toMatchObject({ presentation: 'date', value: '2026-11-23', locale: 'en', firstDayOfWeek: 0 });
   });
 
@@ -152,6 +151,16 @@ describe('PickerField: what the picker answers', () => {
     expect(s.isOpen()).toBe(false);
   });
 
+  it('Done closes the picker, on a day and on a time', async () => {
+    for (const presentation of ['date', 'time']) {
+      const s = await setup({ presentation, value: '2026-11-23T10:00' });
+      await s.tap();
+      await s.choose('2026-11-23T10:30:00');
+      expect([presentation, s.isOpen()]).toEqual([presentation, false]);
+      s.wrapper.unmount();
+    }
+  });
+
   it('once the popover is gone (Done, Cancel, outside, Escape) another tap opens it again', async () => {
     const s = await setup();
     await s.tap();
@@ -161,5 +170,62 @@ describe('PickerField: what the picker answers', () => {
     expect(s.wrapper.emitted('pick')).toBeUndefined();
     await s.tap();
     expect(s.isOpen()).toBe(true);
+  });
+});
+
+describe('PickerField: a tapped day', () => {
+  /** Taps what `selector` finds in the open picker, Ionic's own control. */
+  async function tapIn(s: Awaited<ReturnType<typeof setup>>, selector: string) {
+    s.picker().element.shadowRoot!.querySelector<HTMLElement>(selector)!.click();
+    await settle();
+  }
+  const dayOf = (day: number) => `.calendar-day[data-month="11"][data-day="${day}"]`;
+
+  it('is the value at once, tells the form around the field and closes the picker', async () => {
+    const s = await setup();
+    const heard: Event[] = [];
+    document.body.addEventListener('input', (event) => heard.push(event));
+    await s.tap();
+    await tapIn(s, dayOf(25));
+    expect(s.wrapper.emitted('pick')).toEqual([[expect.stringMatching(/^2026-11-25(T|$)/)]]);
+    expect(heard.map((event) => event.target)).toEqual([s.field().element]);
+    expect(s.isOpen()).toBe(false);
+  });
+
+  it('is the value of a field that had none', async () => {
+    const s = await setup({ value: '', text: '', min: '2026-11-01', max: '2026-11-30' });
+    await s.tap();
+    await tapIn(s, dayOf(25));
+    expect(s.wrapper.emitted('pick')).toEqual([[expect.stringMatching(/^2026-11-25(T|$)/)]]);
+    expect(s.isOpen()).toBe(false);
+  });
+
+  it('is kept when it was the day of the field already', async () => {
+    const s = await setup();
+    await s.tap();
+    await tapIn(s, dayOf(23));
+    expect(s.wrapper.emitted('pick')).toEqual([[expect.stringMatching(/^2026-11-23(T|$)/)]]);
+    expect(s.isOpen()).toBe(false);
+  });
+
+  it('is nothing while it is out of the bounds', async () => {
+    const s = await setup({ min: '2026-11-20', max: '2026-11-28' });
+    await s.tap();
+    await tapIn(s, dayOf(29));
+    expect([s.wrapper.emitted('pick'), s.isOpen()]).toEqual([undefined, true]);
+  });
+
+  it('is the only tap that chooses: the arrows, the months and years and the gaps of the grid choose nothing', async () => {
+    const s = await setup();
+    await s.tap();
+    for (const other of ['.calendar-next-prev ion-button', '.calendar-month-year-toggle', '.calendar-day-padding', '.calendar-days-of-week']) await tapIn(s, other);
+    expect([s.wrapper.emitted('pick'), s.isOpen()]).toEqual([undefined, true]);
+  });
+
+  it('a wheel of the time waits for Done', async () => {
+    const s = await setup({ presentation: 'time', value: '2026-11-23T10:00' });
+    await s.tap();
+    await tapIn(s, 'ion-picker-column-option:not(.option-active)');
+    expect([s.wrapper.emitted('pick'), s.isOpen()]).toEqual([undefined, true]);
   });
 });
