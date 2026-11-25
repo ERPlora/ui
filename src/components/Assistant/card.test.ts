@@ -130,10 +130,10 @@ describe('a datum that is a list', () => {
     expect(fieldText(list([{ quantity: 2, unit_price: { kind: 'money', value: 300 } }], false), spoken(es))).toBe('1 elemento');
     expect(fieldText(list([{}], false), spoken(es))).toBe('1 elemento');
     expect(fieldText(list([['a'], ['b']], false), spoken(en))).toBe('2 items');
-    // Even marked, a line is never said by a bare figure, nor by one of two texts: it counts among the more.
+    // Even marked, a line is never said by a bare figure, also one written as text: it counts among the more.
     expect(fieldText(list(['Caja', { quantity: 2 }]), spoken(es))).toBe('Caja y 1 más');
     expect(fieldText(list([{ quantity: 2, unit_price: { kind: 'money', value: 300 } }]), spoken(es))).toBe('1 elemento');
-    expect(fieldText(list([{ product_id: 'Café', note: 'frío' }]), spoken(es))).toBe('1 elemento');
+    expect(fieldText(list(['Caja', { qty: '6' }]), spoken(es))).toBe('Caja y 1 más');
     // Nor is an item that is a list said by what it carries.
     expect(fieldText(list(['Caja', ['Cocina']]), spoken(es))).toBe('Caja y 1 más');
   });
@@ -173,6 +173,24 @@ describe('a datum that is a list', () => {
     // A yes or no is no figure; a list the server did not mark still says how many.
     expect(fieldText(list([{ product_id: 'Café', gift: true }]), spoken(es))).toBe('1 elemento');
     expect(fieldText(list([{ product_id: 'Vino tinto', qty: '6' }], false), spoken(es))).toBe('1 elemento');
+  });
+
+  it('a line the server marks is said by each of its texts and then its figures: a field’s value, intervals, holidays', () => {
+    const values = { name: 'field_values', label: 'Campos personalizados', kind: 'list' as const, named: true };
+    const value = [{ field_id: 'Preferencia de mesa', value: 'Terraza' }];
+    expect(fieldLines([{ ...values, value }], spoken(es))).toEqual(['Campos personalizados: Preferencia de mesa · Terraza']);
+    const intervals = [{ open_time: '09:00', close_time: '14:00' }, { open_time: '17:00', close_time: '20:00' }];
+    expect(fieldText(list(intervals), spoken(es))).toBe('09:00 · 14:00, 17:00 · 20:00');
+    // An empty list beside them (a closed day's intervals) does not show, as no empty datum does.
+    const holidays = ['1 ene 2027', '6 ene 2027', '26 mar 2027', '1 may 2027', '15 ago 2027'].map((date, index) => ({
+      date,
+      name: ['Año Nuevo', 'Epifanía del Señor', 'Viernes Santo', 'Fiesta del Trabajo', 'Asunción de la Virgen'][index],
+      intervals: [],
+    }));
+    expect(fieldText(list(holidays), spoken(es))).toBe('1 ene 2027 · Año Nuevo, 6 ene 2027 · Epifanía del Señor, 26 mar 2027 · Viernes Santo y 2 más');
+    // A manual invoice's line: what is invoiced and its tax category, then its quantity and its price.
+    const line = { description: 'Room hire', quantity: '1', unit_price: { kind: 'money', value: 12397 }, tax_category_key: 'General' };
+    expect(fieldText(list([line]), { ...spoken(en), locale: 'en' })).toBe('Room hire · General · 1 · €123.97');
   });
 
   it('a list of texts the server did not name says how many, never its codes (flow.flow.grant’s operations)', () => {

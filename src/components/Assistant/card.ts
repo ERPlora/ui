@@ -18,8 +18,8 @@ export interface AssistantField {
    *  none = the business's, the card's own. */
   money?: Money | null;
   /** A list whose every item the server said in words (a record by its name, a moment, a value by its label, an
-   *  amount, a line by its record and its figures: `live.assistant.NAMED`): the card says its items. Without it, how
-   *  many it carries (codes nobody names). */
+   *  amount, a line by what it carries: `live.assistant.NAMED`): the card says its items. Without it, how many it
+   *  carries (codes nobody names). */
   named?: boolean;
 }
 
@@ -109,26 +109,26 @@ function isFigure(value: unknown): boolean {
   return (typeof value === 'number' && Number.isFinite(value)) || (typeof value === 'string' && DECIMAL.test(value));
 }
 
-/** A line in words — the name the server gave its only record (a booking's services, `{service_id}`) or that
- *  name and, after it, the figures beside it (a reception's product and quantity, «Vino tinto · 6»), a
- *  quantity as the screens write one (`formatQuantity`) and an amount as money —; none for any other line: a bare
- *  figure (its record left out), two texts or a yes or no. Its empty data (a name the model wrote as null beside the
- *  id) do not count: an empty datum does not show. */
+function isEmpty(datum: unknown): boolean {
+  return datum === null || datum === '' || (Array.isArray(datum) && datum.length === 0);
+}
+
+/** A line in words: its texts first (a record's name, a name or words the person said, a moment), then its figures, a
+ *  quantity as the screens write one and an amount as money («Vino tinto · 6», «Preferencia de mesa · Terraza»,
+ *  «12:00 · 23:30»). None for a line without a text (a bare figure: its record left out) or with a yes or no, an object
+ *  or a list, which say nothing without their names. Its empty data do not count. */
 function lineText(item: unknown, format: CardFormat): string | null {
   if (item === null || typeof item !== 'object' || Array.isArray(item)) return null;
-  const data = Object.values(item).filter((datum) => datum !== null && datum !== '');
-  if (data.length === 1) return typeof data[0] === 'string' ? data[0] : null;
-  const names = data.filter((datum) => typeof datum === 'string' && !DECIMAL.test(datum));
+  const data = Object.values(item).filter((datum) => !isEmpty(datum));
+  const names = data.filter((datum): datum is string => typeof datum === 'string' && !DECIMAL.test(datum));
   const figures = data.filter((datum) => isFigure(datum) || isAmount(datum));
-  if (names.length !== 1 || names.length + figures.length !== data.length) return null;
+  if (names.length === 0 || names.length + figures.length !== data.length) return null;
   const said = figures.map((figure) => (isAmount(figure) ? compact(figure, format) : formatQuantity(figure, format.locale)));
-  return [names[0], ...said].join(' · ');
+  return [...names, ...said].join(' · ');
 }
 
 /** An item of a list said as a value on top — a text (a record the server names), a figure, a yes or no, an amount, a
- *  line by its record and its figures (`lineText`) —; '' when it cannot be: a record the server left out, or any other
- *  line (which datum names a line, only its app knows: one whose record was left out would read as a bare quantity or
- *  price). */
+ *  line in words (`lineText`) —; '' when it cannot be: a record the server left out, or a line `lineText` cannot say. */
 function listItem(item: unknown, format: CardFormat): string {
   const value = typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean' || isAmount(item);
   return value ? compact(item, format) : (lineText(item, format) ?? '');
