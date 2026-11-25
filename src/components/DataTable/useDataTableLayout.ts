@@ -208,6 +208,11 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     syncContentAfter();
   };
 
+  /** A text measured before its web font arrived is not as wide as the one on screen. */
+  const onFontsLoaded = (): void => {
+    if (!renderPending) afterRender();
+  };
+
   onMounted(() => {
     // In cards there is no list to observe: the host says when the box changes; a render, when the filters panel does.
     if (typeof ResizeObserver !== 'undefined' && source.root.value) {
@@ -215,12 +220,14 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
       hostObserver.observe(source.root.value);
     }
     window.addEventListener('resize', onWindowResize);
+    document.fonts?.addEventListener('loadingdone', onFontsLoaded);
     observeSiblings();
     afterRender();
   });
   onUpdated(afterRender);
   onBeforeUnmount(() => {
     window.removeEventListener('resize', onWindowResize);
+    document.fonts?.removeEventListener('loadingdone', onFontsLoaded);
     hostObserver?.disconnect();
     scrollObserver?.disconnect();
   });
