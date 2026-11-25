@@ -83,7 +83,7 @@ export function columnSpare(natural: number, floor: number): number {
 /** Are `next` the needs on screen (`before`)? A text its box cuts reads its
  *  width rounded (`scrollWidth`) and held whole with its fraction: a pixel or two apart is the same column, or
  *  every rung would start the ladder again. A column measured for the first time, or that starts or stops asking
- *  for more than its floor, always counts: not measured is not «its floor holds it» (`gridTemplate`). PURE. */
+ *  for more than its floor, always counts: not measured is not «its floor holds it» (`columnTracks`). PURE. */
 export function sameNeeds(next: Readonly<Record<string, number>>, before: Readonly<Record<string, number>>): boolean {
   return Object.keys(next).every((key) => {
     const was = before[key];
