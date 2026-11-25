@@ -1,3 +1,6 @@
+import { NON_FIELD_ERRORS } from './refusal';
+import type { FormModalError } from './types';
+
 /** The fields a page puts in the slot. Ionic's own say who they are on their host. */
 export const FIELD_HOSTS = 'ion-input, ion-textarea, ion-select, ion-checkbox, ion-toggle, ion-radio-group, ion-range';
 type FieldHost = Element & { name?: unknown; errorText?: unknown };
@@ -35,4 +38,15 @@ export function isSaid(root: Element, reason: string): boolean {
     (el) => el.matches(PAINTS_ITS_MESSAGE) && shownMessageOf(el) === reason,
   );
   return painted || writes(root, reason);
+}
+
+/** The refusal's message is also the reason of one of its fields (a name another record has), not the whole form's. */
+export function repeatsAFieldReason(error: FormModalError | null | undefined): boolean {
+  const message = error?.message;
+  return Object.entries(error?.fields ?? {}).some(([name, reason]) => name !== NON_FIELD_ERRORS && reason === message);
+}
+
+/** That field says it under itself: a notice on top would only say it twice. */
+export function saidUnderAField(root: Element, error: FormModalError | null | undefined): boolean {
+  return !!error && repeatsAFieldReason(error) && isSaid(root, error.message);
 }

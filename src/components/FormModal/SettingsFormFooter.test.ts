@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { IonInput } from '@ionic/vue';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
-import { defineComponent, h, ref, shallowRef, type PropType } from 'vue';
+import { defineComponent, h, ref, shallowRef, type PropType, type VNode } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
 import { resolveIcon } from '../../shell/icons';
@@ -48,17 +48,20 @@ afterEach(() => {
   for (const wrapper of mounted.splice(0)) wrapper.unmount();
 });
 
-/** A settings page's form: a field, then the footer at its end. */
+/** A settings page's form: a field (`field`, else a line of text), then the footer at its end. */
 const SettingsPage = defineComponent({
-  props: { footer: { type: Object as PropType<Props>, required: true } },
+  props: { footer: { type: Object as PropType<Props>, required: true }, field: { type: Function as PropType<() => VNode>, default: undefined } },
   setup: (props) => () =>
-    h('form', { 'data-testid': 'page-form' }, [h('p', { 'data-testid': 'page-field' }, 'A field'), h(SettingsFormFooter, props.footer)]),
+    h('form', { 'data-testid': 'page-form' }, [
+      props.field ? props.field() : h('p', { 'data-testid': 'page-field' }, 'A field'),
+      h(SettingsFormFooter, props.footer),
+    ]),
 });
 
 /** Mounts the footer where a page has it: at the end of its `<form>`. */
-function mountFooter<S extends SettingsFormFooterState>(settings: S, props: Partial<Props> = {}) {
+function mountFooter<S extends SettingsFormFooterState>(settings: S, props: Partial<Props> = {}, field?: () => VNode) {
   const footer = { settings, testid: 'demo-settings', ...TEXTS, ...props };
-  const wrapper = mount(SettingsPage, { props: { footer }, global: { plugins: [createShellI18n({ locale: 'en' })] } });
+  const wrapper = mount(SettingsPage, { props: { footer, field }, global: { plugins: [createShellI18n({ locale: 'en' })] } });
   mounted.push(wrapper);
   const hook = (suffix: string, prefix = 'demo-settings') => wrapper.find(`[data-testid="${prefix}-${suffix}"]`);
   return { wrapper, settings, hook };
@@ -297,16 +300,8 @@ describe('SettingsFormFooter: a refusal whose message is the reason of one of th
   function mountMarkedPage(refusal: FormModalError) {
     const data = shallowRef<Out>({ name: 'Old' });
     const { settings } = settingsFormOn<Out, Out, Partial<Out>>(data, async () => Promise.reject(refusal), { toForm: (out: Out): Out => ({ name: out.name }) });
-    const Page = defineComponent({
-      setup: () => () =>
-        h('form', [
-          markedField(IonInput, 'name', settings.fieldErrors.value.name, { name: 'name' }),
-          h(SettingsFormFooter, { settings, testid: 'demo-settings', ...TEXTS, errorHeading: 'The settings were not saved' }),
-        ]),
-    });
-    const wrapper = mount(Page, { attachTo: document.body, global: { plugins: [createShellI18n({ locale: 'en' })] } });
-    mounted.push(wrapper);
-    const hook = (suffix: string) => wrapper.find(`[data-testid="demo-settings-${suffix}"]`);
+    const nameField = () => markedField(IonInput, 'name', settings.fieldErrors.value.name, { name: 'name' }) as VNode;
+    const { wrapper, hook } = mountFooter(settings, { errorHeading: 'The settings were not saved' }, nameField);
     async function save(): Promise<void> {
       settings.set('name', 'Cashier');
       await flushPromises();

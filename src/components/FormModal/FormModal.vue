@@ -11,7 +11,7 @@ import HubIcon from '../../shell/HubIcon.vue';
 import { focusedElement } from '../focus';
 import { InlineFeedback } from '../InlineFeedback';
 import { useDismissal } from './dismissal';
-import { FIELD_HOSTS, isSaid, nameOf, PAINTS_ITS_MESSAGE, shownMessageOf } from './formFields';
+import { FIELD_HOSTS, isSaid, nameOf, PAINTS_ITS_MESSAGE, repeatsAFieldReason, saidUnderAField, shownMessageOf } from './formFields';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import { NON_FIELD_ERRORS, useRefusal } from './refusal';
@@ -97,11 +97,15 @@ const backdropDismiss = computed(() => props.dismissOnBackdrop && !props.pending
  *  refusal reads again what the form says and brings it into view. */
 const refusal = useRefusal(() => props.error, {
   onRefusal: (refused) => {
+    messageSaid.value = repeatsAFieldReason(props.error);
     void nextTick(readWhatTheFormSays);
     if (refused) void nextTick(bringRefusalIntoView);
   },
 });
 const { refusedFields, fieldErrors } = refusal;
+/** The message is the reason a field says under itself: the banner leaves it there. Until the form is read, its
+ *  fields are taken to say it, so the banner never shows up only to go. */
+const messageSaid = shallowRef(false);
 /** The refused fields nothing in the form said when the refusal painted: their reasons go on top, since a window
  *  with no marks cannot point at them. */
 const unsaid = shallowRef<ReadonlySet<string>>(new Set());
@@ -125,7 +129,7 @@ const marksNothing = computed(() => {
   return names.length > 0 && names.every((name) => unsaid.value.has(name));
 });
 const showsNotice = computed(
-  () => refusal.showsError.value && !(props.error?.code === POINTS_AT_THE_MARKS && marksNothing.value),
+  () => refusal.showsError.value && !messageSaid.value && !(props.error?.code === POINTS_AT_THE_MARKS && marksNothing.value),
 );
 const showsBanner = computed(() => showsNotice.value || unsaidReasons.value.length > 0);
 
@@ -219,6 +223,7 @@ function readWhatTheFormSays(): void {
           .map(([name]) => name)
       : [],
   );
+  messageSaid.value = root ? saidUnderAField(root, props.error) : repeatsAFieldReason(props.error);
 }
 
 /** ion-select, ion-toggle, ion-checkbox and the like only speak by `ionChange`. A text field's says on
