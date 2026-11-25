@@ -15,7 +15,7 @@ const props = defineProps<{
   testid?: string;
   /** The first day that can be picked, `YYYY-MM-DD`. */
   min?: string;
-  /** The last day that can be picked, `YYYY-MM-DD`. */
+  /** The last day that can be picked, `YYYY-MM-DD`; 2100-12-31 without it. */
   max?: string;
   /** No Clear in the calendar. */
   required?: boolean;
@@ -33,6 +33,9 @@ const props = defineProps<{
 /** The picked day, or '' once cleared. */
 const emit = defineEmits<{ 'update:modelValue': [day: string] }>();
 
+// Without a max, ion-datetime ends its list of years in the current one. Android's own calendar ends on this day.
+const LAST_DAY = '2100-12-31';
+
 const locale = useComponentLocale();
 const text = computed(() => formatDay(props.modelValue ?? '', locale.value));
 </script>
@@ -46,7 +49,7 @@ const text = computed(() => formatDay(props.modelValue ?? '', locale.value));
     presentation="date"
     :value="modelValue ?? ''"
     :min="min"
-    :max="max"
+    :max="max || LAST_DAY"
     :required="required"
     :disabled="disabled"
     :error-text="errorText"
