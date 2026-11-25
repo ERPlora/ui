@@ -19,6 +19,13 @@ function setup(props: Record<string, unknown> = {}, locale = 'en') {
   return mountPicker(PickerField, { ...BASE, ...props }, locale);
 }
 
+/** What a form around the field hears from now on: the native `input` events. */
+function inputsHeard(): Event[] {
+  const heard: Event[] = [];
+  document.body.addEventListener('input', (event) => heard.push(event));
+  return heard;
+}
+
 afterEach(() => {
   document.body.replaceChildren();
 });
@@ -135,8 +142,7 @@ describe('PickerField: opening the picker', () => {
 describe('PickerField: what the picker answers', () => {
   it('Done hands the value on and tells the form around it, as a typed field does', async () => {
     const s = await setup();
-    const heard: Event[] = [];
-    document.body.addEventListener('input', (event) => heard.push(event));
+    const heard = inputsHeard();
     await s.tap();
     await s.choose('2026-12-01T10:00:00');
     expect(s.wrapper.emitted('pick')).toEqual([['2026-12-01T10:00:00']]);
@@ -184,8 +190,7 @@ describe('PickerField: a tapped day', () => {
 
   it('is the value at once, tells the form around the field and closes the picker', async () => {
     const s = await setup();
-    const heard: Event[] = [];
-    document.body.addEventListener('input', (event) => heard.push(event));
+    const heard = inputsHeard();
     await s.tap();
     await tapIn(s, dayOf(25));
     expect(s.wrapper.emitted('pick')).toEqual([[expect.stringMatching(/^2026-11-25(T|$)/)]]);
