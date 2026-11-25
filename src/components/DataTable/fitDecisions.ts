@@ -75,6 +75,11 @@ export function columnNeed(natural: number, floor: number): number {
   return natural > floor ? Math.ceil(natural) + 1 : 0;
 }
 
+/** The px of its floor a column's content leaves free, past the same pixel of slack (`columnNeed`). PURE. */
+export function columnSpare(natural: number, floor: number): number {
+  return natural < floor ? Math.max(0, Math.floor(floor - Math.ceil(natural) - 1)) : 0;
+}
+
 /** Are `next` the needs on screen (`before`)? A text its box cuts reads its
  *  width rounded (`scrollWidth`) and held whole with its fraction: a pixel or two apart is the same column, or
  *  every rung would start the ladder again. A column measured for the first time, or that starts or stops asking

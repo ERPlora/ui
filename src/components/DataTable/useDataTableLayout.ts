@@ -1,11 +1,12 @@
 // Measurements run after render and resize, and write only on change, so none schedules a render loop.
 import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, type Ref, ref } from 'vue';
 
-import { columnNeed, decideFitLevel, nextNeeds, sameNeeds } from './fitDecisions';
+import { decideFitLevel } from './fitDecisions';
 import { ladderLength, type LadderColumn, ladderPhases, ladderRung } from './fitLadder';
-import { naturalActionsWidth, naturalCellWidth } from './naturalWidth';
+import { naturalActionsWidth } from './naturalWidth';
 import type { DataTableView } from './types';
 import { useContentAfter } from './useContentAfter';
+import { useContentWidths } from './useContentWidths';
 import { useViewMode } from './useViewMode';
 
 /** What the list gives up, in this order, when it does not fit its box. Only the steps that
@@ -41,9 +42,6 @@ export interface DataTableLayoutSource {
 }
 
 const SCROLL = ':scope > .data-table__surface > .data-table__scroll';
-const HEAD_CELLS = ':scope > .data-table__grid > .data-table__row--head > [role=columnheader]:not(.data-table__cell--actions)';
-const DATA_ROWS = ':scope > .data-table__grid > .data-table__row--data';
-const DATA_CELLS = ':scope > [role=cell]:not(.data-table__cell--actions)';
 const ACTION_BOXES = '.data-table__row--data > .data-table__cell--actions > .data-table__actions';
 const HEAD_ACTIONS = '.data-table__row--head > .data-table__cell--actions';
 
@@ -51,9 +49,13 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   const xOverflow = ref(false);
   const actionsTrackPx = ref(0);
   const actionsLabelFits = ref(true);
-  /** px each column sized by its content asks for, by key (`columnNeed`;
-   *  0 = its floor holds it). Kept for a column the rung hides: its text did not change. */
-  const contentWidths = ref<Readonly<Record<string, number>>>({});
+  const scrollEl = (): HTMLElement | null => source.root.value?.querySelector<HTMLElement>(SCROLL) ?? null;
+  const { contentWidths, spareWidths, rem, measure: measureContentWidths } = useContentWidths({
+    scroll: scrollEl,
+    columnKeys: () => source.columnKeys?.() ?? [],
+    rowsKey: () => source.rowsKey?.() ?? '',
+    write,
+  });
   /** Rung of the ladder on screen (0 = the whole list; `ladderRung` reads it). */
   const fitLevel = ref(0);
   const fitSteps = (): readonly DataTableFitStep[] => source.fitSteps?.() ?? ['foldAll'];
@@ -67,8 +69,6 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   const rowActionsCollapsed = computed(() => fitApplied('foldAll'));
 
   let fitDecidedAtWidth = -1;
-  /** The rows `contentWidths` was last measured on. */
-  let measuredRows: string | undefined;
   /** A state was written that the DOM does not show yet. */
   let renderPending = false;
   let settleQueued = false;
@@ -99,41 +99,12 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
   });
 
   // ── Measurements ──────────────────────────────────────────────────────────────────────────
-  const scrollEl = (): HTMLElement | null => source.root.value?.querySelector<HTMLElement>(SCROLL) ?? null;
   const actionBoxes = (): HTMLElement[] => [...(scrollEl()?.querySelectorAll<HTMLElement>(ACTION_BOXES) ?? [])];
 
   /** Does the list overflow sideways? Only then is the pinned column's shadow painted. */
   function measureXOverflow(): void {
     const scroll = scrollEl();
     write(xOverflow, !!scroll && scroll.scrollWidth > scroll.clientWidth);
-  }
-
-  /** What each column sized by its content asks for: its header and every row shown, on one line. Written only
-   *  when it changes (`true`), and then the ladder is judged again from the start once the new needs are on screen
-   *  (the rung on screen was decided for other columns: shorter rows may fit whole again). */
-  function measureContentWidths(): boolean {
-    const scroll = scrollEl();
-    const keys = source.columnKeys?.() ?? [];
-    if (!scroll || !(scroll.clientWidth > 0) || !keys.some((key) => key !== null)) return false;
-    const headers = [...scroll.querySelectorAll<HTMLElement>(HEAD_CELLS)];
-    // Painted from other columns (a render on its way): measured once it lands.
-    if (headers.length !== keys.length) return false;
-    const rows = [...scroll.querySelectorAll<HTMLElement>(DATA_ROWS)].map((row) => [...row.querySelectorAll<HTMLElement>(DATA_CELLS)]);
-    const floor = 5.5 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
-    const measured: Record<string, number> = {};
-    keys.forEach((key, index) => {
-      if (key === null) return;
-      let natural = naturalCellWidth(headers[index]);
-      for (const cells of rows) if (cells[index]) natural = Math.max(natural, naturalCellWidth(cells[index]));
-      measured[key] = columnNeed(natural, floor);
-    });
-    const rowsKey = source.rowsKey?.() ?? '';
-    const next = nextNeeds(contentWidths.value, measured, rowsKey === measuredRows);
-    measuredRows = rowsKey;
-    if (sameNeeds(next, contentWidths.value)) return false;
-    fitDecidedAtWidth = -1;
-    write(contentWidths, next);
-    return true;
   }
 
   /** Natural width of the widest row's buttons (they never shrink: `flex: 0 0 auto`). */
@@ -225,7 +196,10 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     measureXOverflow();
     measureActionsTrack();
     measureActionsLabel();
-    if (!measureContentWidths()) measureRowActionsFit();
+    // Other needs: the ladder is judged again from the start once they are on screen (the rung on screen was decided
+    // for other columns: shorter rows may fit whole again).
+    if (measureContentWidths()) fitDecidedAtWidth = -1;
+    else measureRowActionsFit();
   }
 
   const onWindowResize = (): void => {
@@ -262,6 +236,8 @@ export function useDataTableLayout(source: DataTableLayoutSource) {
     lowColumnsHidden,
     columnsClipped,
     contentWidths,
+    spareWidths,
+    rem,
     fitCards,
     contentAfter,
   };

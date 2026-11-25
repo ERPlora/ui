@@ -115,6 +115,8 @@ const {
   lowColumnsHidden,
   columnsClipped,
   contentWidths,
+  spareWidths,
+  rem,
   contentAfter,
 } = layout;
 /** The table paints cards: picked, the default, the box's fit or a phone (`cardBreakpoint`). */
@@ -221,6 +223,8 @@ const template = computed(() =>
     hasActions: hasActions.value,
     actionsTrackPx: actionsTrackPx.value,
     contentWidths: contentWidths.value,
+    spareWidths: spareWidths.value,
+    rem: rem.value,
     clipped: columnsClipped.value,
   }),
 );

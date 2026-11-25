@@ -1,4 +1,5 @@
 // Pure logic of the DataTable, with no DOM and no Vue: what can be proved without a layout engine.
+import { type ColumnFit, columnTracks } from './columnTracks';
 import type { PagerInput, PagerState } from './pager';
 import type { DataTableColumn, DataTableFilterField, DataTableFilters, DataTableRowKey, DataTableSortDir } from './types';
 
@@ -240,32 +241,17 @@ export function pagerState<T>(input: PagerInput<T>): PagerState<T> {
 }
 
 /** Track list of the list view: [checkbox] [columns…] [actions]. */
-export function gridTemplate<T>(input: {
-  selectable: boolean;
-  columns: readonly DataTableColumn<T>[];
-  hasActions: boolean;
-  actionsTrackPx: number;
-  /** px a column without its own width asks for to hold its content whole, by key (0 = the common floor
-   *  holds it; missing = not measured yet). */
-  contentWidths?: Readonly<Record<string, number>>;
-  /** The row has no room for every column whole: they may cut their text (`'tight'`: a name below its 10rem too). */
-  clipped?: boolean | 'tight';
-}): string {
-  const track = (c: DataTableColumn<T>): string => {
-    if (c.width != null) return c.width;
-    const need = input.contentWidths?.[c.key] ?? 0;
-    const identity = c.identity || c.priority === 'high';
-    const floor = c.minWidth ?? (identity && input.contentWidths?.[c.key] !== 0 ? '10rem' : '5.5rem');
-    const share = identity ? '1.4fr' : '1fr';
-    if (!(need > 0)) return `minmax(${floor},${share})`;
-    // Whole while the row has room, sharing what is left; when cut, down to the floor and never past
-    // its content (the widest text gives its width up first).
-    if (input.clipped) return `minmax(${identity && !c.minWidth ? `min(${floor},${need}px)` : floor},${need}px)`;
-    return c.minWidth ? `minmax(max(${floor},${need}px),${share})` : `minmax(${need}px,${share})`;
-  };
+export function gridTemplate<T>(
+  input: ColumnFit & {
+    selectable: boolean;
+    columns: readonly DataTableColumn<T>[];
+    hasActions: boolean;
+    actionsTrackPx: number;
+  },
+): string {
   return [
     input.selectable ? '2.75rem' : null,
-    ...input.columns.map((c) => track(input.clipped === 'tight' && !c.minWidth ? { ...c, minWidth: '5.5rem' } : c)),
+    ...columnTracks(input.columns, input),
     // A LENGTH, not `max-content`: header and rows are separate grids sharing this string, and
     // a content-sized track resolves against each one's content (the header slid off its columns).
     // `max-content` only until the first measurement of the buttons lands.

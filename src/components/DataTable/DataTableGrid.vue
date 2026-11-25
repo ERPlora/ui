@@ -175,7 +175,7 @@ const alignClass = (column: DataTableColumn<T>): string | undefined =>
   .data-table__cell--sortable:hover { color: var(--color); }
 }
 /* Sort caret (3 states): neutral dimmed / active in primary. */
-.data-table__caret { display: inline-flex; align-items: center; margin-left: 0.25rem; flex: 0 0 auto; font-size: 13px; opacity: 0.3; }
+.data-table__caret { display: inline-flex; align-items: center; width: 1em; margin-left: 0.25rem; flex: 0 0 auto; font-size: 13px; opacity: 0.3; }
 .data-table__caret--active { opacity: 1; color: var(--primary); }
 .data-table__select-cell { display: flex; align-items: center; justify-content: center; }
 @media (prefers-reduced-motion: reduce) {
