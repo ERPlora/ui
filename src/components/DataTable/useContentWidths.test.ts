@@ -86,6 +86,15 @@ describe('useContentWidths: what each column sized by its content takes on one l
     expect([list_.rem.value, list_.contentWidths.value, list_.spareWidths.value]).toEqual([20, { staff: 0 }, { staff: 9 }]);
   });
 
+  it('a column back on screen says again what it leaves free', () => {
+    const list_ = measuring(list([93], [[60]]), ['staff']);
+    list_.measure();
+    list_.on.scroll = list([93, 50], [[60, 40]]);
+    list_.on.keys = ['staff', 'ends'];
+    list_.measure();
+    expect(list_.spareWidths.value).toEqual({ staff: 0, ends: 37 });
+  });
+
   it('measured again the same: nothing is written', () => {
     const list_ = measuring(list([93, 50], [[60, 40]]), ['staff', 'ends']);
     list_.measure();
@@ -114,12 +123,12 @@ describe('useContentWidths: what each column sized by its content takes on one l
     expect(list_.spareWidths.value).toEqual({ email: 27 });
   });
 
-  it('a column the box hides keeps what it asked and what it left free', () => {
+  it('a column the box hides keeps what it asked: its text did not change', () => {
     const list_ = measuring(list([93, 50], [[60, 40]]), ['staff', 'ends']);
     list_.measure();
     list_.on.scroll = list([93], [[60]]);
     list_.on.keys = ['staff'];
     expect(list_.measure()).toBe(false);
-    expect([list_.contentWidths.value, list_.spareWidths.value]).toEqual([{ staff: 94, ends: 0 }, { staff: 0, ends: 37 }]);
+    expect(list_.contentWidths.value).toEqual({ staff: 94, ends: 0 });
   });
 });

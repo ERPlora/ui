@@ -6,10 +6,8 @@ import { naturalCellWidth } from './naturalWidth';
 export interface ContentWidthsSource {
   /** The box that scrolls the list, `null` while it paints cards. */
   scroll: () => HTMLElement | null;
-  /** The list's columns in the order they are painted: the key of one sized by its content, `null` for one with its
-   *  own width (never measured). */
+  /** As in `DataTableLayoutSource`. */
   columnKeys: () => readonly (string | null)[];
-  /** The rows shown, by identity: the same ones refreshed keep what their columns asked (`nextNeeds`). */
   rowsKey: () => string;
   /** Writes what the render reads, when it changes. */
   write: <V>(target: Ref<V>, value: V) => void;
@@ -57,13 +55,13 @@ export function useContentWidths(source: ContentWidthsSource) {
     if (!widths) return false;
     source.write(rem, parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
     const floor = 5.5 * rem.value;
-    const of = (px: (natural: number, floor: number) => number): Record<string, number> =>
+    const byColumn = (px: (natural: number, floor: number) => number): Record<string, number> =>
       Object.fromEntries([...widths].map(([key, natural]) => [key, px(natural, floor)]));
-    // Nobody reads this text cut, so a pixel counts; what the list gives up does not depend on it.
-    const spares = { ...spareWidths.value, ...of(columnSpare) };
+    // A pixel counts: a column that lends is as narrow as its text. What the list gives up does not depend on it.
+    const spares = byColumn(columnSpare);
     if (!same(spares, spareWidths.value)) source.write(spareWidths, spares);
     const rowsKey = source.rowsKey();
-    const needs = nextNeeds(contentWidths.value, of(columnNeed), rowsKey === measuredRows);
+    const needs = nextNeeds(contentWidths.value, byColumn(columnNeed), rowsKey === measuredRows);
     measuredRows = rowsKey;
     if (sameNeeds(needs, contentWidths.value)) return false;
     source.write(contentWidths, needs);

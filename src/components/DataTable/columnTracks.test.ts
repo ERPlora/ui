@@ -94,6 +94,15 @@ describe('columnTracks', () => {
     expect(tracks).toEqual(['minmax(5.5rem,1fr)', 'minmax(5.5rem,1fr)', 'minmax(5.5rem,1.4fr)', 'minmax(5.5rem,112px)']);
   });
 
+  it('a column that still asks for more than its floor lends nothing, though its text is now shorter', () => {
+    const tracks = columnTracks([col({ key: 'email' }), col({ key: 'city' })], {
+      contentWidths: { email: 121, city: 0 },
+      spareWidths: { email: 27, city: 20 },
+      clipped: true,
+    });
+    expect(tracks).toEqual(['minmax(108px,121px)', 'minmax(68px,1fr)']);
+  });
+
   it('a column on its own floor (`minWidth`) keeps it when it is short, and takes what it misses when it is cut', () => {
     const own = (minWidth: string) => [col({ key: 'status', minWidth }), col({ key: 'city' })];
     const cut = { contentWidths: { status: 200, city: 0 }, spareWidths: { city: 20 }, clipped: true as const };

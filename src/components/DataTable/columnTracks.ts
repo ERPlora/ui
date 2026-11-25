@@ -66,12 +66,7 @@ function lending<T>(column: DataTableColumn<T>, fit: ColumnFit): LendingColumn |
   if (floor === undefined) return undefined;
   const need = needOf(column, fit);
   const lends = !(need > 0) && !column.minWidth && !column.cell && !column.identity && !column.toggle;
-  return {
-    key: column.key,
-    floor: need > 0 && !column.minWidth ? Math.min(floor, need) : floor,
-    need,
-    spare: lends ? (fit.spareWidths?.[column.key] ?? 0) : 0,
-  };
+  return { key: column.key, floor, need, spare: lends ? (fit.spareWidths?.[column.key] ?? 0) : 0 };
 }
 
 function track<T>(column: DataTableColumn<T>, fit: ColumnFit, lent: number | undefined): string {
