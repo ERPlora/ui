@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // A time of a form. `v-model` is `HH:MM` ('' or null for none): shown on the clock of the app's language (24 hours
-// or AM/PM) and picked in Ionic's time wheel, in a popover anchored to the field.
+// or AM/PM) and picked in Ionic's time wheel, in a popover in the middle of the screen.
 import { computed } from 'vue';
 
 import { useComponentLocale } from '../locale';

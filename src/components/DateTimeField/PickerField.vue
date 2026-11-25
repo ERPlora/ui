@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // The field DateField and TimeField share: read-only and outlined like the other fields of a form (or bare, for a row
 // of filters that styles it), it shows the value as the person reads it and opens Ionic's own picker, ion-datetime,
-// in a popover anchored to it, with Done, Cancel and, unless the field is required, Clear. Never the device's native
-// picker, which paints in its own colours and language.
+// in a popover in the middle of the screen, with Done, Cancel and, unless the field is required, Clear. Never the
+// device's native picker, which paints in its own colours and language.
 import { IonDatetime, IonInput, IonPopover } from '@ionic/vue';
-import { computed, ref, shallowRef } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import HubIcon from '../../shell/HubIcon.vue';
@@ -48,15 +48,11 @@ const weekStart = computed(() => firstDayOfWeek(locale.value));
 
 const field = ref<InstanceType<typeof IonInput>>();
 const open = ref(false);
-/** Where the popover anchors: the field itself (Ionic reads `event.target`). */
-const anchor = shallowRef<Event | undefined>(undefined);
 
 const OPENING_KEYS = new Set(['Enter', ' ', 'ArrowDown']);
 
 function show(): void {
-  if (props.disabled || open.value) return;
-  anchor.value = { target: field.value?.$el } as unknown as Event;
-  open.value = true;
+  if (!props.disabled) open.value = true;
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -65,13 +61,19 @@ function onKeydown(event: KeyboardEvent): void {
   show();
 }
 
-/** Done or Clear: the value goes to the page, and the form around the field hears a native `input`, as from a
- *  typed field. Clear leaves nothing to choose, so the picker closes. */
+/** A tapped day (Ionic's `calendar-day` part) is the answer, with no Done to press after it. */
+function onTap(event: MouseEvent): void {
+  const [tapped] = event.composedPath();
+  if (tapped instanceof Element && tapped.matches('[part~="calendar-day"]')) void (event.currentTarget as HTMLIonDatetimeElement).confirm();
+}
+
+/** A tapped day, Done or Clear: the value goes to the page, the form around the field hears a native `input`, as from
+ *  a typed field, and the picker closes. */
 function onChange(event: CustomEvent<{ value?: string | string[] | null }>): void {
   const value = typeof event.detail.value === 'string' && event.detail.value ? event.detail.value : null;
   emit('pick', value);
   field.value?.$el.dispatchEvent(new Event('input', { bubbles: true }));
-  if (value === null) open.value = false;
+  open.value = false;
 }
 </script>
 
@@ -107,9 +109,6 @@ function onChange(event: CustomEvent<{ value?: string | string[] | null }>): voi
     <ion-popover
       :class="['ep-picker-field__popover', `ep-picker-field__popover--${presentation}`]"
       :is-open="open"
-      :event="anchor"
-      side="bottom"
-      alignment="start"
       @did-dismiss="open = false"
     >
       <ion-datetime
@@ -126,6 +125,7 @@ function onChange(event: CustomEvent<{ value?: string | string[] | null }>): voi
         :done-text="t('dateTimeField.done')"
         :cancel-text="t('dateTimeField.cancel')"
         :clear-text="t('dateTimeField.clear')"
+        @click="onTap"
         @ion-change="onChange"
       />
     </ion-popover>
@@ -140,13 +140,10 @@ function onChange(event: CustomEvent<{ value?: string | string[] | null }>): voi
   color: var(--ep-text-muted);
   pointer-events: none;
 }
-/* The arrow in the colour of the picker under it (ion-datetime's own background), not the page's. */
-.ep-picker-field__popover::part(arrow)::after {
-  background: var(--ion-color-light);
-}
-/* ion-datetime draws its month 350 px wide; a phone gives it its width less a margin. */
+/* ion-datetime draws its month up to 350 px wide and 296 px at least (seven days of 40 px). Nearer than 30 px to a side of
+   the screen, Ionic pushes the popover to that side. */
 .ep-picker-field__popover--date {
-  --width: min(350px, calc(100vw - 16px));
+  --width: clamp(296px, calc(100vw - 64px), 350px);
 }
 .ep-picker-field__popover--time {
   --width: 16rem;
