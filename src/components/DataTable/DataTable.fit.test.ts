@@ -356,13 +356,15 @@ describe('a column holds its content whole while the row has room', () => {
     { id: 'pay', label: 'Pay', icon: 'card-outline' },
     { id: 'fail', label: 'Fail', icon: 'close-outline' },
   ];
-  // Widths of this table: whole 705 · cut 568 · without Note whole 513, cut 376 · folded whole 473, cut 336.
+  // Widths of this table: whole 705 · cut 568 · without Note whole 513, cut 376 · folded whole 473, cut 336. Cut, «Total»
+  // gives the email the 7px it has to spare (the mark of a sortable head is 40px wide here: 80 of its 88).
+  const CUT_834 = 'minmax(95px,225px) minmax(5.5rem,1fr) minmax(81px,1fr)';
   const props834 = { columns: COLUMNS_834, rows: ROWS_834, actions: ACTIONS_834, views: false };
   const template = (t: Table) => (t.element.querySelector('.data-table__row--head') as HTMLElement).style.gridTemplateColumns;
 
   /** The minimum a track of the head's template takes, in px. */
   function trackMin(track: string, scroll: Element): number {
-    const own = track.match(/^minmax\((\d+)px,1fr\)$/);
+    const own = track.match(/^minmax\(([\d.]+)px,/);
     if (own) return Number(own[1]);
     const whole = track.match(/^minmax\(max\(([\d.]+)rem,(\d+)px\),1fr\)$/);
     if (whole) return Math.max(Number(whole[1]) * 16, Number(whole[2]));
@@ -399,9 +401,7 @@ describe('a column holds its content whole while the row has room', () => {
     const t = await mountAt(720, props834);
 
     await resize(600);
-    expect(template(t), '600: cut, down to the floor; nothing else given up').toBe(
-      'minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px',
-    );
+    expect(template(t), '600: cut, down to the floor; nothing else given up').toBe(`${CUT_834} 12rem 80px`);
     expect(headers(t)).toContain('Note');
     expect(rowButtons(t)).toEqual(['pay', 'fail']);
 
@@ -410,12 +410,12 @@ describe('a column holds its content whole while the row has room', () => {
     expect(template(t), 'and without it the email is whole again').toBe('minmax(225px,1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 80px');
 
     await resize(480);
-    expect(template(t), '480: cut again before the actions fold').toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 80px');
+    expect(template(t), '480: cut again before the actions fold').toBe(`${CUT_834} 80px`);
     expect(rowButtons(t)).toEqual(['pay', 'fail']);
 
     await resize(340);
     expect(rowButtons(t), '340: folded into «⋮», and cut').toEqual(['menu']);
-    expect(template(t)).toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 40px');
+    expect(template(t)).toBe(`${CUT_834} 40px`);
     expect(scroller(t).classList.contains('data-table__scroll--overflow')).toBe(false);
 
     await resize(720);
@@ -426,7 +426,7 @@ describe('a column holds its content whole while the row has room', () => {
 
   it('a cut email unfolded by a tap leaves its column as it was: wrapped, it no longer tells its width', async () => {
     const t = await mountAt(600, props834);
-    const cut = 'minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px';
+    const cut = `${CUT_834} 12rem 80px`;
     expect(template(t)).toBe(cut);
     const email = dataRows(t)[0].querySelector('.data-table__text') as HTMLElement;
     email.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }));
@@ -437,7 +437,7 @@ describe('a column holds its content whole while the row has room', () => {
 
   it('new rows are judged again from the start: shorter ones that fit whole are not left cut', async () => {
     const t = await mountAt(610, props834);
-    expect(template(t), 'the long email does not fit whole: cut').toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+    expect(template(t), 'the long email does not fit whole: cut').toBe(`${CUT_834} 12rem 80px`);
     // A live update leaves only «bea@example.com» (120px): whole, the list takes 601px of the 610.
     await t.setProps({ rows: [ROWS_834[1]] });
     await settle();
@@ -463,7 +463,7 @@ describe('a column holds its content whole while the row has room', () => {
       await t.setProps({ columns: COLUMNS_834 });
       await settle();
       expect(headers(t), 'the floor gone, the ladder is judged again').toEqual(['Email', 'Status', 'Total', 'Note']);
-      expect(template(t)).toBe('minmax(5.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
+      expect(template(t)).toBe(`${CUT_834} 12rem 80px`);
     });
 
     it('whole while the row has room, cut down to its floor and no further', async () => {
@@ -471,7 +471,7 @@ describe('a column holds its content whole while the row has room', () => {
       expect(template(t), '720: whole').toBe('minmax(max(10.5rem,225px),1fr) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 12rem 80px');
       await resize(480);
       expect(headers(t), '480: cut without Note').toEqual(['Email', 'Status', 'Total']);
-      expect(template(t)).toBe('minmax(10.5rem,225px) minmax(5.5rem,1fr) minmax(5.5rem,1fr) 80px');
+      expect(template(t)).toBe('minmax(175px,225px) minmax(5.5rem,1fr) minmax(81px,1fr) 80px');
       expect(rowButtons(t)).toEqual(['pay', 'fail']);
     });
 

@@ -177,7 +177,8 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   /** Not painted until the person picks it in the column chooser; it still sorts. */
   hidden?: boolean;
   /** CSS track of the column in the list (`8rem`, `minmax(8rem,1fr)`…). Default `minmax(5.5rem,1fr)`, and
-   *  `minmax(10rem,1.4fr)` for an `identity` or `high` column, so the name is the last text to be cut. */
+   *  `minmax(10rem,1.4fr)` for an `identity` or `high` column, so the name is the last text to be cut. In a row with
+   *  no room for every text, a short column of plain text gives up what it has to spare before another one is cut. */
   width?: string;
   /** The narrowest this column goes (`10.5rem`), for one whose content must keep some of its text: the
    *  list gives up the next step of its ladder rather than cut it under this. Default `5.5rem`. Ignored with `width`. */
