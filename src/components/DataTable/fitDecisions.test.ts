@@ -1,7 +1,7 @@
 // The deciders are PURE on purpose, because happy-dom lays nothing out.
 import { describe, expect, it } from 'vitest';
 
-import { columnNeed, decideCardsForFit, decideFitLevel, decideRowActionsFit, nextNeeds, sameNeeds } from './fitDecisions';
+import { columnNeed, columnSpare, decideCardsForFit, decideFitLevel, decideRowActionsFit, nextNeeds, sameNeeds } from './fitDecisions';
 
 // ── decideRowActionsFit ───────────────────────────────────────────────────────────────────────
 
@@ -172,6 +172,18 @@ describe('columnNeed: what a column asks beyond its floor', () => {
     expect(columnNeed(88, 88)).toBe(0);
     expect(columnNeed(203.2, 88)).toBe(205);
     expect(columnNeed(Number.NaN, 88), 'nothing measured').toBe(0);
+  });
+});
+
+describe('columnSpare: what a column leaves free of its floor', () => {
+  it('the floor less its content rounded up and the same pixel of slack; nothing when it asks for its floor or more', () => {
+    expect(columnSpare(60, 88)).toBe(27);
+    expect(columnSpare(60.2, 88)).toBe(26);
+    expect(columnSpare(87, 88)).toBe(0);
+    expect(columnSpare(88, 88)).toBe(0);
+    expect(columnSpare(203.2, 88)).toBe(0);
+    expect(columnSpare(60, 82.5), 'a floor with a fraction').toBe(21);
+    expect(columnSpare(Number.NaN, 88), 'nothing measured').toBe(0);
   });
 });
 

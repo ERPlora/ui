@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { ionIconSrc } from '../../shell/icons';
 import { clearLayout, dataRows, mountPart, mountTable, type PartOptions, playBackLayout, settle, text } from './__tests__/harness';
+import { gridSource } from './__tests__/part-sources';
+import { scopedRule } from './__tests__/scoped-rule';
 import DataTableGrid from './DataTableGrid.vue';
 import { DATA_TABLE_ICONS } from './model';
 import type { DataTableAction, DataTableColumn } from './types';
@@ -107,6 +109,12 @@ describe('DataTableGrid', () => {
     const g = mountGrid({ sorting: { ...UNSORTED, isSortable: () => true } });
     const caret = heads(g)[0].querySelector('.data-table__caret');
     expect([caret?.classList.contains('data-table__caret--active'), caret?.querySelector('ion-icon')?.icon]).toEqual([false, ionIconSrc(DATA_TABLE_ICONS.sortNone)]);
+  });
+
+  // Ionic gives the icon its size a frame after Vue paints it: measured before, the head asked for 13px too little and
+  // its label was cut («PROFESIO…»).
+  it('a caret keeps the room of its icon from the first paint', () => {
+    expect(scopedRule(gridSource, '.data-table__caret')?.split(/;\s*/)).toContain('width: 1em');
   });
 
   it('«Select all» only on a selectable list: ticked when the table says so, named, and handing over a tick', async () => {

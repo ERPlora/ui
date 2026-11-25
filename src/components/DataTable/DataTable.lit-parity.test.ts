@@ -380,6 +380,8 @@ const EXTRA: Record<string, string[]> = {
   // Ionic clips its native button: the count pill on the corner was cut in half (measured in Chromium).
   '.data-table__filter-button': ['--overflow: visible'],
   '.data-table__actions ion-button': ['min-width: 44px', 'min-height: 44px', 'margin: 0'],
+  // The icon has no size until Ionic paints it, and the width of the column is measured before (in Chromium).
+  '.data-table__caret': ['width: 1em'],
 };
 
 // The focused presentation deliberately changes these declarations; every other port stays verbatim.

@@ -20,8 +20,8 @@ const NAME = 'Croquetas caseras de jamón'; // 26 characters: 208px of text, a 2
 function trackMin(track: string, scroll: Element): number {
   const cut = track.match(/^minmax\(min\(([\d.]+)rem,(\d+)px\),\d+px\)$/);
   if (cut) return Math.min(Number(cut[1]) * REM, Number(cut[2]));
-  const whole = track.match(/^minmax\((\d+)px,[\d.]+fr\)$/);
-  if (whole) return Number(whole[1]);
+  const held = track.match(/^minmax\(([\d.]+)px,/);
+  if (held) return Number(held[1]);
   const floor = track.match(/^minmax\(([\d.]+)rem,/);
   if (floor) return Number(floor[1]) * REM;
   const px = track.match(/^(\d+)px$/);
@@ -63,6 +63,11 @@ async function mountAt(width: number, props: Record<string, unknown>): Promise<T
   return t;
 }
 
+// The cut name takes the 7px each of «Total» and «Note» (or «Plan») has to spare: the mark of a sortable head is 40px
+// wide here, so theirs take 80 of their 88.
+const CUT = 'minmax(174px,209px)'; // at its 10rem
+const CUT_TIGHT = 'minmax(102px,209px)'; // at the common floor
+
 const nameTrack = (t: Table) => (t.element.querySelector('.data-table__row--head') as HTMLElement).style.gridTemplateColumns.split(' ')[0];
 const headers = (t: Table) =>
   [...t.element.querySelectorAll('.data-table__row--head .data-table__cell--header:not(.data-table__cell--actions)')].map((h) => text(h));
@@ -77,14 +82,14 @@ describe('the name column gives up its 10rem before the list gives up anything e
   it('with a tight box the name goes below 10rem and the low column stays', async () => {
     const t = await mountAt(500, { columns: [NAME_COLUMN, ...LOW], actions: ACTIONS, views: false });
     expect(headers(t)).toEqual(['Name', 'Status', 'Total', 'Note']);
-    expect(nameTrack(t)).toBe('minmax(5.5rem,209px)');
+    expect(nameTrack(t)).toBe(CUT_TIGHT);
   });
 
   // Whole 585 · name cut at 10rem 536 · name at 5.5rem 464 · folded, name cut at 10rem 496.
   it('the row actions stay out of «⋮» while the name can still give up width', async () => {
     const t = await mountAt(500, { columns: [NAME_COLUMN, ...PLAIN], actions: ACTIONS, views: false });
     expect(rowButtons(t)).toEqual(['edit', 'stock']);
-    expect(nameTrack(t)).toBe('minmax(5.5rem,209px)');
+    expect(nameTrack(t)).toBe(CUT_TIGHT);
   });
 
   // Folded into «⋮»: whole 545 · name cut at 10rem 496 · name at 5.5rem 424.
@@ -92,13 +97,13 @@ describe('the name column gives up its 10rem before the list gives up anything e
     const t = await mountAt(430, { columns: [NAME_COLUMN, ...PLAIN], actions: ACTIONS, views: ['table', 'cards'] });
     expect(isCards(t)).toBe(false);
     expect(rowButtons(t)).toEqual(['menu']);
-    expect(nameTrack(t)).toBe('minmax(5.5rem,209px)');
+    expect(nameTrack(t)).toBe(CUT_TIGHT);
   });
 
   it('with room for it the cut name keeps its 10rem', async () => {
     const t = await mountAt(540, { columns: [NAME_COLUMN, ...LOW], actions: ACTIONS, views: false });
     expect(headers(t)).toEqual(['Name', 'Status', 'Total', 'Note']);
-    expect(nameTrack(t)).toBe('minmax(min(10rem,209px),209px)');
+    expect(nameTrack(t)).toBe(CUT);
   });
 
   it('when not even the name at its floor fits, the ladder goes on as before: the low column goes first', async () => {
@@ -119,6 +124,6 @@ describe('the name column gives up its 10rem before the list gives up anything e
   it('a box that widens again gives the name its 10rem back', async () => {
     const t = await mountAt(500, { columns: [NAME_COLUMN, ...LOW], actions: ACTIONS, views: false });
     await resize(540);
-    expect(nameTrack(t)).toBe('minmax(min(10rem,209px),209px)');
+    expect(nameTrack(t)).toBe(CUT);
   });
 });
