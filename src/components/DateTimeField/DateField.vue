@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // A day of a form. `v-model` is the ISO day, `YYYY-MM-DD` ('' or null for none): shown in the numeric date of the
-// app's language and picked in Ionic's calendar, in a popover anchored to the field.
+// app's language and picked in Ionic's calendar, in a popover in the middle of the screen.
 import { computed } from 'vue';
 
 import { useComponentLocale } from '../locale';
