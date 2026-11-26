@@ -66,8 +66,10 @@ function within(next: number): boolean {
   return next >= props.min && (props.max === undefined || next <= props.max);
 }
 
-function ask(next: number): void {
-  if (within(next)) emit('change', String(Math.round(next * 1000) / 1000));
+/** One less or one more, no further than the floor and the ceiling: one less of half a kilo asks none. */
+function step(by: number): void {
+  const next = Math.min(props.max ?? Infinity, Math.max(props.min, value.value + by));
+  if (next !== value.value) emit('change', String(Math.round(next * 1000) / 1000));
 }
 
 function onChange(): void {
@@ -91,7 +93,7 @@ function onChange(): void {
       :data-testid="`${testid}-minus`"
       :aria-label="decreaseLabel ?? t('quantityStepper.less')"
       :disabled="lessDisabled"
-      @click="ask(value - 1)"
+      @click="step(-1)"
     >
       <span aria-hidden="true">−</span>
     </ion-button>
@@ -118,7 +120,7 @@ function onChange(): void {
       :data-testid="`${testid}-plus`"
       :aria-label="increaseLabel ?? t('quantityStepper.more')"
       :disabled="moreDisabled"
-      @click="ask(value + 1)"
+      @click="step(1)"
     >
       <span aria-hidden="true">+</span>
     </ion-button>

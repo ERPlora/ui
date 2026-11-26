@@ -99,6 +99,17 @@ describe('QuantityStepper', () => {
     expect(weight.wrapper.emitted('change')).toEqual([['1.2505']]);
   });
 
+  // A till's line of half a kilo: one less of it takes the line out, as one less of a line of one does.
+  it('one less of a figure below one unit asks the floor, and one more of one near the ceiling asks the ceiling', async () => {
+    const weight = await setup({ quantity: '0.532', unit: 'kg', decimals: true });
+    expect(disabled(weight.find('minus').element)).toBe(false);
+    await weight.click('minus');
+    expect(weight.wrapper.emitted('change')).toEqual([['0']]);
+    const high = await setup({ quantity: '19.5', max: 20, decimals: true });
+    await high.click('plus');
+    expect(high.wrapper.emitted('change')).toEqual([['20']]);
+  });
+
   // A field holds what a person types: four digits ungrouped («1500», where a screen writes «1.500»).
   it('shows a quantity of four digits ungrouped, as typed', async () => {
     const m = await setup({ quantity: '1500.000', decimals: true }, 'es');
