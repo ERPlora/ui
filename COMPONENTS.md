@@ -386,7 +386,7 @@ de la cuenta (`ion:receipt-outline`) en lugar del suyo; el texto lo escribe la p
 - **Para qué sirve:** las pestañas de las zonas del plano, cada una con un punto de su color y sus mesas ocupadas sobre las que están en servicio; la tira se desplaza y difumina el borde que tiene más zonas detrás.
 - **Úsalo cuando** el plano tiene más de una zona y se elige cuál ver.
 - **No lo uses cuando** son las secciones de una pantalla → `tabs` de `AppPage`.
-- **API:** props `zones` (`FloorZoneTab[]`), `active` (el id o `null`), `label`; evento `change(zoneId)`. `useScrollEdges(element)` dice qué bordes de una caja con desplazamiento tienen más contenido detrás, para el mismo difuminado.
+- **API:** props `zones` (`FloorZoneTab[]`), `active` (el id o `null`), `label`; evento `change(zoneId)`. `useScrollEdges(element)` dice qué bordes de una caja con desplazamiento tienen más contenido detrás, para el mismo difuminado, y los vuelve a medir por sí mismo cuando la caja se desplaza, cambia de tamaño o cambia lo que lleva dentro (pestañas que llegan después de pintarla o que crecen al dibujarse).
 - **Ionic:** `ion-segment` desplazable, `ion-segment-button`, `ion-label`.
 
 ## Vídeo
@@ -471,6 +471,11 @@ propio, solo pone las clases sobre las piezas de Ionic.
 `@erplora/ui/shell` exporta también el arranque del shell (`createShell`, rutas, sesión, tema, superficie, avisos e
 impresora del dispositivo, `useMyApps`), que no pinta pantallas; los datos van por `@erplora/ui/sdk` (`useLive`,
 `useCommand`). Los tipos y las constantes de cada componente se importan del mismo sitio que el componente.
+
+El menú lateral del Hub (`createShell({ sidebar })`) lleva al pie el código QR «Ábrelo en el móvil» y, debajo, la pieza
+del proyecto (`chrome.sidebarFooter`). Las entradas van antes que el pie: si el menú mide menos de 832 px de alto (en
+píxeles de la página, con el tamaño de la interfaz que elige la persona), el código se pliega a una fila que lo enseña en
+un `ion-popover` al tocarla. Lo que la pieza del proyecto añada al pie cuenta en ese alto.
 
 ## Lo que aún no existe
 
