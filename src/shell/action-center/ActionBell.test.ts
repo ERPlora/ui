@@ -140,6 +140,24 @@ describe('ActionBell', () => {
     expect(document.body.querySelector('.action-bell__hover')).toBeNull();
   });
 
+  it('puts the hover pill just under the bell at any interface size, in the page’s own CSS pixels', async () => {
+    const realWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 1440, configurable: true, writable: true });
+    try {
+      const bell = mountBell([notice]);
+      const button = bell.get('[data-testid="action-bell"]').element as HTMLElement;
+      // At 120 % the browser measures the bell 60 px down and 216 px from the right edge: 50 and 180 of the page's px.
+      Object.defineProperty(button, 'currentCSSZoom', { value: 1.2, configurable: true });
+      vi.spyOn(button, 'getBoundingClientRect').mockReturnValue(DOMRect.fromRect({ x: 1176, y: 12, width: 48, height: 48 }));
+      await bell.get('.action-bell-wrap').trigger('pointerenter', { pointerType: 'mouse' });
+      const hover = document.body.querySelector<HTMLElement>('.action-bell__hover');
+      expect(hover?.style.top).toBe('56px');
+      expect(hover?.style.right).toBe('180px');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { value: realWidth, configurable: true, writable: true });
+    }
+  });
+
   it('opens and closes the panel from the same button', async () => {
     const bell = mountBell([notice]).get('[data-testid="action-bell"]');
     await bell.trigger('click');
