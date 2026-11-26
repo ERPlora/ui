@@ -15,19 +15,24 @@ export function useScrollEdges(el: Readonly<Ref<HTMLElement | null | undefined>>
     if (!box) return;
     const hiddenX = box.scrollWidth - box.clientWidth;
     const hiddenY = box.scrollHeight - box.clientHeight;
-    edges.value = {
+    const now = {
       left: box.scrollLeft > 1,
       right: box.scrollLeft < hiddenX - 1,
       top: box.scrollTop > 1,
       bottom: box.scrollTop < hiddenY - 1,
     };
+    const was = edges.value;
+    if (now.left !== was.left || now.right !== was.right || now.top !== was.top || now.bottom !== was.bottom) edges.value = now;
   }
 
   let observer: ResizeObserver | null = null;
+  let held: MutationObserver | null = null;
   function detach(box: HTMLElement | null | undefined): void {
     box?.removeEventListener('scroll', mark);
     observer?.disconnect();
     observer = null;
+    held?.disconnect();
+    held = null;
   }
   function attach(box: HTMLElement | null | undefined): void {
     if (!box) return;
@@ -36,6 +41,12 @@ export function useScrollEdges(el: Readonly<Ref<HTMLElement | null | undefined>>
       observer = new ResizeObserver(mark);
       observer.observe(box);
       for (const node of content()) if (node) observer.observe(node);
+    }
+    // Items that arrive, or grow once drawn (a web component gets its class when it renders), widen what the box
+    // holds without resizing the box itself.
+    if (typeof MutationObserver !== 'undefined') {
+      held = new MutationObserver(mark);
+      held.observe(box, { childList: true, subtree: true, characterData: true, attributeFilter: ['class'] });
     }
     mark();
   }
