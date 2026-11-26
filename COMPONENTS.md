@@ -18,6 +18,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - elegir uno entre muchos, o buscarlo en el servidor → `Combo`
 - marcar los alérgenos que lleva un plato o producto / decirlos debajo de su nombre → `AllergenSelect` / `AllergenRow`
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
+- cuántos de algo (− n +) → `QuantityStepper`
 - elegir un día / una hora / un día y una hora juntos → `DateField` / `TimeField` / `DateTimeField`
 - enseñar un importe, una fecha, una hora del reloj o una cantidad → `formatMoney`, `formatDateTime`, `formatTimeOfDay`, `formatQuantity`
 - decir que no hay datos → `EmptyState`
@@ -137,6 +138,14 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **No lo uses cuando** es una cantidad o un número que no es dinero → `ion-input`; solo se enseña el importe → `formatMoney`.
 - **API:** `v-model` (el texto tal cual: al guardar se lee con `parseMoney` y un importe guardado se escribe con `moneyFieldText`), `label`, `testid`, `money` (`{ currency, decimals }`), `signed`, `errorText`, `helperText`, `showError`, `disabled`.
 - **Ionic:** `ion-input`, `ion-button`.
+
+### `QuantityStepper`
+`import { QuantityStepper } from '@erplora/ui/components'`
+- **Para qué sirve:** cuántos de algo: uno menos, la cifra y uno más, con botones de 44 px que se tocan bien con el dedo. Solo pide (`change`, con la cantidad como la lee el servidor: «2», «0.532»); la cifra enseña lo que guarda la página, así que una cantidad rechazada vuelve sola. La cifra también se escribe, sin separar los miles («1500»).
+- **Úsalo cuando** se cambia cuántos de algo: la línea de una cuenta o de un pedido, un plato antes de añadirlo, una opción que se puede repetir.
+- **No lo uses cuando** es un importe → `MoneyInput`; es un número de una página de ajustes → `SettingsNumberField`.
+- **API:** `quantity` (número o texto decimal), `min` (0; uno menos espera ahí), `max` (uno más espera ahí), `decimals` (se escriben decimales, para un peso; si no, unidades enteras), `unit` (se enseña salvo «ud»), `disabled`, `label`, `decreaseLabel`, `increaseLabel` (lo que lee un lector de pantalla; «Cantidad», «Uno menos» y «Uno más» por defecto), `testid` (`-minus`, `-field`, `-unit`, `-plus`); evento `change`.
+- **Ionic:** `ion-button`.
 
 ### `DateField`, `TimeField`, `DateTimeField`
 `import { DateField, DateTimeField, TimeField } from '@erplora/ui/components'`

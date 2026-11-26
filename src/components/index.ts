@@ -16,6 +16,7 @@ export * from './AllergenSelect';
 export * from './AllergenRow';
 export * from './ColorInput';
 export * from './MoneyInput';
+export * from './QuantityStepper';
 export * from './DateTimeField';
 export * from './ImageUpload';
 export * from './Assistant';
