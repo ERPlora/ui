@@ -20,7 +20,6 @@ const SHEETS = [
   'order-ticket.css',
   'order-board.css',
   'stat-card.css',
-  'prose.css',
   'global.css',
   'print.css',
 ];

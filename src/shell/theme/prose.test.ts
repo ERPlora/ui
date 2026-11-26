@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import { selectorsOf, themeSheet, valueOf } from './__tests__/sheetRules';
 
+const HERE = dirname(fileURLToPath(import.meta.url));
 const css = themeSheet('prose.css');
 const PROSE = '.ep-prose';
 
@@ -32,8 +33,15 @@ describe('prose.css: the lists of a running text', () => {
     expect(css).not.toMatch(/@layer/);
   });
 
+  it('neither reads nor styles anything of OutfitKit', () => {
+    const raw = readFileSync(join(HERE, 'prose.css'), 'utf8');
+    expect(css).not.toMatch(/--ok-/);
+    expect(css).not.toMatch(/(^|[\s,>+~}])ok-[a-z]|\.ok-[a-z]/m);
+    expect(raw).not.toMatch(/data-ok-/);
+  });
+
   it('is loaded by the shell with the rest of the theme', () => {
-    const shell = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'createShell.ts'), 'utf8');
+    const shell = readFileSync(join(HERE, '..', 'createShell.ts'), 'utf8');
     expect(shell).toContain("import './theme/prose.css';");
   });
 });
