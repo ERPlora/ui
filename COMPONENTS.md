@@ -19,7 +19,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - marcar los alérgenos que lleva un plato o producto / decirlos debajo de su nombre → `AllergenSelect` / `AllergenRow`
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
 - elegir un día / una hora / un día y una hora juntos → `DateField` / `TimeField` / `DateTimeField`
-- enseñar un importe, una fecha o una cantidad → `formatMoney`, `formatDateTime`, `formatQuantity`
+- enseñar un importe, una fecha, una hora del reloj o una cantidad → `formatMoney`, `formatDateTime`, `formatTimeOfDay`, `formatQuantity`
 - decir que no hay datos → `EmptyState`
 - confirmar algo que la persona acaba de hacer → `toastSuccess`, `toastError`…
 - un aviso que solo tiene sentido junto a lo que afecta (un error de carga, el rechazo de un formulario) → `InlineFeedback`
@@ -163,12 +163,12 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 
 ## Cifras, importes y fechas
 
-### `formatMoney`, `formatDateTime`, `formatQuantity`, `decimalMark`
-`import { formatMoney, formatDateTime, formatQuantity, decimalMark } from '@erplora/ui/components'`
-- **Para qué sirve:** la única forma de enseñar un importe (la unidad menor del servidor, en la moneda del negocio y con los miles siempre agrupados), una fecha y hora o una cantidad, en el idioma de la persona.
+### `formatMoney`, `formatDateTime`, `formatTimeOfDay`, `formatQuantity`, `decimalMark`
+`import { formatMoney, formatDateTime, formatTimeOfDay, formatQuantity, decimalMark } from '@erplora/ui/components'`
+- **Para qué sirve:** la única forma de enseñar un importe (la unidad menor del servidor, en la moneda del negocio y con los miles siempre agrupados), una fecha y hora, una hora del reloj («6:00 PM», «18:00», la misma que `formatDateTime` escribe tras la fecha) o una cantidad, en el idioma de la persona.
 - **Úsalo cuando** cualquier cifra, fecha o importe se pinta en una celda, una ficha o un resumen.
 - **No lo uses cuando** se escribe el importe → `MoneyInput`; nunca `Intl` ni `toFixed` a mano en una página.
-- **API:** `formatMoney(minor, locale, money?)` (sin `money`, un guion), `formatDateTime(value, locale?, options?)`, `formatQuantity(quantity, locale)`, `decimalMark(locale)`.
+- **API:** `formatMoney(minor, locale, money?)` (sin `money`, un guion), `formatDateTime(value, locale?, options?)`, `formatTimeOfDay(time, locale)` (`HH:MM` o `HH:MM:SS`; lo que no es una hora, tal cual), `formatQuantity(quantity, locale)`, `decimalMark(locale)`.
 - **Ionic:** ninguno.
 
 ### `UsageMeter`
