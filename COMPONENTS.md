@@ -38,8 +38,9 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - el marco de una pantalla (barra superior, Atrás, acciones, pestañas) → `AppPage`
 - las acciones de una pantalla en la barra → el slot `actions` de `AppPage`; en el teléfono van al «⋮» único de la
   barra, nunca a un botón de «más» propio
-- un botón de acción con icono (de una fila, de la barra, una tecla del TPV) → solo el icono, con su etiqueta como
-  nombre accesible y como título (ver «Botones de acción»)
+- un botón de acción cuyo icono se entiende solo, esté donde esté (una fila, la barra, una tecla del TPV, un
+  formulario, un diálogo, un aviso) → solo el icono, con su etiqueta como nombre accesible y como título (ver «Botones
+  de acción»)
 - algo que solo se enseña en la web (lo que vende) → `WebOnly` / `v-web-only`
 - una comanda, en la cocina o en el TPV → las clases `ep-order-ticket` y `ep-order-board` (ver «Clases de la comanda»); el
   componente es de cada app
@@ -53,17 +54,17 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 
 ## Botones de acción
 
-Un botón de acción con icono no lleva texto visible. El icono es el botón; su etiqueta va como nombre accesible
-(`aria-label`) y como título al pasar el ratón (`title`). Vale para las acciones de fila de una tabla o tarjeta, las
-acciones de cabecera y barra de herramientas y las teclas de acción del TPV (el micrófono no lleva «Hablar»; cobrar no
-lleva «Cobrar»).
+Un botón de acción cuyo icono se entiende solo no lleva texto visible, esté donde esté: filas y tarjetas, cabeceras,
+barras de herramientas, teclas del TPV, formularios, diálogos y avisos. El icono es el botón; su etiqueta va como nombre
+accesible (`aria-label`) y como título al pasar el ratón (`title`). El criterio es el icono, no el sitio: el micrófono
+del TPV no lleva «Hablar» y cobrar no lleva «Cobrar».
 
 - **Un dato no es etiqueta:** un importe o un contador se sigue viendo junto al icono (la tecla de cobro enseña su icono
   y el importe, sin «Cobrar»).
-- **La excepción:** solo lleva texto visible la acción que no tiene un icono que se entienda solo («Ver planes»,
-  «Reintentar»).
-- **Quedan fuera** los botones de formulario y de diálogo (Guardar, Cancelar, confirmar), cuyo texto dice la
-  consecuencia, y las entradas de un menú (el «⋮» de una fila o de la barra), que llevan icono y texto.
+- **Solo lleva texto visible** el botón que no tiene un icono que se entienda solo («Guardar», «Cancelar», «Ver
+  planes», «Reintentar»).
+- **Las opciones de un menú** (el «⋮» de una fila o de la barra, un desplegable) llevan icono y texto.
+- **No son botones de acción** las baldosas de «Mis apps» y las de producto, servicio y menú del TPV.
 - **Cómo se pinta:** en `DataTable`, una acción con `icon` ya sale así (ver «Acciones de fila»); fuera de él, un
   `ion-button` con `HubIcon` en `slot="icon-only"` y la etiqueta en su `aria-label` y su `title`.
 
@@ -533,7 +534,7 @@ nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño d
   (`src/shell/css-zoom.ts`, interna), como la lista del `Combo` y la tarjeta de la campana. Los `ion-popover` los
   coloca Ionic con el parche de `@ionic/core` de `patches/` (el arreglo que trae Ionic 9.0.5), que el Hub aplica desde
   `packages/ui/patches/`; se quita al pasar a Ionic 9.
-- Un botón de acción con icono no lleva texto visible: ver «Botones de acción».
+- Un botón de acción cuyo icono se entiende solo no lleva texto visible, esté donde esté: ver «Botones de acción».
 - Ningún prefijo `ok-`.
 - Una pieza sube a la librería cuando la necesita una segunda app (o el Hub y el SaaS): `src/components/<Nombre>/`,
   con su test, sus textos en `en` y `es`, su export en `src/components/index.ts` y su entrada en este catálogo. Lo que
