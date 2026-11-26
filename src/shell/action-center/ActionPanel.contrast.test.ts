@@ -62,6 +62,22 @@ describe('action center contrast', () => {
   });
 });
 
+describe('the compact bell of a phone', () => {
+  // Its count rides on the bell as a badge filled with the severity's tone, the digits in the page's own colour.
+  it('keeps the count at AA on every severity tone in every theme', () => {
+    const badge = vars(componentCss(join(HERE, 'ActionBell.vue')), '.action-bell.is-compact .action-bell__count');
+    expect(badge['--background']).toBe('var(--tone)');
+    const failures: string[] = [];
+    for (const theme of themes()) {
+      for (const tone of ['--ep-primary-text', '--ep-warning-text', '--ep-danger-text']) {
+        const ratio = contrast(colour(badge['--color'], theme.scope), colour(`var(${tone})`, theme.scope));
+        if (ratio < TEXT) failures.push(`${theme.name}, ${tone}: ${ratio.toFixed(2)}:1`);
+      }
+    }
+    expect(failures, failures.join('; ')).toEqual([]);
+  });
+});
+
 describe('action center type sizes', () => {
   const SMALLEST_TEXT_PX = 11;
   const COMPONENTS = ['ActionArrival', 'ActionBell', 'ActionFeatured', 'ActionPanel', 'ActionRow'];
