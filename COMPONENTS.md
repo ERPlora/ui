@@ -470,6 +470,11 @@ propio, solo pone las clases sobre las piezas de Ionic.
 impresora del dispositivo, `useMyApps`), que no pinta pantallas; los datos van por `@erplora/ui/sdk` (`useLive`,
 `useCommand`). Los tipos y las constantes de cada componente se importan del mismo sitio que el componente.
 
+El menú lateral del Hub (`createShell({ sidebar })`) lleva al pie el código QR «Ábrelo en el móvil» y, debajo, la pieza
+del proyecto (`chrome.sidebarFooter`). Las entradas van antes que el pie: si el menú mide menos de 832 px de alto (en
+píxeles de la página, con el tamaño de la interfaz que elige la persona), el código se pliega a una fila que lo enseña en
+un `ion-popover` al tocarla. Lo que la pieza del proyecto añada al pie cuenta en ese alto.
+
 ## Lo que aún no existe
 
 Las tarjetas de entidad, la baldosa táctil genérica y el panel de ajustes están en diseño. La fila como tarjeta ya existe: es la tarjeta del propio `DataTable`, y no se monta a mano; la tarjeta de cifra es `StatCard`. De la baldosa
