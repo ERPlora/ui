@@ -3,6 +3,7 @@
 packages:
   - .
 patchedDependencies:
+  '@ionic/core@8.8.9': patches/@ionic__core@8.8.9.patch
   '@ionic/vue@8.8.9': patches/@ionic__vue@8.8.9.patch
 onlyBuiltDependencies:
   - esbuild

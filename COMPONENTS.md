@@ -489,6 +489,12 @@ nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño d
   de otro componente), deja 14 px, lo que la mayoría de los formularios deja entre dos campos; el texto de una fila
   (`ion-label`) deja el hueco de Ionic con el valor de su final (`ion-note` en `slot="end"`). Una rejilla con `gap` ya
   separa sus textos: su párrafo lleva `margin: 0`, que gana.
+- El tamaño de la interfaz de Mi perfil (80–120 %) es un `zoom` en `<html>` (`setThemeScale`). Lo que el navegador mide
+  (`getBoundingClientRect`, el tamaño de la ventana) sale en píxeles de pantalla, y un `top`, `left` o `max-height` se
+  escribe en los de la página: una pieza que coloca algo junto a otra cosa divide lo medido por `cssZoomOf(el)`
+  (`src/shell/css-zoom.ts`, interna), como la lista del `Combo` y la tarjeta de la campana. Los `ion-popover` los
+  coloca Ionic con el parche de `@ionic/core` de `patches/` (el arreglo que trae Ionic 9.0.5), que el Hub aplica desde
+  `packages/ui/patches/`; se quita al pasar a Ionic 9.
 - Ningún prefijo `ok-`.
 - Una pieza sube a la librería cuando la necesita una segunda app (o el Hub y el SaaS): `src/components/<Nombre>/`,
   con su test, sus textos en `en` y `es`, su export en `src/components/index.ts` y su entrada en este catálogo. Lo que

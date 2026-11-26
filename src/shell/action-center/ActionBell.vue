@@ -3,6 +3,7 @@ import { IonBadge, IonButton, IonChip } from '@ionic/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { cssZoomOf } from '../css-zoom';
 import HubIcon from '../HubIcon.vue';
 import { useActionCenter } from './center';
 import type { NoticeSeverity } from './types';
@@ -40,9 +41,11 @@ const hoverStyle = shallowRef<Record<string, string>>({});
 
 function showHover(event: PointerEvent): void {
   if (event.pointerType === 'touch') return;
-  const rect = bell.value?.$el.getBoundingClientRect();
-  if (!rect) return;
-  hoverStyle.value = { top: `${rect.bottom + 6}px`, right: `${window.innerWidth - rect.right}px` };
+  const el = bell.value?.$el;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const zoom = cssZoomOf(el);
+  hoverStyle.value = { top: `${rect.bottom / zoom + 6}px`, right: `${(window.innerWidth - rect.right) / zoom}px` };
   hovering.value = true;
 }
 
