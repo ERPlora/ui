@@ -1,0 +1,12 @@
+/* Tailwind's preflight takes the number, the bullet and the indent off every list, which suits the lists that are
+   menus or rows. In a running text (a guide's steps, a document) a list has to read as one: `ep-prose` on the text's
+   container gives its lists back their markers. Outside any layer, so it beats preflight's `base` layer. */
+.ep-prose ol {
+  list-style: decimal;
+  padding-inline-start: 1.5rem;
+}
+
+.ep-prose ul {
+  list-style: disc;
+  padding-inline-start: 1.5rem;
+}
