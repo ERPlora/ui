@@ -49,4 +49,18 @@ describe('FloorZoneTabs', () => {
     expect(z.strip().classes()).not.toContain('floor-zone-tabs--more-left');
     z.wrapper.unmount();
   });
+
+  it('fades the hidden edge when a zone added after it was painted no longer fits, with no scroll', async () => {
+    const z = tabs();
+    const strip = z.strip().element;
+    Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+    Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 300 });
+    await flushPromises();
+    expect(z.strip().classes()).not.toContain('floor-zone-tabs--more-right');
+    Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 700 });
+    await z.wrapper.setProps({ zones: [...ZONES, { ...ZONES[1], id: 'z3', name: 'Private room', testid: 'tab-z3' }] });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(z.strip().classes()).toContain('floor-zone-tabs--more-right');
+    z.wrapper.unmount();
+  });
 });
