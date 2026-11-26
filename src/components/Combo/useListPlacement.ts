@@ -1,5 +1,7 @@
 import { computed, onBeforeUnmount, type Ref, ref } from 'vue';
 
+import { cssZoomOf } from '../../shell/css-zoom';
+
 /** Space kept between the list and the edge of the window. */
 const EDGE = 8;
 /** Space kept between the list and the field: over it, the floating label drawn on the field's top
@@ -18,10 +20,12 @@ interface Placement {
   bottom: number;
 }
 
-/** The part of the window the person sees: the on-screen keyboard and the zoom leave the rest out. */
-function visible(): { top: number; bottom: number } {
+/** The part of the window the person sees, in the page's CSS pixels at `zoom`: the on-screen keyboard and the
+ *  pinch zoom leave the rest out. */
+function visible(zoom: number): { top: number; bottom: number } {
   const view = window.visualViewport;
-  return view ? { top: view.offsetTop, bottom: view.offsetTop + view.height } : { top: 0, bottom: window.innerHeight };
+  const seen = view ? { top: view.offsetTop, bottom: view.offsetTop + view.height } : { top: 0, bottom: window.innerHeight };
+  return { top: seen.top / zoom, bottom: seen.bottom / zoom };
 }
 
 /** Whether the list goes somewhere else: the same placement is not set again, so nothing is painted again. */
@@ -50,8 +54,11 @@ function usePlacement(field: () => HTMLElement | null) {
   function place(opening = false): void {
     const el = field();
     if (!el) return;
-    const box = el.getBoundingClientRect();
-    const view = visible();
+    // Measured in screen pixels, written in the page's: the interface size is a zoom on <html>.
+    const zoom = cssZoomOf(el);
+    const measured = el.getBoundingClientRect();
+    const box = { top: measured.top / zoom, bottom: measured.bottom / zoom };
+    const view = visible(zoom);
     const below = Math.max(0, Math.floor(view.bottom - box.bottom - GAP - EDGE));
     const above = Math.max(0, Math.floor(box.top - view.top - GAP - EDGE));
     let side = placement.value.side;
@@ -66,7 +73,7 @@ function usePlacement(field: () => HTMLElement | null) {
       side,
       room: side === 'bottom' ? below : above,
       top: box.bottom + GAP,
-      bottom: window.innerHeight - box.top + GAP,
+      bottom: window.innerHeight / zoom - box.top + GAP,
     };
     const now = placement.value;
     if (moved(next, now)) placement.value = next;

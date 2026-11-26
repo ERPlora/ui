@@ -500,6 +500,12 @@ nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño d
   la sangría de una lista: el reset del tema se los quita a todas las listas, y la clase `ep-prose` en el contenedor
   del texto se los devuelve, sin un `list-style` propio en la página (`src/shell/theme/prose.css`, que carga
   `createShell`). Una lista que no es texto (un menú, unas filas, unas etiquetas) no la lleva.
+- El tamaño de la interfaz de Mi perfil (80–120 %) es un `zoom` en `<html>` (`setThemeScale`). Lo que el navegador mide
+  (`getBoundingClientRect`, el tamaño de la ventana) sale en píxeles de pantalla, y un `top`, `left` o `max-height` se
+  escribe en los de la página: una pieza que coloca algo junto a otra cosa divide lo medido por `cssZoomOf(el)`
+  (`src/shell/css-zoom.ts`, interna), como la lista del `Combo` y la tarjeta de la campana. Los `ion-popover` los
+  coloca Ionic con el parche de `@ionic/core` de `patches/` (el arreglo que trae Ionic 9.0.5), que el Hub aplica desde
+  `packages/ui/patches/`; se quita al pasar a Ionic 9.
 - Ningún prefijo `ok-`.
 - Una pieza sube a la librería cuando la necesita una segunda app (o el Hub y el SaaS): `src/components/<Nombre>/`,
   con su test, sus textos en `en` y `es`, su export en `src/components/index.ts` y su entrada en este catálogo. Lo que

@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
+  '@ionic/core@8.8.9':
+    hash: 5670a63a59d1c34cabbf6291ced3e280949856358a24a2d8b9609cbefe7847dd
+    path: patches/@ionic__core@8.8.9.patch
   '@ionic/vue@8.8.9':
     hash: 2854586da1a210efdb94351fe1fd95ab8b2b47ce15dfb9a279f6f2143cf5c9e0
     path: patches/@ionic__vue@8.8.9.patch
@@ -2157,7 +2160,7 @@ snapshots:
 
   '@intlify/shared@11.4.14': {}
 
-  '@ionic/core@8.8.9':
+  '@ionic/core@8.8.9(patch_hash=5670a63a59d1c34cabbf6291ced3e280949856358a24a2d8b9609cbefe7847dd)':
     dependencies:
       '@stencil/core': 4.43.5
       ionicons: 8.1.0
@@ -2173,7 +2176,7 @@ snapshots:
 
   '@ionic/vue@8.8.9(patch_hash=2854586da1a210efdb94351fe1fd95ab8b2b47ce15dfb9a279f6f2143cf5c9e0)(@stencil/core@4.45.2)(vue-router@4.6.4(vue@3.5.44(typescript@5.9.3)))(vue@3.5.44(typescript@5.9.3))':
     dependencies:
-      '@ionic/core': 8.8.9
+      '@ionic/core': 8.8.9(patch_hash=5670a63a59d1c34cabbf6291ced3e280949856358a24a2d8b9609cbefe7847dd)
       '@stencil/vue-output-target': 0.10.7(@stencil/core@4.45.2)(vue-router@4.6.4(vue@3.5.44(typescript@5.9.3)))(vue@3.5.44(typescript@5.9.3))
       ionicons: 8.1.0
     transitivePeerDependencies:
