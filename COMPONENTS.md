@@ -384,7 +384,7 @@ de la cuenta (`ion:receipt-outline`) en lugar del suyo; el texto lo escribe la p
 - **Para qué sirve:** las pestañas de las zonas del plano, cada una con un punto de su color y sus mesas ocupadas sobre las que están en servicio; la tira se desplaza y difumina el borde que tiene más zonas detrás.
 - **Úsalo cuando** el plano tiene más de una zona y se elige cuál ver.
 - **No lo uses cuando** son las secciones de una pantalla → `tabs` de `AppPage`.
-- **API:** props `zones` (`FloorZoneTab[]`), `active` (el id o `null`), `label`; evento `change(zoneId)`. `useScrollEdges(element)` dice qué bordes de una caja con desplazamiento tienen más contenido detrás, para el mismo difuminado.
+- **API:** props `zones` (`FloorZoneTab[]`), `active` (el id o `null`), `label`; evento `change(zoneId)`. `useScrollEdges(element)` dice qué bordes de una caja con desplazamiento tienen más contenido detrás, para el mismo difuminado, y los vuelve a medir por sí mismo cuando la caja se desplaza, cambia de tamaño o cambia lo que lleva dentro (pestañas que llegan después de pintarla o que crecen al dibujarse).
 - **Ionic:** `ion-segment` desplazable, `ion-segment-button`, `ion-label`.
 
 ## Vídeo

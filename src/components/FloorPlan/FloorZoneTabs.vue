@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { IonLabel, IonSegment, IonSegmentButton } from '@ionic/vue';
-import { computed, nextTick, useTemplateRef, watch } from 'vue';
+import { computed, useTemplateRef } from 'vue';
 
 import { type FloorZoneTab, zoneColor } from './model';
 import { useScrollEdges } from './useScrollEdges';
 
-const props = defineProps<{ zones: FloorZoneTab[]; active: string | null; label: string }>();
+defineProps<{ zones: FloorZoneTab[]; active: string | null; label: string }>();
 const emit = defineEmits<{ change: [zoneId: string] }>();
 
 function onChange(event: CustomEvent<{ value?: string | number }>): void {
@@ -14,12 +14,7 @@ function onChange(event: CustomEvent<{ value?: string | number }>): void {
 }
 
 const strip = useTemplateRef<InstanceType<typeof IonSegment>>('strip');
-const { edges, mark } = useScrollEdges(computed(() => (strip.value?.$el as HTMLElement | undefined) ?? null));
-// Zones added or renamed widen the strip without resizing it.
-watch(
-  () => props.zones,
-  () => void nextTick(mark),
-);
+const { edges } = useScrollEdges(computed(() => (strip.value?.$el as HTMLElement | undefined) ?? null));
 </script>
 
 <template>
