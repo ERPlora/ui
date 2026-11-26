@@ -1,13 +1,15 @@
 <script setup lang="ts">
 // The end of a settings page's form, painted from what `useSettingsForm` gives: the refusal's red notice while
-// `showsError`, the green «saved» notice while `saved`, then «Save», off with nothing to send or while saving.
+// `showsError` (but for a reason a field of the page already says under itself), the green «saved» notice while
+// `saved`, then «Save», off with nothing to send or while saving.
 // The notices are children of the page's form, so it spaces them as it spaces its fields, and «Save» keeps its own
 // width at the end of its row instead of stretching across a wide page. Every text is the page's.
 import { IonButton, IonSpinner } from '@ionic/vue';
-import { computed, type Ref } from 'vue';
+import { computed, nextTick, shallowRef, useTemplateRef, watch, type Ref } from 'vue';
 
 import HubIcon from '../../shell/HubIcon.vue';
 import { InlineFeedback } from '../InlineFeedback';
+import { repeatsAFieldReason, saidUnderAField } from './formFields';
 import type { FormModalError } from './types';
 
 /** What the footer reads from `useSettingsForm` (its return value fits as it is). */
@@ -51,7 +53,22 @@ const props = defineProps<{
 
 const saved = computed(() => props.settings.saved.value);
 const pending = computed(() => props.settings.pending.value);
-const showsError = computed(() => props.settings.showsError.value);
+const actions = useTemplateRef<HTMLElement>('actions');
+/** The refusal's message is the reason a field of the page says under itself. Until the page has painted, its
+ *  fields are taken to say it, so the notice never shows up only to go. */
+const saidUnderField = shallowRef(false);
+watch(
+  () => props.settings.error.value,
+  (error) => {
+    saidUnderField.value = repeatsAFieldReason(error);
+    void nextTick(() => {
+      const form = actions.value?.closest('form') ?? actions.value?.parentElement;
+      if (form) saidUnderField.value = saidUnderAField(form, error);
+    });
+  },
+  { immediate: true },
+);
+const showsError = computed(() => props.settings.showsError.value && !saidUnderField.value);
 const message = computed(() => props.settings.error.value?.message);
 const saveOff = computed(() => pending.value || (!props.allowUnchanged && !props.settings.dirty.value));
 
@@ -63,6 +80,7 @@ function save(): void {
 <template>
   <InlineFeedback
     v-if="showsError"
+    class="ep-settings-form-footer__error"
     tone="danger"
     :data-testid="`${testid}-save-error`"
     :heading="errorHeading"
@@ -78,6 +96,7 @@ function save(): void {
   </InlineFeedback>
   <div
     v-if="!readonly"
+    ref="actions"
     class="ep-settings-form-footer__actions"
   >
     <ion-button

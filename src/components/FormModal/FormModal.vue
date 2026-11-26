@@ -11,7 +11,7 @@ import HubIcon from '../../shell/HubIcon.vue';
 import { focusedElement } from '../focus';
 import { InlineFeedback } from '../InlineFeedback';
 import { useDismissal } from './dismissal';
-import { FIELD_HOSTS, isSaid, nameOf, PAINTS_ITS_MESSAGE, shownMessageOf } from './formFields';
+import { FIELD_HOSTS, isSaid, nameOf, PAINTS_ITS_MESSAGE, repeatsAFieldReason, saidUnderAField, shownMessageOf } from './formFields';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import { NON_FIELD_ERRORS, useRefusal } from './refusal';
@@ -42,6 +42,8 @@ const props = withDefaults(
     dismissOnBackdrop?: boolean;
     /** Save is disabled (the form is not complete yet). */
     submitDisabled?: boolean;
+    /** What is still missing while Save is disabled, said next to the buttons. */
+    submitHint?: string;
     /** Ionic colour of Save (`danger` for a destructive form). */
     submitColor?: string;
     /** Icon of Save (`set:name`, registered in `shell/icons.ts`). */
@@ -65,6 +67,7 @@ const props = withDefaults(
     size: 'md',
     dismissOnBackdrop: true,
     submitDisabled: false,
+    submitHint: '',
     submitColor: 'primary',
     submitIcon: undefined,
     role: 'dialog',
@@ -87,6 +90,7 @@ defineSlots<{
 const { t } = useI18n({ useScope: 'local', messages: { en, es } });
 
 const titleId = `ep-form-modal-title-${useId()}`;
+const showsHint = computed(() => props.submitDisabled && !props.readonly && !!props.submitHint.trim());
 const form = useTemplateRef<HTMLFormElement>('form');
 const body = useTemplateRef<HTMLElement>('body');
 
@@ -97,11 +101,15 @@ const backdropDismiss = computed(() => props.dismissOnBackdrop && !props.pending
  *  refusal reads again what the form says and brings it into view. */
 const refusal = useRefusal(() => props.error, {
   onRefusal: (refused) => {
+    messageSaid.value = repeatsAFieldReason(props.error);
     void nextTick(readWhatTheFormSays);
     if (refused) void nextTick(bringRefusalIntoView);
   },
 });
 const { refusedFields, fieldErrors } = refusal;
+/** The message is the reason a field says under itself: the banner leaves it there. Until the form is read, its
+ *  fields are taken to say it, so the banner never shows up only to go. */
+const messageSaid = shallowRef(false);
 /** The refused fields nothing in the form said when the refusal painted: their reasons go on top, since a window
  *  with no marks cannot point at them. */
 const unsaid = shallowRef<ReadonlySet<string>>(new Set());
@@ -125,7 +133,7 @@ const marksNothing = computed(() => {
   return names.length > 0 && names.every((name) => unsaid.value.has(name));
 });
 const showsNotice = computed(
-  () => refusal.showsError.value && !(props.error?.code === POINTS_AT_THE_MARKS && marksNothing.value),
+  () => refusal.showsError.value && !messageSaid.value && !(props.error?.code === POINTS_AT_THE_MARKS && marksNothing.value),
 );
 const showsBanner = computed(() => showsNotice.value || unsaidReasons.value.length > 0);
 
@@ -219,6 +227,7 @@ function readWhatTheFormSays(): void {
           .map(([name]) => name)
       : [],
   );
+  messageSaid.value = root ? saidUnderAField(root, props.error) : repeatsAFieldReason(props.error);
 }
 
 /** ion-select, ion-toggle, ion-checkbox and the like only speak by `ionChange`. A text field's says on
@@ -367,6 +376,14 @@ function focusFirstField(): void {
           />
         </div>
         <div class="ep-form-modal__footer ion-padding-horizontal ion-padding-bottom">
+          <p
+            v-if="showsHint"
+            class="ep-form-modal__hint"
+            role="status"
+            :data-testid="tid('hint')"
+          >
+            {{ submitHint }}
+          </p>
           <slot
             name="footer"
             :submit="submit"
@@ -497,6 +514,14 @@ ion-modal.ep-form-modal .ep-form-modal__footer {
 }
 ion-modal.ep-form-modal .ep-form-modal__footer ion-button {
   margin: 0;
+}
+/* Its own line above the buttons, at the side of Save. */
+ion-modal.ep-form-modal .ep-form-modal__hint {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: end;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium-shade, var(--ion-color-medium));
 }
 ion-modal.ep-form-modal .ep-form-modal__cancel {
   --color: var(--ion-text-color);

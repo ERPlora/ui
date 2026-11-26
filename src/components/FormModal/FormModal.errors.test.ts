@@ -379,3 +379,81 @@ describe('FormModal: a refused field that nothing in the form says', () => {
     expect(banner(wrapper).text()).toContain(reason);
   });
 });
+
+describe('FormModal: a refusal whose message is the reason of one of its fields', () => {
+  // A drawer, a printer or a role with a name another one has: the server words the refusal and the field's reason
+  // the same. It is said once, under the field, as Shopify Polaris and Material say a field's error; the banner
+  // stays for what no field says.
+  const TAKEN = 'There is already a drawer with that name.';
+  const taken = (fields: Record<string, string> = { name: TAKEN }, extra: Record<string, unknown> = {}) => ({
+    status: 409,
+    code: 'cash_register.register_exists',
+    message: TAKEN,
+    fields,
+    ...extra,
+  });
+  type FieldErrors = Readonly<Record<string, string>>;
+  const banner = (w: VueWrapper) => w.find('.ep-form-modal__error');
+  const times = (text: string, words: string): number => text.split(words).length - 1;
+  const marked = (id: string, message: string | undefined) => markedField(IonInput, id, message, { name: id });
+  const blank = (id: string) => h(IonInput as never, { 'data-testid': id, label: id, name: id });
+  const mountFields = (error: unknown, fields: (errors: FieldErrors) => unknown[]): VueWrapper =>
+    mountModal({ error } as Partial<Props>, { default: (props) => fields(props.fieldErrors as FieldErrors) });
+
+  it('is said once, under the field that paints it: no banner repeats it', async () => {
+    const wrapper = mountFields(taken(), (errors) => [marked('name', errors.name)]);
+    await settle();
+    expect((byTestId('name') as HTMLElement & { errorText?: string }).errorText).toBe(TAKEN);
+    expect(banner(wrapper).exists()).toBe(false);
+    expect(times(document.body.textContent ?? '', TAKEN)).toBe(0);
+  });
+
+  it('with the check of a refusal by fields too (a red warning before the amber one)', async () => {
+    const reason = 'The red warning cannot come before the amber one.';
+    const wrapper = mountFields(taken({ red: reason }, { status: 422, code: 'invalid_payload', message: reason }), (errors) => [marked('red', errors.red)]);
+    await settle();
+    expect(banner(wrapper).exists()).toBe(false);
+  });
+
+  it('never shows up on top, not even for a moment, when the refusal lands with the window open', async () => {
+    const wrapper = mountFields(null, (errors) => [marked('name', errors.name)]);
+    await settle();
+    const added: string[] = [];
+    const watcher = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof Element && (node.matches('.ep-form-modal__error') || node.querySelector('.ep-form-modal__error'))) added.push('banner');
+        }
+      }
+    });
+    watcher.observe(document.body, { childList: true, subtree: true });
+    await wrapper.setProps({ error: taken() });
+    await settle();
+    watcher.disconnect();
+    expect(added).toEqual([]);
+  });
+
+  it('a field that does not paint it leaves it on top, once', async () => {
+    const wrapper = mountFields(taken(), () => [blank('name')]);
+    await settle();
+    expect(times(banner(wrapper).text(), TAKEN)).toBe(1);
+  });
+
+  it('beside a field nothing marks, the banner says only that field’s reason', async () => {
+    const wrapper = mountFields(taken({ name: TAKEN, code: 'Already in use.' }), (errors) => [marked('name', errors.name), blank('code')]);
+    await settle();
+    expect(banner(wrapper).text()).toContain('Already in use.');
+    expect(banner(wrapper).text()).not.toContain(TAKEN);
+  });
+
+  it('a new try refused the same way says it under the field again, and never on top', async () => {
+    const wrapper = mountFields(taken(), (errors) => [marked('name', errors.name)]);
+    await settle();
+    await wrapper.setProps({ error: null });
+    await settle();
+    await wrapper.setProps({ error: taken() });
+    await settle();
+    expect((byTestId('name') as HTMLElement & { errorText?: string }).errorText).toBe(TAKEN);
+    expect(banner(wrapper).exists()).toBe(false);
+  });
+});
