@@ -24,7 +24,7 @@ export interface TabbarGeometry {
   contentWidth: number;
   /** `offsetLeft` of the first tab — the strip's leading padding. */
   firstTabLeft: number;
-  /** `offsetWidth` of a tab. Every tab is one grid column, so they all share it. */
+  /** `offsetWidth` of the widest tab: the one every tab takes once the strip scrolls. */
   tabWidth: number;
   /** Distance between the left edges of two consecutive tabs: `tabWidth` plus the gap. */
   tabPitch: number;
@@ -102,18 +102,24 @@ function keepSelectedTabInView(segment: HTMLElement): void {
   segment.scrollLeft = target;
 }
 
-/** Reads the live geometry of a strip. `null` when there is not enough of it to measure a pitch. */
+/**
+ * Reads the live geometry of a strip. `null` when there is not enough of it to measure a pitch. A tab
+ * with a long word is wider than the rest (`tabbar.css`), so the width is the WIDEST tab's: published as
+ * the floor, it makes every tab that wide again and the peek lands where it was computed.
+ */
 function readTabbarGeometry(segment: HTMLElement): TabbarGeometry | null {
-  const tabs = segment.querySelectorAll<HTMLElement>('ion-segment-button');
+  const tabs = Array.from(segment.querySelectorAll<HTMLElement>('ion-segment-button'));
   const first = tabs[0];
   const second = tabs[1];
   if (!first || !second) return null;
+  const tabWidth = Math.max(...tabs.map((tab) => tab.offsetWidth));
+  const gap = second.offsetLeft - first.offsetLeft - first.offsetWidth;
   return {
     visibleWidth: segment.clientWidth,
     contentWidth: segment.scrollWidth,
     firstTabLeft: first.offsetLeft,
-    tabWidth: first.offsetWidth,
-    tabPitch: second.offsetLeft - first.offsetLeft,
+    tabWidth,
+    tabPitch: tabWidth + gap,
     tabCount: tabs.length,
   };
 }

@@ -336,3 +336,48 @@ describe('bindTabbarPeek — a label longer than an even share', () => {
     unbind();
   });
 });
+
+/**
+ * A strip whose tabs are as wide as their own longest word, as `tabbar.css` lays them out: each tab is
+ * `max(published width, its own minimum)` and they follow one another with `gap` between them.
+ */
+function unevenStrip(visibleWidth: number, minimums: number[], gap = 4, padding = 4): HTMLElement {
+  const segment = document.createElement('ion-segment');
+  const widthOf = (index: number): number => {
+    const declared = Number.parseFloat(segment.style.getPropertyValue('--ep-tabbar-min')) || 0;
+    return Math.max(declared, minimums[index]);
+  };
+  const leftOf = (index: number): number =>
+    padding + minimums.slice(0, index).reduce((sum, _, i) => sum + widthOf(i) + gap, 0);
+  for (const [index] of minimums.entries()) {
+    const tab = document.createElement('ion-segment-button');
+    Object.defineProperty(tab, 'offsetLeft', { get: () => leftOf(index) });
+    Object.defineProperty(tab, 'offsetWidth', { get: () => widthOf(index) });
+    segment.appendChild(tab);
+  }
+  Object.defineProperty(segment, 'clientWidth', { get: () => visibleWidth });
+  Object.defineProperty(segment, 'scrollWidth', {
+    get: () => leftOf(minimums.length - 1) + widthOf(minimums.length - 1) + padding,
+  });
+  document.body.appendChild(segment);
+  return segment;
+}
+
+describe('bindTabbarPeek — a strip that scrolls with one tab wider than the rest', () => {
+  it('sizes every tab from the widest, so the cut still falls past the centre of the first hidden tab', () => {
+    // Staff's six tabs at 360px in Spanish: «Comisiones» needs 70px, the rest 56–62px. Sized from the FIRST
+    // tab, the wide one pushed the last tab out to a 24px sliver short of its centre, a strip that seemed to end.
+    const minimums = [56, 56, 62, 56, 70, 56];
+    const segment = unevenStrip(352, minimums);
+    const unbind = bindTabbarPeek(segment);
+
+    const tabs = Array.from(segment.querySelectorAll<HTMLElement>('ion-segment-button'));
+    expect(new Set(tabs.map((tab) => tab.offsetWidth)).size).toBe(1);
+    const hidden = tabs.find((tab) => tab.offsetLeft + tab.offsetWidth > segment.clientWidth);
+    expect(hidden).toBeDefined();
+    const centre = (hidden as HTMLElement).offsetLeft + (hidden as HTMLElement).offsetWidth / 2;
+    expect(segment.clientWidth - centre).toBeGreaterThanOrEqual(11.9);
+    unbind();
+  });
+});
+
