@@ -42,6 +42,8 @@ const props = withDefaults(
     dismissOnBackdrop?: boolean;
     /** Save is disabled (the form is not complete yet). */
     submitDisabled?: boolean;
+    /** What is still missing while Save is disabled, said next to the buttons. */
+    submitHint?: string;
     /** Ionic colour of Save (`danger` for a destructive form). */
     submitColor?: string;
     /** Icon of Save (`set:name`, registered in `shell/icons.ts`). */
@@ -65,6 +67,7 @@ const props = withDefaults(
     size: 'md',
     dismissOnBackdrop: true,
     submitDisabled: false,
+    submitHint: '',
     submitColor: 'primary',
     submitIcon: undefined,
     role: 'dialog',
@@ -87,6 +90,7 @@ defineSlots<{
 const { t } = useI18n({ useScope: 'local', messages: { en, es } });
 
 const titleId = `ep-form-modal-title-${useId()}`;
+const showsHint = computed(() => props.submitDisabled && !props.readonly && !!props.submitHint.trim());
 const form = useTemplateRef<HTMLFormElement>('form');
 const body = useTemplateRef<HTMLElement>('body');
 
@@ -372,6 +376,14 @@ function focusFirstField(): void {
           />
         </div>
         <div class="ep-form-modal__footer ion-padding-horizontal ion-padding-bottom">
+          <p
+            v-if="showsHint"
+            class="ep-form-modal__hint"
+            role="status"
+            :data-testid="tid('hint')"
+          >
+            {{ submitHint }}
+          </p>
           <slot
             name="footer"
             :submit="submit"
@@ -502,6 +514,14 @@ ion-modal.ep-form-modal .ep-form-modal__footer {
 }
 ion-modal.ep-form-modal .ep-form-modal__footer ion-button {
   margin: 0;
+}
+/* Its own line above the buttons, at the side of Save. */
+ion-modal.ep-form-modal .ep-form-modal__hint {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: end;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium-shade, var(--ion-color-medium));
 }
 ion-modal.ep-form-modal .ep-form-modal__cancel {
   --color: var(--ion-text-color);

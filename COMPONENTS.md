@@ -85,7 +85,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **Para qué sirve:** un formulario corto en un diálogo, con Guardar y Cancelar, su estado de envío y el error del servidor (el mensaje arriba y el de cada campo en el slot). El motivo de un campo sale una sola vez, debajo de ese campo: si el mensaje del rechazo es el motivo que ya pinta un campo marcado (un nombre que ya tiene otro registro), el recuadro de arriba no lo repite; arriba queda lo que no dice ningún campo. Nunca pasa del alto de la pantalla: si no cabe, los campos se desplazan entre el título y los botones, que siempre se ven (también en una tableta en horizontal con un pie de varias filas). Un párrafo encima de un campo ya va separado de su rótulo, también dentro de `ConfirmDialog` (ver «Reglas»). Un título largo pasa a las líneas que necesite, nunca se corta con «…».
 - **Úsalo cuando** se crea o edita algo de pocos campos sin salir de la pantalla.
 - **No lo uses cuando** el formulario de una entidad es largo → una página con `AppPage`; es una pregunta de sí o no → `useConfirm`.
-- **API:** `v-model:open`, `title`, `submitLabel`, `pending`, `error`, `size` (`sm` 420 px, `md` 480 px, `lg` 640 px para una ventana de lectura), `phoneLayout` (`sheet`, `card`), `submitDisabled`, `readonly`, `canDismiss`, `testid`; slot por defecto con `{ fieldErrors, pending }` y slot `footer`; eventos `submit` (no cierra: la página pone `open = false` cuando su orden sale bien) y `cancel`. `useRefusal` mantiene los errores de un rechazo mientras se corrige.
+- **API:** `v-model:open`, `title`, `submitLabel`, `pending`, `error`, `size` (`sm` 420 px, `md` 480 px, `lg` 640 px para una ventana de lectura), `phoneLayout` (`sheet`, `card`), `submitDisabled`, `submitHint` (lo que aún falta mientras Guardar está apagado, una cosa cada vez: «Escribe el nombre para continuar.»; sale en su propia línea encima de los botones, del lado de Guardar, que siempre se ve, y el lector de pantalla la anuncia cada vez que cambia (`role="status"`); con Guardar encendido o en una ventana de solo lectura no sale), `readonly`, `canDismiss`, `testid`; slot por defecto con `{ fieldErrors, pending }` y slot `footer`; eventos `submit` (no cierra: la página pone `open = false` cuando su orden sale bien) y `cancel`. `useRefusal` mantiene los errores de un rechazo mientras se corrige.
 - **Ionic:** `ion-modal`, `ion-header`, `ion-toolbar`, `ion-title`, `ion-buttons`, `ion-button`, `ion-spinner`.
 
 ### `SettingsFormFooter`
@@ -400,6 +400,8 @@ de la cuenta (`ion:receipt-outline`) en lugar del suyo; el texto lo escribe la p
 ## Asistente
 
 El host lo configura una vez al arrancar (`configureAssistant`) y suma `assistantMessages` a sus catálogos de textos.
+
+Cada dato de la tarjeta que aprueba una escritura (`AssistantField`) puede traer `choice`, un valor de una lista cerrada («Claro», «50 m»): la línea de una acción normal lo dice siempre con el nombre de su dato delante, también el primero («Apariencia: Claro»), porque suelto no dice qué cambia.
 
 El `done` de cada ronda que manda el host puede traer `sources`, las direcciones web que consultaron sus propias herramientas (en el Hub y en el SaaS, la búsqueda en la web y los tipos de cambio). Una dirección de la respuesta que no sale de ahí, de un resultado del turno ni de la pregunta lleva, fuera de la burbuja, el aviso de una dirección web no consultada, como el de un identificador no leído; sin `sources`, las direcciones no se comprueban.
 
