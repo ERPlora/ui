@@ -441,6 +441,19 @@ describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA
     ]);
   });
 
+  // With its code painted, the hub's longest menu (the person, seven entries and the foot with the project's links)
+  // needs 832 px of height. On a lower screen the entries come first: the code folds into its row, which shows it
+  // over the page; on the rail its icon stays the one door.
+  it('below the height the menu needs with its code, the code folds into its row, never on the rail', () => {
+    const low = /@media \(max-height: 831px\)\s*\{((?:[^{}]*\{[^}]*\})*)\s*\}/.exec(polish)?.[1] ?? '';
+    expect(declarations(blocks(low, '.sidebar-install-qr-full')[0])).toEqual(['display: none']);
+    expect(declarations(blocks(low, '.sidebar-install-qr-open')[0])).toEqual(['display: block']);
+    expect(blocks(polish.replace(low, ''), '.sidebar-install-qr-open')[0]).toContain('display: none');
+    const desktop = /@media \(min-width: 992px\)\s*\{((?:[^{}]*\{[^}]*\})*)\s*\}/g;
+    const rail = [...polish.matchAll(desktop)].map((m) => m[1]).join('\n');
+    expect(declarations(blocks(rail, 'ion-split-pane.rail .sidebar-install-qr-open')[0])).toEqual(['display: none']);
+  });
+
   it('the topbar names the section after the title, muted, hidden on a phone', () => {
     expect(blocks(polish, '.topbar-section::before')[0]).toContain("content: '· '");
     expect(blocks(polish, '.topbar-section')[0]).toContain('color: var(--ep-text-muted)');
