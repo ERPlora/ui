@@ -142,8 +142,6 @@ function mediaBlocks(css: string, query: string, selector: string): string[] {
 describe('tabbar.css (the footer ion-segment as navigation)', () => {
   const tabbar = plain(read('tabbar.css'));
 
-  // Ionic's own scrollable segment sizes its columns the same way: equal shares while every label fits, and a
-  // tab whose longest word needs more takes it from the others instead of widening them all.
   it('fills the footer with equal tabs, none narrower than its longest word', () => {
     expect(blocks(tabbar, '.tabbar')).toHaveLength(1);
     expect(declarations(blocks(tabbar, '.tabbar')[0]).join('; ')).toBe(
@@ -163,7 +161,6 @@ describe('tabbar.css (the footer ion-segment as navigation)', () => {
   // A phone's bottom bar shows four or five tabs whole (iOS tab bar, Material's
   // navigation bar). Ionic's iOS segment button brings `min-width: 70px` and 13px of side padding, made
   // for the compact segmented control: five of them need 374px, more than a 375px phone's strip (367px).
-  // 56px is the narrowest item of Material's bottom navigation.
   it('lets a footer tab shrink to the floor (--ep-tabbar-min, 56px) and keeps its label 4px off its edges', () => {
     expect(blocks(tabbar, '.tabbar ion-segment-button')).toHaveLength(1);
     expect(declarations(blocks(tabbar, '.tabbar ion-segment-button')[0]).join('; ')).toBe(
