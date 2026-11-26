@@ -36,7 +36,7 @@ const props = withDefaults(
     pending?: boolean;
     /** The command's error: its message on top, its `fields` to the slot. */
     error?: FormModalError | null;
-    /** `md` 480px, `sm` 420px, `lg` 640px (desktop). */
+    /** `md` 480px, `sm` 420px, `lg` 640px, `xl` 920px (desktop and tablet). */
     size?: FormModalSize;
     /** A tap on the backdrop cancels (never while pending). */
     dismissOnBackdrop?: boolean;
@@ -50,7 +50,7 @@ const props = withDefaults(
     submitIcon?: string;
     /** `alertdialog` for consequential confirmations. */
     role?: FormModalRole;
-    /** Below 640px: a bottom `sheet` (forms) or the centred `card` (confirmations). */
+    /** Below 640px: a bottom `sheet` (forms), the centred `card` (confirmations) or `fullscreen` (long forms). */
     phoneLayout?: FormModalPhoneLayout;
     /** It only shows data: the footer is a single «Close» (no Save, no Cancel) and nothing submits. */
     readonly?: boolean;
@@ -85,6 +85,7 @@ const emit = defineEmits<{ submit: []; cancel: [] }>();
 defineSlots<{
   default?: (props: FormModalFieldsSlotProps) => unknown;
   footer?: (props: FormModalFooterSlotProps) => unknown;
+  summary?: () => unknown;
 }>();
 
 const { t } = useI18n({ useScope: 'local', messages: { en, es } });
@@ -375,7 +376,10 @@ function focusFirstField(): void {
             :pending="pending"
           />
         </div>
-        <div class="ep-form-modal__footer ion-padding-horizontal ion-padding-bottom">
+        <div
+          class="ep-form-modal__footer ion-padding-horizontal ion-padding-bottom"
+          :class="{ 'ep-form-modal__footer--summary': $slots.summary }"
+        >
           <p
             v-if="showsHint"
             class="ep-form-modal__hint"
@@ -384,6 +388,13 @@ function focusFirstField(): void {
           >
             {{ submitHint }}
           </p>
+          <div
+            v-if="$slots.summary"
+            class="ep-form-modal__summary"
+            :data-testid="tid('summary')"
+          >
+            <slot name="summary" />
+          </div>
           <slot
             name="footer"
             :submit="submit"
@@ -455,6 +466,7 @@ ion-modal.ep-form-modal {
 }
 ion-modal.ep-form-modal[data-size='sm'] { --width: 420px; }
 ion-modal.ep-form-modal[data-size='lg'] { --width: 640px; }
+ion-modal.ep-form-modal[data-size='xl'] { --width: 920px; }
 /* Dark: the dialog stands out from what is behind it. */
 :root.ion-palette-dark ion-modal.ep-form-modal {
   --ep-form-modal-backdrop-opacity: 0.6;
@@ -534,6 +546,16 @@ ion-modal.ep-form-modal .ep-form-modal__hint {
 ion-modal.ep-form-modal .ep-form-modal__cancel {
   --color: var(--ion-text-color);
 }
+/* What is chosen, at the start of a footer set apart from the fields; the buttons stay at its end. */
+ion-modal.ep-form-modal .ep-form-modal__footer--summary {
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--ion-border-color, #e5e7eb);
+}
+ion-modal.ep-form-modal .ep-form-modal__summary {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 /* What a select has chosen takes the lines it needs. On one line it sets the select's minimum width, and a form's
    one-column grid grows to it, every field with it, past the dialog. Here it holds for a select without
    `fill` too; the outlined ones, in and out of a dialog, and the room under their label are the shared theme's (polish.css). */
@@ -542,7 +564,8 @@ ion-modal.ep-form-modal ion-select::part(text) {
 }
 
 /* Phone: a form is a sheet from the bottom as tall as its fields, up to 90% of the page, the fields
-   scrolling between the title and the buttons. A confirmation (`card`) keeps the centred card. */
+   scrolling between the title and the buttons. A long form (`fullscreen`) takes the whole screen, its fields
+   filling it between the title and the buttons. A confirmation (`card`) keeps the centred card. */
 @media (max-width: 639.98px) {
   ion-modal.ep-form-modal[data-phone-layout='sheet'] {
     --width: 100%;
@@ -552,11 +575,25 @@ ion-modal.ep-form-modal ion-select::part(text) {
     --border-radius: var(--ep-radius-sheet-top, 18px 18px 0 0);
     align-items: flex-end;
   }
-  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__body {
+  ion-modal.ep-form-modal[data-phone-layout='fullscreen'] {
+    --width: 100%;
+    --max-width: 100%;
+    --height: 100%;
+    --max-height: 100%;
+    --border-radius: 0;
+  }
+  ion-modal.ep-form-modal[data-phone-layout='fullscreen']
+    :is(.ion-delegate-host, .ep-form-modal__content, .ep-form-modal__form, .ep-form-modal__body) {
+    flex: 1 1 auto;
+  }
+  ion-modal.ep-form-modal:not([data-phone-layout='card']) .ep-form-modal__body {
     max-height: none;
   }
-  ion-modal.ep-form-modal[data-phone-layout='sheet'] .ep-form-modal__footer {
+  ion-modal.ep-form-modal:not([data-phone-layout='card']) .ep-form-modal__footer {
     padding-bottom: calc(var(--ion-padding, 16px) + var(--ion-safe-area-bottom, 0px));
+  }
+  ion-modal.ep-form-modal .ep-form-modal__summary {
+    flex-basis: 100%;
   }
 }
 </style>

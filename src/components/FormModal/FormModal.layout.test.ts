@@ -82,7 +82,8 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
    *  queries, not the layout), on the DOM FormModal and Ionic render. */
   async function styleAt(width: number, phoneLayout: string, size = 'md', height = 844) {
     const win = new Window({ width, height });
-    win.document.head.innerHTML = `<style>${STYLE}</style>`;
+    // A phone with a gesture bar: Ionic says its height in `--ion-safe-area-bottom`.
+    win.document.head.innerHTML = `<style>:root { --ion-safe-area-bottom: 34px; }</style><style>${STYLE}</style>`;
     win.document.body.innerHTML = `
       <ion-modal class="ep-form-modal" data-size="${size}" data-phone-layout="${phoneLayout}">
         <div class="ion-delegate-host ion-page"><div class="ep-form-modal__content">
@@ -96,8 +97,11 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     };
     const styles = {
       modal: read('ion-modal', ['--width', '--max-width', '--height', '--max-height', '--border-radius', 'align-items']),
-      host: read('.ion-delegate-host', ['display', 'flex-direction', 'min-height', 'max-height']),
-      body: read('.ep-form-modal__body', ['overflow-y', 'min-height', 'max-height']),
+      host: read('.ion-delegate-host', ['display', 'flex-direction', 'min-height', 'max-height', 'flex-grow']),
+      content: read('.ep-form-modal__content', ['flex-grow']),
+      form: read('.ep-form-modal__form', ['flex-grow']),
+      body: read('.ep-form-modal__body', ['overflow-y', 'min-height', 'max-height', 'flex-grow']),
+      footer: read('.ep-form-modal__footer', ['padding-bottom']),
     };
     await win.happyDOM.close();
     return styles;
@@ -128,8 +132,34 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     expect(modal['--border-radius']).not.toBe('18px 18px 0 0');
   });
 
-  it('from 640px both are the centred card', async () => {
-    for (const layout of ['sheet', 'card']) {
+  // A long form on a phone (`phoneLayout: fullscreen`) takes the whole screen, as Material's full-screen dialog and
+  // the iOS form sheet on a phone do: the title and the buttons stay put, the fields scroll between them, and the
+  // buttons stay clear of the system's gesture bar.
+  it('below 640px a full-screen form covers the page, the fields filling and scrolling between title and buttons', async () => {
+    const { modal, host, content, form, body, footer } = await styleAt(390, 'fullscreen', 'xl');
+    expect(modal['--width']).toBe('100%');
+    expect(modal['--max-width']).toBe('100%');
+    expect(modal['--height']).toBe('100%');
+    expect(modal['--max-height']).toBe('100%');
+    expect(modal['--border-radius']).toBe('0');
+    for (const [name, part] of Object.entries({ host, content, form, body })) expect(part['flex-grow'], name).toBe('1');
+    expect(body['overflow-y']).toBe('auto');
+    expect(body['min-height']).toBe('0');
+    expect(body['max-height']).toBe('none');
+    expect(footer['padding-bottom']).toBe('calc(16px + 34px)');
+  });
+
+  it('the sheet keeps the buttons clear of the gesture bar too, and only the full-screen form fills the page', async () => {
+    const sheet = await styleAt(390, 'sheet');
+    expect(sheet.footer['padding-bottom']).toBe('calc(16px + 34px)');
+    expect(sheet.body['flex-grow']).not.toBe('1');
+    const wide = await styleAt(1024, 'fullscreen', 'xl');
+    expect(wide.body['flex-grow']).not.toBe('1');
+    expect(wide.footer['padding-bottom']).not.toMatch(/34px/);
+  });
+
+  it('from 640px the three are the centred card', async () => {
+    for (const layout of ['sheet', 'card', 'fullscreen']) {
       const { modal } = await styleAt(1024, layout);
       expect(modal['--width'], layout).toBe('480px');
       expect(modal['--height'], layout).toBe('auto');
@@ -157,7 +187,7 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
   // happy-dom lays nothing out and has no `::part`: Chromium measures it in the Hub's e2e.
   it('the window is capped by the page, never by the viewport, and its content shrinks to it', () => {
     const caps = [...STYLE.matchAll(/--max-(?:height|width):\s*([^;]+);/g)].map(([, value]) => value);
-    expect(caps).toEqual(['calc(100% - 32px)', 'calc(100% - 32px)', '100%', '90%']);
+    expect(caps).toEqual(['calc(100% - 32px)', 'calc(100% - 32px)', '100%', '90%', '100%', '100%']);
     expect(STYLE).not.toMatch(/--max-height:[^;]*v[hwbi]|--max-width:[^;]*v[hwbi]/);
     expect(STYLE).toMatch(/ion-modal\.ep-form-modal::part\(content\)\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/);
   });

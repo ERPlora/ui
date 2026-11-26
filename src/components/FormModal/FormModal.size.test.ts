@@ -1,6 +1,6 @@
-// The dialog's width on desktop and tablet: `sm` 420px for short confirmations, `md` 480px for forms (the default) and
-// `lg` 640px for windows that are mostly reading, such as the in-app help. Below 640px a sheet takes the full width
-// whatever the size.
+// The dialog's width on desktop and tablet: `sm` 420px for short confirmations, `md` 480px for forms (the default),
+// `lg` 640px for windows that are mostly reading, such as the in-app help, and `xl` 920px for a form in two columns.
+// Below 640px a sheet takes the full width whatever the size.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -61,5 +61,31 @@ describe('FormModal: size lg', () => {
 
   it('below 640px is the full-width sheet like every other size', async () => {
     expect((await modalStyleAt(390, 'lg'))['--width']).toBe('100%');
+  });
+});
+
+describe('FormModal: size xl', () => {
+  it('marks the dialog with its size', async () => {
+    const wrapper = mount(FormModal, {
+      props: { title: 'New appointment', open: true, size: 'xl' },
+      attachTo: document.body,
+      global: { plugins: [createShellI18n({ locale: 'en' })] },
+    });
+    mounted.push(wrapper);
+    await nextTick();
+    expect(wrapper.get('[data-stub="ion-modal"]').attributes('data-size')).toBe('xl');
+  });
+
+  // A tablet in portrait (834px) is narrower than the dialog: it takes the page but for the usual 16px each side.
+  it('is 920px wide from 640px up, and never wider than the screen', async () => {
+    for (const width of [640, 834, 1440]) {
+      const modal = await modalStyleAt(width, 'xl');
+      expect(modal['--width'], String(width)).toBe('920px');
+      expect(modal['--max-width'], String(width)).toBe('calc(100% - 32px)');
+    }
+  });
+
+  it('below 640px is the full-width sheet like every other size', async () => {
+    expect((await modalStyleAt(390, 'xl'))['--width']).toBe('100%');
   });
 });
