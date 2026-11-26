@@ -60,7 +60,7 @@ export function hidesTabsSilently(geometry: TabbarGeometry): boolean {
  *     firstTabLeft + whole · (width + gap) + width / 2 = visibleWidth − PEEK_MARGIN_PX
  *
  * and takes the largest `whole` whose answer still respects the width the tabs already had (the
- * floor: 64px in `tabbar.css`). When not even one whole tab and the peek fit at the
+ * floor: 56px in `tabbar.css`). When not even one whole tab and the peek fit at the
  * floor, the floor stands and there is no peek: a squeezed label is worse.
  */
 export function peekTabWidth(geometry: TabbarGeometry): number | null {
@@ -83,66 +83,6 @@ export function peekTabWidth(geometry: TabbarGeometry): number | null {
   // Rounded DOWN: a narrower tab moves the cut further past the centre, never short of it.
   const width = Math.floor(widthFor(chosen) * 100) / 100;
   return Number.isFinite(width) && width > 0 ? width : null;
-}
-
-/** What one tab's label needs so that none of its words breaks in two. */
-export interface TabLabelNeed {
-  /** The label may break a line (`white-space` other than `nowrap`/`pre`). */
-  wraps: boolean;
-  /** `min-content` width of the label: its widest word, laid out with its own font. */
-  wordWidth: number;
-  /** What the tab spends around the label: its horizontal padding, borders and the label's margins. */
-  chromeWidth: number;
-}
-
-/**
- * The narrowest tab that keeps every word of every wrapping label whole, or `null` when there is
- * nothing to hold. Labels wrap BETWEEN words (`polish.css`), but a word longer than the tab breaks by
- * a letter («Disponibilida» / «d»); this is the measured answer, for any language, font
- * and system text size. Labels that never wrap are left out; capped at the strip's width.
- */
-export function wholeWordTabWidth(labels: readonly TabLabelNeed[], visibleWidth: number): number | null {
-  const needs = labels.filter((label) => label.wraps && label.wordWidth > 0);
-  if (needs.length === 0) return null;
-  const widest = Math.max(...needs.map((label) => label.wordWidth + label.chromeWidth));
-  return Math.min(Math.ceil(widest), visibleWidth);
-}
-
-/** Sum of the given pixel lengths of a computed style (`'16px'` → 16; anything else counts as 0). */
-function pixels(style: CSSStyleDeclaration, ...properties: string[]): number {
-  return properties.reduce((sum, property) => sum + (Number.parseFloat(style.getPropertyValue(property)) || 0), 0);
-}
-
-/**
- * Measures what each tab's label needs, in the strip as painted right now: the widest word is the
- * label's `min-content` width (laid out at that width for an instant, inline style put back); the
- * padding lives on the button's shadow part (`.button-native`), else on the host.
- */
-function readLabelNeeds(segment: HTMLElement): TabLabelNeed[] {
-  const needs: TabLabelNeed[] = [];
-  for (const tab of Array.from(segment.querySelectorAll<HTMLElement>('ion-segment-button'))) {
-    const label = tab.querySelector<HTMLElement>('ion-label');
-    if (!label) continue;
-    const labelStyle = getComputedStyle(label);
-    const wraps = labelStyle.whiteSpace !== 'nowrap' && labelStyle.whiteSpace !== 'pre';
-
-    const width = label.style.getPropertyValue('width');
-    const maxWidth = label.style.getPropertyValue('max-width');
-    label.style.setProperty('width', 'min-content');
-    label.style.setProperty('max-width', 'none');
-    const wordWidth = label.getBoundingClientRect().width;
-    if (width) label.style.setProperty('width', width);
-    else label.style.removeProperty('width');
-    if (maxWidth) label.style.setProperty('max-width', maxWidth);
-    else label.style.removeProperty('max-width');
-
-    const native = tab.shadowRoot?.querySelector<HTMLElement>('.button-native') ?? tab;
-    const chromeWidth =
-      pixels(getComputedStyle(native), 'padding-left', 'padding-right', 'border-left-width', 'border-right-width') +
-      pixels(labelStyle, 'margin-left', 'margin-right');
-    needs.push({ wraps, wordWidth, chromeWidth });
-  }
-  return needs;
 }
 
 /**
@@ -179,10 +119,11 @@ function readTabbarGeometry(segment: HTMLElement): TabbarGeometry | null {
 }
 
 /**
- * Keeps a strip's tabs sized so the overflow stays visible and no word of a label breaks in two.
- * Returns its cleanup. Recomputes when the strip changes width, when a label changes size and when
- * the number of tabs changes. Every pass first drops the width it published last time: the floor
- * is the one the STYLESHEET declares, or it would ratchet up on every rotation of the phone.
+ * Keeps a strip's tabs sized so the overflow stays visible. Returns its cleanup. Recomputes when the
+ * strip changes width, when a label changes size and when the number of tabs changes. Every pass
+ * first drops the width it published last time: the floor is the one the STYLESHEET declares, or it
+ * would ratchet up on every rotation of the phone. Keeping each word whole is `tabbar.css`'s job: a
+ * column never narrows below its longest word.
  */
 export function bindTabbarPeek(segment: HTMLElement | null): () => void {
   if (!segment) return () => {};
@@ -204,19 +145,15 @@ export function bindTabbarPeek(segment: HTMLElement | null): () => void {
     const scrolled = segment.scrollLeft;
     segment.style.removeProperty(PEEK_PROPERTY);
 
-    // The floor a wrapping label needs to keep its words whole; it only raises the width.
-    const firstTab = segment.querySelector<HTMLElement>('ion-segment-button');
-    const wholeWords = wholeWordTabWidth(readLabelNeeds(segment), segment.clientWidth);
-    const widened = firstTab !== null && wholeWords !== null && wholeWords > firstTab.offsetWidth;
-    if (widened) segment.style.setProperty(PEEK_PROPERTY, `${wholeWords}px`);
-
     for (const label of Array.from(segment.querySelectorAll('ion-segment-button ion-label'))) resize?.observe(label);
 
     const geometry = readTabbarGeometry(segment);
     const width = geometry ? peekTabWidth(geometry) : null;
-    if (width !== null) segment.style.setProperty(PEEK_PROPERTY, `${width}px`);
-    // The tabs just changed width, so `scrollWidth` did too: re-derive which edges hide something.
-    if (widened || width !== null) syncTabbarOverflow(segment);
+    if (width !== null) {
+      segment.style.setProperty(PEEK_PROPERTY, `${width}px`);
+      // The tabs just changed width, so `scrollWidth` did too: re-derive which edges hide something.
+      syncTabbarOverflow(segment);
+    }
     // A pass that leaves the width as it was leaves the strip where the person had put it; a pass
     // that moves the width re-places the chosen tab instead.
     if (segment.style.getPropertyValue(PEEK_PROPERTY) !== published) keepSelectedTabInView(segment);

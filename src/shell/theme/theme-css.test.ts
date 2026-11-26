@@ -142,14 +142,16 @@ function mediaBlocks(css: string, query: string, selector: string): string[] {
 describe('tabbar.css (the footer ion-segment as navigation)', () => {
   const tabbar = plain(read('tabbar.css'));
 
-  it('fills the footer, with a minimum tab width before it scrolls (--ep-tabbar-min, 64px)', () => {
+  // Ionic's own scrollable segment sizes its columns the same way: equal shares while every label fits, and a
+  // tab whose longest word needs more takes it from the others instead of widening them all.
+  it('fills the footer with equal tabs, none narrower than its longest word', () => {
     expect(blocks(tabbar, '.tabbar')).toHaveLength(1);
     expect(declarations(blocks(tabbar, '.tabbar')[0]).join('; ')).toBe(
       [
         'width: 100%',
         'margin-inline: 0',
         'box-sizing: border-box',
-        'grid-auto-columns: minmax(var(--ep-tabbar-min, 64px), 1fr)',
+        'grid-auto-columns: minmax(min-content, 1fr)',
         'justify-content: start',
         'overflow-x: auto',
         'scrollbar-width: none',
@@ -161,10 +163,11 @@ describe('tabbar.css (the footer ion-segment as navigation)', () => {
   // A phone's bottom bar shows four or five tabs whole (iOS tab bar, Material's
   // navigation bar). Ionic's iOS segment button brings `min-width: 70px` and 13px of side padding, made
   // for the compact segmented control: five of them need 374px, more than a 375px phone's strip (367px).
-  it('lets a footer tab shrink to the floor and keeps its label 4px off its edges', () => {
+  // 56px is the narrowest item of Material's bottom navigation.
+  it('lets a footer tab shrink to the floor (--ep-tabbar-min, 56px) and keeps its label 4px off its edges', () => {
     expect(blocks(tabbar, '.tabbar ion-segment-button')).toHaveLength(1);
     expect(declarations(blocks(tabbar, '.tabbar ion-segment-button')[0]).join('; ')).toBe(
-      ['min-width: 0', '--padding-start: 4px', '--padding-end: 4px'].join('; '),
+      ['min-width: var(--ep-tabbar-min, 56px)', '--padding-start: 4px', '--padding-end: 4px'].join('; '),
     );
   });
 

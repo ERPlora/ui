@@ -190,9 +190,9 @@ ion-segment-button::part(indicator-background) { border-radius: 10px; }
 /* A footer tab's label wraps between words, never inside one, and is never cut.
    Ionic's own label is single-line with an ellipsis, which on a phone left the shell's strips
    reading «Approva…», «Plan and li…»; a strip that does not fit SCROLLS instead (Material's
-   scrollable tabs, the iOS tab bar). `bindTabbarPeek` (tabbar-peek.ts) widens each tab to its
-   longest word; `overflow-wrap: normal` keeps that word whole even before it has measured it —
-   Ionic's buttons inherit `break-word`, which split «Availability» into «Availabilit» / «y». */
+   scrollable tabs, the iOS tab bar). `overflow-wrap` and `word-break` back to `normal` keep each word
+   whole, so the tab's column (tabbar.css) is never narrower than its longest word: Ionic's buttons
+   inherit `break-word`, which split «Availability» into «Availabilit» / «y». */
 ion-footer .tabbar ion-label {
   overflow: visible;
   text-overflow: clip;
