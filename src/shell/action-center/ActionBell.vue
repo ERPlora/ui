@@ -8,6 +8,11 @@ import HubIcon from '../HubIcon.vue';
 import { useActionCenter } from './center';
 import type { NoticeSeverity } from './types';
 
+defineProps<{
+  /** On a phone's bar, the room of one button: the count rides on the bell as a badge, without the severity icon. */
+  compact?: boolean;
+}>();
+
 const SEVERITY_ICONS: Record<NoticeSeverity, string> = {
   danger: 'ion:alert-circle',
   warning: 'ion:warning',
@@ -78,7 +83,7 @@ onBeforeUnmount(() => clearTimeout(pulseTimer));
       ref="bell"
       fill="clear"
       class="action-bell"
-      :class="{ 'has-notices': total > 0, 'is-pulsing': pulsing }"
+      :class="{ 'has-notices': total > 0, 'is-pulsing': pulsing, 'is-compact': compact }"
       :data-severity="topSeverity"
       :aria-expanded="String(open)"
       data-action-bell
@@ -104,7 +109,7 @@ onBeforeUnmount(() => clearTimeout(pulseTimer));
         </span>
         <ion-badge class="action-bell__count">{{ total }}</ion-badge>
         <HubIcon
-          v-if="topSeverity"
+          v-if="topSeverity && !compact"
           class="action-bell__severity"
           :name="SEVERITY_ICONS[topSeverity]"
         />
@@ -196,6 +201,22 @@ onBeforeUnmount(() => clearTimeout(pulseTimer));
   font-variant-numeric: tabular-nums;
 }
 .action-bell__severity { flex: none; font-size: 16px; color: var(--tone); }
+.action-bell.is-compact .action-bell__pill { padding: 4px; }
+.action-bell.is-compact .action-bell__count {
+  --background: var(--tone);
+  --color: var(--ion-background-color);
+  --padding-start: 4px;
+  --padding-end: 4px;
+  position: absolute;
+  top: 0;
+  inset-inline-end: -2px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: var(--ep-radius-pill);
+  box-shadow: 0 0 0 2px var(--ion-background-color);
+  font-size: 12px;
+  line-height: 18px;
+}
 .action-bell__hover {
   position: fixed;
   z-index: 60020;

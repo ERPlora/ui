@@ -129,6 +129,14 @@ describe('AppTopbar on a phone: two buttons at the end of the bar, the bell alwa
     ]);
   });
 
+  // With «⋮», the help a project adds beside the bell and the bell's pill, «Automatizaciones» read «Automatizaci…» at
+  // 375 px: on a phone the bell takes the room of one button, its count a badge on its corner.
+  it('the bell takes the room of one button on a phone, and is its pill wider', () => {
+    expect(mountBar(true, HUB).get('[data-testid="action-bell"]').classes()).toContain('is-compact');
+    expect(mountBar(true, SAAS).get('[data-testid="action-bell"]').classes()).toContain('is-compact');
+    expect(mountBar(false, HUB).get('[data-testid="action-bell"]').classes()).not.toContain('is-compact');
+  });
+
   it('wider than a phone, all of it stays in the bar: the actions, «My apps», the piece and the bell', () => {
     const bar = mountBar(false, HUB, { actions: ['edit', 'done'] });
     expect(inBar(bar)).toEqual(['edit', 'done', 'topbar-apps', 'project-topbar', 'action-bell']);
