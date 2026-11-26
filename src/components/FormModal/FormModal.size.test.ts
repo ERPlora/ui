@@ -50,7 +50,7 @@ describe('FormModal: size lg', () => {
     for (const width of [640, 834, 1440]) {
       const modal = await modalStyleAt(width, 'lg');
       expect(modal['--width'], String(width)).toBe('640px');
-      expect(modal['--max-width'], String(width)).toBe('calc(100vw - 32px)');
+      expect(modal['--max-width'], String(width)).toBe('calc(100% - 32px)');
     }
   });
 
