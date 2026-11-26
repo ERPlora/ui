@@ -6,7 +6,8 @@
  *   .ep-order-board-bar              the bar, stuck to the top edge of the box that scrolls
  *     __main, __views, __stations    its first row, the ion-segment of the views and the ion-segment of the stations
  *     __count, __fullscreen          the count beside a view's name, the ion-button of «Full screen»
- *   .ep-order-board-totals, __num    the table of what is left of each dish, its right-aligned quantities
+ *   .ep-order-board-totals, __num    the table of what is left of each dish, its right-aligned quantities, each
+ *                                    on one line with its unit
  *   .ep-order-board-skeleton         the loading board: __text, __card, __head, __icon, __lines, __title, __sub,
  *                                    __dish (and __dish--short) and __foot, the ion-skeleton-text of a grey ticket
  *
@@ -125,6 +126,7 @@
 }
 .ep-order-board-totals .ep-order-board-totals__num {
   text-align: right;
+  white-space: nowrap;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }

@@ -457,8 +457,9 @@ propio, solo pone las clases sobre las piezas de Ionic.
   `__allergy-contains` debajo; la marca «Alergia» de la cabecera es un `__pill` más. `ep-order-ticket-steps` es el
   `ion-popover` de los demás pasos, y `ep-station-dot` el color de una estación delante de su nombre.
 - **`ep-order-board`:** la rejilla de comandas, y alrededor la barra fija con las vistas y las estaciones
-  (`ep-order-board-bar`), la tabla de lo que queda por hacer (`ep-order-board-totals`) y las comandas grises mientras
-  carga (`ep-order-board-skeleton`). La barra se pega al borde de arriba de la caja que se desplaza, por encima de su
+  (`ep-order-board-bar`), la tabla de lo que queda por hacer (`ep-order-board-totals`, cada cifra en `__num`, a la
+  derecha y en una sola línea con su unidad: «0,35 kg» no se parte) y las comandas grises mientras carga
+  (`ep-order-board-skeleton`). La barra se pega al borde de arriba de la caja que se desplaza, por encima de su
   relleno, para que ninguna comanda asome sobre ella: lee el relleno de arriba del `ion-content` (`--padding-top`), y
   otra caja que se desplace (el tablero solo en pantalla completa) declara el suyo en esa misma variable.
 - **Úsalo cuando** una app enseña comandas; la cabecera de cada hoja lista sus clases.
