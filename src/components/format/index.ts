@@ -5,4 +5,4 @@ export { decimalMark } from './decimalMark';
 export type { FormatDateTimeOptions } from './dateTime';
 export { formatMoney } from './money';
 export type { Money } from './money';
-export { formatQuantity } from './quantity';
+export { formatQuantity, orderTicketQuantity, quantityWithUnit } from './quantity';

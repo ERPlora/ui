@@ -19,3 +19,20 @@ export function formatQuantity(quantity: unknown, locale: string): string {
   if (!Number.isFinite(number)) return String(quantity);
   return formatter(locale).format(number);
 }
+
+/** The unit of a count of things: a quantity in it is written bare. */
+const COUNT = 'ud';
+
+const isCount = (unit: string) => !unit || unit === COUNT;
+
+/** A quantity and its unit («0.532» kg → «0,532 kg», «1500.000» kg → «1.500 kg»); a count of units has no unit. */
+export function quantityWithUnit(quantity: unknown, unit: string, locale: string): string {
+  const number = formatQuantity(quantity, locale);
+  return isCount(unit) ? number : `${number} ${unit}`;
+}
+
+/** The quantity before a dish on an order ticket: a count with its times sign («2×»), a measure with its unit
+ *  («0,35 kg»). */
+export function orderTicketQuantity(quantity: unknown, unit: string, locale: string): string {
+  return isCount(unit) ? `${formatQuantity(quantity, locale)}×` : quantityWithUnit(quantity, unit, locale);
+}

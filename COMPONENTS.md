@@ -19,7 +19,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - marcar los alérgenos que lleva un plato o producto / decirlos debajo de su nombre → `AllergenSelect` / `AllergenRow`
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
 - elegir un día / una hora / un día y una hora juntos → `DateField` / `TimeField` / `DateTimeField`
-- enseñar un importe, una fecha o una cantidad → `formatMoney`, `formatDateTime`, `formatQuantity`
+- enseñar un importe, una fecha o una cantidad (con su unidad) → `formatMoney`, `formatDateTime`, `formatQuantity` (`quantityWithUnit`)
 - decir que no hay datos → `EmptyState`
 - confirmar algo que la persona acaba de hacer → `toastSuccess`, `toastError`…
 - un aviso que solo tiene sentido junto a lo que afecta (un error de carga, el rechazo de un formulario) → `InlineFeedback`
@@ -163,12 +163,12 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 
 ## Cifras, importes y fechas
 
-### `formatMoney`, `formatDateTime`, `formatQuantity`, `decimalMark`
-`import { formatMoney, formatDateTime, formatQuantity, decimalMark } from '@erplora/ui/components'`
+### `formatMoney`, `formatDateTime`, `formatQuantity`, `quantityWithUnit`, `orderTicketQuantity`, `decimalMark`
+`import { formatMoney, formatDateTime, formatQuantity, quantityWithUnit, orderTicketQuantity, decimalMark } from '@erplora/ui/components'`
 - **Para qué sirve:** la única forma de enseñar un importe (la unidad menor del servidor, en la moneda del negocio y con los miles siempre agrupados), una fecha y hora o una cantidad, en el idioma de la persona.
 - **Úsalo cuando** cualquier cifra, fecha o importe se pinta en una celda, una ficha o un resumen.
 - **No lo uses cuando** se escribe el importe → `MoneyInput`; nunca `Intl` ni `toFixed` a mano en una página.
-- **API:** `formatMoney(minor, locale, money?)` (sin `money`, un guion), `formatDateTime(value, locale?, options?)`, `formatQuantity(quantity, locale)`, `decimalMark(locale)`.
+- **API:** `formatMoney(minor, locale, money?)` (sin `money`, un guion), `formatDateTime(value, locale?, options?)`, `formatQuantity(quantity, locale)`, `quantityWithUnit(quantity, unit, locale)` (la cantidad con su unidad, «0,532 kg»; una de unidades, `ud`, sin unidad), `orderTicketQuantity(quantity, unit, locale)` (la cantidad delante de un plato en una comanda: «2×» en unidades, «0,35 kg» al peso), `decimalMark(locale)`.
 - **Ionic:** ninguno.
 
 ### `UsageMeter`
@@ -448,7 +448,7 @@ propio, solo pone las clases sobre las piezas de Ionic.
   arriba según la espera; su `ion-card` va con `ep-surface`, opaca y nunca de cristal. Dentro: la cabecera (`__head`,
   `__headline`, `__icon`, `__title`, `__label`, `__waiter`, `__clock`, `__timer`, `__wait`, `__number`, `__flags`,
   `__pill` sobre `StatusPill`), el cuerpo (`__body`, `__notes`), el menú (`__menu` y sus partes), cada plato (`__dish`
-  con `data-status`, `__dish--menu`, `__qty`, `__dish-body`, `__name`, `__allergy`, `__modifiers`, `__dish-note`,
+  con `data-status`, `__dish--menu`, `__qty` (su texto, con `orderTicketQuantity`), `__dish-body`, `__name`, `__allergy`, `__modifiers`, `__dish-note`,
   `__void`, `__meta`, `__state`) y el pie (`__foot`, `__step`, `__more`). En la cabecera, `__label` pone el destino en
   grande en su propia línea y `__waiter` va debajo, aparte; ambos ajustan primero por palabras enteras. En la cabecera
   del menú, `__menu-label` pone el nombre (`__menu-name`) a un lado y cuántos platos lleva (`__menu-count`) al otro, o
