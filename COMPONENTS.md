@@ -38,6 +38,8 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - el marco de una pantalla (barra superior, Atrás, acciones, pestañas) → `AppPage`
 - las acciones de una pantalla en la barra → el slot `actions` de `AppPage`; en el teléfono van al «⋮» único de la
   barra, nunca a un botón de «más» propio
+- un botón de acción con icono (de una fila, de la barra, una tecla del TPV) → solo el icono, con su etiqueta como
+  nombre accesible y como título (ver «Botones de acción»)
 - algo que solo se enseña en la web (lo que vende) → `WebOnly` / `v-web-only`
 - una comanda, en la cocina o en el TPV → las clases `ep-order-ticket` y `ep-order-board` (ver «Clases de la comanda»); el
   componente es de cada app
@@ -49,12 +51,28 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - que las listas de un texto (los pasos de una guía, unos puntos) enseñen su número o su viñeta → la clase
   `ep-prose` en el contenedor del texto
 
+## Botones de acción
+
+Un botón de acción con icono no lleva texto visible. El icono es el botón; su etiqueta va como nombre accesible
+(`aria-label`) y como título al pasar el ratón (`title`). Vale para las acciones de fila de una tabla o tarjeta, las
+acciones de cabecera y barra de herramientas y las teclas de acción del TPV (el micrófono no lleva «Hablar»; cobrar no
+lleva «Cobrar»).
+
+- **Un dato no es etiqueta:** un importe o un contador se sigue viendo junto al icono (la tecla de cobro enseña su icono
+  y el importe, sin «Cobrar»).
+- **La excepción:** solo lleva texto visible la acción que no tiene un icono que se entienda solo («Ver planes»,
+  «Reintentar»).
+- **Quedan fuera** los botones de formulario y de diálogo (Guardar, Cancelar, confirmar), cuyo texto dice la
+  consecuencia, y las entradas de un menú (el «⋮» de una fila o de la barra), que llevan icono y texto.
+- **Cómo se pinta:** en `DataTable`, una acción con `icon` ya sale así (ver «Acciones de fila»); fuera de él, un
+  `ion-button` con `HubIcon` en `slot="icon-only"` y la etiqueta en su `aria-label` y su `title`.
+
 ## Listas y tablas
 
 ### `DataTable`
 `import { DataTable } from '@erplora/ui/components'`
 - **Para qué sirve:** la lista de registros de una pantalla: búsqueda, filtros por columna, orden, acciones de fila, interruptor de estado y selección. Antes de cortar un texto o un encabezado, las columnas de texto corto le ceden el sitio que les sobra (hasta lo que ocupa su texto); una con `minWidth`, con slot propio, con `identity` o con `toggle` no cede. Lo que cabe lo decide su propia caja: primero retira las columnas `priority: 'low'`, después las acciones que no están fijadas y, si `views` ofrece tarjetas, pasa a tarjetas, y vuelve a filas en cuanto tiene sitio otra vez (también al cerrar el panel de filtros que se lo quitaba), salvo que la persona haya elegido la vista; en el teléfono (hasta `cardBreakpoint`, 640 px) son tarjetas siempre que `views` las ofrezca. La lista vacía, la búsqueda sin resultados y la carga fallida se pintan con `EmptyState` e `InlineFeedback`; lo que una página pone en su slot `empty` queda centrado en la tabla. La cabecera de la lista se queda fija al desplazarla, y ella y las acciones fijadas quedan siempre por encima de lo que lleva una fila (un `ion-toggle`, la casilla de selección o lo que ponga el slot de una celda).
-- **Acciones de fila:** como mucho dos botones visibles por fila, de solo icono, con la etiqueta como nombre accesible y como título (`showLabel` pinta también el texto; una acción sin icono, su texto). Cada acción se nombra para el lector con la fila a la que afecta, «<acción>: <título de la fila>» («Cambiar rol: Carlos Ruiz»), con el título de su tarjeta (`cardTitle` o `cardTitleColumn`), en su botón (también su título) y en su entrada del «⋮»; el texto visible no cambia y, sin título de fila, el nombre es la etiqueta corta. `ariaLabel(row)` lo sustituye cuando el título no sirve como nombre. La fijada (`pinned`) va primero; el resto, y siempre las delicadas (`menuOnly`), van al menú «⋮» de la fila, con icono y texto, que solo aparece si le queda algo. La tarjeta lleva su acción principal con texto a todo el ancho y el «⋮» al lado.
+- **Acciones de fila:** como mucho dos botones visibles por fila, de solo icono, con la etiqueta como nombre accesible y como título (ver «Botones de acción»). `showLabel` pinta también el texto y es solo para la acción cuyo icono no se entiende solo: «Abrir» y «Cobrar» no lo llevan. Una acción sin icono pinta su texto. Cada acción se nombra para el lector con la fila a la que afecta, «<acción>: <título de la fila>» («Cambiar rol: Carlos Ruiz»), con el título de su tarjeta (`cardTitle` o `cardTitleColumn`), en su botón (también su título) y en su entrada del «⋮»; el texto visible no cambia y, sin título de fila, el nombre es la etiqueta corta. `ariaLabel(row)` lo sustituye cuando el título no sirve como nombre. La fijada (`pinned`) va primero; el resto, y siempre las delicadas (`menuOnly`), van al menú «⋮» de la fila, con icono y texto, que solo aparece si le queda algo. La tarjeta lleva su acción principal con texto a todo el ancho y el «⋮» al lado.
 - **Interruptor:** la opción `toggle` de una columna enciende o apaga la fila con un `ion-toggle` (al principio de la celda en la lista, al final de la cabecera de la tarjeta), con su nombre accesible, su progreso y su motivo debajo; al moverlo emite `toggle`, y si el cambio se cancela o falla vuelve al estado real. `hidden` lo quita en una fila y deja su motivo.
 - **Tarjetas y scroll infinito:** el tipo de tarjeta «fila como tarjeta» es la tarjeta del propio `DataTable` y no se monta a mano: la identidad de la columna `identity` en la cabecera, el estado (columna `state` o `status`) como etiqueta, la descripción (`summary` o `description`) a todo el ancho y los demás datos en líneas que dicen qué es cada uno, con el icono de `cardIcon` o, sin él, con el nombre de la columna delante del valor («Divisa EUR»), sin pintar los vacíos; el slot `card` cambia su cuerpo. Las tarjetas y la lista del teléfono cargan las siguientes al llegar al final (`ion-infinite-scroll`; en modo servidor emiten `loadMore`): ya no hay «Cargar más». La lista de escritorio conserva su paginador.
 - **Llenar la pantalla (`fill`):** la tabla ocupa el alto de su contenedor y sus filas llegan hasta el paginador, sin franja vacía; si no caben todas, la última que se ve queda cortada en el borde y las demás se desplazan dentro, como en cualquier lista con scroll. En el teléfono la lista se desplaza con la página.
@@ -515,6 +533,7 @@ nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño d
   (`src/shell/css-zoom.ts`, interna), como la lista del `Combo` y la tarjeta de la campana. Los `ion-popover` los
   coloca Ionic con el parche de `@ionic/core` de `patches/` (el arreglo que trae Ionic 9.0.5), que el Hub aplica desde
   `packages/ui/patches/`; se quita al pasar a Ionic 9.
+- Un botón de acción con icono no lleva texto visible: ver «Botones de acción».
 - Ningún prefijo `ok-`.
 - Una pieza sube a la librería cuando la necesita una segunda app (o el Hub y el SaaS): `src/components/<Nombre>/`,
   con su test, sus textos en `en` y `es`, su export en `src/components/index.ts` y su entrada en este catálogo. Lo que
