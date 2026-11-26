@@ -43,6 +43,7 @@ import './theme/order-ticket.css';
 import './theme/order-board.css';
 import './theme/stat-card.css';
 import './theme/charts.css';
+import './theme/prose.css';
 import './theme/global.css';
 
 import type { ActionNoticeSource } from './action-center/types';
