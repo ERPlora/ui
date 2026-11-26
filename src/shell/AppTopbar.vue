@@ -191,8 +191,14 @@ function goBack(): void {
    and keeps it off the buttons with `padding: 0 90px`, which Tailwind's preflight wipes (and 90px
    would not clear two actions anyway). So, as for sheets (global.css), the title goes back into
    the toolbar's row, between the button groups, where its own `.toolbar-title` cuts it with «…».
-   Both groups take the same share of the row (never less than their buttons need), so the title
-   stays centred on the bar, as Ionic and the Hub of today paint it, whenever it fits. */
+   The title's box takes what its text needs and both groups share the rest alike (never less than their buttons
+   need): centred on the bar while it fits, whatever each group holds (the bell grows into a pill), and a longer one
+   takes all the room the buttons leave, cut with «…» only past it, as iOS's navigation bar does. Equal thirds cut
+   «Configuración de VeriFactu · Configuración» at 820 and 1280 px with room to spare beside the buttons. */
+.app-topbar ion-toolbar.ios::part(content) {
+  flex: 0 1 auto;
+}
+
 .app-topbar ion-toolbar.ios > ion-buttons {
   flex: 1 1 0;
   min-width: max-content;
@@ -205,14 +211,5 @@ function goBack(): void {
 .app-topbar ion-title.ios {
   position: relative;
   padding-inline: 4px;
-}
-
-/* On a phone the three equal thirds left the title 127 px. There the title's box takes what its text needs and the
-   two groups share the rest alike: centred while it fits, whatever each group holds (the bell grows into a pill),
-   and a longer one takes all the room the buttons leave, cut with «…» only past it, as iOS's navigation bar does. */
-@media (max-width: 767px) {
-  .app-topbar ion-toolbar.ios::part(content) {
-    flex: 0 1 auto;
-  }
 }
 </style>
