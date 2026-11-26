@@ -44,6 +44,10 @@ describe('order-board.css: the board around the order tickets', () => {
     for (const cell of cells?.selectors ?? []) expect(outweighs(specificity(num), specificity(cell)), cell).toBe(true);
   });
 
+  it('never splits a quantity from its unit («0,35 kg») on a narrow screen', () => {
+    expect(valueOf(css, `${TOTALS} .ep-order-board-totals__num`, 'white-space')).toBe('nowrap');
+  });
+
   it('spaces the grey lines of a loading card by weight, never by !important', () => {
     const dish = `${SKELETON} .ep-order-board-skeleton__dish`;
     expect(valueOf(css, dish, 'margin-top')).toBe('1.25rem');
