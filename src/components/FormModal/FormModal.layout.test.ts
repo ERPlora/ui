@@ -152,9 +152,9 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
 
   // The window is capped by the page it opens on, never by the viewport: in Chrome on an Android tablet or phone `vh`
   // also counts the screen under the address bar (the page of a tablet in landscape is 665 px high, `100vh` 721), and
-  // with the interface at 120 % (My profile zooms the page) `vh` and `vw` grow with the zoom, past the window
-  // (hub#2012). Ionic sizes its wrapper (the `content` part) with these caps; the wrapper is a column, so what is in
-  // it shrinks to them. happy-dom lays nothing out and has no `::part`: Chromium measures it in the Hub's e2e.
+  // with the interface at 120 % (My profile zooms the page) `vh` and `vw` grow with the zoom, past the window. Ionic
+  // sizes its wrapper (the `content` part) with these caps; the wrapper is a column, so what is in it shrinks to them.
+  // happy-dom lays nothing out and has no `::part`: Chromium measures it in the Hub's e2e.
   it('the window is capped by the page, never by the viewport, and its content shrinks to it', () => {
     const caps = [...STYLE.matchAll(/--max-(?:height|width):\s*([^;]+);/g)].map(([, value]) => value);
     expect(caps).toEqual(['calc(100% - 32px)', 'calc(100% - 32px)', '100%', '90%']);
