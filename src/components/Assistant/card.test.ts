@@ -416,6 +416,14 @@ describe('the one line of a normal write', () => {
     expect(cardLine(card({ fields: [datum('min_price', 'Precio mínimo', 6500, 'money')] }), said(es))).toBe('Precio mínimo: 65,00 €');
   });
 
+  it('a value of a closed list says which datum it is, also first: a bare «Claro» does not say what changes', () => {
+    const choice = (name: string, label: string, value: string): AssistantField => ({ ...datum(name, label, value), choice: true });
+    expect(cardLine(card({ fields: [choice('ui_scale', 'Tamaño de la interfaz', '110%')] }), said(es))).toBe('Tamaño de la interfaz: 110%');
+    expect(cardLine(card({ fields: [choice('theme_mode', 'Apariencia', 'Claro')] }), said(es))).toBe('Apariencia: Claro');
+    expect(cardLine(card({ fields: [choice('theme_mode', 'Appearance', 'Light')] }), said(en))).toBe('Appearance: Light');
+    expect(cardLine(card({ fields: [service, choice('pricing_type', 'Tarifa', 'Precio fijo')] }), said(es))).toBe('Mechas · Tarifa: Precio fijo');
+  });
+
   it('what changes on a record says what it is, also a time or a figure with its unit: the old time is not the new one', () => {
     const booking = [datum('id', 'Reserva', 'Lucía QA · 27 nov 2026 · 14:00'), datum('time', 'Time', '14:30'), datum('party_size', 'Comensales', 6)];
     expect(cardLine(card({ fields: booking }), said(es))).toBe('Lucía QA · 27 nov 2026 · 14:00 · Hora: 14:30 · Comensales: 6');
