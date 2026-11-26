@@ -442,10 +442,12 @@ describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA
   });
 
   // With its code painted, the hub's longest menu (the person, seven entries and the foot with the project's links)
-  // needs 832 px of height. On a lower screen the entries come first: the code folds into its row, which shows it
-  // over the page; on the rail its icon stays the one door.
+  // needs 832 px of height. On a lower menu the entries come first: the code folds into its row, which shows it over
+  // the page; on the rail its icon stays the one door. The menu's own height decides, not the window's: the person's
+  // interface size zooms the page, and at 120 % a 900 px window holds a menu of 750.
   it('below the height the menu needs with its code, the code folds into its row, never on the rail', () => {
-    const low = /@media \(max-height: 831px\)\s*\{((?:[^{}]*\{[^}]*\})*)\s*\}/.exec(polish)?.[1] ?? '';
+    expect(blocks(polish, 'ion-menu.dash-menu').flatMap(declarations)).toContain('container: shell-menu / size');
+    const low = /@container shell-menu \(max-height: 831px\)\s*\{((?:[^{}]*\{[^}]*\})*)\s*\}/.exec(polish)?.[1] ?? '';
     expect(declarations(blocks(low, '.sidebar-install-qr-full')[0])).toEqual(['display: none']);
     expect(declarations(blocks(low, '.sidebar-install-qr-open')[0])).toEqual(['display: block']);
     expect(blocks(polish.replace(low, ''), '.sidebar-install-qr-open')[0]).toContain('display: none');
