@@ -18,6 +18,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - elegir uno entre muchos, o buscarlo en el servidor → `Combo`
 - marcar los alérgenos que lleva un plato o producto / decirlos debajo de su nombre → `AllergenSelect` / `AllergenRow`
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
+- cuántos de algo (− n +) → `QuantityStepper`
 - elegir un día / una hora / un día y una hora juntos → `DateField` / `TimeField` / `DateTimeField`
 - enseñar un importe, una fecha, una hora del reloj o una cantidad → `formatMoney`, `formatDateTime`, `formatTimeOfDay`, `formatQuantity`
 - decir que no hay datos → `EmptyState`
@@ -138,6 +139,14 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **API:** `v-model` (el texto tal cual: al guardar se lee con `parseMoney` y un importe guardado se escribe con `moneyFieldText`), `label`, `testid`, `money` (`{ currency, decimals }`), `signed`, `errorText`, `helperText`, `showError`, `disabled`.
 - **Ionic:** `ion-input`, `ion-button`.
 
+### `QuantityStepper`
+`import { QuantityStepper } from '@erplora/ui/components'`
+- **Para qué sirve:** cuántos de algo: uno menos, la cifra y uno más, con botones de 44 px que se tocan bien con el dedo. Solo pide (`change`, con la cantidad como la lee el servidor: «2», «0.532»); la cifra enseña lo que guarda la página, así que una cantidad rechazada vuelve sola. La cifra también se escribe, sin separar los miles («1500»).
+- **Úsalo cuando** se cambia cuántos de algo: la línea de una cuenta o de un pedido, un plato antes de añadirlo, una opción que se puede repetir.
+- **No lo uses cuando** es un importe → `MoneyInput`; es un número de una página de ajustes → `SettingsNumberField`.
+- **API:** `quantity` (número o texto decimal), `min` (0; uno menos espera ahí), `max` (uno más espera ahí), `decimals` (se escriben decimales, para un peso; si no, unidades enteras), `unit` (se enseña salvo «ud»), `disabled`, `label`, `decreaseLabel`, `increaseLabel` (lo que lee un lector de pantalla; «Cantidad», «Uno menos» y «Uno más» por defecto), `testid` (`-minus`, `-field`, `-unit`, `-plus`); evento `change`.
+- **Ionic:** `ion-button`.
+
 ### `DateField`, `TimeField`, `DateTimeField`
 `import { DateField, DateTimeField, TimeField } from '@erplora/ui/components'`
 - **Para qué sirve:** el día o la hora de un formulario. Cerrado es un campo con contorno como los demás, de solo lectura (no abre el teclado), que enseña el valor en el idioma de la app («23/11/2026» o «11/23/2026»; «14:30» o «02:30 PM»). Al tocarlo, o con Intro, Espacio o la flecha abajo, abre el calendario o la rueda de horas de Ionic (`ion-datetime`) en un `ion-popover` en el centro de la pantalla, entero con sus botones (también en una tableta en horizontal, esté donde esté el campo), con los colores de la paleta activa, el idioma de la app, la semana desde el día en que la empieza ese idioma y las 24 horas o AM/PM según el idioma; abajo, Aceptar y Cancelar, y Borrar si el campo no es obligatorio. El día que se toca (o se elige con Intro o Espacio) queda elegido y el calendario se cierra, sin pulsar Aceptar; moverse por los meses y los años no elige nada, y la rueda de horas se confirma con Aceptar. Cancelar, Escape o tocar fuera lo cierran sin cambiar el campo. Nunca el selector nativo del dispositivo, que pinta con sus colores y en su idioma.
@@ -244,7 +253,7 @@ habla de un sitio concreto de la pantalla → en línea.
 
 ### `useActionCenter`, `useQuietActionNotices`, `connectActionCenter`
 `import { useActionCenter, useQuietActionNotices } from '@erplora/ui/shell'`
-- **Para qué sirve:** avisos permanentes que exigen que el usuario haga algo y siguen siendo verdad al recargar (factura sin pagar, datos fiscales que faltan). La app entrega una fuente de `ActionNotice`; no monta campana, tira fija ni banner propios. La campana los resume y abre su panel; un aviso nuevo llega como tarjeta bajo la barra superior.
+- **Para qué sirve:** avisos permanentes que exigen que el usuario haga algo y siguen siendo verdad al recargar (factura sin pagar, datos fiscales que faltan). La app entrega una fuente de `ActionNotice`; no monta campana, tira fija ni banner propios. La campana los resume y abre su panel; un aviso nuevo llega como tarjeta bajo la barra superior. Desde la tableta la campana con avisos es una píldora con el anillo del plazo, el número y el icono del aviso más grave; en el teléfono ocupa lo que un botón: el anillo con la campana y el número en una insignia sobre su esquina, del color del aviso más grave, sin el icono aparte (su nombre para el lector sigue diciendo la gravedad).
 - **Úsalo cuando** el proyecto da la fuente de sus avisos a `createShell({ actionNotices })`: el shell pinta la campana en `AppTopbar`, la tarjeta de llegada y el panel. `useQuietActionNotices` silencia las llegadas del centro de avisos mientras hay un flujo delicado abierto (el cobro).
 - **No lo uses cuando** confirma lo que la persona acaba de hacer → `toast`; solo tiene sentido junto a lo que afecta → `InlineFeedback`.
 - **Piezas internas:** la campana (`ActionBell`), la tarjeta de llegada y el panel son piezas internas del centro de avisos y no se exportan; las monta el shell. Una app no las usa directamente.
@@ -313,7 +322,7 @@ habla de un sitio concreto de la pantalla → en línea.
 
 ### `AppTopbar`, `useTopbarMenu`
 `import { AppTopbar, useTopbarMenu } from '@erplora/ui/shell'`
-- **Para qué sirve:** la barra superior del shell: el botón del menú (solo donde el shell pinta el menú lateral; sin sesión, o en una pantalla con su propio marco, queda oculto), título, sección, Atrás, las acciones de la vista, «Mis apps» (con la barra lateral del Hub), la pieza de barra del proyecto (`chrome.topbar` de `createShell`, el botón del asistente) y la campana del centro de avisos (con `createShell({ actionNotices })`). En el teléfono (hasta 767 px) la derecha lleva como mucho dos botones y la campana es uno de ellos. A cualquier ancho el título ocupa lo que pide su texto y queda centrado mientras cabe; solo se corta con «…» cuando llega a los botones.
+- **Para qué sirve:** la barra superior del shell: el botón del menú (solo donde el shell pinta el menú lateral; sin sesión, o en una pantalla con su propio marco, queda oculto), título, sección, Atrás, las acciones de la vista, «Mis apps» (con la barra lateral del Hub), la pieza de barra del proyecto (`chrome.topbar` de `createShell`, el botón del asistente) y la campana del centro de avisos (con `createShell({ actionNotices })`). En el teléfono (hasta 767 px) la derecha lleva como mucho dos botones y la campana es uno de ellos, del tamaño de un botón (su número, en una insignia sobre su esquina). A cualquier ancho el título ocupa lo que pide su texto y queda centrado mientras cabe; solo se corta con «…» cuando llega a los botones.
 - **El «⋮»:** el «⋮» único de la barra en el teléfono. Cuando las acciones de la vista, «Mis apps» y la pieza del proyecto no caben junto a la campana, o la vista trae dos o más acciones, van todas a él, una fila cada una; una app no pone su propio botón de «más».
 - **Úsalo cuando** una vista monta su propio `ion-page` y no puede usar `AppPage`; `useTopbarMenu` solo lo llama la pieza de barra del proyecto.
 - **No lo uses cuando** es una pantalla normal → `AppPage`, que ya la pinta.
