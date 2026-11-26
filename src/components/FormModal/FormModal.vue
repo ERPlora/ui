@@ -408,7 +408,6 @@ function focusFirstField(): void {
                 class="ep-form-modal__submit"
                 :color="submitColor"
                 :disabled="pending || submitDisabled"
-                :aria-description="showsHint ? submitHint : undefined"
                 :data-testid="tid('submit')"
                 @click="submit"
               >
