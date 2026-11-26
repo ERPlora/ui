@@ -251,6 +251,20 @@ describe('YouTubeEmbed: layout', () => {
     expect(size).toBeGreaterThanOrEqual(44);
   });
 
+  // At 375 px the poster is 174 px tall: a title of three lines ran from 14 to 86 px and the centred play button from
+  // 59 to 115, over its last words. The poster is three rows: the title on top and the button in the middle one,
+  // centred while the title fits above it and pushed down by a longer one, never laid over it.
+  it('keeps the play button off the title: centred while the title fits above it, below it when it does not', () => {
+    const poster = blocks(css, '.youtube-embed__poster').join(';');
+    expect(poster).toMatch(/grid-template-rows:\s*1fr auto 1fr/);
+    expect(poster).toMatch(/row-gap:\s*[1-9]\d*px/);
+    const copy = blocks(css, '.youtube-embed__copy').join(';');
+    expect(copy).toMatch(/grid-row:\s*1;/);
+    expect(copy).toMatch(/align-self:\s*start/);
+    expect(css).not.toMatch(/\.youtube-embed__copy\s*\{[^}]*(position:\s*absolute|\btop:)/);
+    expect(blocks(css, '.youtube-embed__play').join(';')).toMatch(/grid-row:\s*2;/);
+  });
+
   it('does not animate the press when the person asks for reduced motion', () => {
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{[^@]*\.youtube-embed__poster[^}]*transition:\s*none/);
   });

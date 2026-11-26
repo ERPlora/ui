@@ -153,15 +153,11 @@ describe('AppTopbar: a long title never covers the buttons', () => {
     );
   });
 
-  it('on a phone (≤767 px) the title takes what its text needs and both groups the rest alike: centred while it fits', () => {
-    // Three thirds left the title 127 px at 390; groups of a fixed width put it off centre beside the bell's pill.
-    const phone = /@media\s*\(max-width:\s*767px\)\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-    const rule = (selector: string) =>
-      (new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(phone)?.[1] ?? '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    expect(rule('.app-topbar ion-toolbar.ios::part(content)')).toBe('flex: 0 1 auto;');
-    expect(rule('.app-topbar ion-toolbar.ios > ion-buttons')).toBe('');
+  it('at every width the title takes what its text needs and both groups the rest alike: centred while it fits', () => {
+    // Three thirds left the title 127 px at 390 and cut «Configuración de VeriFactu · Configuración» at 820 and 1280
+    // with room to spare beside the buttons; groups of a fixed width put it off centre beside the bell's pill.
+    expect(declarations('.app-topbar ion-toolbar.ios::part(content)')).toBe('flex: 0 1 auto;');
+    expect(css).not.toMatch(/@media/);
   });
 
   it('scopes the rules to this component, and they reach the rendered title and button groups', () => {

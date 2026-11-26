@@ -61,6 +61,23 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     });
   });
 
+  // Ionic's title is one line cut with «…»: its shadow `.toolbar-title` says `white-space: nowrap`, out of reach of
+  // the page's styles, and a long question read «¿Marcar FACT-2026-000004 como paga…». The words sit in their own
+  // element, which takes the lines it needs, as Material's and iOS's dialogs do.
+  it('a long title takes the lines it needs instead of being cut with «…»', async () => {
+    const win = new Window({ width: 1280, height: 720 });
+    win.document.head.innerHTML = `<style>${STYLE}</style>`;
+    win.document.body.innerHTML = `
+      <ion-modal class="ep-form-modal">
+        <ion-title class="ep-form-modal__title" style="white-space: nowrap">
+          <span class="ep-form-modal__title-text">¿Marcar FACT-2026-000004 como pagada?</span>
+        </ion-title>
+      </ion-modal>`;
+    const whiteSpace = win.getComputedStyle(win.document.querySelector('.ep-form-modal__title-text')!).whiteSpace;
+    await win.happyDOM.close();
+    expect(whiteSpace).toBe('normal');
+  });
+
   /** The dialog's stylesheet applied in a window `width` px wide (happy-dom computes the media
    *  queries, not the layout), on the DOM FormModal and Ionic render. */
   async function styleAt(width: number, phoneLayout: string, size = 'md', height = 844) {

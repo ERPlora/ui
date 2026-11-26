@@ -37,6 +37,8 @@ describe('FormModal: opening and closing', () => {
     await wrapper.setProps({ open: true });
     await settle();
     expect(wrapper.get('ion-title.ep-form-modal__title').text()).toBe('Invite to Bakery');
+    // In their own element, which the stylesheet lets wrap (FormModal.layout.test.ts).
+    expect(wrapper.get('ion-title.ep-form-modal__title > .ep-form-modal__title-text').text()).toBe('Invite to Bakery');
     expect(byTestId('email')).not.toBeNull();
     expect(cancelButton(wrapper).textContent?.trim()).toBe('Cancel');
     expect(submitButton(wrapper).textContent?.trim()).toBe('Save');
