@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSaid, nameOf, shownMessageOf } from './formFields';
+import { isSaid, nameOf, repeatsAFieldReason, saidUnderAField, shownMessageOf } from './formFields';
 
 const IONIC_FIELDS = ['ion-input', 'ion-textarea', 'ion-select', 'ion-checkbox', 'ion-toggle', 'ion-radio-group', 'ion-range'];
 
@@ -36,6 +36,30 @@ describe('formFields', () => {
   it('a reason the page writes itself is said; the banner and the Ionic fields\' own text are not', () => {
     expect(isSaid(form('<label>Customer <small>Pick a customer.</small></label>'), 'Pick a customer.')).toBe(true);
     expect(isSaid(form('<div class="ep-form-modal__error">Pick a customer.</div>'), 'Pick a customer.')).toBe(false);
+    expect(isSaid(form('<div class="ep-settings-form-footer__error">Pick a customer.</div>'), 'Pick a customer.')).toBe(false);
     expect(isSaid(form('<ion-input><div>Pick a customer.</div></ion-input>'), 'Pick a customer.')).toBe(false);
+  });
+
+  describe('a refusal whose message is the reason of one of its fields (a name another record has)', () => {
+    const TAKEN = { status: 409, code: 'cash_register.register_exists', message: 'Taken.', fields: { name: 'Taken.' } };
+
+    it('repeats that reason; another message, a refusal without fields or the whole form\'s reason do not', () => {
+      expect(repeatsAFieldReason(TAKEN)).toBe(true);
+      expect(repeatsAFieldReason({ ...TAKEN, message: 'Check the highlighted details.' })).toBe(false);
+      expect(repeatsAFieldReason({ status: 409, code: 'conflict', message: 'Taken.' })).toBe(false);
+      expect(repeatsAFieldReason({ ...TAKEN, fields: { __all__: 'Taken.' } })).toBe(false);
+      expect(repeatsAFieldReason(null)).toBe(false);
+    });
+
+    it('is said under a field only while a field paints it or the page writes it', () => {
+      const root = form('');
+      const input = field('ion-input', { errorText: 'Taken.' });
+      root.append(input);
+      expect(saidUnderAField(root, TAKEN)).toBe(false);
+      input.classList.add('ion-invalid', 'ion-touched');
+      expect(saidUnderAField(root, TAKEN)).toBe(true);
+      expect(saidUnderAField(form('<small>Taken.</small>'), TAKEN)).toBe(true);
+      expect(saidUnderAField(root, { ...TAKEN, message: 'Check the highlighted details.' })).toBe(false);
+    });
   });
 });

@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { IonInput } from '@ionic/vue';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
-import { defineComponent, h, ref, shallowRef, type PropType } from 'vue';
+import { defineComponent, h, ref, shallowRef, type PropType, type VNode } from 'vue';
 
 import { createShellI18n } from '../../shell/i18n';
 import { resolveIcon } from '../../shell/icons';
@@ -11,6 +12,7 @@ import * as components from '../index';
 import SettingsFormFooter, { type SettingsFormFooterState } from './SettingsFormFooter.vue';
 import { useSettingsForm } from './settingsForm';
 import type { FormModalError } from './types';
+import { markedField } from './__tests__/form-modal';
 import { settingsFormOn, stopSettingsForms } from './__tests__/settings-form';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -46,17 +48,20 @@ afterEach(() => {
   for (const wrapper of mounted.splice(0)) wrapper.unmount();
 });
 
-/** A settings page's form: a field, then the footer at its end. */
+/** A settings page's form: a field (`field`, else a line of text), then the footer at its end. */
 const SettingsPage = defineComponent({
-  props: { footer: { type: Object as PropType<Props>, required: true } },
+  props: { footer: { type: Object as PropType<Props>, required: true }, field: { type: Function as PropType<() => VNode>, default: undefined } },
   setup: (props) => () =>
-    h('form', { 'data-testid': 'page-form' }, [h('p', { 'data-testid': 'page-field' }, 'A field'), h(SettingsFormFooter, props.footer)]),
+    h('form', { 'data-testid': 'page-form' }, [
+      props.field ? props.field() : h('p', { 'data-testid': 'page-field' }, 'A field'),
+      h(SettingsFormFooter, props.footer),
+    ]),
 });
 
 /** Mounts the footer where a page has it: at the end of its `<form>`. */
-function mountFooter<S extends SettingsFormFooterState>(settings: S, props: Partial<Props> = {}) {
+function mountFooter<S extends SettingsFormFooterState>(settings: S, props: Partial<Props> = {}, field?: () => VNode) {
   const footer = { settings, testid: 'demo-settings', ...TEXTS, ...props };
-  const wrapper = mount(SettingsPage, { props: { footer }, global: { plugins: [createShellI18n({ locale: 'en' })] } });
+  const wrapper = mount(SettingsPage, { props: { footer, field }, global: { plugins: [createShellI18n({ locale: 'en' })] } });
   mounted.push(wrapper);
   const hook = (suffix: string, prefix = 'demo-settings') => wrapper.find(`[data-testid="${prefix}-${suffix}"]`);
   return { wrapper, settings, hook };
@@ -276,5 +281,60 @@ describe('SettingsFormFooter', () => {
       await flushPromises();
       expect(hook('save-error').exists()).toBe(false);
     });
+  });
+});
+
+describe('SettingsFormFooter: a refusal whose message is the reason of one of the page fields', () => {
+  // A red warning before the amber one, a role with a name another role has: the server words the refusal and the
+  // field's reason the same. The field says it; the red notice stays for what no field of the page says.
+  afterEach(stopSettingsForms);
+
+  const TAKEN = 'There is already a role with that name.';
+  const taken = (fields: Record<string, string> = { name: TAKEN }): FormModalError => ({ status: 409, code: 'base.role_name_taken', message: TAKEN, fields });
+
+  interface Out {
+    name: string;
+  }
+
+  /** A settings page whose name field paints its refusal, as `SettingsNumberField` and the role editor do. */
+  function mountMarkedPage(refusal: FormModalError) {
+    const data = shallowRef<Out>({ name: 'Old' });
+    const { settings } = settingsFormOn<Out, Out, Partial<Out>>(data, async () => Promise.reject(refusal), { toForm: (out: Out): Out => ({ name: out.name }) });
+    const nameField = () => markedField(IonInput, 'name', settings.fieldErrors.value.name, { name: 'name' }) as VNode;
+    const { wrapper, hook } = mountFooter(settings, { errorHeading: 'The settings were not saved' }, nameField);
+    async function save(): Promise<void> {
+      settings.set('name', 'Cashier');
+      await flushPromises();
+      await hook('save').trigger('click');
+      await flushPromises();
+    }
+    return { wrapper, settings, hook, save };
+  }
+
+  it('is said once, under the field: no red notice repeats it', async () => {
+    const { wrapper, hook, save } = mountMarkedPage(taken());
+    await save();
+    expect((wrapper.find('[data-testid="name"]').element as HTMLElement & { errorText?: string }).errorText).toBe(TAKEN);
+    expect(hook('save-error').exists()).toBe(false);
+    expect(wrapper.text().split(TAKEN)).toHaveLength(1);
+  });
+
+  it('never shows up, not even for a moment, while the refusal lands', async () => {
+    const { wrapper, hook, save } = mountMarkedPage(taken());
+    const added: Element[] = [];
+    const watcher = new MutationObserver((records) => {
+      for (const record of records) for (const node of record.addedNodes) if (node instanceof Element) added.push(node);
+    });
+    watcher.observe(wrapper.element, { childList: true, subtree: true });
+    await save();
+    watcher.disconnect();
+    expect(added.filter((node) => node.matches('[data-testid="demo-settings-save-error"]'))).toEqual([]);
+    expect(hook('save-error').exists()).toBe(false);
+  });
+
+  it('a field the page does not paint keeps the reason in the red notice (a role that allows more than its editor)', async () => {
+    const { hook, save } = mountMarkedPage(taken({ states: TAKEN }));
+    await save();
+    expect(hook('save-error').text()).toContain(TAKEN);
   });
 });
