@@ -164,4 +164,14 @@ describe('ERPlora brandbook', () => {
     expect(coarseButton).toContain('min-width: 44px;');
     expect(coarseButton).toContain('min-height: 44px;');
   });
+
+  it('keeps an icon-only button at least 36px square with a mouse, and 44px on a touch screen or a phone', () => {
+    const primitives = plain(read('src/shell/theme/brand.css'));
+    const iconOnly = 'ion-button.button-has-icon-only';
+    expect(block(primitives, iconOnly)).toContain('min-width: 36px;');
+    expect(block(primitives, iconOnly)).toContain('min-height: 36px;');
+    const touch = block(mediaBlock(primitives, 'pointer: coarse), (max-width: 640px'), iconOnly);
+    expect(touch).toContain('min-width: 44px;');
+    expect(touch).toContain('min-height: 44px;');
+  });
 });

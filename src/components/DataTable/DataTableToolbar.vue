@@ -219,32 +219,45 @@ onUpdated(nameSearchBox);
         :data-testid="tid('filters-count')"
       >{{ filterCount }}</span>
     </ion-button>
-    <!-- The main action of the screen is read, not guessed: labelled in every viewport. -->
+    <!-- The «+» says it alone: its label is its accessible name and its tooltip. -->
     <ion-button
       v-if="addable"
       class="data-table__primary-button data-table__add-button"
       :data-testid="tid('add')"
       size="small"
+      :aria-label="label('add')"
+      :title="label('add')"
       @click="emit('add')"
     >
       <ion-icon
-        slot="start"
+        slot="icon-only"
         :icon="icon(ICONS.add)"
         aria-hidden="true"
-      />{{ label('add') }}
+      />
     </ion-button>
     <ion-button
       v-if="primaryAction"
       class="data-table__primary-button data-table__add-button"
+      :class="{ 'data-table__add-button--labelled': primaryAction.showLabel }"
       :data-testid="tid('primary-action')"
       size="small"
+      :aria-label="primaryAction.showLabel ? undefined : primaryAction.label"
+      :title="primaryAction.label"
       @click="emit('primaryAction')"
     >
+      <template v-if="primaryAction.showLabel">
+        <ion-icon
+          slot="start"
+          :icon="icon(primaryAction.icon ?? ICONS.add)"
+          aria-hidden="true"
+        />{{ primaryAction.label }}
+      </template>
       <ion-icon
-        slot="start"
+        v-else
+        slot="icon-only"
         :icon="icon(primaryAction.icon ?? ICONS.add)"
         aria-hidden="true"
-      />{{ primaryAction.label }}
+      />
     </ion-button>
     <slot name="toolbar" />
   </div>
@@ -282,9 +295,11 @@ onUpdated(nameSearchBox);
 .data-table__view-segment { flex: 0 0 auto; width: auto; }
 .data-table__view-segment ion-segment-button { min-width: 44px; min-height: 44px; }
 
-/* The toolbar's main buttons («Add», `primaryAction`): labelled, filled (controls.css) and at least 44px tall. */
-.data-table__add-button { min-height: 44px; --border-radius: 10px; --padding-start: 0.9rem; --padding-end: 1rem; margin: 0; font-weight: 600; }
-.data-table__add-button ion-icon { margin-inline-end: 0.35rem; }
+/* The toolbar's main buttons («Add», `primaryAction`): filled (controls.css), a 44px square icon like the funnel; a
+   primary action that keeps its text (`showLabel`) grows to fit it. */
+.data-table__add-button { min-height: 44px; min-width: 44px; --border-radius: 10px; --padding-start: 0; --padding-end: 0; margin: 0; }
+.data-table__add-button--labelled { --padding-start: 0.9rem; --padding-end: 1rem; font-weight: 600; }
+.data-table__add-button--labelled ion-icon { margin-inline-end: 0.35rem; }
 
 /* Toolbar selects: visible background and border, like the search box. */
 .data-table__columns-select { min-width: 6.5rem; max-width: 9rem; min-height: 44px; font-size: 13px; background: var(--background); color: var(--color); border: 1px solid var(--control-border); border-radius: 10px; --padding-start: 0.6rem; --padding-end: 0.4rem; --padding-top: 0.3rem; --padding-bottom: 0.3rem; }

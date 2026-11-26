@@ -272,12 +272,12 @@ describe('AssistantPanel', () => {
         expect(FakeAudio.made[0].src).toBe('blob:answer');
         expect(FakeAudio.made[0].play).toHaveBeenCalled();
         expect(listenButton(m).attributes('aria-pressed')).toBe('true');
-        expect(listenButton(m).text()).toBe('Dejar de leer');
+        expect(listenButton(m).attributes('aria-label')).toBe('Dejar de leer');
         FakeAudio.made[0].onended?.();
         await flush();
         expect(revoked).toHaveBeenCalledWith('blob:answer');
         expect(listenButton(m).attributes('aria-pressed')).toBe('false');
-        expect(listenButton(m).text()).toBe('Leer en voz alta');
+        expect(listenButton(m).attributes('aria-label')).toBe('Leer en voz alta');
       });
 
       it('«Stop reading» stops the audio and frees it', async () => {
@@ -396,7 +396,7 @@ describe('AssistantPanel', () => {
         expect(FakeAudio.made[0].pause).toHaveBeenCalled();
         expect(revoked).toHaveBeenCalledWith('blob:answer');
         expect(listenButton(m).attributes('aria-pressed')).toBe('false');
-        expect(listenButton(m).text()).toBe('Read aloud');
+        expect(listenButton(m).attributes('aria-label')).toBe('Read aloud');
       });
 
       it('the panel goes away while it reads (the person signs out): the reading stops', async () => {

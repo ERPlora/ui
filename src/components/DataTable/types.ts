@@ -241,9 +241,12 @@ export interface DataTableActionCell<T = Record<string, unknown>> {
 
 /** The highlighted button of the toolbar (emits `primaryAction`). */
 export interface DataTablePrimaryAction {
+  /** Its accessible name and tooltip; painted only with `showLabel`. */
   label: string;
   /** Icon name, `add` by default. */
   icon?: string;
+  /** Paint the label beside the icon: only for an action whose icon does not say it alone. */
+  showLabel?: boolean;
 }
 
 /** What the footer calls the rows («4 businesses»): the noun for one and for many, or a function
