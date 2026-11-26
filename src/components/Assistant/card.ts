@@ -21,6 +21,8 @@ export interface AssistantField {
    *  amount, a line by what it carries: `live.assistant.NAMED`): the card says its items. Without it, how many it
    *  carries (codes nobody names). */
   named?: boolean;
+  /** A value of a closed list («Claro», «50 m»): it says which option was chosen, never which datum it is. */
+  choice?: boolean;
 }
 
 export interface AssistantCard {
@@ -180,10 +182,10 @@ export function fieldLines(fields: readonly AssistantField[], format: CardFormat
 }
 
 /** Whether a datum says what it is by its value alone: a name, a record or a moment in words, or records by their
- *  names. A figure, an amount or a yes or no says nothing of what it is, and an object's values would run into the
- *  line's own. */
+ *  names. A figure, an amount, a yes or no or a value of a closed list says nothing of what it is, and an object's
+ *  values would run into the line's own. */
 function readsAlone(field: AssistantField): boolean {
-  if (field.kind === 'text') return !isFigure(field.value);
+  if (field.kind === 'text') return field.choice !== true && !isFigure(field.value);
   return field.kind === 'list' && field.named === true;
 }
 
