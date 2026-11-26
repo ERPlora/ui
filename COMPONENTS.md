@@ -45,6 +45,8 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - un vídeo de YouTube que no pide nada a Google hasta pulsarlo → `YouTubeEmbed`
 - el chat del asistente → `AssistantPanel`, `AssistantButton`, `AssistantEmpty`; un texto en Markdown que enlaza a
   pantallas de la app → `AssistantMarkdown`
+- que las listas de un texto (los pasos de una guía, unos puntos) enseñen su número o su viñeta → la clase
+  `ep-prose` en el contenedor del texto
 
 ## Listas y tablas
 
@@ -494,6 +496,10 @@ nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño d
   de otro componente), deja 14 px, lo que la mayoría de los formularios deja entre dos campos; el texto de una fila
   (`ion-label`) deja el hueco de Ionic con el valor de su final (`ion-note` en `slot="end"`). Una rejilla con `gap` ya
   separa sus textos: su párrafo lleva `margin: 0`, que gana.
+- Las listas de un texto corrido (los pasos de una guía, los puntos de un aviso largo) llevan su número o su viñeta y
+  la sangría de una lista: el reset del tema se los quita a todas las listas, y la clase `ep-prose` en el contenedor
+  del texto se los devuelve, sin un `list-style` propio en la página (`src/shell/theme/prose.css`, que carga
+  `createShell`). Una lista que no es texto (un menú, unas filas, unas etiquetas) no la lleva.
 - Ningún prefijo `ok-`.
 - Una pieza sube a la librería cuando la necesita una segunda app (o el Hub y el SaaS): `src/components/<Nombre>/`,
   con su test, sus textos en `en` y `es`, su export en `src/components/index.ts` y su entrada en este catálogo. Lo que
