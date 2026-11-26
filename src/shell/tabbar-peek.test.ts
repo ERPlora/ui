@@ -5,14 +5,7 @@
 // happy-dom lays nothing out, so every geometry below is pinned by hand.
 import { describe, expect, it } from 'vitest';
 
-import {
-  bindTabbarPeek,
-  hidesTabsSilently,
-  peekTabWidth,
-  type TabbarGeometry,
-  type TabLabelNeed,
-  wholeWordTabWidth,
-} from './tabbar-peek';
+import { bindTabbarPeek, hidesTabsSilently, peekTabWidth, type TabbarGeometry } from './tabbar-peek';
 
 /** `/settings` at 390px, measured in Chromium on the e2e bench (5 tabs, the 88px floor of tabbar.css). */
 const SETTINGS_390: TabbarGeometry = {
@@ -311,36 +304,80 @@ describe('bindTabbarPeek — wiring it to a live strip', () => {
   });
 });
 
-// ── A footer tab never splits a word across two lines ────────────────────────────
+// ── A long word widens its own tab, not all of them ──────────────────────────
 
-/** Reservations' «Disponibilidad» at 375px in `md`, measured on the bench: 14px, 16px of padding a side. */
-const DISPONIBILIDAD_MD: TabLabelNeed = { wraps: true, wordWidth: 95.3, chromeWidth: 32 };
-/** «Lista de espera»: its longest word is short, whatever the whole label measures. */
-const LISTA_DE_ESPERA_MD: TabLabelNeed = { wraps: true, wordWidth: 46.1, chromeWidth: 32 };
+/** Inventory at 375px in Spanish: five even tabs of 68.6px in a 367px strip, so they all fit. */
+const INVENTORY_375: TabbarGeometry = {
+  visibleWidth: 367,
+  contentWidth: 367,
+  firstTabLeft: 4,
+  tabWidth: 68.6,
+  tabPitch: 72.6,
+  tabCount: 5,
+};
 
-describe('wholeWordTabWidth — the tab a wrapping label needs to keep its words whole', () => {
-  it('is the widest word plus the padding around it, rounded up to a whole pixel', () => {
-    expect(wholeWordTabWidth([LISTA_DE_ESPERA_MD, DISPONIBILIDAD_MD], 375)).toBe(128);
-  });
+describe('bindTabbarPeek — a label longer than an even share', () => {
+  it('leaves a strip that fits alone: the grid gives the long word its room, the other tabs give it up', () => {
+    // «Movimientos» needs 69.7px plus 4px of padding a side, more than an even fifth. Widening every tab to it
+    // made five tabs need 414px and pushed the strip into a sideways scroll that hid the fifth one.
+    const segment = fakeSegment(INVENTORY_375);
+    const tabs = Array.from(segment.querySelectorAll<HTMLElement>('ion-segment-button'));
+    for (const [index, tab] of tabs.entries()) {
+      tab.style.setProperty('padding-left', '4px');
+      tab.style.setProperty('padding-right', '4px');
+      const label = document.createElement('ion-label');
+      const wordWidth = index === 2 ? 69.7 : 40;
+      label.getBoundingClientRect = () => ({ width: wordWidth }) as DOMRect;
+      tab.appendChild(label);
+    }
 
-  it("leaves out labels that never wrap: those end in an ellipsis, the platforms' own fallback", () => {
-    // The shell's own strips (Settings, Staff, System) keep Ionic's single-line label; a width
-    // taken from their WHOLE label would widen every tab of those screens for a cut Ionic already
-    // handles. Only a label that can break a line can break a word.
-    const oneLine: TabLabelNeed = { wraps: false, wordWidth: 140, chromeWidth: 26 };
-    expect(wholeWordTabWidth([oneLine, LISTA_DE_ESPERA_MD], 375)).toBe(79);
-    expect(wholeWordTabWidth([oneLine], 375)).toBeNull();
-  });
-
-  it('says nothing without labels to measure (a strip still hydrating, or icon-only tabs)', () => {
-    expect(wholeWordTabWidth([], 375)).toBeNull();
-    expect(wholeWordTabWidth([{ wraps: true, wordWidth: 0, chromeWidth: 32 }], 375)).toBeNull();
-  });
-
-  it('never asks for a tab wider than the strip itself', () => {
-    // A word longer than the phone is wide cannot be helped by the tab; a tab wider than the strip
-    // would only hide it behind its own scroll.
-    const huge: TabLabelNeed = { wraps: true, wordWidth: 400, chromeWidth: 32 };
-    expect(wholeWordTabWidth([huge], 375)).toBe(375);
+    const unbind = bindTabbarPeek(segment);
+    expect(segment.style.getPropertyValue('--ep-tabbar-min')).toBe('');
+    unbind();
   });
 });
+
+/**
+ * A strip whose tabs are as wide as their own longest word, as `tabbar.css` lays them out: each tab is
+ * `max(published width, its own minimum)` and they follow one another with `gap` between them.
+ */
+function unevenStrip(visibleWidth: number, minimums: number[], gap = 4, padding = 4): HTMLElement {
+  const segment = document.createElement('ion-segment');
+  const widthOf = (index: number): number => {
+    const declared = Number.parseFloat(segment.style.getPropertyValue('--ep-tabbar-min')) || 0;
+    return Math.max(declared, minimums[index]);
+  };
+  const leftOf = (index: number): number =>
+    padding + minimums.slice(0, index).reduce((sum, _, i) => sum + widthOf(i) + gap, 0);
+  for (const [index] of minimums.entries()) {
+    const tab = document.createElement('ion-segment-button');
+    Object.defineProperty(tab, 'offsetLeft', { get: () => leftOf(index) });
+    Object.defineProperty(tab, 'offsetWidth', { get: () => widthOf(index) });
+    segment.appendChild(tab);
+  }
+  Object.defineProperty(segment, 'clientWidth', { get: () => visibleWidth });
+  Object.defineProperty(segment, 'scrollWidth', {
+    get: () => leftOf(minimums.length - 1) + widthOf(minimums.length - 1) + padding,
+  });
+  document.body.appendChild(segment);
+  return segment;
+}
+
+describe('bindTabbarPeek — a strip that scrolls with one tab wider than the rest', () => {
+  it('sizes every tab from the widest, so the cut still falls past the centre of the first hidden tab', () => {
+    // Staff's six tabs at 360px in Spanish: «Comisiones» needs 70px, the rest 56–62px. Sized from the FIRST
+    // tab, the wide one pushed the last tab out to a 24px sliver short of its centre, a strip that seemed to end.
+    const minimums = [56, 56, 62, 56, 70, 56];
+    const segment = unevenStrip(352, minimums);
+    const unbind = bindTabbarPeek(segment);
+
+    const tabs = Array.from(segment.querySelectorAll<HTMLElement>('ion-segment-button'));
+    expect(new Set(tabs.map((tab) => tab.offsetWidth)).size).toBe(1);
+    const hidden = tabs.find((tab) => tab.offsetLeft + tab.offsetWidth > segment.clientWidth);
+    expect(hidden).toBeDefined();
+    const centre = (hidden as HTMLElement).offsetLeft + (hidden as HTMLElement).offsetWidth / 2;
+    expect(segment.clientWidth - centre).toBeGreaterThanOrEqual(11.9);
+    unbind();
+  });
+});
+
