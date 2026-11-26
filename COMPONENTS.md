@@ -305,7 +305,7 @@ habla de un sitio concreto de la pantalla → en línea.
 
 ### `AppPage`
 `import { AppPage } from '@erplora/ui/shell'`
-- **Para qué sirve:** el marco de toda pantalla: la barra superior con título, Atrás y acciones, un solo `ion-content` con los márgenes del shell y las pestañas de sección abajo.
+- **Para qué sirve:** el marco de toda pantalla: la barra superior con título, Atrás y acciones, un solo `ion-content` con los márgenes del shell y las pestañas de sección abajo. Las pestañas reparten el ancho por igual; la que tiene una palabra más larga toma lo que necesita y las demás le ceden el sitio, así que cinco caben enteras en un teléfono; solo si no caben ni así, la tira se desliza de lado dejando asomar la siguiente.
 - **Úsalo cuando** siempre, como raíz de cada página de una app del Hub o del panel del SaaS.
 - **No lo uses cuando** el contenido va en un diálogo → `FormModal`; nunca un `ion-page` o `ion-header` propios en una pantalla normal.
 - **API:** props `title`, `backHref` (enseña Atrás: vista de detalle), `contentLayout` (`fluid`, `detail`, `detail-fill`, `fill` para una lista `DataTable fill`), `headingOnScreen`, `tabs` con `v-model:tab`, `tabsLabel`; slots por defecto, `actions` (en la barra; en el teléfono, al «⋮» de `AppTopbar` cuando no caben) y `footer`.
