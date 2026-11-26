@@ -3,13 +3,16 @@ import QRCode from 'qrcode';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { unnamedButtons } from '../testing/a11y';
+import { IonPopoverStub } from './__tests__/ionPopoverStub';
 import { createShellI18n } from './i18n';
 import { INSTALL_QR_OPTIONS } from './install-qr';
 import { railCollapsed } from './sidebar';
 import SidebarInstallQr from './SidebarInstallQr.vue';
 
 function mountQr(locale = 'en') {
-  return mount(SidebarInstallQr, { global: { plugins: [createShellI18n({ locale })] } });
+  return mount(SidebarInstallQr, {
+    global: { plugins: [createShellI18n({ locale })], stubs: { IonPopover: IonPopoverStub } },
+  });
 }
 
 afterEach(() => {
@@ -75,5 +78,54 @@ describe('SidebarInstallQr', () => {
   it('is unconditional: no permission, no plan and nothing to close', () => {
     const wrapper = mountQr();
     expect(wrapper.get('[data-testid="sidebar-install-qr"]').findAll('[data-testid$="-close"], ion-menu-toggle')).toEqual([]);
+  });
+
+  it('on a low screen, its row says what it opens and shows the code over the page on a tap', async () => {
+    const wrapper = mountQr();
+    const inline = await vi.waitFor(() => wrapper.get('.sidebar-install-qr-full img.sidebar-install-qr-code'));
+    const row = wrapper.get('ion-button.sidebar-install-qr-open');
+    expect(row.attributes('data-testid')).toBe('sidebar-install-qr-open');
+    expect(row.text()).toBe('Open on your phone');
+    expect(row.attributes('aria-haspopup')).toBe('dialog');
+    expect(unnamedButtons(wrapper.element)).toEqual([]);
+    expect(wrapper.find('[data-stub="ion-popover"]').exists()).toBe(false);
+
+    await row.trigger('click');
+    const popover = wrapper.get('[data-stub="ion-popover"]');
+    expect(popover.classes()).toContain('sidebar-install-qr-popover');
+    const code = popover.get('img.sidebar-install-qr-code');
+    expect(code.attributes('src')).toBe(inline.attributes('src'));
+    expect(code.attributes('alt')).toBe(`QR code of ${window.location.origin}/`);
+    expect(popover.get('.sidebar-install-qr-title').text()).toBe('Open on your phone');
+    expect(popover.get('.sidebar-install-qr-hint').text()).toBe(
+      'Scan the code. To keep it there, add it to your home screen from your browser menu.',
+    );
+
+    wrapper.getComponent(IonPopoverStub).vm.$emit('didDismiss');
+    await flushPromises();
+    expect(wrapper.find('[data-stub="ion-popover"]').exists()).toBe(false);
+  });
+
+  it('its row and its code over the page speak the language of the person', async () => {
+    const wrapper = mountQr('es');
+    const row = wrapper.get('ion-button.sidebar-install-qr-open');
+    expect(row.text()).toBe('Ábrelo en el móvil');
+    await row.trigger('click');
+    const popover = wrapper.get('[data-stub="ion-popover"]');
+    expect(popover.get('.sidebar-install-qr-title').text()).toBe('Ábrelo en el móvil');
+    expect(popover.get('.sidebar-install-qr-hint').text()).toBe(
+      'Escanea el código. Para dejarlo fijo, añádelo a la pantalla de inicio desde el menú del navegador.',
+    );
+  });
+
+  it('over the page too, when the code cannot be drawn, it writes the address to type', async () => {
+    vi.spyOn(QRCode, 'toDataURL').mockRejectedValueOnce(new Error('canvas unavailable'));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const wrapper = mountQr();
+    await flushPromises();
+    await wrapper.get('ion-button.sidebar-install-qr-open').trigger('click');
+    const popover = wrapper.get('[data-stub="ion-popover"]');
+    expect(popover.find('img.sidebar-install-qr-code').exists()).toBe(false);
+    expect(popover.get('.sidebar-install-qr-url').text()).toBe(`${window.location.origin}/`);
   });
 });
