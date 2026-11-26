@@ -96,24 +96,24 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
     };
     const styles = {
       modal: read('ion-modal', ['--width', '--max-width', '--height', '--max-height', '--border-radius', 'align-items']),
-      host: read('.ion-delegate-host', ['display', 'flex-direction', 'max-height']),
+      host: read('.ion-delegate-host', ['display', 'flex-direction', 'min-height', 'max-height']),
       body: read('.ep-form-modal__body', ['overflow-y', 'min-height', 'max-height']),
     };
     await win.happyDOM.close();
     return styles;
   }
 
-  it('below 640px a form is a sheet from the bottom, as tall as its content up to 90vh, the fields scrolling inside', async () => {
+  it('below 640px a form is a sheet from the bottom, as tall as its content up to 90% of the page, the fields scrolling inside', async () => {
     const { modal, host, body } = await styleAt(390, 'sheet');
     expect(modal['--width']).toBe('100%');
     expect(modal['--height']).toBe('auto');
-    expect(modal['--max-height']).toBe('90vh');
+    expect(modal['--max-height']).toBe('90%');
     expect(modal['align-items']).toBe('flex-end');
     // The sheet's rounded top (--ep-radius-sheet-top, 18px 18px 0 0 without the theme).
     expect(modal['--border-radius']).toBe('18px 18px 0 0');
-    // The content is capped like the sheet, so the body scrolls instead of being cut off.
-    expect(host['max-height']).toBe(`${(844 * 90) / 100}px`); // 90vh of the 844px window, computed
+    // The content shrinks to the sheet, so the body scrolls instead of being cut off.
     expect(host.display).toBe('flex');
+    expect(host['min-height']).toBe('0');
     expect(body['overflow-y']).toBe('auto');
     expect(body['min-height']).toBe('0');
     expect(body['max-height']).toBe('none');
@@ -122,7 +122,7 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
   it('a confirmation (`phoneLayout: card`) stays the centred card below 640px: never a sheet', async () => {
     const { modal } = await styleAt(390, 'card', 'sm');
     expect(modal['--width']).toBe('420px');
-    expect(modal['--max-width']).toBe('calc(100vw - 32px)');
+    expect(modal['--max-width']).toBe('calc(100% - 32px)');
     expect(modal['--height']).toBe('auto');
     expect(modal['align-items']).not.toBe('flex-end');
     expect(modal['--border-radius']).not.toBe('18px 18px 0 0');
@@ -138,16 +138,28 @@ describe('FormModal: layout (CSS, read from the stylesheet or computed in a happ
   });
 
   // A tablet in landscape is a low screen (1280×761 CSS px). A footer of six actions wraps into three rows, and with
-  // only the body capped (70vh) the buttons fell past the bottom of the dialog, cut off. The content is
-  // capped like the dialog itself, so the fields scroll between the title and the buttons, which always show.
-  it('from 640px the content is capped like the dialog, so a tall footer stays inside it on a low screen', async () => {
+  // only the body capped (70vh) the buttons fell past the bottom of the dialog, cut off. The content shrinks to the
+  // dialog, so the fields scroll between the title and the buttons, which always show.
+  it('from 640px the content shrinks to the dialog, so a tall footer stays inside it on a low screen', async () => {
     const { modal, host, body } = await styleAt(1280, 'sheet', 'md', 761);
-    expect(modal['--max-height']).toBe('calc(100vh - 32px)');
+    expect(modal['--max-height']).toBe('calc(100% - 32px)');
     expect(host.display).toBe('flex');
     expect(host['flex-direction']).toBe('column');
-    expect(host['max-height']).toBe('calc(761px - 32px)');
+    expect(host['min-height']).toBe('0');
     expect(body['overflow-y']).toBe('auto');
     expect(body['min-height']).toBe('0');
+  });
+
+  // The window is capped by the page it opens on, never by the viewport: in Chrome on an Android tablet or phone `vh`
+  // also counts the screen under the address bar (the page of a tablet in landscape is 665 px high, `100vh` 721), and
+  // with the interface at 120 % (My profile zooms the page) `vh` and `vw` grow with the zoom, past the window
+  // (hub#2012). Ionic sizes its wrapper (the `content` part) with these caps; the wrapper is a column, so what is in
+  // it shrinks to them. happy-dom lays nothing out and has no `::part`: Chromium measures it in the Hub's e2e.
+  it('the window is capped by the page, never by the viewport, and its content shrinks to it', () => {
+    const caps = [...STYLE.matchAll(/--max-(?:height|width):\s*([^;]+);/g)].map(([, value]) => value);
+    expect(caps).toEqual(['calc(100% - 32px)', 'calc(100% - 32px)', '100%', '90%']);
+    expect(STYLE).not.toMatch(/--max-height:[^;]*v[hwbi]|--max-width:[^;]*v[hwbi]/);
+    expect(STYLE).toMatch(/ion-modal\.ep-form-modal::part\(content\)\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/);
   });
 
   // Ionic drops the backdrop and the shadow of a modal opened over another one (`ion-modal.modal-default.show-modal

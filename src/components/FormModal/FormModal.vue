@@ -439,12 +439,15 @@ function focusFirstField(): void {
 
 <style>
 /* Not scoped: Ionic renders the modal's own wrapper (`.ion-delegate-host`) and moves the modal to
-   ion-app. Every rule hangs from `ion-modal.ep-form-modal`, so nothing leaks out. */
+   ion-app. Every rule hangs from `ion-modal.ep-form-modal`, so nothing leaks out.
+   The caps are a share of the page the modal covers, never of the viewport: in Chrome on a tablet or a phone `vh`
+   also counts the screen under the address bar, and the interface scale (a zoom on the page) makes `vh` and `vw`
+   grow past the window. */
 ion-modal.ep-form-modal {
   --width: 480px;
-  --max-width: calc(100vw - 32px);
+  --max-width: calc(100% - 32px);
   --height: auto;
-  --max-height: calc(100vh - 32px);
+  --max-height: calc(100% - 32px);
   --border-radius: var(--ep-radius, 14px);
   --box-shadow: var(--ep-shadow-modal);
   --ep-form-modal-backdrop-opacity: var(--ion-backdrop-opacity, 0.4);
@@ -468,13 +471,18 @@ ion-modal.modal-default.show-modal ~ ion-modal.ep-form-modal.modal-default {
 :root.ion-palette-dark ion-modal.ep-form-modal::part(content) {
   border: 1px solid var(--ion-border-color, #26282e);
 }
-/* As tall as its content (Ionic's `.ion-page` would fill a fixed height), up to the window's own cap: on a low screen
-   the fields scroll between the title and the buttons instead of pushing the buttons out of the window. */
+/* As tall as its content (Ionic's `.ion-page` would fill a fixed height), up to the window's cap: the window is a
+   column its content shrinks to, so on a low screen the fields scroll between the title and the buttons instead of
+   pushing the buttons out of the window. */
+ion-modal.ep-form-modal::part(content) {
+  display: flex;
+  flex-direction: column;
+}
 ion-modal.ep-form-modal .ion-delegate-host {
   position: relative;
   display: flex;
   flex-direction: column;
-  max-height: var(--max-height);
+  min-height: 0;
   contain: content;
 }
 ion-modal.ep-form-modal ion-toolbar {
@@ -533,14 +541,14 @@ ion-modal.ep-form-modal ion-select::part(text) {
   white-space: normal;
 }
 
-/* Phone: a form is a sheet from the bottom as tall as its fields, up to 90vh, the fields
+/* Phone: a form is a sheet from the bottom as tall as its fields, up to 90% of the page, the fields
    scrolling between the title and the buttons. A confirmation (`card`) keeps the centred card. */
 @media (max-width: 639.98px) {
   ion-modal.ep-form-modal[data-phone-layout='sheet'] {
     --width: 100%;
     --max-width: 100%;
     --height: auto;
-    --max-height: 90vh;
+    --max-height: 90%;
     --border-radius: var(--ep-radius-sheet-top, 18px 18px 0 0);
     align-items: flex-end;
   }
