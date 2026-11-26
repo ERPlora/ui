@@ -176,7 +176,11 @@ async function play(): Promise<void> {
   background: var(--youtube-embed-to);
 }
 
+/* The title on top and the play button in the middle row: centred while the title fits above it, pushed down by a
+   longer one (a `1fr` row is never shorter than its content), never laid over it. */
 .youtube-embed__poster {
+  grid-template-rows: 1fr auto 1fr;
+  row-gap: 8px;
   font: inherit;
   color: var(--youtube-embed-ink);
   cursor: pointer;
@@ -194,10 +198,10 @@ async function play(): Promise<void> {
 }
 
 .youtube-embed__copy {
-  position: absolute;
-  top: 22px;
-  left: 24px;
-  right: 24px;
+  grid-row: 1;
+  align-self: start;
+  justify-self: stretch;
+  padding: 22px 24px 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -221,6 +225,7 @@ async function play(): Promise<void> {
 }
 
 .youtube-embed__play {
+  grid-row: 2;
   display: grid;
   place-items: center;
   width: 68px;
@@ -263,9 +268,7 @@ async function play(): Promise<void> {
 
 @media (max-width: 479.98px) {
   .youtube-embed__copy {
-    top: 14px;
-    left: 16px;
-    right: 16px;
+    padding: 14px 16px 0;
   }
   .youtube-embed__play {
     width: 56px;
