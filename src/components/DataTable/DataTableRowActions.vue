@@ -29,8 +29,8 @@ const busy = (action: DataTableAction<T>) => action.loading?.(props.row) === tru
 const disabled = (action: DataTableAction<T>) => busy(action) || action.disabled?.(props.row) === true;
 const hook = (id: string) => (props.testid ? `${props.testid}-row-${props.rowId}-${id}` : undefined);
 const name = (action: DataTableAction<T>) => action.ariaLabel?.(props.row) ?? actionLabel(action, props.row);
-/** Its text is painted: the card's main button, `showLabel`, or no icon to stand for it. */
-const labelled = (action: DataTableAction<T>, primary?: boolean) => !!primary || iconWithLabel(action) || !action.icon;
+/** Its text is painted: `showLabel`, or no icon to stand for it. */
+const labelled = (action: DataTableAction<T>) => iconWithLabel(action) || !action.icon;
 
 function run(action: DataTableAction<T>): void {
   if (!disabled(action)) emit('action', { action, row: props.row });
@@ -42,7 +42,7 @@ function run(action: DataTableAction<T>): void {
     <ion-button
       v-for="{ action, primary } in items"
       :key="action.id"
-      :class="{ 'data-table__action--labelled': labelled(action, primary), 'data-table__action--main': primary }"
+      :class="{ 'data-table__action--labelled': labelled(action), 'data-table__action--main': primary }"
       size="small"
       :fill="primary || action.pinned ? 'outline' : 'clear'"
       :style="toneStyle(action.color ?? 'medium', 'clear')"
@@ -54,7 +54,7 @@ function run(action: DataTableAction<T>): void {
       @click="run(action)"
     >
       <ion-spinner
-        v-if="busy(action) && labelled(action, primary)"
+        v-if="busy(action) && labelled(action)"
         slot="start"
         name="dots"
       />
@@ -64,7 +64,7 @@ function run(action: DataTableAction<T>): void {
         name="dots"
       />
       <ion-icon
-        v-else-if="action.icon && labelled(action, primary)"
+        v-else-if="action.icon && labelled(action)"
         slot="start"
         :icon="icon(action.icon)"
         aria-hidden="true"
@@ -75,7 +75,7 @@ function run(action: DataTableAction<T>): void {
         :icon="icon(action.icon)"
         aria-hidden="true"
       />
-      <template v-if="labelled(action, primary)">
+      <template v-if="labelled(action)">
         {{ actionLabel(action, row) }}
       </template>
     </ion-button>

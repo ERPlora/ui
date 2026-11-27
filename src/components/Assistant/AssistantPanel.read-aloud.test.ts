@@ -255,6 +255,13 @@ describe('AssistantPanel', () => {
         await flush();
       }
 
+      /** The reading stopped: its audio paused and freed, and the button is no longer pressed. */
+      function expectStopped(m: Awaited<ReturnType<typeof answered>>) {
+        expect(FakeAudio.made[0].pause).toHaveBeenCalled();
+        expect(revoked).toHaveBeenCalledWith('blob:answer');
+        expect(listenButton(m).attributes('aria-pressed')).toBe('false');
+      }
+
       it('reads the answer in the language’s first voice and plays its audio, «Stop reading» while it sounds', async () => {
         deviceVoice();
         const speak = vi.fn(async () => MP3);
@@ -272,12 +279,12 @@ describe('AssistantPanel', () => {
         expect(FakeAudio.made[0].src).toBe('blob:answer');
         expect(FakeAudio.made[0].play).toHaveBeenCalled();
         expect(listenButton(m).attributes('aria-pressed')).toBe('true');
-        expect(listenButton(m).text()).toBe('Dejar de leer');
+        expect(listenButton(m).attributes('aria-label')).toBe('Dejar de leer');
         FakeAudio.made[0].onended?.();
         await flush();
         expect(revoked).toHaveBeenCalledWith('blob:answer');
         expect(listenButton(m).attributes('aria-pressed')).toBe('false');
-        expect(listenButton(m).text()).toBe('Leer en voz alta');
+        expect(listenButton(m).attributes('aria-label')).toBe('Leer en voz alta');
       });
 
       it('«Stop reading» stops the audio and frees it', async () => {
@@ -287,9 +294,7 @@ describe('AssistantPanel', () => {
         await flush();
         await listenButton(m).trigger('click');
         await flush();
-        expect(FakeAudio.made[0].pause).toHaveBeenCalled();
-        expect(revoked).toHaveBeenCalledWith('blob:answer');
-        expect(listenButton(m).attributes('aria-pressed')).toBe('false');
+        expectStopped(m);
       });
 
       it('the server fails (not configured, down): the device reads it in its own voice', async () => {
@@ -393,10 +398,8 @@ describe('AssistantPanel', () => {
         expect(listenButton(m).attributes('aria-pressed')).toBe('true');
         (m.wrapper.vm as unknown as { $i18n: { locale: string } }).$i18n.locale = 'en';
         await flush();
-        expect(FakeAudio.made[0].pause).toHaveBeenCalled();
-        expect(revoked).toHaveBeenCalledWith('blob:answer');
-        expect(listenButton(m).attributes('aria-pressed')).toBe('false');
-        expect(listenButton(m).text()).toBe('Read aloud');
+        expectStopped(m);
+        expect(listenButton(m).attributes('aria-label')).toBe('Read aloud');
       });
 
       it('the panel goes away while it reads (the person signs out): the reading stops', async () => {

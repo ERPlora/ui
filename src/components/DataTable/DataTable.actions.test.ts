@@ -259,7 +259,8 @@ describe('custom controls and the default primary action', () => {
     expect(inline(list)).toEqual(['apps-row-1-open', 'apps-row-1-toggle', 'apps-row-1-menu']);
     expect(inline(cardsView)).toEqual(['apps-row-1-open', 'apps-row-1-menu']);
     expect(text(byTestId(list, 'apps-row-1-open')[0]), 'icon-only in the list').toBe('');
-    expect(text(byTestId(cardsView, 'apps-row-1-open')[0]), 'with its text on the card').toBe('Open');
+    expect(text(byTestId(cardsView, 'apps-row-1-open')[0]), 'icon-only on the card too').toBe('');
+    expect(byTestId(cardsView, 'apps-row-1-open')[0].getAttribute('title')).toBe('Open');
     await click(byTestId(cardsView, 'apps-row-1-menu')[0]);
     expect(menuItems(cardsView).map(itemLabel)).toEqual(['Turn off', 'Delete']);
   });

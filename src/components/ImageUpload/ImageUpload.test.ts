@@ -33,6 +33,13 @@ async function settle(): Promise<void> {
 const part = (w: Wrapper, name: string) => w.find(`[data-testid="logo-${name}"]`);
 const fileInput = (w: Wrapper) => part(w, 'file').element as HTMLInputElement;
 const text = (w: Wrapper, name: string) => (part(w, name).element.textContent ?? '').replace(/\s+/g, ' ').trim();
+/** An icon-only button: no word in sight, its label as its accessible name and its tooltip. */
+const named = (w: Wrapper, name: string) => {
+  const button = part(w, name).element;
+  // Hydrated Ionic moves the host's `aria-label` to its native button.
+  const label = button.shadowRoot?.querySelector('button')?.getAttribute('aria-label') ?? button.getAttribute('aria-label');
+  return [text(w, name), label, button.getAttribute('title')];
+};
 const disabled = (w: Wrapper, name: string) => (part(w, name).element as El).disabled === true;
 
 function imageFile(name = 'logo.png', type = 'image/png', bytes = 1024): File {
@@ -56,7 +63,7 @@ afterEach(() => {
 });
 
 describe('ImageUpload: what it paints', () => {
-  it('empty: a placeholder, the label, «No image yet» with the rules, «Choose image» and no Remove', async () => {
+  it('empty: a placeholder, the label, «No image yet» with the rules, the icon-only «Choose image» and no Remove', async () => {
     const w = mountUpload();
     await settle();
     expect(part(w, 'empty').exists()).toBe(true);
@@ -65,7 +72,8 @@ describe('ImageUpload: what it paints', () => {
     expect(text(w, 'label')).toBe('Logo');
     expect(text(w, 'status')).toBe('No image yet');
     expect(text(w, 'rules')).toBe('JPEG, PNG, or WebP, up to 5 MB');
-    expect(text(w, 'choose')).toBe('Choose image');
+    expect(named(w, 'choose')).toEqual(['', 'Choose image', 'Choose image']);
+    expect(part(w, 'choose').find('[slot="icon-only"]').exists()).toBe(true);
     expect(part(w, 'remove').exists()).toBe(false);
     expect(part(w, 'error').exists()).toBe(false);
     expect(part(w, 'loading').exists()).toBe(false);
@@ -83,7 +91,7 @@ describe('ImageUpload: what it paints', () => {
     expect(text(svg, 'rules')).toBe('SVG or PNG, up to 300 kB');
   });
 
-  it('with an image: its thumbnail, named by the label, «Replace image» and Remove', async () => {
+  it('with an image: its thumbnail, named by the label, and the icon-only «Replace image» and Remove', async () => {
     const w = mountUpload({ modelValue: LOGO });
     await settle();
     const img = part(w, 'image').element as HTMLImageElement;
@@ -91,8 +99,9 @@ describe('ImageUpload: what it paints', () => {
     expect(img.getAttribute('alt')).toBe('Logo');
     expect(part(w, 'empty').exists()).toBe(false);
     expect(text(w, 'status')).toBe('');
-    expect(text(w, 'choose')).toBe('Replace image');
-    expect(text(w, 'remove')).toBe('Remove');
+    expect(named(w, 'choose')).toEqual(['', 'Replace image', 'Replace image']);
+    expect(named(w, 'remove')).toEqual(['', 'Remove', 'Remove']);
+    expect(part(w, 'remove').find('[slot="icon-only"]').exists()).toBe(true);
   });
 
   it('an image that cannot be shown leaves the placeholder and says so', async () => {
@@ -270,15 +279,15 @@ describe('ImageUpload: Spanish', () => {
     await settle();
     expect(text(w, 'status')).toBe('Todavía no hay imagen');
     expect(text(w, 'rules')).toBe('JPEG, PNG o WebP, hasta 5 MB');
-    expect(text(w, 'choose')).toBe('Elegir imagen');
+    expect(named(w, 'choose')).toEqual(['', 'Elegir imagen', 'Elegir imagen']);
     await choose(w, imageFile('menu.pdf', 'application/pdf'));
     expect(text(w, 'error')).toBe('Ese tipo de archivo no se admite. Elige un archivo JPEG, PNG o WebP.');
     await choose(w, imageFile('big.png', 'image/png', 6 * MIB));
     expect(text(w, 'error')).toBe('La imagen ocupa más de 5 MB. Elige una más pequeña.');
     const full = mountUpload({ modelValue: LOGO, upload: vi.fn(() => Promise.reject(new Error(''))) }, 'es');
     await settle();
-    expect(text(full, 'choose')).toBe('Cambiar imagen');
-    expect(text(full, 'remove')).toBe('Quitar');
+    expect(named(full, 'choose')).toEqual(['', 'Cambiar imagen', 'Cambiar imagen']);
+    expect(named(full, 'remove')).toEqual(['', 'Quitar', 'Quitar']);
     await choose(full, imageFile());
     expect(text(full, 'error')).toBe('No se ha podido subir la imagen. Inténtalo de nuevo.');
   });
