@@ -20,7 +20,8 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
 - cuántos de algo (− n +) → `QuantityStepper`
 - elegir un día / una hora / un día y una hora juntos → `DateField` / `TimeField` / `DateTimeField`
-- enseñar un importe, una fecha, una hora del reloj o una cantidad → `formatMoney`, `formatDateTime`, `formatTimeOfDay`, `formatQuantity`
+- enseñar un importe, una fecha, una hora del reloj o una cantidad (con su unidad) → `formatMoney`, `formatDateTime`,
+  `formatTimeOfDay`, `formatQuantity` (`quantityWithUnit`)
 - decir que no hay datos → `EmptyState`
 - confirmar algo que la persona acaba de hacer → `toastSuccess`, `toastError`…
 - un aviso que solo tiene sentido junto a lo que afecta (un error de carga, el rechazo de un formulario) → `InlineFeedback`
@@ -194,12 +195,12 @@ del TPV no lleva «Hablar» y cobrar no lleva «Cobrar».
 
 ## Cifras, importes y fechas
 
-### `formatMoney`, `formatDateTime`, `formatTimeOfDay`, `formatQuantity`, `decimalMark`
-`import { formatMoney, formatDateTime, formatTimeOfDay, formatQuantity, decimalMark } from '@erplora/ui/components'`
+### `formatMoney`, `formatDateTime`, `formatTimeOfDay`, `formatQuantity`, `quantityWithUnit`, `orderTicketQuantity`, `decimalMark`
+`import { formatMoney, formatDateTime, formatTimeOfDay, formatQuantity, quantityWithUnit, orderTicketQuantity, decimalMark } from '@erplora/ui/components'`
 - **Para qué sirve:** la única forma de enseñar un importe (la unidad menor del servidor, en la moneda del negocio y con los miles siempre agrupados), una fecha y hora, una hora del reloj («6:00 PM», «18:00», la misma que `formatDateTime` escribe tras la fecha) o una cantidad, en el idioma de la persona.
 - **Úsalo cuando** cualquier cifra, fecha o importe se pinta en una celda, una ficha o un resumen.
 - **No lo uses cuando** se escribe el importe → `MoneyInput`; nunca `Intl` ni `toFixed` a mano en una página.
-- **API:** `formatMoney(minor, locale, money?)` (sin `money`, un guion), `formatDateTime(value, locale?, options?)`, `formatTimeOfDay(time, locale)` (`HH:MM` o `HH:MM:SS`; lo que no es una hora, tal cual), `formatQuantity(quantity, locale)`, `decimalMark(locale)`.
+- **API:** `formatMoney(minor, locale, money?)` (sin `money`, un guion), `formatDateTime(value, locale?, options?)`, `formatTimeOfDay(time, locale)` (`HH:MM` o `HH:MM:SS`; lo que no es una hora, tal cual), `formatQuantity(quantity, locale)`, `quantityWithUnit(quantity, unit, locale)` (la cantidad con su unidad, «0,532 kg»; una de unidades, `ud`, sin unidad), `orderTicketQuantity(quantity, unit, locale)` (la cantidad delante de un plato en una comanda: «2×» en unidades, «0,35 kg» al peso), `decimalMark(locale)`.
 - **Ionic:** ninguno.
 
 ### `UsageMeter`
@@ -479,7 +480,7 @@ propio, solo pone las clases sobre las piezas de Ionic.
   arriba según la espera; su `ion-card` va con `ep-surface`, opaca y nunca de cristal. Dentro: la cabecera (`__head`,
   `__headline`, `__icon`, `__title`, `__label`, `__waiter`, `__clock`, `__timer`, `__wait`, `__number`, `__flags`,
   `__pill` sobre `StatusPill`), el cuerpo (`__body`, `__notes`), el menú (`__menu` y sus partes), cada plato (`__dish`
-  con `data-status`, `__dish--menu`, `__qty`, `__dish-body`, `__name`, `__allergy`, `__modifiers`, `__dish-note`,
+  con `data-status`, `__dish--menu`, `__qty` (su texto, con `orderTicketQuantity`), `__dish-body`, `__name`, `__allergy`, `__modifiers`, `__dish-note`,
   `__void`, `__meta`, `__state`) y el pie (`__foot`, `__step`, `__more`). En la cabecera, `__label` pone el destino en
   grande en su propia línea y `__waiter` va debajo, aparte; ambos ajustan primero por palabras enteras. En la cabecera
   del menú, `__menu-label` pone el nombre (`__menu-name`) a un lado y cuántos platos lleva (`__menu-count`) al otro, o
@@ -488,8 +489,9 @@ propio, solo pone las clases sobre las piezas de Ionic.
   `__allergy-contains` debajo; la marca «Alergia» de la cabecera es un `__pill` más. `ep-order-ticket-steps` es el
   `ion-popover` de los demás pasos, y `ep-station-dot` el color de una estación delante de su nombre.
 - **`ep-order-board`:** la rejilla de comandas, y alrededor la barra fija con las vistas y las estaciones
-  (`ep-order-board-bar`), la tabla de lo que queda por hacer (`ep-order-board-totals`) y las comandas grises mientras
-  carga (`ep-order-board-skeleton`). La barra se pega al borde de arriba de la caja que se desplaza, por encima de su
+  (`ep-order-board-bar`), la tabla de lo que queda por hacer (`ep-order-board-totals`, cada cifra en `__num`, a la
+  derecha y en una sola línea con su unidad: «0,35 kg» no se parte) y las comandas grises mientras carga
+  (`ep-order-board-skeleton`). La barra se pega al borde de arriba de la caja que se desplaza, por encima de su
   relleno, para que ninguna comanda asome sobre ella: lee el relleno de arriba del `ion-content` (`--padding-top`), y
   otra caja que se desplace (el tablero solo en pantalla completa) declara el suyo en esa misma variable.
 - **Úsalo cuando** una app enseña comandas; la cabecera de cada hoja lista sus clases.
