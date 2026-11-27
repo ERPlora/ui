@@ -1,9 +1,10 @@
-/** `md`: the 480px dialog; `sm`: 420px, for short confirmations; `lg`: 640px, for windows that are mostly reading. */
-export type FormModalSize = 'sm' | 'md' | 'lg';
+/** `md`: the 480px dialog; `sm`: 420px, for short confirmations; `lg`: 640px, for windows that are mostly reading;
+ *  `xl`: 920px, for a form in two columns. */
+export type FormModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 /** Below 640px: `sheet`, from the bottom as tall as its content (forms); `card`, the centred card
- *  of every width (confirmations, ConfirmDialog). */
-export type FormModalPhoneLayout = 'sheet' | 'card';
+ *  of every width (confirmations, ConfirmDialog); `fullscreen`, the whole screen (long forms). */
+export type FormModalPhoneLayout = 'sheet' | 'card' | 'fullscreen';
 
 /** `alertdialog` for consequential confirmations (ConfirmDialog). */
 export type FormModalRole = 'dialog' | 'alertdialog';

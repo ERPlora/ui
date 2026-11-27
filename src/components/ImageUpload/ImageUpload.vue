@@ -71,6 +71,7 @@ watch(
 
 const shown = computed(() => (props.modelValue && !broken.value ? props.modelValue : null));
 const locked = computed(() => busy.value || props.disabled);
+const chooseLabel = computed(() => (props.modelValue ? t('imageUpload.replace') : t('imageUpload.choose')));
 
 const typeList = computed(() => {
   const names = acceptedTypeNames(props.accept);
@@ -182,13 +183,14 @@ async function onFile(ev: Event): Promise<void> {
             fill="outline"
             :disabled="locked"
             :data-testid="tid('choose')"
+            :aria-label="chooseLabel"
+            :title="chooseLabel"
             @click="choose"
           >
             <HubIcon
-              slot="start"
+              slot="icon-only"
               name="ion:cloud-upload-outline"
             />
-            {{ modelValue ? t('imageUpload.replace') : t('imageUpload.choose') }}
           </ion-button>
           <ion-button
             v-if="modelValue"
@@ -197,13 +199,14 @@ async function onFile(ev: Event): Promise<void> {
             color="danger"
             :disabled="locked"
             :data-testid="tid('remove')"
+            :aria-label="t('imageUpload.remove')"
+            :title="t('imageUpload.remove')"
             @click="remove"
           >
             <HubIcon
-              slot="start"
+              slot="icon-only"
               name="ion:trash-outline"
             />
-            {{ t('imageUpload.remove') }}
           </ion-button>
           <ion-spinner
             v-if="busy"

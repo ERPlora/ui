@@ -79,11 +79,27 @@ describe('DataTableRowActions in a list row', () => {
 });
 
 describe('DataTableRowActions on a card', () => {
-  it('the main action is an outlined button with its icon and its text', () => {
+  it('the main action with an icon is an outlined icon-only button, named by its label, also as its tooltip', () => {
     const main = button(mountActions([{ action: edit, primary: true }], [remove]), 'edit');
-    expect(main.text()).toBe('Edit');
+    expect(main.text()).toBe('');
+    expect([main.attributes('aria-label'), main.attributes('title')]).toEqual(['Edit', 'Edit']);
     expect((main.element as HTMLElement & { fill?: string }).fill).toBe('outline');
     expect(main.classes()).toContain('data-table__action--main');
-    expect(main.find('ion-icon[slot="start"]').exists()).toBe(true);
+    expect(main.classes()).not.toContain('data-table__action--labelled');
+    expect(main.find('ion-icon[slot="icon-only"]').exists()).toBe(true);
+  });
+
+  it('busy, the main icon-only action shows the spinner in the icon’s place', () => {
+    const main = button(mountActions([{ action: { ...edit, loading: () => true }, primary: true }]), 'edit');
+    expect(main.find('ion-spinner[slot="icon-only"]').exists()).toBe(true);
+    expect(main.text()).toBe('');
+  });
+
+  it('the main action keeps its text with `showLabel` or without an icon', () => {
+    const shown = button(mountActions([{ action: plans, primary: true }]), 'plans');
+    expect([shown.text(), shown.classes()]).toEqual(['See plans', expect.arrayContaining(['data-table__action--main', 'data-table__action--labelled'])]);
+    expect(shown.find('ion-icon[slot="start"]').exists()).toBe(true);
+    const plain = button(mountActions([{ action: use, primary: true }]), 'use');
+    expect([plain.text(), plain.classes()]).toEqual(['Use template', expect.arrayContaining(['data-table__action--labelled'])]);
   });
 });

@@ -223,5 +223,6 @@ ion-card.data-table__card { display: flex; flex-direction: column; margin: 0; }
 .data-table__field-text--unfolded { overflow-wrap: anywhere; }
 .data-table__card-actions { display: flex; justify-content: flex-end; gap: 0.25rem; padding: 0.75rem; border-top: 1px solid var(--border-color-soft); }
 .data-table__card-actions .data-table__actions { width: 100%; flex-wrap: nowrap; }
-.data-table__card-actions :deep(.data-table__action--main) { flex: 1 1 auto; }
+/* A main action with its text takes the width; an icon-only one sits at the end, beside «⋮». */
+.data-table__card-actions :deep(.data-table__action--main.data-table__action--labelled) { flex: 1 1 auto; }
 </style>

@@ -170,17 +170,25 @@ describe('DataTableToolbar', () => {
     expect([funnel(t)?.color, funnel(t)?.getAttribute('data-invalid'), aria(funnel(t), 'aria-label')]).toEqual(['danger', 'true', 'Filters (check the marked ones)']);
   });
 
-  it('«Add» and the primary action are labelled buttons, with their own icon or the create one, that hand over a press', async () => {
+  it('«Add» and the primary action are icon-only buttons, with their own icon or the create one, named by their label, that hand over a press', async () => {
     const t = mountToolbar({ addable: true, primaryAction: { label: 'Import', icon: 'download-outline' } });
     const [add, primary] = [...(t.element as HTMLElement).querySelectorAll<Ionic>(':scope > ion-button.data-table__primary-button.data-table__add-button')];
-    const iconOf = (button: Ionic | null) => button?.querySelector<Ionic>('ion-icon[slot="start"]')?.icon;
-    expect([text(add), add.getAttribute('data-testid'), add.size, iconOf(add)]).toEqual(['Add', 'bills-add', 'small', ionIconSrc(DATA_TABLE_ICONS.add)]);
-    expect([text(primary), primary.getAttribute('data-testid'), primary.size, iconOf(primary)]).toEqual(['Import', 'bills-primary-action', 'small', ionIconSrc('download-outline')]);
+    const iconOf = (button: Ionic | null) => button?.querySelector<Ionic>('ion-icon[slot="icon-only"]')?.icon;
+    const named = (button: Ionic) => [text(button), button.getAttribute('aria-label'), button.getAttribute('title')];
+    expect([...named(add), add.getAttribute('data-testid'), add.size, iconOf(add)]).toEqual(['', 'Add', 'Add', 'bills-add', 'small', ionIconSrc(DATA_TABLE_ICONS.add)]);
+    expect([...named(primary), primary.getAttribute('data-testid'), primary.size, iconOf(primary)]).toEqual(['', 'Import', 'Import', 'bills-primary-action', 'small', ionIconSrc('download-outline')]);
     add.click();
     primary.click();
     expect([t.emitted('add'), t.emitted('primaryAction')]).toEqual([[[]], [[]]]);
     await t.setProps({ addable: false, primaryAction: { label: 'Export' } });
     expect([t.element.querySelectorAll('.data-table__add-button').length, iconOf(el(t, '.data-table__add-button'))]).toEqual([1, ionIconSrc(DATA_TABLE_ICONS.add)]);
+  });
+
+  it('a primary action whose icon does not say it alone (`showLabel`) keeps its text beside the icon', () => {
+    const t = mountToolbar({ primaryAction: { label: 'Route', icon: 'swap-horizontal-outline', showLabel: true } });
+    const primary = el(t, '.data-table__add-button');
+    expect([text(primary), primary?.getAttribute('aria-label'), primary?.classList.contains('data-table__add-button--labelled')]).toEqual(['Route', null, true]);
+    expect(primary?.querySelector<Ionic>('ion-icon[slot="start"]')?.icon).toBe(ionIconSrc('swap-horizontal-outline'));
   });
 
   it('the page’s own filters sit right after the search and its own tools at the end', () => {
@@ -214,7 +222,7 @@ describe('DataTableToolbar', () => {
     expect(el(t, '.data-table__page-size-select')?.getAttribute('aria-label')).toBe('Filas por página');
     expect([...t.element.querySelectorAll('ion-segment-button')].map((b) => b.getAttribute('aria-label'))).toEqual(['Vista lista', 'Vista tarjetas']);
     expect([funnel(t)?.getAttribute('title'), aria(funnel(t), 'aria-label')]).toEqual(['Filtros', 'Filtros (2 activos)']);
-    expect(text(el(t, '.data-table__add-button'))).toBe('Añadir');
+    expect(el(t, '.data-table__add-button')?.getAttribute('aria-label')).toBe('Añadir');
   });
 });
 

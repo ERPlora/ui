@@ -185,7 +185,8 @@ cristal entra y sale con `transform`, y mientras se funde deja de ser cristal.
 - Sin desplazamiento horizontal de página. Los scrollers especializados se anuncian y no capturan la
   página entera. Los textos largos parten entre palabras y las acciones no se cortan.
 - Controles de al menos 44×44 px con `@media (pointer: coarse)` y objetivo de 48 px en producto;
-  foco visible, lector de pantalla, teclado y gestos Ionic.
+  foco visible, lector de pantalla, teclado y gestos Ionic. Un botón de solo icono mide al menos
+  36×36 px con ratón y 44×44 px en pantalla táctil o en el teléfono (hasta 640 px), en `brand.css`.
 - Texto normal AA ≥ 4.5:1; texto grande y componentes ≥ 3:1. El modo de marca conserva su color, y
   `data-ep-contrast="aa"` cambia a los sólidos accesibles cuando se necesita.
 - La pantalla respeta safe areas, zoom, orientación y reducción de movimiento.

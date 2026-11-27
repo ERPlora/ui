@@ -36,8 +36,12 @@ async function setup(shown = true) {
     strip().dispatchEvent(new Event('scroll'));
     await nextTick();
   };
-  return { wrapper, visible, strip, scroll, edges: () => ({ ...api.edges.value }), mark: () => api.mark() };
+  const inner = () => wrapper.find('[data-testid="inner"]').element;
+  return { wrapper, visible, strip, inner, scroll, edges: () => ({ ...api.edges.value }), current: () => api.edges.value, mark: () => api.mark() };
 }
+
+/** MutationObserver calls back in a microtask: by the next task it has. */
+const observed = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('useScrollEdges', () => {
   it('marks the horizontal edges with something behind them as the scroller moves', async () => {
@@ -102,6 +106,68 @@ describe('useScrollEdges', () => {
       box(s.strip(), 300, 700);
       resized();
       expect(s.edges()).toEqual({ left: false, right: true, top: false, bottom: false });
+      s.wrapper.unmount();
+      expect(seen.at(-1)).toBe('disconnect');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('measures again when items arrive inside it after it was painted, with no scroll or resize', async () => {
+    const s = await setup();
+    box(s.strip(), 300, 300);
+    s.mark();
+    expect(s.edges().right).toBe(false);
+    box(s.strip(), 300, 700);
+    s.strip().append(document.createElement('span'));
+    await observed();
+    expect(s.edges()).toEqual({ left: false, right: true, top: false, bottom: false });
+  });
+
+  it('measures again when an item inside changes its class or its text, as a web component does once it is drawn', async () => {
+    const s = await setup();
+    const text = document.createTextNode('Retail');
+    s.inner().append(text);
+    box(s.strip(), 300, 300);
+    await observed();
+    expect(s.edges().right).toBe(false);
+    box(s.strip(), 300, 700);
+    s.inner().classList.add('hydrated');
+    await observed();
+    expect(s.edges().right).toBe(true);
+    box(s.strip(), 300, 300);
+    text.data = 'Retail products';
+    await observed();
+    expect(s.edges().right).toBe(false);
+  });
+
+  it('keeps the same edges when a change inside moves none of them', async () => {
+    const s = await setup();
+    box(s.strip(), 300, 700);
+    s.mark();
+    const before = s.current();
+    s.inner().classList.add('hydrated');
+    await observed();
+    expect(s.current()).toBe(before);
+  });
+
+  it('watches what the scroller holds, and stops with the screen', async () => {
+    const seen: string[] = [];
+    class FakeMutations {
+      observe(node: Element) {
+        seen.push(`observe ${node.getAttribute('data-testid')}`);
+      }
+      disconnect() {
+        seen.push('disconnect');
+      }
+      takeRecords() {
+        return [];
+      }
+    }
+    vi.stubGlobal('MutationObserver', FakeMutations);
+    try {
+      const s = await setup();
+      expect(seen).toEqual(['observe strip']);
       s.wrapper.unmount();
       expect(seen.at(-1)).toBe('disconnect');
     } finally {

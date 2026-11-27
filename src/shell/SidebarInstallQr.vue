@@ -1,8 +1,9 @@
 <script setup lang="ts">
-// Passive on purpose: it asks nothing, covers nothing and has nothing to close, and it is there for everyone, with
-// no role, permission or plan. On the rail (≥lg, folded from the topbar) the menu is 68 px and a readable code needs
-// ~132 px, so its icon stands in for it (polish.css swaps them) and opens the menu back up, where the code fits.
-import { IonButton } from '@ionic/vue';
+// Passive on purpose: it asks nothing and has nothing to close, and it is there for everyone, with no role,
+// permission or plan. It never takes the room of the menu's entries: on the rail (≥lg, folded from the topbar) the
+// menu is 68 px and a readable code needs ~132 px, so its icon stands in for it and opens the menu back up; on a screen
+// too low for the entries and the code, the code folds into one row that shows it over the page. polish.css swaps them.
+import { IonButton, IonPopover } from '@ionic/vue';
 import QRCode from 'qrcode';
 import { onMounted, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -10,6 +11,7 @@ import { useI18n } from 'vue-i18n';
 import HubIcon from './HubIcon.vue';
 import { INSTALL_QR_OPTIONS, installQrUrl } from './install-qr';
 import { railCollapsed } from './sidebar';
+import SidebarInstallQrCode from './SidebarInstallQrCode.vue';
 
 const { t } = useI18n();
 
@@ -17,6 +19,8 @@ const { t } = useI18n();
 const url = installQrUrl(window.location);
 const code = shallowRef<string>();
 const failed = shallowRef(false);
+const shownOver = shallowRef(false);
+const shownBy = shallowRef<Event>();
 
 onMounted(async () => {
   try {
@@ -27,6 +31,11 @@ onMounted(async () => {
     failed.value = true;
   }
 });
+
+function showOver(event: Event): void {
+  shownBy.value = event;
+  shownOver.value = true;
+}
 </script>
 
 <template>
@@ -49,34 +58,43 @@ onMounted(async () => {
       />
     </ion-button>
 
-    <div class="sidebar-install-qr-full">
-      <img
-        v-if="code"
-        class="sidebar-install-qr-code"
-        :src="code"
-        width="132"
-        height="132"
-        :alt="t('installQr.alt', { url })"
-      >
-      <p
-        v-else-if="failed"
-        class="sidebar-install-qr-url"
-      >
-        {{ url }}
-      </p>
-      <span
-        v-else
-        class="sidebar-install-qr-code sidebar-install-qr-pending"
+    <ion-button
+      class="sidebar-install-qr-open"
+      data-testid="sidebar-install-qr-open"
+      fill="clear"
+      size="small"
+      aria-haspopup="dialog"
+      @click="showOver"
+    >
+      <HubIcon
+        slot="start"
+        name="ion:qr-code-outline"
         aria-hidden="true"
       />
-      <p class="sidebar-install-qr-title">
-        {{ t('installQr.title') }}
-      </p>
-      <!-- One sentence for both platforms: the screen painting the code cannot know what phone will
-           read it, and both «install» paths live in the browser's menu. -->
-      <p class="sidebar-install-qr-hint">
-        {{ t('installQr.hint') }}
-      </p>
-    </div>
+      {{ t('installQr.title') }}
+    </ion-button>
+
+    <SidebarInstallQrCode
+      class="sidebar-install-qr-full"
+      :url="url"
+      :code="code"
+      :failed="failed"
+    />
+
+    <ion-popover
+      class="sidebar-install-qr-popover"
+      :is-open="shownOver"
+      :event="shownBy"
+      side="top"
+      alignment="center"
+      @did-dismiss="shownOver = false"
+    >
+      <SidebarInstallQrCode
+        class="sidebar-install-qr-over"
+        :url="url"
+        :code="code"
+        :failed="failed"
+      />
+    </ion-popover>
   </div>
 </template>

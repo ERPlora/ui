@@ -54,6 +54,7 @@ const goes = computed(() =>
 );
 
 const handed = computed(() => (config.saveFile ? (props.bubble.handed ?? []) : []));
+const listenLabel = computed(() => (props.speaking ? t('assistant.stopListening') : t('assistant.listen')));
 /** The file whose saving the host has not answered yet, by its place: asked twice, it would be saved twice. */
 const saving = ref<number | null>(null);
 
@@ -201,13 +202,15 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
           fill="outline"
           data-testid="assistant-file"
           :disabled="saving === index"
+          :aria-label="t('assistant.handedFile.download', { name: file.filename })"
+          :title="t('assistant.handedFile.download', { name: file.filename })"
           @click="download(file, index)"
         >
           <HubIcon
             slot="start"
             name="ion:download-outline"
           />
-          {{ t('assistant.handedFile.download', { name: file.filename }) }}
+          {{ file.filename }}
         </ion-button>
         <p
           v-else
@@ -328,14 +331,15 @@ const finished = computed(() => props.bubble.done && props.bubble.text !== '' &&
         fill="clear"
         data-testid="assistant-listen"
         :aria-pressed="speaking ? 'true' : 'false'"
+        :aria-label="listenLabel"
+        :title="listenLabel"
         @click="emit('listen')"
       >
         <ion-icon
-          slot="start"
-          :src="ASSISTANT_ICONS.listen"
+          slot="icon-only"
+          :src="speaking ? ASSISTANT_ICONS.stop : ASSISTANT_ICONS.listen"
           aria-hidden="true"
         />
-        {{ speaking ? t('assistant.stopListening') : t('assistant.listen') }}
       </ion-button>
       <ion-button
         v-if="canReport"

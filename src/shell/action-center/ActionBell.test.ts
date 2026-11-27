@@ -26,10 +26,11 @@ let disconnect: (() => void) | undefined;
 let notices: ReturnType<typeof ref<readonly ActionNotice[] | undefined>>;
 
 /** `null` items: the source has not answered yet. */
-function mountBell(items: readonly ActionNotice[] | null = [], locale = 'en', failed = false): VueWrapper {
+function mountBell(items: readonly ActionNotice[] | null = [], locale = 'en', failed = false, compact = false): VueWrapper {
   notices = ref<readonly ActionNotice[] | undefined>(items ?? undefined);
   disconnect = connectActionCenter({ notices: notices, failed: ref(failed) });
   wrapper = mount(ActionBell, {
+    props: { compact },
     global: { plugins: [createShellI18n({ locale })] },
     attachTo: document.body,
   });
@@ -140,6 +141,24 @@ describe('ActionBell', () => {
     expect(document.body.querySelector('.action-bell__hover')).toBeNull();
   });
 
+  it('puts the hover pill just under the bell at any interface size, in the page’s own CSS pixels', async () => {
+    const realWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 1440, configurable: true, writable: true });
+    try {
+      const bell = mountBell([notice]);
+      const button = bell.get('[data-testid="action-bell"]').element as HTMLElement;
+      // At 120 % the browser measures the bell 60 px down and 216 px from the right edge: 50 and 180 of the page's px.
+      Object.defineProperty(button, 'currentCSSZoom', { value: 1.2, configurable: true });
+      vi.spyOn(button, 'getBoundingClientRect').mockReturnValue(DOMRect.fromRect({ x: 1176, y: 12, width: 48, height: 48 }));
+      await bell.get('.action-bell-wrap').trigger('pointerenter', { pointerType: 'mouse' });
+      const hover = document.body.querySelector<HTMLElement>('.action-bell__hover');
+      expect(hover?.style.top).toBe('56px');
+      expect(hover?.style.right).toBe('180px');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { value: realWidth, configurable: true, writable: true });
+    }
+  });
+
   it('opens and closes the panel from the same button', async () => {
     const bell = mountBell([notice]).get('[data-testid="action-bell"]');
     await bell.trigger('click');
@@ -187,6 +206,34 @@ describe('ActionBell', () => {
     expect(blocks(css, '.action-bell.is-pulsing .action-bell__pill').join()).toContain('action-bell-pulse');
     expect(declaration(css, '.action-bell:active .action-bell__pill', 'transform')).toBe('scale(0.97)');
     expect(css).not.toMatch(/opacity/);
+  });
+
+  // A phone's bar has the room of one button for the bell: the count rides on its corner as a badge, the way Material
+  // and iOS badge a bar icon, and the pill's severity icon is left out; its tone and its spoken name still say it.
+  it.each([
+    [1, '1 notification pending. Urgent: Unpaid invoice'],
+    [12, '12 notifications pending. Urgent: Unpaid invoice'],
+  ])('compact, it fits %i pending in one button: the ring with the count on its corner, no severity icon', (count, name) => {
+    const bell = mountBell([{ ...notice, count }], 'en', false, true).get('[data-testid="action-bell"]');
+    expect(bell.classes()).toContain('is-compact');
+    const known = ['action-bell__ring', 'action-bell__count', 'action-bell__severity'];
+    const parts = [...bell.get('.action-bell__pill').element.children].map((child) =>
+      known.find((part) => child.classList.contains(part)),
+    );
+    expect(parts).toEqual(['action-bell__ring', 'action-bell__count']);
+    expect(bell.get('.action-bell__count').text()).toBe(String(count));
+    expect(bell.get('.action-bell__name').text()).toBe(name);
+    expect(unnamedButtons(bell.element)).toEqual([]);
+
+    const css = componentCss(`${__dirname}/ActionBell.vue`);
+    expect(declaration(css, '.action-bell.is-compact .action-bell__pill', 'padding')).toBe('4px');
+    expect(declaration(css, '.action-bell.is-compact .action-bell__count', 'position')).toBe('absolute');
+  });
+
+  it('is the pill, with its severity icon, unless it is told to be compact', () => {
+    const bell = mountBell([notice]).get('[data-testid="action-bell"]');
+    expect(bell.classes()).not.toContain('is-compact');
+    expect(bell.find('.action-bell__severity').exists()).toBe(true);
   });
 });
 

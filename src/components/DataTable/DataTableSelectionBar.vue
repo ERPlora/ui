@@ -26,14 +26,16 @@ const { ICONS, icon, label } = usePartChrome(props);
       class="data-table__selection-clear"
       fill="clear"
       size="small"
+      :aria-label="label('clear')"
+      :title="label('clear')"
       @click="emit('clear')"
     >
       <ion-icon
-        slot="start"
+        slot="icon-only"
         :icon="icon(ICONS.clear)"
         style="font-size: 14px"
         aria-hidden="true"
-      />{{ label('clear') }}
+      />
     </ion-button>
   </div>
 </template>

@@ -119,7 +119,7 @@ const PORTED: Record<string, string> = {
   'ion-searchbar.ion-no-border': ':where(.data-table__search) ion-searchbar.ion-no-border',
   '.primary-btn': '.data-table__primary-button',
   '.add-btn': '.data-table__add-button',
-  '.add-btn ion-icon': '.data-table__add-button ion-icon',
+  '.add-btn ion-icon': '.data-table__add-button--labelled ion-icon',
   '.tk-cols': '.data-table__columns-select',
   '.tk-psize': '.data-table__page-size-select',
   '.selbar': '.data-table__selection-bar',
@@ -336,6 +336,7 @@ const ADDED: Record<string, string> = {
   '@media (prefers-reduced-motion: reduce) || .data-table__row--data:hover, .data-table__row--data:active':
     'row motion is disabled with reduced motion in its own component',
   '.data-table__actions .data-table__action--main': 'the card’s main action reads as such',
+  '.data-table__add-button--labelled': 'a primary action whose icon does not say it alone (`showLabel`) keeps the Lit create button’s text padding',
   '.data-table__empty, .data-table__error, .data-table__loading': 'the table gives the library’s notices their room',
   '.data-table__empty': 'a page’s own empty notice sits in the middle of the table, as the Lit table’s did',
   '.data-table__loading': 'the skeletons sit centred under their label',
@@ -352,7 +353,8 @@ const ADDED: Record<string, string> = {
   '.data-table__card-meta-icon': 'metadata uses the baked icon of its column',
   '.data-table__card-meta-label--hidden': 'beside its column’s icon the field name remains for assistive technology',
   '.data-table__card-meta-value': 'metadata text can shrink and unfold without clipping',
-  '.data-table__card-actions :deep(.data-table__action--main)': 'the card’s main action takes the available width',
+  '.data-table__card-actions :deep(.data-table__action--main.data-table__action--labelled)':
+    'the card’s main action takes the available width when it keeps its text; an icon-only one sits beside «⋮»',
   '.data-table__identity': 'the shared identity cell aligns its icon and text',
   '.data-table__identity-icon': 'the identity icon uses the theme tile',
   '.data-table__identity-text': 'the identity text can shrink around its icon',
@@ -387,7 +389,8 @@ const EXTRA: Record<string, string[]> = {
 // The focused presentation deliberately changes these declarations; every other port stays verbatim.
 const RESTYLED: Record<string, string[]> = {
   ':where(.data-table__search) ion-searchbar': ['--background: var(--background)', '--border-radius: 10px', 'padding: 0', 'min-height: 44px'],
-  '.data-table__add-button': ['min-height: 44px', '--border-radius: 10px', '--padding-start: 0.9rem', '--padding-end: 1rem', 'margin: 0', 'font-weight: 600'],
+  // The «+» says it alone: a 44px square icon button, like the funnel.
+  '.data-table__add-button': ['min-height: 44px', 'min-width: 44px', '--border-radius: 10px', '--padding-start: 0', '--padding-end: 0', 'margin: 0'],
   '.data-table__columns-select': ['min-width: 6.5rem', 'max-width: 9rem', 'min-height: 44px', 'font-size: 13px', 'background: var(--background)', 'color: var(--color)', 'border: 1px solid var(--control-border)', 'border-radius: 10px', '--padding-start: 0.6rem', '--padding-end: 0.4rem', '--padding-top: 0.3rem', '--padding-bottom: 0.3rem'],
   '.data-table__page-size-select': ['min-width: 4.25rem', 'max-width: 5.5rem', 'min-height: 44px', 'font-size: 13px', 'background: var(--background)', 'color: var(--color)', 'border: 1px solid var(--control-border)', 'border-radius: 10px', '--padding-start: 0.6rem', '--padding-end: 0.4rem', '--padding-top: 0.35rem', '--padding-bottom: 0.35rem'],
   '.data-table__filter': ['min-width: 8.5rem', 'max-width: 13rem', 'min-height: 44px', 'font-size: 13px', 'background: var(--background)', 'color: var(--color)', 'border: 1px solid var(--control-border)', 'border-radius: 10px', '--padding-start: 0.7rem', '--padding-end: 0.5rem', '--padding-top: 0.35rem', '--padding-bottom: 0.35rem'],

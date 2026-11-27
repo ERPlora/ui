@@ -190,9 +190,9 @@ ion-segment-button::part(indicator-background) { border-radius: 10px; }
 /* A footer tab's label wraps between words, never inside one, and is never cut.
    Ionic's own label is single-line with an ellipsis, which on a phone left the shell's strips
    reading «Approva…», «Plan and li…»; a strip that does not fit SCROLLS instead (Material's
-   scrollable tabs, the iOS tab bar). `bindTabbarPeek` (tabbar-peek.ts) widens each tab to its
-   longest word; `overflow-wrap: normal` keeps that word whole even before it has measured it —
-   Ionic's buttons inherit `break-word`, which split «Availability» into «Availabilit» / «y». */
+   scrollable tabs, the iOS tab bar). `overflow-wrap` and `word-break` back to `normal` keep each word
+   whole, so the tab's column (tabbar.css) is never narrower than its longest word: Ionic's buttons
+   inherit `break-word`, which split «Availability» into «Availabilit» / «y». */
 ion-footer .tabbar ion-label {
   overflow: visible;
   text-overflow: clip;
@@ -409,11 +409,39 @@ ion-menu.dash-menu ion-content.sidebar-content { --background: var(--ion-backgro
    `v-if` on purpose: the guard in `SidebarInstallQr.test.ts` forbids conditions on this block, and
    the rail is a desktop panel the user collapsed themselves — not a gate on who gets the code. */
 .sidebar-install-qr-rail { display: none; }
+.sidebar-install-qr-open { display: none; }
+/* Folded, the code is one row that looks like the project's links under it (the hub's «Manage on erplora.com»):
+   centred, its icon before its words, at AA on the canvas. A tap shows the code over the page. */
+.sidebar-foot .sidebar-install-qr-open {
+  width: 100%;
+  margin: 0;
+  --color: var(--ion-color-medium-shade);
+  --color-hover: var(--ion-color-primary);
+  --background-hover: color-mix(in oklab, var(--ion-color-primary) 8%, transparent);
+  --background-hover-opacity: 1;
+  --border-radius: var(--ep-radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+/* With its code painted, the hub's longest menu needs 832 px of height: the person (72), seven entries (425) and the
+   foot (335, the project's links and the brand included). On a lower menu the entries come first. The menu's own
+   height decides and not the window's: the person's interface size zooms the page (theme.ts), which a media query
+   does not see. Ionic already contains the menu's size, so being a container changes nothing else in it. */
+ion-menu.dash-menu { container: shell-menu / size; }
+@container shell-menu (max-height: 831px) {
+  .sidebar-install-qr { padding-top: 0.25rem; }
+  .sidebar-install-qr-full { display: none; }
+  .sidebar-install-qr-open { display: block; }
+}
 @media (min-width: 992px) {
   ion-split-pane.rail .sidebar-install-qr-full { display: none; }
+  ion-split-pane.rail .sidebar-install-qr-open { display: none; }
   ion-split-pane.rail .sidebar-install-qr { padding-inline: 0; }
   ion-split-pane.rail .sidebar-install-qr-rail { display: inline-flex; }
 }
+/* Over the page, as wide as the pinned menu, with the room the face has in the foot. */
+.sidebar-install-qr-popover { --width: 248px; }
+.sidebar-install-qr-over { padding: 0.75rem 0.75rem 0.85rem; text-align: center; }
 /* If the code cannot be drawn, the address to type takes its place (SidebarInstallQr.vue). */
 .sidebar-install-qr-url {
   margin: 0;

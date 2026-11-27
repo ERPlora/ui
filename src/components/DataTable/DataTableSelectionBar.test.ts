@@ -2,8 +2,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { ionIconSrc } from '../../shell/icons';
 import { click, mountPart, mountTable, NAME, PEOPLE, settle, text } from './__tests__/harness';
-import { selectionSource, toolbarSource } from './__tests__/part-sources';
-import { scopedRule } from './__tests__/scoped-rule';
 import DataTableSelectionBar from './DataTableSelectionBar.vue';
 import { DATA_TABLE_ICONS } from './model';
 
@@ -20,6 +18,8 @@ const mountBar = (props: Record<string, unknown> = {}, locale: 'en' | 'es' = 'en
   mountPart(DataTableSelectionBar, AT_REST, props, { locale });
 const count = (root: Element) => text(root.querySelector('.data-table__selection-bar > strong'));
 const clearButton = (root: Element) => root.querySelector('.data-table__selection-bar > .data-table__selection-clear') as Ionic;
+/** Hydrated Ionic moves the host's `aria-label` to its native button. */
+const ariaLabel = (el: Element) => el.shadowRoot?.querySelector('button')?.getAttribute('aria-label') ?? el.getAttribute('aria-label');
 
 describe('DataTableSelectionBar', () => {
   it('says how many rows are selected, in the table’s language', () => {
@@ -28,10 +28,11 @@ describe('DataTableSelectionBar', () => {
     expect(count(mountBar({ count: 1 }, 'es').element.parentElement!)).toBe('1 seleccionado');
   });
 
-  it('«Clear» is a small clear Ionic button whose icon assistive tech skips, and asks the table to empty the selection', async () => {
+  it('«Clear» is a small clear icon-only Ionic button named by its label, whose icon assistive tech skips, and asks the table to empty the selection', async () => {
     const bar = mountBar();
     const clear = clearButton(bar.element.parentElement!);
-    expect([clear.tagName, clear.fill, clear.size, text(clear)]).toEqual(['ION-BUTTON', 'clear', 'small', 'Clear']);
+    expect([clear.tagName, clear.fill, clear.size, text(clear)]).toEqual(['ION-BUTTON', 'clear', 'small', '']);
+    expect([ariaLabel(clear), clear.getAttribute('title')]).toEqual(['Clear', 'Clear']);
     const glyph = clear.querySelector('ion-icon')!;
     expect([glyph.icon, glyph.getAttribute('aria-hidden')]).toEqual([ionIconSrc(DATA_TABLE_ICONS.clear), 'true']);
     await click(clear);
@@ -43,23 +44,15 @@ describe('DataTableSelectionBar', () => {
     expect(glyph.style.fontSize).toBe('14px');
   });
 
-  // Inside an ion-button the icon and the text are flex items: a space typed before the word is dropped when
-  // painted, so only Ionic's start slot sets the icon apart from the word (measured in Chromium, ios and md).
-  it('«Clear» carries its icon in the button’s start slot, and its word with no space typed before it', () => {
+  it('«Clear» carries its icon in the button’s icon-only slot, with no word beside it', () => {
     const clear = clearButton(mountBar().element.parentElement!);
-    expect(clear.querySelector('ion-icon')!.getAttribute('slot')).toBe('start');
-    expect(clear.textContent).toBe('Clear');
-  });
-
-  it('pulls its icon into the padding by the gap Ionic gives it, as the toolbar’s «Add» does, so the gap does not widen the button', () => {
-    for (const [name, source] of [['DataTableSelectionBar.vue', selectionSource], ['DataTableToolbar.vue', toolbarSource]]) {
-      expect([name, scopedRule(source, ':where(.data-table) ion-button > ion-icon[slot="start"]')]).toEqual([name, 'margin-inline-start: -0.3em;']);
-    }
+    expect(clear.querySelector('ion-icon')!.getAttribute('slot')).toBe('icon-only');
+    expect(clear.textContent).toBe('');
   });
 
   it('says the page’s own texts before the catalogue’s', () => {
     const bar = mountBar({ count: 2, labels: { selected: '{n} bills ticked', clear: 'Untick' } });
-    expect([count(bar.element.parentElement!), text(clearButton(bar.element.parentElement!))]).toEqual(['2 bills ticked', 'Untick']);
+    expect([count(bar.element.parentElement!), ariaLabel(clearButton(bar.element.parentElement!))]).toEqual(['2 bills ticked', 'Untick']);
   });
 });
 
@@ -68,7 +61,7 @@ describe('DataTableSelectionBar inside the table', () => {
     const labels = { selected: '{n} people ticked', clear: 'Untick' };
     const t = mountTable({ rows: PEOPLE, columns: NAME, selectable: true, selected: ['1', '2'], labels }, { attachTo: document.body });
     await settle();
-    expect([count(t.element), text(clearButton(t.element))]).toEqual(['2 people ticked', 'Untick']);
+    expect([count(t.element), ariaLabel(clearButton(t.element))]).toEqual(['2 people ticked', 'Untick']);
   });
 
   it('is not painted by a table that does not select, even when the page hands it selected keys', async () => {

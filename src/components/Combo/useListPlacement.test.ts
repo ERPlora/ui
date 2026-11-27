@@ -13,10 +13,12 @@ afterEach(() => {
 
 const boxOf = (top: number, bottom: number) => DOMRect.fromRect({ x: 16, y: top, width: 448, height: bottom - top });
 
-/** A field from `top` to `bottom` px down a window `height` px tall, with a list placed beside it. */
-function setup(top: number, bottom: number, height = 800) {
+/** A field from `top` to `bottom` px down a window `height` px tall, with a list placed beside it; `zoom`, the
+ *  interface size the page is painted with. */
+function setup(top: number, bottom: number, height = 800, zoom?: number) {
   Object.defineProperty(window, 'innerHeight', { value: height, configurable: true, writable: true });
   const field = document.createElement('div');
+  if (zoom !== undefined) Object.defineProperty(field, 'currentCSSZoom', { value: zoom, configurable: true });
   const box = vi.spyOn(field, 'getBoundingClientRect').mockReturnValue(boxOf(top, bottom));
   const target = ref<HTMLElement | null>(field);
   const open = ref(false);
@@ -95,6 +97,31 @@ describe('useListPlacement: opening', () => {
     list.target.value = null;
     list.place(true);
     expect(list.placement.value).toEqual({ side: 'bottom', room: 0, top: 0, bottom: 0 });
+  });
+});
+
+describe('useListPlacement: interface size', () => {
+  // The browser measures in screen pixels; the list's place is written in the page's own CSS pixels, which a zoom on
+  // <html> scales again. The same field, window and keyboard give the same placement at every interface size.
+  it('at 120 %, the same place and room under the field as at 100 %', () => {
+    const list = setup(120, 187.2, 960, 1.2);
+    list.place(true);
+    expect(list.placement.value).toEqual({ side: 'bottom', room: 628, top: 164, bottom: 708 });
+    expect(list.popoverStyle.value).toEqual({ '--max-height': '628px', '--combo-top': '164px', '--combo-bottom': 'auto' });
+  });
+
+  it('at 80 %, over the field, ending a gap above it', () => {
+    const list = setup(452, 516, 640, 0.8);
+    list.place(true);
+    // Under it: 800 − 645 − 16 = 139, short. Over it: 565 − 16 = 549; it ends 800 − 565 + 8 = 243 from the bottom.
+    expect(list.placement.value).toEqual({ side: 'top', room: 549, top: 653, bottom: 243 });
+  });
+
+  it('at 120 %, only in the part of the window the person sees', () => {
+    const list = setup(72, 139.2, 960, 1.2);
+    Object.defineProperty(window, 'visualViewport', { value: { offsetTop: 24, height: 504.6 }, configurable: true });
+    list.place(true);
+    expect(list.placement.value).toEqual({ side: 'bottom', room: 308, top: 124, bottom: 748 });
   });
 });
 

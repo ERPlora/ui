@@ -5,7 +5,8 @@
 // On a phone (≤767 px) the end of the bar holds two buttons, the bell always one of them: when the view's actions,
 // «My apps» and the project's piece do not fit beside it, or the view brings two or more actions (three text actions
 // leave the title as «Flo…» at 390 px), they all go into one «⋮» («More actions»). Material's top app bar, Apple's
-// navigation bars and Polaris' page header roll them up the same way.
+// navigation bars and Polaris' page header roll them up the same way. There the bell takes the room of one button,
+// its count a badge on its corner: its pill left «Automatizaci…» at 375 px beside «⋮» and the project's help.
 import { IonButton, IonButtons, IonHeader, IonMenuButton, IonTitle, IonToolbar } from '@ionic/vue';
 import { Comment, computed, Fragment, onBeforeUnmount, ref, Text, useSlots, type VNode } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -180,7 +181,10 @@ function goBack(): void {
           :is="piece"
           v-if="piece && !folded()"
         />
-        <ActionBell v-if="bell" />
+        <ActionBell
+          v-if="bell"
+          :compact="phone"
+        />
       </ion-buttons>
     </ion-toolbar>
   </ion-header>

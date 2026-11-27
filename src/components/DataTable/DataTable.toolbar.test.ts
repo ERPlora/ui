@@ -84,19 +84,19 @@ describe('the title, with the record count', () => {
   });
 });
 
-describe('the create button says what it adds', () => {
+describe('the create button is the «+», named by what it adds', () => {
   for (const mobile of [false, true]) {
     const vp = mobile ? 'phone' : 'desk';
-    it(`${vp}: a labelled primary button (not an anonymous «+»), named by \`labels.add\``, async () => {
+    it(`${vp}: an icon-only primary button, named by \`labels.add\`, also as its tooltip`, async () => {
       viewport(mobile);
       const t = mountTable({ rows: ROWS, columns: NAME, addable: true, labels: { add: 'Add time slot' } });
       const other = mountTable({ rows: ROWS, columns: NAME, addable: true, labels: { add: 'Block date' } });
       await settle();
-      expect(text(addButton(t))).toBe('Add time slot');
-      expect(accessibleName(addButton(t))).toBe('Add time slot');
+      expect(text(addButton(t))).toBe('');
+      expect([accessibleName(addButton(t)), addButton(t)?.getAttribute('title')]).toEqual(['Add time slot', 'Add time slot']);
       expect(accessibleName(addButton(other)), 'the label leaked from one table to the other').toBe('Block date');
       expect(addButton(t)?.classList.contains('data-table__primary-button')).toBe(true);
-      expect(addButton(t)?.querySelector('ion-icon[slot="start"]')).not.toBeNull();
+      expect(addButton(t)?.querySelector('ion-icon[slot="icon-only"]')).not.toBeNull();
     });
   }
 
@@ -104,11 +104,11 @@ describe('the create button says what it adds', () => {
     const en = mountTable({ rows: ROWS, columns: NAME, addable: true });
     const es = mountTable({ rows: ROWS, columns: NAME, addable: true }, { locale: 'es' });
     await settle();
-    expect(text(addButton(en))).toBe('Add');
-    expect(text(addButton(es))).toBe('Añadir');
+    expect(accessibleName(addButton(en))).toBe('Add');
+    expect(accessibleName(addButton(es))).toBe('Añadir');
     await en.setProps({ labels: { add: 'Añadir franja' } });
     await settle();
-    expect(text(addButton(en))).toBe('Añadir franja');
+    expect(accessibleName(addButton(en))).toBe('Añadir franja');
   });
 
   it('emits `add` (the page opens its own form); `labels.add` renames nothing else', async () => {
@@ -121,11 +121,11 @@ describe('the create button says what it adds', () => {
 });
 
 describe('the primary action', () => {
-  it('shows its label and icon, shares the create button’s look, and emits `primaryAction`', async () => {
+  it('shows its icon named by its label, shares the create button’s look, and emits `primaryAction`', async () => {
     const t = mountTable({ rows: ROWS, columns: NAME, primaryAction: { label: 'New order' } });
     await settle();
     const btn = t.element.querySelector('.data-table__bar-main .data-table__primary-button') as HTMLElement;
-    expect(text(btn)).toBe('New order');
+    expect([text(btn), accessibleName(btn), btn.getAttribute('title')]).toEqual(['', 'New order', 'New order']);
     expect(btn.classList.contains('data-table__add-button')).toBe(true);
     expect((btn.querySelector('ion-icon') as HTMLElement & { icon?: string }).icon).toContain('svg');
     await click(btn);

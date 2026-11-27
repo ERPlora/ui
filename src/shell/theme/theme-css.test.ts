@@ -142,14 +142,14 @@ function mediaBlocks(css: string, query: string, selector: string): string[] {
 describe('tabbar.css (the footer ion-segment as navigation)', () => {
   const tabbar = plain(read('tabbar.css'));
 
-  it('fills the footer, with a minimum tab width before it scrolls (--ep-tabbar-min, 64px)', () => {
+  it('fills the footer with equal tabs, none narrower than its longest word', () => {
     expect(blocks(tabbar, '.tabbar')).toHaveLength(1);
     expect(declarations(blocks(tabbar, '.tabbar')[0]).join('; ')).toBe(
       [
         'width: 100%',
         'margin-inline: 0',
         'box-sizing: border-box',
-        'grid-auto-columns: minmax(var(--ep-tabbar-min, 64px), 1fr)',
+        'grid-auto-columns: minmax(min-content, 1fr)',
         'justify-content: start',
         'overflow-x: auto',
         'scrollbar-width: none',
@@ -161,10 +161,10 @@ describe('tabbar.css (the footer ion-segment as navigation)', () => {
   // A phone's bottom bar shows four or five tabs whole (iOS tab bar, Material's
   // navigation bar). Ionic's iOS segment button brings `min-width: 70px` and 13px of side padding, made
   // for the compact segmented control: five of them need 374px, more than a 375px phone's strip (367px).
-  it('lets a footer tab shrink to the floor and keeps its label 4px off its edges', () => {
+  it('lets a footer tab shrink to the floor (--ep-tabbar-min, 56px) and keeps its label 4px off its edges', () => {
     expect(blocks(tabbar, '.tabbar ion-segment-button')).toHaveLength(1);
     expect(declarations(blocks(tabbar, '.tabbar ion-segment-button')[0]).join('; ')).toBe(
-      ['min-width: 0', '--padding-start: 4px', '--padding-end: 4px'].join('; '),
+      ['min-width: var(--ep-tabbar-min, 56px)', '--padding-start: 4px', '--padding-end: 4px'].join('; '),
     );
   });
 
@@ -439,6 +439,21 @@ describe('shell layout rules of the SaaS dashboard (dashboard-shell.css) the SPA
       'height: 132px',
       'margin-inline: auto',
     ]);
+  });
+
+  // With its code painted, the hub's longest menu (the person, seven entries and the foot with the project's links)
+  // needs 832 px of height. On a lower menu the entries come first: the code folds into its row, which shows it over
+  // the page; on the rail its icon stays the one door. The menu's own height decides, not the window's: the person's
+  // interface size zooms the page, and at 120 % a 900 px window holds a menu of 750.
+  it('below the height the menu needs with its code, the code folds into its row, never on the rail', () => {
+    expect(blocks(polish, 'ion-menu.dash-menu').flatMap(declarations)).toContain('container: shell-menu / size');
+    const low = /@container shell-menu \(max-height: 831px\)\s*\{((?:[^{}]*\{[^}]*\})*)\s*\}/.exec(polish)?.[1] ?? '';
+    expect(declarations(blocks(low, '.sidebar-install-qr-full')[0])).toEqual(['display: none']);
+    expect(declarations(blocks(low, '.sidebar-install-qr-open')[0])).toEqual(['display: block']);
+    expect(blocks(polish.replace(low, ''), '.sidebar-install-qr-open')[0]).toContain('display: none');
+    const desktop = /@media \(min-width: 992px\)\s*\{((?:[^{}]*\{[^}]*\})*)\s*\}/g;
+    const rail = [...polish.matchAll(desktop)].map((m) => m[1]).join('\n');
+    expect(declarations(blocks(rail, 'ion-split-pane.rail .sidebar-install-qr-open')[0])).toEqual(['display: none']);
   });
 
   it('the topbar names the section after the title, muted, hidden on a phone', () => {

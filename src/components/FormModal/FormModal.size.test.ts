@@ -1,6 +1,6 @@
-// The dialog's width on desktop and tablet: `sm` 420px for short confirmations, `md` 480px for forms (the default) and
-// `lg` 640px for windows that are mostly reading, such as the in-app help. Below 640px a sheet takes the full width
-// whatever the size.
+// The dialog's width on desktop and tablet: `sm` 420px for short confirmations, `md` 480px for forms (the default),
+// `lg` 640px for windows that are mostly reading, such as the in-app help, and `xl` 920px for a form in two columns.
+// Below 640px a sheet takes the full width whatever the size.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,32 +34,38 @@ async function modalStyleAt(width: number, size: string): Promise<Record<string,
   return read;
 }
 
-describe('FormModal: size lg', () => {
+// A tablet in portrait (834px) is narrower than the `xl` dialog: it takes the page but for the usual 16px each side.
+describe.each<['lg' | 'xl', string]>([
+  ['lg', '640px'],
+  ['xl', '920px'],
+])('FormModal: size %s', (size, wide) => {
   it('marks the dialog with its size', async () => {
     const wrapper = mount(FormModal, {
-      props: { title: 'Help · Tables', open: true, size: 'lg' },
+      props: { title: 'Help · Tables', open: true, size },
       attachTo: document.body,
       global: { plugins: [createShellI18n({ locale: 'en' })] },
     });
     mounted.push(wrapper);
     await nextTick();
-    expect(wrapper.get('[data-stub="ion-modal"]').attributes('data-size')).toBe('lg');
+    expect(wrapper.get('[data-stub="ion-modal"]').attributes('data-size')).toBe(size);
   });
 
-  it('is 640px wide from 640px up, and never wider than the screen', async () => {
+  it(`is ${wide} wide from 640px up, and never wider than the screen`, async () => {
     for (const width of [640, 834, 1440]) {
-      const modal = await modalStyleAt(width, 'lg');
-      expect(modal['--width'], String(width)).toBe('640px');
-      expect(modal['--max-width'], String(width)).toBe('calc(100vw - 32px)');
+      const modal = await modalStyleAt(width, size);
+      expect(modal['--width'], String(width)).toBe(wide);
+      expect(modal['--max-width'], String(width)).toBe('calc(100% - 32px)');
     }
   });
 
-  it('leaves the other sizes as they are', async () => {
+  it('below 640px is the full-width sheet like every other size', async () => {
+    expect((await modalStyleAt(390, size))['--width']).toBe('100%');
+  });
+});
+
+describe('FormModal: the other sizes', () => {
+  it('leaves them as they are', async () => {
     expect((await modalStyleAt(1024, 'md'))['--width']).toBe('480px');
     expect((await modalStyleAt(1024, 'sm'))['--width']).toBe('420px');
-  });
-
-  it('below 640px is the full-width sheet like every other size', async () => {
-    expect((await modalStyleAt(390, 'lg'))['--width']).toBe('100%');
   });
 });

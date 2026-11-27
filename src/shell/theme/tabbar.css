@@ -6,7 +6,7 @@
  * where the scroll is).
  *
  * Tokens:
- *   --ep-tabbar-min   minimum tab width before it scrolls (default 64px)
+ *   --ep-tabbar-min   minimum tab width before it scrolls (default 56px)
  *   --ep-tabbar-fade  width of the edge fade (default 36px)
  *
  * Load order: after the theme (createShell.ts).
@@ -21,14 +21,13 @@
   margin-inline: 0;
   box-sizing: border-box;
 
-  /* With few tabs the `1fr` wins and they fill the width; with many the minimum wins and they are
-     NOT squashed. 64px lets five tabs fit a 360px phone (a 352px strip: 4px of padding each side and
-     four 4px gaps leave 65.6px a tab), as a bottom bar does (iOS tab bar, Material's navigation bar:
-     up to five destinations, all on screen). It is only a floor: a label whose
-     longest word does not fit widens every tab (`bindTabbarPeek`) and the strip scrolls,
-     peeking at the next tab. Each product can tune it with `--ep-tabbar-min`: scrolling beats cut
-     labels. */
-  grid-auto-columns: minmax(var(--ep-tabbar-min, 64px), 1fr);
+  /* While every label fits, the `1fr` wins and the tabs share the width evenly. A tab is never narrower
+     than its longest word (labels wrap only between words, polish.css) nor than the floor of its
+     `min-width` below: one long word («Movimientos» on a 375px phone) widens only its own tab and the
+     others give up the room, as Ionic's own scrollable segment does. Only when the tabs' minimums add up
+     to more than the strip does it scroll, peeking at the next tab (`bindTabbarPeek`): scrolling beats
+     cut labels. */
+  grid-auto-columns: minmax(min-content, 1fr);
   justify-content: start;
 
   overflow-x: auto;
@@ -57,10 +56,12 @@
 
 /* A footer tab is a bottom-bar item, not a button of the compact segmented control Ionic's `ios` mode
    styles: that one brings `min-width: 70px` (five tabs need 374px, more than the 367px strip of a
-   375px phone) and 13px of side padding, which left a phone's labels 40px to live in. The floor above
-   sizes the tab; 4px keeps the label off the edges. */
+   375px phone) and 13px of side padding, which left a phone's labels 40px to live in. The floor is the
+   narrowest item of Material's bottom navigation, 56px: five tabs fit a 320px phone, and on a 360px one
+   there is room left for a tab with a long word. Each product can tune it with `--ep-tabbar-min`;
+   4px keeps the label off the edges. */
 .tabbar ion-segment-button {
-  min-width: 0;
+  min-width: var(--ep-tabbar-min, 56px);
   --padding-start: 4px;
   --padding-end: 4px;
 }

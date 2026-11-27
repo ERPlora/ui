@@ -5,8 +5,12 @@ import { configure, mountAssistant } from './__tests__/mount-assistant';
 import AssistantMessage from './AssistantMessage.vue';
 import { configureAssistant } from './config';
 import type { Bubble } from './history';
+import { ASSISTANT_ICONS } from './icons';
 
 beforeEach(() => configure());
+
+/** Hydrated Ionic moves the host's `aria-label` to its native button. */
+const ariaLabel = (el: Element) => el.shadowRoot?.querySelector('button')?.getAttribute('aria-label') ?? el.getAttribute('aria-label');
 afterEach(() => configureAssistant(undefined));
 
 function answer(fields: Partial<Bubble> = {}): Bubble {
@@ -32,6 +36,18 @@ function mountBubble(bubble: Bubble, extra: Record<string, unknown> = {}, locale
 }
 
 describe('AssistantMessage', () => {
+  it('«Read aloud» is the speaker icon alone, and the stop icon while it reads, named by what a press does', async () => {
+    const { wrapper } = await mountBubble(answer({ text: 'Hoy has vendido 120 €.' }), { canSpeak: true });
+    const listen = () => wrapper.get('[data-testid="assistant-listen"]');
+    const icon = () => (listen().get('ion-icon[slot="icon-only"]').element as HTMLElement & { src?: string }).src;
+    const seen = () => [listen().text(), ariaLabel(listen().element), listen().attributes('title'), icon()];
+    expect(seen()).toEqual(['', 'Leer en voz alta', 'Leer en voz alta', ASSISTANT_ICONS.listen]);
+    await wrapper.setProps({ speaking: true });
+    await flushPromises();
+    expect(seen()).toEqual(['', 'Dejar de leer', 'Dejar de leer', ASSISTANT_ICONS.stop]);
+    wrapper.unmount();
+  });
+
   it('the person’s question comes out as written, with its files', async () => {
     const { wrapper } = await mountBubble({ id: 'b1', role: 'user', text: '**hola**', files: ['carta.pdf'], notices: [], done: true });
     expect(wrapper.find('[data-testid="assistant-bubble-user"]').text()).toContain('**hola**');
@@ -288,7 +304,9 @@ describe('AssistantMessage', () => {
     const handed = [{ filename: 'inventario-productos.csv', content_type: 'text/csv', content }];
     const { wrapper } = await mountBubble(answer({ text: 'Aquí tienes la carta.', handed }));
     const button = wrapper.find('[data-testid="assistant-file"]');
-    expect(button.text()).toBe('Descargar inventario-productos.csv');
+    // The file's name is data and stays in sight; the verb is the download icon, spoken and shown as its tooltip.
+    expect(button.text()).toBe('inventario-productos.csv');
+    expect([ariaLabel(button.element), button.attributes('title')]).toEqual(['Descargar inventario-productos.csv', 'Descargar inventario-productos.csv']);
     await button.trigger('click');
     await flushPromises();
     expect(saveFile).toHaveBeenCalledTimes(1);

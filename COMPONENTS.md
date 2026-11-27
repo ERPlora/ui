@@ -18,6 +18,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - elegir uno entre muchos, o buscarlo en el servidor → `Combo`
 - marcar los alérgenos que lleva un plato o producto / decirlos debajo de su nombre → `AllergenSelect` / `AllergenRow`
 - escribir un importe / un color / subir una imagen → `MoneyInput` / `ColorInput` / `ImageUpload`
+- cuántos de algo (− n +) → `QuantityStepper`
 - elegir un día / una hora / un día y una hora juntos → `DateField` / `TimeField` / `DateTimeField`
 - enseñar un importe, una fecha, una hora del reloj o una cantidad (con su unidad) → `formatMoney`, `formatDateTime`,
   `formatTimeOfDay`, `formatQuantity` (`quantityWithUnit`)
@@ -38,6 +39,9 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - el marco de una pantalla (barra superior, Atrás, acciones, pestañas) → `AppPage`
 - las acciones de una pantalla en la barra → el slot `actions` de `AppPage`; en el teléfono van al «⋮» único de la
   barra, nunca a un botón de «más» propio
+- un botón de acción cuyo icono se entiende solo, esté donde esté (una fila, la barra, una tecla del TPV, un
+  formulario, un diálogo, un aviso) → solo el icono, con su etiqueta como nombre accesible y como título (ver «Botones
+  de acción»)
 - algo que solo se enseña en la web (lo que vende) → `WebOnly` / `v-web-only`
 - una comanda, en la cocina o en el TPV → las clases `ep-order-ticket` y `ep-order-board` (ver «Clases de la comanda»); el
   componente es de cada app
@@ -46,21 +50,40 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - un vídeo de YouTube que no pide nada a Google hasta pulsarlo → `YouTubeEmbed`
 - el chat del asistente → `AssistantPanel`, `AssistantButton`, `AssistantEmpty`; un texto en Markdown que enlaza a
   pantallas de la app → `AssistantMarkdown`
+- que las listas de un texto (los pasos de una guía, unos puntos) enseñen su número o su viñeta → la clase
+  `ep-prose` en el contenedor del texto
+
+## Botones de acción
+
+Un botón de acción cuyo icono se entiende solo no lleva texto visible, esté donde esté: filas y tarjetas, cabeceras,
+barras de herramientas, teclas del TPV, formularios, diálogos y avisos. El icono es el botón; su etiqueta va como nombre
+accesible (`aria-label`) y como título al pasar el ratón (`title`). El criterio es el icono, no el sitio: el micrófono
+del TPV no lleva «Hablar» y cobrar no lleva «Cobrar».
+
+- **Un dato no es etiqueta:** un importe o un contador se sigue viendo junto al icono (la tecla de cobro enseña su icono
+  y el importe, sin «Cobrar»).
+- **Solo lleva texto visible** el botón que no tiene un icono que se entienda solo («Guardar», «Cancelar», «Ver
+  planes», «Reintentar»).
+- **Las opciones de un menú** (el «⋮» de una fila o de la barra, un desplegable) llevan icono y texto.
+- **No son botones de acción** las baldosas de «Mis apps» y las de producto, servicio y menú del TPV.
+- **Cómo se pinta:** en `DataTable`, una acción con `icon` ya sale así (ver «Acciones de fila»); fuera de él, un
+  `ion-button` con `HubIcon` en `slot="icon-only"` y la etiqueta en su `aria-label` y su `title`.
 
 ## Listas y tablas
 
 ### `DataTable`
 `import { DataTable } from '@erplora/ui/components'`
 - **Para qué sirve:** la lista de registros de una pantalla: búsqueda, filtros por columna, orden, acciones de fila, interruptor de estado y selección. Antes de cortar un texto o un encabezado, las columnas de texto corto le ceden el sitio que les sobra (hasta lo que ocupa su texto); una con `minWidth`, con slot propio, con `identity` o con `toggle` no cede. Lo que cabe lo decide su propia caja: primero retira las columnas `priority: 'low'`, después las acciones que no están fijadas y, si `views` ofrece tarjetas, pasa a tarjetas, y vuelve a filas en cuanto tiene sitio otra vez (también al cerrar el panel de filtros que se lo quitaba), salvo que la persona haya elegido la vista; en el teléfono (hasta `cardBreakpoint`, 640 px) son tarjetas siempre que `views` las ofrezca. La lista vacía, la búsqueda sin resultados y la carga fallida se pintan con `EmptyState` e `InlineFeedback`; lo que una página pone en su slot `empty` queda centrado en la tabla. La cabecera de la lista se queda fija al desplazarla, y ella y las acciones fijadas quedan siempre por encima de lo que lleva una fila (un `ion-toggle`, la casilla de selección o lo que ponga el slot de una celda).
-- **Acciones de fila:** como mucho dos botones visibles por fila, de solo icono, con la etiqueta como nombre accesible y como título (`showLabel` pinta también el texto; una acción sin icono, su texto). Cada acción se nombra para el lector con la fila a la que afecta, «<acción>: <título de la fila>» («Cambiar rol: Carlos Ruiz»), con el título de su tarjeta (`cardTitle` o `cardTitleColumn`), en su botón (también su título) y en su entrada del «⋮»; el texto visible no cambia y, sin título de fila, el nombre es la etiqueta corta. `ariaLabel(row)` lo sustituye cuando el título no sirve como nombre. La fijada (`pinned`) va primero; el resto, y siempre las delicadas (`menuOnly`), van al menú «⋮» de la fila, con icono y texto, que solo aparece si le queda algo. La tarjeta lleva su acción principal con texto a todo el ancho y el «⋮» al lado.
+- **Acciones de fila:** como mucho dos botones visibles por fila, de solo icono, con la etiqueta como nombre accesible y como título (ver «Botones de acción»). `showLabel` pinta también el texto y es solo para la acción cuyo icono no se entiende solo: «Abrir» y «Cobrar» no lo llevan. Una acción sin icono pinta su texto. Cada acción se nombra para el lector con la fila a la que afecta, «<acción>: <título de la fila>» («Cambiar rol: Carlos Ruiz»), con el título de su tarjeta (`cardTitle` o `cardTitleColumn`), en su botón (también su título) y en su entrada del «⋮»; el texto visible no cambia y, sin título de fila, el nombre es la etiqueta corta. `ariaLabel(row)` lo sustituye cuando el título no sirve como nombre. La fijada (`pinned`) va primero; el resto, y siempre las delicadas (`menuOnly`), van al menú «⋮» de la fila, con icono y texto, que solo aparece si le queda algo. La tarjeta lleva su acción principal (la fijada o, si no hay, la primera) y el «⋮» al lado: con icono, solo el icono, como en la lista; con `showLabel` o sin icono, su texto a todo el ancho.
 - **Interruptor:** la opción `toggle` de una columna enciende o apaga la fila con un `ion-toggle` (al principio de la celda en la lista, al final de la cabecera de la tarjeta), con su nombre accesible, su progreso y su motivo debajo; al moverlo emite `toggle`, y si el cambio se cancela o falla vuelve al estado real. `hidden` lo quita en una fila y deja su motivo.
 - **Tarjetas y scroll infinito:** el tipo de tarjeta «fila como tarjeta» es la tarjeta del propio `DataTable` y no se monta a mano: la identidad de la columna `identity` en la cabecera, el estado (columna `state` o `status`) como etiqueta, la descripción (`summary` o `description`) a todo el ancho y los demás datos en líneas que dicen qué es cada uno, con el icono de `cardIcon` o, sin él, con el nombre de la columna delante del valor («Divisa EUR»), sin pintar los vacíos; el slot `card` cambia su cuerpo. Las tarjetas y la lista del teléfono cargan las siguientes al llegar al final (`ion-infinite-scroll`; en modo servidor emiten `loadMore`): ya no hay «Cargar más». La lista de escritorio conserva su paginador.
 - **Llenar la pantalla (`fill`):** la tabla ocupa el alto de su contenedor y sus filas llegan hasta el paginador, sin franja vacía; si no caben todas, la última que se ve queda cortada en el borde y las demás se desplazan dentro, como en cualquier lista con scroll. En el teléfono la lista se desplaza con la página.
 - **Filtros en el navegador:** sin `serverSide`, `text` busca «contiene» en lo que pinta la celda y `select` y `lookup` comparan por igualdad con el campo de la fila (`filter.key` si no es el de la columna); si ese campo es una lista, la fila entra cuando uno de sus elementos es el valor elegido (una venta cobrada con efectivo y tarjeta sale filtrando por cualquiera de los dos).
 - **Filtros propios:** un `ion-select` que la página pone directamente en el slot `filters` (o `toolbar`) va enmarcado como los selectores de la barra y mide lo que la opción que enseña (entre 6,5 y 16 rem), así que su texto no se corta.
+- **Crear y acción principal de la barra:** `addable` pinta el «+» relleno, sin texto, con `labels.add` («Añadir cita») como nombre accesible y como título: el «+» ya dice crear, y lo que crea lo dice la lista. `primaryAction` (`label`, `icon`, `add` si no lleva) es otro botón con el mismo aspecto y la misma regla: solo el icono, con `label` como nombre y título; `showLabel` pinta también el texto, solo para la acción cuyo icono no se entiende solo.
 - **Úsalo cuando** una pantalla lista registros de una entidad; el alta va por `addable` (emite `add` y la página abre su formulario).
 - **No lo uses cuando** son unos pocos puntos fijos sin búsqueda ni acciones → `ion-list`; una tarjeta de registro fuera de una lista: aún no existe (ver al final).
-- **API:** `columns` (con `identity`, `cardIcon`, `toggle`, `priority`, `cell`, `filter`…), `rows`, `rowKey`, `loading`, `error`, `searchable`, `filters`/`filterFields` (tipos `text`, `select`, `date`, `daterange`, `range`, `boolean` y `lookup`, uno entre muchos), `serverSide` con `total`/`page`/`sort`/`maxWindow`, `actions` (`id`, `label`, `ariaLabel`, `icon`, `showLabel`, `color`, `disabled`, `loading`, `hidden`, `pinned`, `menuOnly`), `maxInlineActions` (2, el máximo), `addable`, `primaryAction`, `rowClickable`, `selectable`, `views`, `cardBreakpoint`, `entityLabel`, `fill`, `testid`; slots de celda (el `cell` de cada columna), `card`, `row-actions` (solo para un control que no puede ser una acción: nunca se pliega), `toolbar`, `filters`, `empty`; eventos `add`, `action`, `toggle`, `rowClick`, `pageChange`, `pageSizeChange`, `sortChange`, `loadMore`, `retry`, `update:search`, `update:filters`. Las pruebas de una página leen y pulsan las acciones de una fila, estén en sus botones o en su «⋮», con `offeredRowActions` y `pressRowAction` de `@erplora/ui/testing/data-table`.
+- **API:** `columns` (con `identity`, `cardIcon`, `toggle`, `priority`, `cell`, `filter`…), `rows`, `rowKey`, `loading`, `error`, `searchable`, `filters`/`filterFields` (tipos `text`, `select`, `date`, `daterange`, `range`, `boolean` y `lookup`, uno entre muchos), `serverSide` con `total`/`page`/`sort`/`maxWindow`, `actions` (`id`, `label`, `ariaLabel`, `icon`, `showLabel`, `color`, `disabled`, `loading`, `hidden`, `pinned`, `menuOnly`), `maxInlineActions` (2, el máximo), `addable`, `primaryAction` (`label`, `icon`, `showLabel`), `rowClickable`, `selectable`, `views`, `cardBreakpoint`, `entityLabel`, `fill`, `testid`; slots de celda (el `cell` de cada columna), `card`, `row-actions` (solo para un control que no puede ser una acción: nunca se pliega), `toolbar`, `filters`, `empty`; eventos `add`, `action`, `toggle`, `rowClick`, `pageChange`, `pageSizeChange`, `sortChange`, `loadMore`, `retry`, `update:search`, `update:filters`. Las pruebas de una página leen y pulsan las acciones de una fila, estén en sus botones o en su «⋮», con `offeredRowActions` y `pressRowAction` de `@erplora/ui/testing/data-table`.
 - **Ionic:** `ion-searchbar`, `ion-select`, `ion-checkbox`, `ion-segment`, `ion-popover`, `ion-list` e `ion-item` (el «⋮»), `ion-card`, `ion-chip`, `ion-toggle`, `ion-infinite-scroll`, `ion-button`, `ion-spinner`.
 
 ### `AlignedCardGrid`
@@ -83,10 +106,10 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 
 ### `FormModal`
 `import { FormModal } from '@erplora/ui/components'`
-- **Para qué sirve:** un formulario corto en un diálogo, con Guardar y Cancelar, su estado de envío y el error del servidor (el mensaje arriba y el de cada campo en el slot). El motivo de un campo sale una sola vez, debajo de ese campo: si el mensaje del rechazo es el motivo que ya pinta un campo marcado (un nombre que ya tiene otro registro), el recuadro de arriba no lo repite; arriba queda lo que no dice ningún campo. Nunca pasa del alto de la pantalla: si no cabe, los campos se desplazan entre el título y los botones, que siempre se ven (también en una tableta en horizontal con un pie de varias filas). Un párrafo encima de un campo ya va separado de su rótulo, también dentro de `ConfirmDialog` (ver «Reglas»). Un título largo pasa a las líneas que necesite, nunca se corta con «…».
-- **Úsalo cuando** se crea o edita algo de pocos campos sin salir de la pantalla.
+- **Para qué sirve:** un formulario corto en un diálogo, con Guardar y Cancelar, su estado de envío y el error del servidor (el mensaje arriba y el de cada campo en el slot). El motivo de un campo sale una sola vez, debajo de ese campo: si el mensaje del rechazo es el motivo que ya pinta un campo marcado (un nombre que ya tiene otro registro), el recuadro de arriba no lo repite; arriba queda lo que no dice ningún campo. Nunca pasa del alto ni del ancho de la página en la que se abre, tampoco en Chrome de una tableta o un móvil con la barra de direcciones a la vista ni con el tamaño de la interfaz al 120 %: si no cabe, los campos se desplazan entre el título y los botones, que siempre se ven (también en una tableta en horizontal con un pie de varias filas). Un párrafo encima de un campo ya va separado de su rótulo, también dentro de `ConfirmDialog` (ver «Reglas»). Un título largo pasa a las líneas que necesite, nunca se corta con «…».
+- **Úsalo cuando** se crea o edita algo de pocos campos sin salir de la pantalla. Una tarea que se hace sin salir de su pantalla y pide más (reservar una cita: quién y qué a un lado, cuándo al otro) va en `size="xl"`, a dos columnas en tableta y escritorio, con `phoneLayout="fullscreen"` en el teléfono y lo elegido en el slot `summary`.
 - **No lo uses cuando** el formulario de una entidad es largo → una página con `AppPage`; es una pregunta de sí o no → `useConfirm`.
-- **API:** `v-model:open`, `title`, `submitLabel`, `pending`, `error`, `size` (`sm` 420 px, `md` 480 px, `lg` 640 px para una ventana de lectura), `phoneLayout` (`sheet`, `card`), `submitDisabled`, `submitHint` (lo que aún falta mientras Guardar está apagado, una cosa cada vez: «Escribe el nombre para continuar.»; sale en su propia línea encima de los botones, del lado de Guardar, que siempre se ve, y el lector de pantalla la anuncia cada vez que cambia (`role="status"`); con Guardar encendido o en una ventana de solo lectura no sale), `readonly`, `canDismiss`, `testid`; slot por defecto con `{ fieldErrors, pending }` y slot `footer`; eventos `submit` (no cierra: la página pone `open = false` cuando su orden sale bien) y `cancel`. `useRefusal` mantiene los errores de un rechazo mientras se corrige.
+- **API:** `v-model:open`, `title`, `submitLabel`, `pending`, `error`, `size` (`sm` 420 px, `md` 480 px, `lg` 640 px para una ventana de lectura, `xl` 920 px para un formulario a dos columnas; nunca más ancho que la página), `phoneLayout` (por debajo de 640 px: `sheet`, la hoja desde abajo tan alta como sus campos; `card`, la tarjeta centrada de una confirmación; `fullscreen`, la pantalla entera con el título y los botones fijos, los campos con scroll entre ellos y los botones por encima de la barra de gestos), `submitDisabled`, `submitHint` (lo que aún falta mientras Guardar está apagado, una cosa cada vez: «Escribe el nombre para continuar.»; sale en su propia línea encima de los botones, del lado de Guardar, que siempre se ve, y el lector de pantalla la anuncia cada vez que cambia (`role="status"`); con Guardar encendido o en una ventana de solo lectura no sale), `readonly`, `canDismiss`, `testid`; slot por defecto con `{ fieldErrors, pending }`, slot `footer` (sustituye a los botones) y slot `summary` (lo elegido, «12:00 – 12:30 · 30 min», al principio del pie y los botones al final, con una línea que separa el pie de los campos; en el teléfono, en su propia línea encima de los botones; va con los botones de siempre o con los del slot `footer`); eventos `submit` (no cierra: la página pone `open = false` cuando su orden sale bien) y `cancel`. `useRefusal` mantiene los errores de un rechazo mientras se corrige.
 - **Ionic:** `ion-modal`, `ion-header`, `ion-toolbar`, `ion-title`, `ion-buttons`, `ion-button`, `ion-spinner`.
 
 ### `SettingsFormFooter`
@@ -137,6 +160,14 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 - **API:** `v-model` (el texto tal cual: al guardar se lee con `parseMoney` y un importe guardado se escribe con `moneyFieldText`), `label`, `testid`, `money` (`{ currency, decimals }`), `signed`, `errorText`, `helperText`, `showError`, `disabled`.
 - **Ionic:** `ion-input`, `ion-button`.
 
+### `QuantityStepper`
+`import { QuantityStepper } from '@erplora/ui/components'`
+- **Para qué sirve:** cuántos de algo: uno menos, la cifra y uno más, con botones de 44 px que se tocan bien con el dedo. Solo pide (`change`, con la cantidad como la lee el servidor: «2», «0.532»); la cifra enseña lo que guarda la página, así que una cantidad rechazada vuelve sola. La cifra también se escribe, sin separar los miles («1500»).
+- **Úsalo cuando** se cambia cuántos de algo: la línea de una cuenta o de un pedido, un plato antes de añadirlo, una opción que se puede repetir.
+- **No lo uses cuando** es un importe → `MoneyInput`; es un número de una página de ajustes → `SettingsNumberField`.
+- **API:** `quantity` (número o texto decimal), `min` (0; uno menos espera ahí), `max` (uno más espera ahí), `decimals` (se escriben decimales, para un peso; si no, unidades enteras), `unit` (se enseña salvo «ud»), `disabled`, `label`, `decreaseLabel`, `increaseLabel` (lo que lee un lector de pantalla; «Cantidad», «Uno menos» y «Uno más» por defecto), `testid` (`-minus`, `-field`, `-unit`, `-plus`); evento `change`.
+- **Ionic:** `ion-button`.
+
 ### `DateField`, `TimeField`, `DateTimeField`
 `import { DateField, DateTimeField, TimeField } from '@erplora/ui/components'`
 - **Para qué sirve:** el día o la hora de un formulario. Cerrado es un campo con contorno como los demás, de solo lectura (no abre el teclado), que enseña el valor en el idioma de la app («23/11/2026» o «11/23/2026»; «14:30» o «02:30 PM»). Al tocarlo, o con Intro, Espacio o la flecha abajo, abre el calendario o la rueda de horas de Ionic (`ion-datetime`) en un `ion-popover` en el centro de la pantalla, entero con sus botones (también en una tableta en horizontal, esté donde esté el campo), con los colores de la paleta activa, el idioma de la app, la semana desde el día en que la empieza ese idioma y las 24 horas o AM/PM según el idioma; abajo, Aceptar y Cancelar, y Borrar si el campo no es obligatorio. El día que se toca (o se elige con Intro o Espacio) queda elegido y el calendario se cierra, sin pulsar Aceptar; moverse por los meses y los años no elige nada, y la rueda de horas se confirma con Aceptar. Cancelar, Escape o tocar fuera lo cierran sin cambiar el campo. Nunca el selector nativo del dispositivo, que pinta con sus colores y en su idioma.
@@ -156,7 +187,7 @@ renombra o quita un componente actualiza este fichero en el mismo cambio.
 
 ### `ImageUpload`
 `import { ImageUpload } from '@erplora/ui/components'`
-- **Para qué sirve:** una imagen de un formulario (logotipo, portada): miniatura, «Elegir imagen» o «Cambiar imagen» y «Quitar», con el tipo y el tamaño comprobados antes de subir.
+- **Para qué sirve:** una imagen de un formulario (logotipo, portada): miniatura, el botón de subir («Elegir imagen» o «Cambiar imagen») y el de quitar, los dos de solo icono con su etiqueta como nombre accesible y título, con el tipo y el tamaño comprobados antes de subir.
 - **Úsalo cuando** un campo guarda una sola imagen y la página la sube con su propia `upload(file)`.
 - **No lo uses cuando** hacen falta varias imágenes o adjuntos: aún no hay componente, y se avisa antes de crear uno.
 - **API:** `v-model` (`{ id, url }` o `null`), `label`, `upload(file)` (sube y devuelve la imagen guardada), `accept`, `maxBytes` (5 MB), `disabled`, `testid`.
@@ -243,7 +274,7 @@ habla de un sitio concreto de la pantalla → en línea.
 
 ### `useActionCenter`, `useQuietActionNotices`, `connectActionCenter`
 `import { useActionCenter, useQuietActionNotices } from '@erplora/ui/shell'`
-- **Para qué sirve:** avisos permanentes que exigen que el usuario haga algo y siguen siendo verdad al recargar (factura sin pagar, datos fiscales que faltan). La app entrega una fuente de `ActionNotice`; no monta campana, tira fija ni banner propios. La campana los resume y abre su panel; un aviso nuevo llega como tarjeta bajo la barra superior.
+- **Para qué sirve:** avisos permanentes que exigen que el usuario haga algo y siguen siendo verdad al recargar (factura sin pagar, datos fiscales que faltan). La app entrega una fuente de `ActionNotice`; no monta campana, tira fija ni banner propios. La campana los resume y abre su panel; un aviso nuevo llega como tarjeta bajo la barra superior. Desde la tableta la campana con avisos es una píldora con el anillo del plazo, el número y el icono del aviso más grave; en el teléfono ocupa lo que un botón: el anillo con la campana y el número en una insignia sobre su esquina, del color del aviso más grave, sin el icono aparte (su nombre para el lector sigue diciendo la gravedad).
 - **Úsalo cuando** el proyecto da la fuente de sus avisos a `createShell({ actionNotices })`: el shell pinta la campana en `AppTopbar`, la tarjeta de llegada y el panel. `useQuietActionNotices` silencia las llegadas del centro de avisos mientras hay un flujo delicado abierto (el cobro).
 - **No lo uses cuando** confirma lo que la persona acaba de hacer → `toast`; solo tiene sentido junto a lo que afecta → `InlineFeedback`.
 - **Piezas internas:** la campana (`ActionBell`), la tarjeta de llegada y el panel son piezas internas del centro de avisos y no se exportan; las monta el shell. Una app no las usa directamente.
@@ -304,7 +335,7 @@ habla de un sitio concreto de la pantalla → en línea.
 
 ### `AppPage`
 `import { AppPage } from '@erplora/ui/shell'`
-- **Para qué sirve:** el marco de toda pantalla: la barra superior con título, Atrás y acciones, un solo `ion-content` con los márgenes del shell y las pestañas de sección abajo.
+- **Para qué sirve:** el marco de toda pantalla: la barra superior con título, Atrás y acciones, un solo `ion-content` con los márgenes del shell y las pestañas de sección abajo. Las pestañas reparten el ancho por igual; la que tiene una palabra más larga toma lo que necesita y las demás le ceden el sitio, así que cinco caben enteras en un teléfono; solo si no caben ni así, la tira se desliza de lado dejando asomar la siguiente.
 - **Úsalo cuando** siempre, como raíz de cada página de una app del Hub o del panel del SaaS.
 - **No lo uses cuando** el contenido va en un diálogo → `FormModal`; nunca un `ion-page` o `ion-header` propios en una pantalla normal.
 - **API:** props `title`, `backHref` (enseña Atrás: vista de detalle), `contentLayout` (`fluid`, `detail`, `detail-fill`, `fill` para una lista `DataTable fill`), `headingOnScreen`, `tabs` con `v-model:tab`, `tabsLabel`; slots por defecto, `actions` (en la barra; en el teléfono, al «⋮» de `AppTopbar` cuando no caben) y `footer`.
@@ -312,7 +343,7 @@ habla de un sitio concreto de la pantalla → en línea.
 
 ### `AppTopbar`, `useTopbarMenu`
 `import { AppTopbar, useTopbarMenu } from '@erplora/ui/shell'`
-- **Para qué sirve:** la barra superior del shell: el botón del menú (solo donde el shell pinta el menú lateral; sin sesión, o en una pantalla con su propio marco, queda oculto), título, sección, Atrás, las acciones de la vista, «Mis apps» (con la barra lateral del Hub), la pieza de barra del proyecto (`chrome.topbar` de `createShell`, el botón del asistente) y la campana del centro de avisos (con `createShell({ actionNotices })`). En el teléfono (hasta 767 px) la derecha lleva como mucho dos botones y la campana es uno de ellos. A cualquier ancho el título ocupa lo que pide su texto y queda centrado mientras cabe; solo se corta con «…» cuando llega a los botones.
+- **Para qué sirve:** la barra superior del shell: el botón del menú (solo donde el shell pinta el menú lateral; sin sesión, o en una pantalla con su propio marco, queda oculto), título, sección, Atrás, las acciones de la vista, «Mis apps» (con la barra lateral del Hub), la pieza de barra del proyecto (`chrome.topbar` de `createShell`, el botón del asistente) y la campana del centro de avisos (con `createShell({ actionNotices })`). En el teléfono (hasta 767 px) la derecha lleva como mucho dos botones y la campana es uno de ellos, del tamaño de un botón (su número, en una insignia sobre su esquina). A cualquier ancho el título ocupa lo que pide su texto y queda centrado mientras cabe; solo se corta con «…» cuando llega a los botones.
 - **El «⋮»:** el «⋮» único de la barra en el teléfono. Cuando las acciones de la vista, «Mis apps» y la pieza del proyecto no caben junto a la campana, o la vista trae dos o más acciones, van todas a él, una fila cada una; una app no pone su propio botón de «más».
 - **Úsalo cuando** una vista monta su propio `ion-page` y no puede usar `AppPage`; `useTopbarMenu` solo lo llama la pieza de barra del proyecto.
 - **No lo uses cuando** es una pantalla normal → `AppPage`, que ya la pinta.
@@ -385,7 +416,7 @@ de la cuenta (`ion:receipt-outline`) en lugar del suyo; el texto lo escribe la p
 - **Para qué sirve:** las pestañas de las zonas del plano, cada una con un punto de su color y sus mesas ocupadas sobre las que están en servicio; la tira se desplaza y difumina el borde que tiene más zonas detrás.
 - **Úsalo cuando** el plano tiene más de una zona y se elige cuál ver.
 - **No lo uses cuando** son las secciones de una pantalla → `tabs` de `AppPage`.
-- **API:** props `zones` (`FloorZoneTab[]`), `active` (el id o `null`), `label`; evento `change(zoneId)`. `useScrollEdges(element)` dice qué bordes de una caja con desplazamiento tienen más contenido detrás, para el mismo difuminado.
+- **API:** props `zones` (`FloorZoneTab[]`), `active` (el id o `null`), `label`; evento `change(zoneId)`. `useScrollEdges(element)` dice qué bordes de una caja con desplazamiento tienen más contenido detrás, para el mismo difuminado, y los vuelve a medir por sí mismo cuando la caja se desplaza, cambia de tamaño o cambia lo que lleva dentro (pestañas que llegan después de pintarla o que crecen al dibujarse).
 - **Ionic:** `ion-segment` desplazable, `ion-segment-button`, `ion-label`.
 
 ## Vídeo
@@ -408,10 +439,10 @@ El `done` de cada ronda que manda el host puede traer `sources`, las direcciones
 
 ### `AssistantPanel`
 `import { AssistantPanel } from '@erplora/ui/components'`
-- **Para qué sirve:** el chat del asistente, el mismo en el Hub y en el SaaS: a la derecha desde 768 px y a pantalla completa en el teléfono, con dictado, lectura en voz alta y la tarjeta que aprueba cada escritura.
+- **Para qué sirve:** el chat del asistente, el mismo en el Hub y en el SaaS: a la derecha desde 768 px y a pantalla completa en el teléfono, con dictado, lectura en voz alta (el altavoz bajo cada respuesta, que pasa a «detener» mientras lee, de solo icono) y la tarjeta que aprueba cada escritura.
 - **Úsalo cuando** el host lo monta una sola vez junto al panel del shell, mientras hay una sesión.
 - **No lo uses cuando** una pantalla quiere su propio chat: hay un solo asistente por pestaña, que se abre con `AssistantButton` o `useAssistant()`.
-- **API:** slot `empty` con `{ setup, ask }` para la bienvenida; lo demás sale de `configureAssistant`. Con `toolFiles` (`AssistantToolFile`: terminación, tipo, tamaño máximo y clave del aviso, con los textos del host) el adjuntar acepta además los ficheros que una herramienta del host recibe tal cual (en el Hub, la copia de un negocio, `.blueprint.zip`), con su propio tope; sin él, solo lo que lee erplora.com. Con `imageNames` el turno del host recibe cada imagen adjunta con su nombre (`filename`, junto a `image_url`), para que sus herramientas puedan guardarla entera (en el Hub, en Archivos): su servidor se la nombra al modelo y la manda a erplora.com sin ese campo; sin él, la imagen va como la toma erplora.com, sin nombre. Cada fila `executed` del turno que manda el host puede traer `reason`, el motivo de un fallo por el idioma en que se dijo (`{ es: '…' }`): el recibo lo añade tras «No se hizo, falló: …» solo leído en ese idioma; sin él, el recibo queda como siempre. Una fila `executed` puede traer también `file` (`HandedFile`: `filename`, `content_type` y `content`), el fichero entero que da una lectura del host (en el Hub, el CSV de una exportación): bajo la respuesta sale «Descargar {nombre}», que lo entrega a `saveFile` del host con el `t` del panel, para sus avisos (en el Hub, las descargas del navegador o las de su app); la historia de la pestaña guarda solo su nombre, y tras recargar dice que ya no está y que se pida otra vez. Sin `saveFile`, el chat no ofrece ningún fichero.
+- **API:** slot `empty` con `{ setup, ask }` para la bienvenida; lo demás sale de `configureAssistant`. Con `toolFiles` (`AssistantToolFile`: terminación, tipo, tamaño máximo y clave del aviso, con los textos del host) el adjuntar acepta además los ficheros que una herramienta del host recibe tal cual (en el Hub, la copia de un negocio, `.blueprint.zip`), con su propio tope; sin él, solo lo que lee erplora.com. Con `imageNames` el turno del host recibe cada imagen adjunta con su nombre (`filename`, junto a `image_url`), para que sus herramientas puedan guardarla entera (en el Hub, en Archivos): su servidor se la nombra al modelo y la manda a erplora.com sin ese campo; sin él, la imagen va como la toma erplora.com, sin nombre. Cada fila `executed` del turno que manda el host puede traer `reason`, el motivo de un fallo por el idioma en que se dijo (`{ es: '…' }`): el recibo lo añade tras «No se hizo, falló: …» solo leído en ese idioma; sin él, el recibo queda como siempre. Una fila `executed` puede traer también `file` (`HandedFile`: `filename`, `content_type` y `content`), el fichero entero que da una lectura del host (en el Hub, el CSV de una exportación): bajo la respuesta sale el icono de descarga con el nombre del fichero a la vista («Descargar {nombre}» como nombre accesible y título), que lo entrega a `saveFile` del host con el `t` del panel, para sus avisos (en el Hub, las descargas del navegador o las de su app); la historia de la pestaña guarda solo su nombre, y tras recargar dice que ya no está y que se pida otra vez. Sin `saveFile`, el chat no ofrece ningún fichero.
 - **Ionic:** `ion-button`, `ion-select`.
 
 ### `AssistantButton`
@@ -472,6 +503,11 @@ propio, solo pone las clases sobre las piezas de Ionic.
 impresora del dispositivo, `useMyApps`), que no pinta pantallas; los datos van por `@erplora/ui/sdk` (`useLive`,
 `useCommand`). Los tipos y las constantes de cada componente se importan del mismo sitio que el componente.
 
+El menú lateral del Hub (`createShell({ sidebar })`) lleva al pie el código QR «Ábrelo en el móvil» y, debajo, la pieza
+del proyecto (`chrome.sidebarFooter`). Las entradas van antes que el pie: si el menú mide menos de 832 px de alto (en
+píxeles de la página, con el tamaño de la interfaz que elige la persona), el código se pliega a una fila que lo enseña en
+un `ion-popover` al tocarla. Lo que la pieza del proyecto añada al pie cuenta en ese alto.
+
 ## Lo que aún no existe
 
 Las tarjetas de entidad, la baldosa táctil genérica y el panel de ajustes están en diseño. La fila como tarjeta ya existe: es la tarjeta del propio `DataTable`, y no se monta a mano; la tarjeta de cifra es `StatCard`. De la baldosa
@@ -491,6 +527,17 @@ nueva a mano sin avisarlo en la issue o en la PR, para que entre en el diseño d
   de otro componente), deja 14 px, lo que la mayoría de los formularios deja entre dos campos; el texto de una fila
   (`ion-label`) deja el hueco de Ionic con el valor de su final (`ion-note` en `slot="end"`). Una rejilla con `gap` ya
   separa sus textos: su párrafo lleva `margin: 0`, que gana.
+- Las listas de un texto corrido (los pasos de una guía, los puntos de un aviso largo) llevan su número o su viñeta y
+  la sangría de una lista: el reset del tema se los quita a todas las listas, y la clase `ep-prose` en el contenedor
+  del texto se los devuelve, sin un `list-style` propio en la página (`src/shell/theme/prose.css`, que carga
+  `createShell`). Una lista que no es texto (un menú, unas filas, unas etiquetas) no la lleva.
+- El tamaño de la interfaz de Mi perfil (80–120 %) es un `zoom` en `<html>` (`setThemeScale`). Lo que el navegador mide
+  (`getBoundingClientRect`, el tamaño de la ventana) sale en píxeles de pantalla, y un `top`, `left` o `max-height` se
+  escribe en los de la página: una pieza que coloca algo junto a otra cosa divide lo medido por `cssZoomOf(el)`
+  (`src/shell/css-zoom.ts`, interna), como la lista del `Combo` y la tarjeta de la campana. Los `ion-popover` los
+  coloca Ionic con el parche de `@ionic/core` de `patches/` (el arreglo que trae Ionic 9.0.5), que el Hub aplica desde
+  `packages/ui/patches/`; se quita al pasar a Ionic 9.
+- Un botón de acción cuyo icono se entiende solo no lleva texto visible, esté donde esté: ver «Botones de acción».
 - Ningún prefijo `ok-`.
 - Una pieza sube a la librería cuando la necesita una segunda app (o el Hub y el SaaS): `src/components/<Nombre>/`,
   con su test, sus textos en `en` y `es`, su export en `src/components/index.ts` y su entrada en este catálogo. Lo que

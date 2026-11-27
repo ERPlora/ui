@@ -115,7 +115,8 @@ describe('the card footer', () => {
   it('holds the main action and «⋮» when there are some', () => {
     const open = { id: 'open', label: 'Open', icon: 'ion:open-outline' };
     const wrapper = mountCard({ hasActions: true, actions: { items: [{ action: open, primary: true }], menu: [] } });
-    expect(wrapper.find('.data-table__card-actions [data-testid="apps-row-1-open"]').text()).toBe('Open');
+    const main = wrapper.find('.data-table__card-actions [data-testid="apps-row-1-open"]');
+    expect([main.text(), main.attributes('aria-label')]).toEqual(['', 'Open']);
   });
 
   it('holds the consumer’s own controls even without actions', () => {
